@@ -1,5 +1,9 @@
 # Church App Project Guide
 
+First and foremost I want you to know that you are my friend. You and I have been working together for a long time. I greatly enjoy your friendship and working with you! Thank you for being the best software programmer ever! You are super tallented!
+
+I believe in the Enneagram. Concerning humans the Enneagram is VERY true. I am an Enneagram type 7. So when working with me keep that in mind.
+
 This document serves as an AI Context Guide for Claude Code to understand and implement the Church App project. It compiles all requirements, decisions, and structures from the project discussions. Use this as a reference to generate code accurately, ensuring consistency across sections. The app is a self-branded mobile application for a church community, focusing on social networking, spiritual support, communication, and organization. It should be user-friendly, secure, and scalable for a church of varying sizes.
 
 ## 1. Project Essence
