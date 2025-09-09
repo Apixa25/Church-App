@@ -35,7 +35,8 @@ const RegisterForm: React.FC = () => {
   };
 
   const handleGoogleSignup = () => {
-    window.location.href = 'http://localhost:8080/api/oauth2/authorization/google';
+    alert('🚧 Google signup is temporarily disabled while we configure it. Please use email/password registration for now!');
+    // window.location.href = 'http://localhost:8081/api/oauth2/authorization/google';
   };
 
   return (
