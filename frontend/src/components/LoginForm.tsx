@@ -30,7 +30,8 @@ const LoginForm: React.FC = () => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = 'http://localhost:8080/api/oauth2/authorization/google';
+    alert('🚧 Google login is temporarily disabled while we configure it. Please use email/password login for now!');
+    // window.location.href = 'http://localhost:8081/api/oauth2/authorization/google';
   };
 
   return (
