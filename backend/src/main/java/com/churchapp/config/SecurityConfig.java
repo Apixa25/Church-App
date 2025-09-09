@@ -19,6 +19,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.util.Arrays;
 import java.util.List;
@@ -59,6 +63,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/oauth2/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
@@ -70,9 +75,21 @@ public class SecurityConfig {
                 )
                 .defaultSuccessUrl("/api/auth/oauth2/success", true)
                 .failureUrl("/api/auth/oauth2/failure")
+                .userInfoEndpoint(userInfo -> userInfo
+                    .userService(oauth2UserService())
+                )
             );
         
         return http.build();
+    }
+    
+    @Bean
+    public OAuth2UserService<OAuth2UserRequest, OAuth2User> oauth2UserService() {
+        DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
+        return request -> {
+            OAuth2User user = delegate.loadUser(request);
+            return user;
+        };
     }
     
     @Bean
