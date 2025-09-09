@@ -56,4 +56,37 @@ export const authAPI = {
     api.post('/auth/logout'),
 };
 
+// Profile API endpoints
+export const profileAPI = {
+  getMyProfile: () =>
+    api.get('/profile/me'),
+  
+  getUserProfile: (userId: string) =>
+    api.get(`/profile/${userId}`),
+  
+  updateMyProfile: (data: {
+    name?: string;
+    bio?: string;
+    role?: string;
+    profilePicUrl?: string;
+  }) =>
+    api.put('/profile/me', data),
+  
+  uploadProfilePicture: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/profile/me/upload-picture', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
+  deleteProfilePicture: () =>
+    api.delete('/profile/me/delete-picture'),
+  
+  getProfileCompletionStatus: () =>
+    api.get('/profile/me/complete-status'),
+};
+
 export default api;

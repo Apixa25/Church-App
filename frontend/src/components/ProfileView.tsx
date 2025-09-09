@@ -1,0 +1,241 @@
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { profileAPI } from '../services/api';
+import { UserProfile, ProfileCompletionStatus } from '../types/Profile';
+import { useAuth } from '../contexts/AuthContext';
+import ProfileEdit from './ProfileEdit';
+
+interface ProfileViewProps {
+  userId?: string;
+  showEditButton?: boolean;
+}
+
+const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditButton = true }) => {
+  const { user } = useAuth();
+  const { userId: paramUserId } = useParams<{ userId: string }>();
+  const userId = propUserId || paramUserId;
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [completionStatus, setCompletionStatus] = useState<ProfileCompletionStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const isOwnProfile = !userId || userId === user?.userId;
+
+  useEffect(() => {
+    fetchProfile();
+    if (isOwnProfile) {
+      fetchCompletionStatus();
+    }
+  }, [userId, isOwnProfile]);
+
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = userId 
+        ? await profileAPI.getUserProfile(userId)
+        : await profileAPI.getMyProfile();
+      
+      setProfile(response.data);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Failed to load profile';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCompletionStatus = async () => {
+    try {
+      const response = await profileAPI.getProfileCompletionStatus();
+      setCompletionStatus(response.data);
+    } catch (err) {
+      console.error('Failed to fetch completion status:', err);
+    }
+  };
+
+  const handleProfileUpdate = (updatedProfile: UserProfile) => {
+    setProfile(updatedProfile);
+    setIsEditing(false);
+    if (isOwnProfile) {
+      fetchCompletionStatus();
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  const getRoleDisplay = (role: string) => {
+    const roleMap = {
+      MEMBER: '👤 Member',
+      MODERATOR: '⭐ Moderator',
+      ADMIN: '👑 Administrator',
+    };
+    return roleMap[role as keyof typeof roleMap] || role;
+  };
+
+  if (loading) {
+    return (
+      <div className="profile-loading">
+        <div className="loading-spinner">⏳</div>
+        <p>Loading profile...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="profile-error">
+        <h3>⚠️ Error Loading Profile</h3>
+        <p>{error}</p>
+        <button onClick={fetchProfile} className="retry-button">
+          🔄 Try Again
+        </button>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="profile-not-found">
+        <h3>👤 Profile Not Found</h3>
+        <p>The requested profile could not be found.</p>
+      </div>
+    );
+  }
+
+  if (isEditing) {
+    return (
+      <ProfileEdit
+        profile={profile}
+        onProfileUpdate={handleProfileUpdate}
+        onCancel={() => setIsEditing(false)}
+      />
+    );
+  }
+
+  return (
+    <div className="profile-view-container">
+      <div className="profile-view">
+        {/* Profile Header */}
+        <div className="profile-header">
+          <div className="profile-avatar">
+            {profile.profilePicUrl ? (
+              <img 
+                src={profile.profilePicUrl} 
+                alt={profile.name}
+                className="profile-picture-display"
+              />
+            ) : (
+              <div className="profile-picture-placeholder-large">
+                <span>👤</span>
+              </div>
+            )}
+          </div>
+          <div className="profile-info">
+            <h1>{profile.name}</h1>
+            <p className="profile-role">{getRoleDisplay(profile.role)}</p>
+            <p className="profile-email">{profile.email}</p>
+          </div>
+          {showEditButton && isOwnProfile && (
+            <div className="profile-actions">
+              <button
+                onClick={() => setIsEditing(true)}
+                className="edit-profile-button"
+              >
+                ✏️ Edit Profile
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Profile Completion Status */}
+        {isOwnProfile && completionStatus && (
+          <div className="completion-status">
+            <h3>📊 Profile Completion</h3>
+            <div className="completion-bar">
+              <div
+                className="completion-fill"
+                style={{ width: `${completionStatus.profileCompletionPercentage}%` }}
+              />
+            </div>
+            <p className="completion-text">
+              {completionStatus.profileCompletionPercentage}% Complete
+            </p>
+            {!completionStatus.isComplete && (
+              <p className="completion-hint">
+                💡 Complete your profile to help others get to know you better!
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Profile Details */}
+        <div className="profile-details">
+          <div className="profile-section">
+            <h3>📝 About</h3>
+            {profile.bio ? (
+              <p className="profile-bio">{profile.bio}</p>
+            ) : (
+              <p className="profile-bio-empty">
+                {isOwnProfile 
+                  ? "📝 Add a bio to tell others about yourself"
+                  : "This user hasn't added a bio yet."
+                }
+              </p>
+            )}
+          </div>
+
+          <div className="profile-section">
+            <h3>📅 Member Since</h3>
+            <p>{formatDate(profile.createdAt)}</p>
+          </div>
+
+          {profile.lastLogin && (
+            <div className="profile-section">
+              <h3>🕒 Last Active</h3>
+              <p>{formatDate(profile.lastLogin)}</p>
+            </div>
+          )}
+
+          {profile.updatedAt && profile.updatedAt !== profile.createdAt && (
+            <div className="profile-section">
+              <h3>✏️ Profile Updated</h3>
+              <p>{formatDate(profile.updatedAt)}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Quick Actions for Own Profile */}
+        {isOwnProfile && (
+          <div className="profile-quick-actions">
+            <h3>⚡ Quick Actions</h3>
+            <div className="action-buttons">
+              <button
+                onClick={() => setIsEditing(true)}
+                className="action-button"
+              >
+                ✏️ Edit Profile
+              </button>
+              <button
+                onClick={fetchProfile}
+                className="action-button"
+              >
+                🔄 Refresh
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ProfileView;

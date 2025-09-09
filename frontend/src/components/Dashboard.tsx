@@ -51,10 +51,28 @@ const Dashboard: React.FC = () => {
           </div>
 
           <div className="dashboard-card">
+            <h3>⚡ Quick Actions</h3>
+            <p>Manage your profile and church community:</p>
+            <div className="action-buttons">
+              <button 
+                onClick={() => navigate('/profile')}
+                className="action-button primary"
+              >
+                👤 View My Profile
+              </button>
+              <button 
+                onClick={() => navigate('/profile/edit')}
+                className="action-button"
+              >
+                ✏️ Edit Profile
+              </button>
+            </div>
+          </div>
+
+          <div className="dashboard-card">
             <h3>🚧 Coming Soon</h3>
             <p>More sections will be implemented:</p>
             <ul>
-              <li>👤 User Profiles</li>
               <li>💬 Group Chats</li>
               <li>🙏 Prayer Requests</li>
               <li>📢 Announcements</li>
@@ -69,7 +87,8 @@ const Dashboard: React.FC = () => {
           <div className="dashboard-card">
             <h3>🎯 Current Status</h3>
             <p>Section 1: Signup/Login - ✅ Complete!</p>
-            <p>Ready to proceed with Section 2: User Profiles</p>
+            <p>Section 2: User Profiles - ✅ Complete!</p>
+            <p>Ready for Section 3: Home/Dashboard</p>
           </div>
         </div>
       </main>

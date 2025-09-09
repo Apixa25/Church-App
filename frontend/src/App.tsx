@@ -6,6 +6,8 @@ import RegisterForm from './components/RegisterForm';
 import Dashboard from './components/Dashboard';
 import AuthCallback from './components/AuthCallback';
 import ProtectedRoute from './components/ProtectedRoute';
+import ProfileView from './components/ProfileView';
+import ProfileEdit from './components/ProfileEdit';
 import './App.css';
 
 const App: React.FC = () => {
@@ -26,6 +28,33 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <ProfileView />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/profile/edit" 
+              element={
+                <ProtectedRoute>
+                  <ProfileEdit />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/profile/:userId" 
+              element={
+                <ProtectedRoute>
+                  <ProfileView />
                 </ProtectedRoute>
               } 
             />
