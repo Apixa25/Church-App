@@ -70,11 +70,14 @@ public class SecurityConfig {
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .oauth2Login(oauth2 -> oauth2
-                .redirectionEndpoint(redirection -> redirection
-                    .baseUri("/api/oauth2/callback/*")
+                .authorizationEndpoint(authorization -> authorization
+                    .baseUri("/oauth2/authorization")
                 )
-                .defaultSuccessUrl("/api/auth/oauth2/success", true)
-                .failureUrl("/api/auth/oauth2/failure")
+                .redirectionEndpoint(redirection -> redirection
+                    .baseUri("/oauth2/callback/*")
+                )
+                .defaultSuccessUrl("/auth/oauth2/success", true)
+                .failureUrl("/auth/oauth2/failure")
                 .userInfoEndpoint(userInfo -> userInfo
                     .userService(oauth2UserService())
                 )
