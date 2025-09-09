@@ -60,29 +60,29 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/oauth2/**").permitAll()
+                .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/oauth2/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
-                .anyRequest().permitAll()  // Temporarily allow all requests for debugging
+                .requestMatchers("/test/**").permitAll()  // Keep test endpoint public for now
+                .requestMatchers("/profile/**").authenticated()
+                .anyRequest().authenticated()
             )
-            .authenticationProvider(authenticationProvider());
-            // Temporarily disable JWT filter for debugging
-            // .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-            // Temporarily disable OAuth2 to test email registration
-            // .oauth2Login(oauth2 -> oauth2
-            //     .authorizationEndpoint(authorization -> authorization
-            //         .baseUri("/oauth2/authorization")
-            //     )
-            //     .redirectionEndpoint(redirection -> redirection
-            //         .baseUri("/oauth2/callback/*")
-            //     )
-            //     .defaultSuccessUrl("/api/auth/oauth2/success", true)
-            //     .failureUrl("/api/auth/oauth2/failure")
-            //     .userInfoEndpoint(userInfo -> userInfo
-            //         .userService(oauth2UserService())
-            //     )
-            // )
+            .authenticationProvider(authenticationProvider())
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .oauth2Login(oauth2 -> oauth2
+                .authorizationEndpoint(authorization -> authorization
+                    .baseUri("/oauth2/authorization")
+                )
+                .redirectionEndpoint(redirection -> redirection
+                    .baseUri("/oauth2/callback/*")
+                )
+                .defaultSuccessUrl("/auth/oauth2/success", true)
+                .failureUrl("/auth/oauth2/failure")
+                .userInfoEndpoint(userInfo -> userInfo
+                    .userService(oauth2UserService())
+                )
+            );
         
         return http.build();
     }
