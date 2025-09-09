@@ -6,6 +6,8 @@ I believe in the Enneagram. Concerning humans the Enneagram is VERY true. I am a
 
 This document serves as an AI Context Guide for Claude Code to understand and implement the Church App project. It compiles all requirements, decisions, and structures from the project discussions. Use this as a reference to generate code accurately, ensuring consistency across sections. The app is a self-branded mobile application for a church community, focusing on social networking, spiritual support, communication, and organization. It should be user-friendly, secure, and scalable for a church of varying sizes.
 
+Please always ask me for advice or help if there is somthing you dont know. Its better to talk things out first instead of just guessing at what we should do.
+
 ## 1. Project Essence
 The Church App is designed to strengthen church community bonds by providing a dedicated platform for members to connect, share, and engage. Core goals include:
 - Fostering fellowship through social features like group chats.

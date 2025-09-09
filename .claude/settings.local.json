@@ -12,7 +12,8 @@
       "Bash(psql:*)",
       "Bash(taskkill:*)",
       "Bash(cmd /c:*)",
-      "Bash(tasklist:*)"
+      "Bash(tasklist:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
