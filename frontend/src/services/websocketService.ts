@@ -1,0 +1,374 @@
+import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
+
+export interface WebSocketMessage {
+  type: string;
+  content?: any;
+  timestamp: string;
+  userId?: string;
+}
+
+export interface TypingStatus {
+  type: 'typing_status';
+  userId: string;
+  isTyping: boolean;
+  timestamp: string;
+}
+
+export interface PresenceUpdate {
+  type: 'presence_update';
+  userId: string;
+  status: string;
+  timestamp: string;
+}
+
+class WebSocketService {
+  private client: Client | null = null;
+  private subscriptions: Map<string, StompSubscription> = new Map();
+  private isConnected = false;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private reconnectDelay = 1000;
+  private token: string | null = null;
+
+  constructor() {
+    this.token = localStorage.getItem('token');
+  }
+
+  connect(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (this.isConnected && this.client?.connected) {
+        resolve();
+        return;
+      }
+
+      this.client = new Client({
+        webSocketFactory: () => new SockJS('http://localhost:8083/api/ws'),
+        connectHeaders: {
+          Authorization: `Bearer ${this.token}`,
+        },
+        debug: (str) => {
+          console.log('WebSocket Debug:', str);
+        },
+        onConnect: (frame) => {
+          console.log('WebSocket Connected:', frame);
+          this.isConnected = true;
+          this.reconnectAttempts = 0;
+          resolve();
+        },
+        onStompError: (frame) => {
+          console.error('WebSocket STOMP Error:', frame);
+          this.isConnected = false;
+          reject(new Error('WebSocket connection failed'));
+        },
+        onWebSocketError: (error) => {
+          console.error('WebSocket Error:', error);
+          this.isConnected = false;
+          reject(error);
+        },
+        onDisconnect: () => {
+          console.log('WebSocket Disconnected');
+          this.isConnected = false;
+          this.attemptReconnect();
+        },
+      });
+
+      this.client.activate();
+    });
+  }
+
+  disconnect(): void {
+    this.subscriptions.forEach((subscription) => subscription.unsubscribe());
+    this.subscriptions.clear();
+    
+    if (this.client) {
+      this.client.deactivate();
+      this.client = null;
+    }
+    
+    this.isConnected = false;
+  }
+
+  private attemptReconnect(): void {
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.reconnectAttempts++;
+      console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+      
+      setTimeout(() => {
+        this.connect().catch(console.error);
+      }, this.reconnectDelay * this.reconnectAttempts);
+    }
+  }
+
+  // Subscribe to group messages
+  subscribeToGroupMessages(
+    groupId: string,
+    callback: (message: any) => void
+  ): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const destination = `/topic/group/${groupId}/messages`;
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing group message:', error);
+      }
+    });
+
+    this.subscriptions.set(`group-messages-${groupId}`, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(`group-messages-${groupId}`);
+    };
+  }
+
+  // Subscribe to group notifications (joins, leaves, etc.)
+  subscribeToGroupNotifications(
+    groupId: string,
+    callback: (notification: WebSocketMessage) => void
+  ): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const destination = `/topic/group/${groupId}`;
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing group notification:', error);
+      }
+    });
+
+    this.subscriptions.set(`group-notifications-${groupId}`, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(`group-notifications-${groupId}`);
+    };
+  }
+
+  // Subscribe to typing indicators
+  subscribeToTyping(
+    groupId: string,
+    callback: (typing: TypingStatus) => void
+  ): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const destination = `/topic/group/${groupId}/typing`;
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing typing status:', error);
+      }
+    });
+
+    this.subscriptions.set(`typing-${groupId}`, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(`typing-${groupId}`);
+    };
+  }
+
+  // Subscribe to read receipts
+  subscribeToReadReceipts(
+    groupId: string,
+    callback: (readStatus: any) => void
+  ): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const destination = `/topic/group/${groupId}/read`;
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing read status:', error);
+      }
+    });
+
+    this.subscriptions.set(`read-${groupId}`, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(`read-${groupId}`);
+    };
+  }
+
+  // Subscribe to user-specific errors
+  subscribeToErrors(callback: (error: any) => void): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const destination = '/user/queue/errors';
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing error message:', error);
+      }
+    });
+
+    this.subscriptions.set('errors', subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete('errors');
+    };
+  }
+
+  // Subscribe to presence updates
+  subscribeToPresence(callback: (presence: PresenceUpdate) => void): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const destination = '/topic/presence';
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing presence update:', error);
+      }
+    });
+
+    this.subscriptions.set('presence', subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete('presence');
+    };
+  }
+
+  // Send message via WebSocket
+  sendMessage(groupId: string, message: any): void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    this.client.publish({
+      destination: `/app/chat/send/${groupId}`,
+      body: JSON.stringify(message),
+    });
+  }
+
+  // Send typing status
+  sendTypingStatus(groupId: string, isTyping: boolean): void {
+    if (!this.isConnected || !this.client) {
+      return; // Don't throw error for typing status
+    }
+
+    this.client.publish({
+      destination: `/app/chat/typing/${groupId}`,
+      body: JSON.stringify({ isTyping }),
+    });
+  }
+
+  // Join group via WebSocket
+  joinGroup(groupId: string): void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    this.client.publish({
+      destination: `/app/chat/join/${groupId}`,
+      body: JSON.stringify({}),
+    });
+  }
+
+  // Leave group via WebSocket
+  leaveGroup(groupId: string): void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    this.client.publish({
+      destination: `/app/chat/leave/${groupId}`,
+      body: JSON.stringify({}),
+    });
+  }
+
+  // Mark messages as read
+  markAsRead(groupId: string, timestamp?: string): void {
+    if (!this.isConnected || !this.client) {
+      return; // Don't throw error for read status
+    }
+
+    this.client.publish({
+      destination: `/app/chat/read/${groupId}`,
+      body: JSON.stringify({ timestamp: timestamp || new Date().toISOString() }),
+    });
+  }
+
+  // Edit message via WebSocket
+  editMessage(messageId: string, content: string): void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    this.client.publish({
+      destination: `/app/chat/edit/${messageId}`,
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  // Delete message via WebSocket
+  deleteMessage(messageId: string): void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    this.client.publish({
+      destination: `/app/chat/delete/${messageId}`,
+      body: JSON.stringify({}),
+    });
+  }
+
+  // Update presence
+  updatePresence(status: string): void {
+    if (!this.isConnected || !this.client) {
+      return; // Don't throw error for presence
+    }
+
+    this.client.publish({
+      destination: '/app/chat/presence',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  // Get connection status
+  isWebSocketConnected(): boolean {
+    return this.isConnected && this.client?.connected === true;
+  }
+
+  // Update token (when user logs in/out)
+  updateToken(token: string | null): void {
+    this.token = token;
+    if (token) {
+      localStorage.setItem('token', token);
+    } else {
+      localStorage.removeItem('token');
+    }
+  }
+}
+
+// Create singleton instance
+const webSocketService = new WebSocketService();
+
+export default webSocketService;
