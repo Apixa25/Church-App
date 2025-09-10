@@ -8,6 +8,9 @@ import AuthCallback from './components/AuthCallback';
 import ProtectedRoute from './components/ProtectedRoute';
 import ProfileView from './components/ProfileView';
 import ProfileEdit from './components/ProfileEdit';
+import ChatList from './components/ChatList';
+import ChatRoom from './components/ChatRoom';
+import ChatSearch from './components/ChatSearch';
 import './App.css';
 
 const App: React.FC = () => {
@@ -55,6 +58,34 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <ProfileView />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Chat routes */}
+            <Route 
+              path="/chats" 
+              element={
+                <ProtectedRoute>
+                  <ChatList />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/chats/:groupId" 
+              element={
+                <ProtectedRoute>
+                  <ChatRoom />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/chat/search" 
+              element={
+                <ProtectedRoute>
+                  <ChatSearch />
                 </ProtectedRoute>
               } 
             />
