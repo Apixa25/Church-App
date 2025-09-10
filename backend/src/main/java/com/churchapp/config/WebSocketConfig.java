@@ -76,23 +76,26 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                             token = token.substring(7);
                             
                             try {
-                                // Validate token and extract username
-                                String username = jwtUtil.extractUsername(token);
+                                // Validate token and extract email (username)
+                                String email = jwtUtil.getEmailFromToken(token);
                                 
-                                if (username != null && jwtUtil.validateToken(token, username)) {
-                                    // Load user details
-                                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                                if (email != null) {
+                                    // Load user details first
+                                    UserDetails userDetails = userDetailsService.loadUserByUsername(email);
                                     
-                                    // Create authentication token
-                                    UsernamePasswordAuthenticationToken auth = 
-                                        new UsernamePasswordAuthenticationToken(
-                                            userDetails, null, userDetails.getAuthorities());
-                                    
-                                    // Set authentication in security context
-                                    SecurityContextHolder.getContext().setAuthentication(auth);
-                                    
-                                    // Set user principal for WebSocket session
-                                    accessor.setUser(auth);
+                                    // Then validate token with UserDetails
+                                    if (jwtUtil.validateToken(token, userDetails)) {
+                                        // Create authentication token
+                                        UsernamePasswordAuthenticationToken auth = 
+                                            new UsernamePasswordAuthenticationToken(
+                                                userDetails, null, userDetails.getAuthorities());
+                                        
+                                        // Set authentication in security context
+                                        SecurityContextHolder.getContext().setAuthentication(auth);
+                                        
+                                        // Set user principal for WebSocket session
+                                        accessor.setUser(auth);
+                                    }
                                 }
                             } catch (Exception e) {
                                 // Log authentication failure

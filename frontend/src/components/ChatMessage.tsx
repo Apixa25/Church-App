@@ -114,7 +114,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
               
               {message.messageType === 'IMAGE' && message.mediaUrl && (
                 <div className="media-content">
-                  <img src={message.mediaUrl} alt="Shared image" className="message-image" />
+                  <img src={message.mediaUrl} alt="Shared content" className="message-image" />
                   {message.content && <p className="media-caption">{message.content}</p>}
                 </div>
               )}
@@ -179,7 +179,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
               {message.canDelete && (
                 <button 
                   onClick={() => {
-                    if (confirm('Delete this message?')) {
+                    if (window.confirm('Delete this message?')) {
                       onDelete(message.id);
                     }
                   }} 
