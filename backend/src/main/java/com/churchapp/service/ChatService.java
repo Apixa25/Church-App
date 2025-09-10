@@ -1,0 +1,481 @@
+package com.churchapp.service;
+
+import com.churchapp.dto.*;
+import com.churchapp.entity.ChatGroup;
+import com.churchapp.entity.ChatGroupMember;
+import com.churchapp.entity.Message;
+import com.churchapp.entity.User;
+import com.churchapp.repository.ChatGroupRepository;
+import com.churchapp.repository.ChatGroupMemberRepository;
+import com.churchapp.repository.MessageRepository;
+import com.churchapp.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class ChatService {
+    
+    private final ChatGroupRepository chatGroupRepository;
+    private final ChatGroupMemberRepository chatGroupMemberRepository;
+    private final MessageRepository messageRepository;
+    private final UserRepository userRepository;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final FileUploadService fileUploadService;
+    
+    // ==================== CHAT GROUP OPERATIONS ====================
+    
+    @Transactional
+    public ChatGroupResponse createChatGroup(String userEmail, ChatGroupRequest request) {
+        User user = getUserByEmail(userEmail);
+        
+        // Validate user permissions
+        if (!canCreateGroup(user, request.getType())) {
+            throw new RuntimeException("Insufficient permissions to create this type of group");
+        }
+        
+        // Check for duplicate names in certain group types
+        if (request.getType() == ChatGroup.GroupType.MAIN) {
+            if (chatGroupRepository.findByNameAndIsActiveTrue(request.getName()).isPresent()) {
+                throw new RuntimeException("A main chat group with this name already exists");
+            }
+        }
+        
+        ChatGroup chatGroup = new ChatGroup();
+        chatGroup.setName(request.getName());
+        chatGroup.setType(request.getType());
+        chatGroup.setDescription(request.getDescription());
+        chatGroup.setImageUrl(request.getImageUrl());
+        chatGroup.setCreatedBy(user);
+        chatGroup.setIsPrivate(request.getIsPrivate());
+        chatGroup.setMaxMembers(request.getMaxMembers());
+        
+        chatGroup = chatGroupRepository.save(chatGroup);
+        
+        // Add creator as owner
+        ChatGroupMember creatorMember = new ChatGroupMember();
+        creatorMember.setUser(user);
+        creatorMember.setChatGroup(chatGroup);
+        creatorMember.setMemberRole(ChatGroupMember.MemberRole.OWNER);
+        chatGroupMemberRepository.save(creatorMember);
+        
+        // Create system message for group creation
+        createSystemMessage(chatGroup, user.getName() + " created the group", null);
+        
+        return ChatGroupResponse.fromEntity(chatGroup);
+    }
+    
+    public List<ChatGroupResponse> getUserChatGroups(String userEmail) {
+        User user = getUserByEmail(userEmail);
+        List<ChatGroup> groups = chatGroupRepository.findGroupsByMember(user);
+        
+        return groups.stream()
+            .map(group -> {
+                ChatGroupMember membership = chatGroupMemberRepository
+                    .findByUserAndChatGroupAndIsActiveTrue(user, group).orElse(null);
+                
+                boolean isMember = membership != null;
+                boolean canPost = isMember && membership.canPost();
+                boolean canModerate = isMember && membership.canModerate();
+                String userRole = isMember ? membership.getMemberRole().name() : null;
+                Long unreadCount = isMember ? messageRepository.countUnreadMessagesForUserInGroup(user, group) : 0L;
+                
+                return ChatGroupResponse.fromEntityWithUserContext(group, isMember, canPost, canModerate, userRole, unreadCount);
+            })
+            .collect(Collectors.toList());
+    }
+    
+    public List<ChatGroupResponse> getJoinableGroups(String userEmail) {
+        User user = getUserByEmail(userEmail);
+        List<ChatGroup> groups = chatGroupRepository.findJoinableGroups(user);
+        
+        return groups.stream()
+            .map(ChatGroupResponse::fromEntity)
+            .collect(Collectors.toList());
+    }
+    
+    @Transactional
+    public ChatGroupResponse joinChatGroup(String userEmail, UUID groupId) {
+        User user = getUserByEmail(userEmail);
+        ChatGroup chatGroup = getChatGroupById(groupId);
+        
+        if (!chatGroup.canUserJoin(user)) {
+            throw new RuntimeException("Cannot join this group");
+        }
+        
+        // Check if user was previously a member
+        ChatGroupMember existingMember = chatGroupMemberRepository.findByUserAndChatGroup(user, chatGroup).orElse(null);
+        
+        if (existingMember != null) {
+            if (existingMember.getIsActive()) {
+                throw new RuntimeException("User is already a member of this group");
+            } else {
+                // Reactivate membership
+                existingMember.setIsActive(true);
+                existingMember.setLeftAt(null);
+                chatGroupMemberRepository.save(existingMember);
+            }
+        } else {
+            // Create new membership
+            ChatGroupMember member = new ChatGroupMember();
+            member.setUser(user);
+            member.setChatGroup(chatGroup);
+            member.setMemberRole(ChatGroupMember.MemberRole.MEMBER);
+            chatGroupMemberRepository.save(member);
+        }
+        
+        // Create system message
+        createSystemMessage(chatGroup, user.getName() + " joined the group", null);
+        
+        // Notify other members via WebSocket
+        notifyGroupMembers(chatGroup, "user_joined", user.getName() + " joined the group");
+        
+        return ChatGroupResponse.fromEntity(chatGroup);
+    }
+    
+    @Transactional
+    public void leaveChatGroup(String userEmail, UUID groupId) {
+        User user = getUserByEmail(userEmail);
+        ChatGroup chatGroup = getChatGroupById(groupId);
+        
+        ChatGroupMember membership = chatGroupMemberRepository
+            .findByUserAndChatGroupAndIsActiveTrue(user, chatGroup)
+            .orElseThrow(() -> new RuntimeException("User is not a member of this group"));
+        
+        if (membership.getMemberRole() == ChatGroupMember.MemberRole.OWNER) {
+            // Check if there are other admins to transfer ownership to
+            List<ChatGroupMember> admins = chatGroupMemberRepository
+                .findByChatGroupAndMemberRoleAndIsActiveTrue(chatGroup, ChatGroupMember.MemberRole.ADMIN);
+            
+            if (!admins.isEmpty()) {
+                // Transfer ownership to first admin
+                ChatGroupMember newOwner = admins.get(0);
+                newOwner.setMemberRole(ChatGroupMember.MemberRole.OWNER);
+                chatGroupMemberRepository.save(newOwner);
+            } else {
+                // Check if there are other members
+                long memberCount = chatGroupMemberRepository.countActiveMembersByChatGroup(chatGroup);
+                if (memberCount <= 1) {
+                    // Last member leaving, deactivate group
+                    chatGroup.setIsActive(false);
+                    chatGroupRepository.save(chatGroup);
+                }
+            }
+        }
+        
+        membership.leave();
+        chatGroupMemberRepository.save(membership);
+        
+        // Create system message
+        createSystemMessage(chatGroup, user.getName() + " left the group", null);
+        
+        // Notify other members
+        notifyGroupMembers(chatGroup, "user_left", user.getName() + " left the group");
+    }
+    
+    // ==================== MESSAGE OPERATIONS ====================
+    
+    @Transactional
+    public MessageResponse sendMessage(String userEmail, MessageRequest request) {
+        User user = getUserByEmail(userEmail);
+        ChatGroup chatGroup = getChatGroupById(request.getChatGroupId());
+        
+        // Check if user can post in this group
+        ChatGroupMember membership = chatGroupMemberRepository
+            .findByUserAndChatGroupAndIsActiveTrue(user, chatGroup)
+            .orElseThrow(() -> new RuntimeException("User is not a member of this group"));
+        
+        if (!membership.canPost()) {
+            throw new RuntimeException("User cannot post in this group");
+        }
+        
+        // Validate message
+        if (!request.isValidMessage()) {
+            throw new RuntimeException("Invalid message content");
+        }
+        
+        Message message;
+        
+        if (request.getMessageType().isMedia()) {
+            message = Message.createMediaMessage(
+                chatGroup, user, request.getContent(),
+                request.getMediaUrl(), request.getMediaType(),
+                request.getMediaFilename(), request.getMediaSize()
+            );
+        } else {
+            message = Message.createTextMessage(chatGroup, user, request.getContent());
+            message.setMessageType(request.getMessageType());
+        }
+        
+        // Handle reply
+        if (request.isReply()) {
+            Message parentMessage = messageRepository.findById(request.getParentMessageId())
+                .orElseThrow(() -> new RuntimeException("Parent message not found"));
+            message.setParentMessage(parentMessage);
+        }
+        
+        // Handle mentions
+        if (request.hasMentions()) {
+            // Convert mentioned user IDs to JSON
+            String mentionedUsersJson = convertUserIdsToJson(request.getMentionedUserIds());
+            message.setMentionedUsers(mentionedUsersJson);
+        }
+        
+        message = messageRepository.save(message);
+        
+        MessageResponse response = MessageResponse.fromEntityWithUserContext(
+            message, message.canBeEditedBy(user), message.canBeDeletedBy(user));
+        response.setTempId(request.getTempId());
+        
+        // Update last read for sender
+        membership.markAsRead();
+        chatGroupMemberRepository.save(membership);
+        
+        // Send real-time notification to group members
+        notifyGroupMessage(chatGroup, response);
+        
+        // Send push notifications for mentions
+        if (request.hasMentions()) {
+            sendMentionNotifications(message, request.getMentionedUserIds());
+        }
+        
+        return response;
+    }
+    
+    public Page<MessageResponse> getGroupMessages(String userEmail, UUID groupId, int page, int size) {
+        User user = getUserByEmail(userEmail);
+        ChatGroup chatGroup = getChatGroupById(groupId);
+        
+        // Verify user is a member
+        if (!chatGroupMemberRepository.existsByUserAndChatGroupAndIsActiveTrue(user, chatGroup)) {
+            throw new RuntimeException("User is not a member of this group");
+        }
+        
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "timestamp"));
+        Page<Message> messages = messageRepository.findByChatGroupAndIsDeletedFalseOrderByTimestampDesc(chatGroup, pageable);
+        
+        return messages.map(message -> MessageResponse.fromEntityWithUserContext(
+            message, message.canBeEditedBy(user), message.canBeDeletedBy(user)));
+    }
+    
+    @Transactional
+    public MessageResponse editMessage(String userEmail, UUID messageId, String newContent) {
+        User user = getUserByEmail(userEmail);
+        Message message = messageRepository.findById(messageId)
+            .orElseThrow(() -> new RuntimeException("Message not found"));
+        
+        if (!message.canBeEditedBy(user)) {
+            throw new RuntimeException("Cannot edit this message");
+        }
+        
+        message.edit(newContent);
+        message = messageRepository.save(message);
+        
+        MessageResponse response = MessageResponse.fromEntityWithUserContext(
+            message, true, message.canBeDeletedBy(user));
+        
+        // Notify group members of edit
+        notifyGroupMessage(message.getChatGroup(), response);
+        
+        return response;
+    }
+    
+    @Transactional
+    public void deleteMessage(String userEmail, UUID messageId) {
+        User user = getUserByEmail(userEmail);
+        Message message = messageRepository.findById(messageId)
+            .orElseThrow(() -> new RuntimeException("Message not found"));
+        
+        if (!message.canBeDeletedBy(user)) {
+            throw new RuntimeException("Cannot delete this message");
+        }
+        
+        message.delete(user.getId());
+        messageRepository.save(message);
+        
+        // Notify group members of deletion
+        notifyGroupMembers(message.getChatGroup(), "message_deleted", 
+            "Message deleted by " + user.getName());
+    }
+    
+    @Transactional
+    public void markMessagesAsRead(String userEmail, UUID groupId, LocalDateTime timestamp) {
+        User user = getUserByEmail(userEmail);
+        ChatGroup chatGroup = getChatGroupById(groupId);
+        
+        chatGroupMemberRepository.updateLastReadAt(user, chatGroup, timestamp);
+    }
+    
+    // ==================== MEMBER MANAGEMENT ====================
+    
+    public List<ChatGroupMemberResponse> getGroupMembers(String userEmail, UUID groupId) {
+        User user = getUserByEmail(userEmail);
+        ChatGroup chatGroup = getChatGroupById(groupId);
+        
+        // Verify user is a member
+        if (!chatGroupMemberRepository.existsByUserAndChatGroupAndIsActiveTrue(user, chatGroup)) {
+            throw new RuntimeException("User is not a member of this group");
+        }
+        
+        List<ChatGroupMember> members = chatGroupMemberRepository
+            .findByChatGroupAndIsActiveTrueOrderByJoinedAtAsc(chatGroup);
+        
+        return members.stream()
+            .map(member -> ChatGroupMemberResponse.fromEntityWithOnlineStatus(
+                member, isUserOnline(member.getUser())))
+            .collect(Collectors.toList());
+    }
+    
+    @Transactional
+    public void updateMemberRole(String userEmail, UUID groupId, UUID memberId, String newRole) {
+        User user = getUserByEmail(userEmail);
+        ChatGroup chatGroup = getChatGroupById(groupId);
+        
+        ChatGroupMember currentUserMembership = chatGroupMemberRepository
+            .findByUserAndChatGroupAndIsActiveTrue(user, chatGroup)
+            .orElseThrow(() -> new RuntimeException("User is not a member of this group"));
+        
+        if (!currentUserMembership.canManageMembers()) {
+            throw new RuntimeException("Insufficient permissions to manage members");
+        }
+        
+        ChatGroupMember targetMember = chatGroupMemberRepository.findById(memberId)
+            .orElseThrow(() -> new RuntimeException("Member not found"));
+        
+        ChatGroupMember.MemberRole role = ChatGroupMember.MemberRole.valueOf(newRole.toUpperCase());
+        targetMember.setMemberRole(role);
+        chatGroupMemberRepository.save(targetMember);
+        
+        // Create system message
+        createSystemMessage(chatGroup, 
+            user.getName() + " changed " + targetMember.getUser().getName() + "'s role to " + role.getDisplayName(),
+            null);
+    }
+    
+    // ==================== SEARCH OPERATIONS ====================
+    
+    public ChatSearchResponse searchMessages(String userEmail, ChatSearchRequest request) {
+        User user = getUserByEmail(userEmail);
+        
+        long startTime = System.currentTimeMillis();
+        List<Message> messages;
+        
+        if (request.getChatGroupIds() != null && !request.getChatGroupIds().isEmpty()) {
+            // Search in specific groups
+            messages = searchMessagesInSpecificGroups(user, request);
+        } else {
+            // Search across all user's accessible groups
+            messages = messageRepository.searchUserAccessibleMessages(user, request.getQuery());
+        }
+        
+        // Apply additional filters
+        messages = applySearchFilters(messages, request);
+        
+        // Convert to responses
+        List<MessageResponse> messageResponses = messages.stream()
+            .map(message -> MessageResponse.fromEntityWithUserContext(
+                message, message.canBeEditedBy(user), message.canBeDeletedBy(user)))
+            .collect(Collectors.toList());
+        
+        long searchTime = System.currentTimeMillis() - startTime;
+        
+        ChatSearchResponse.SearchMetadata metadata = ChatSearchResponse.SearchMetadata.create(
+            request.getQuery(), (long) messageResponses.size(), 
+            request.getLimit(), request.getOffset(), 
+            request.getSortBy(), request.getSortOrder(), searchTime);
+        
+        return ChatSearchResponse.createMessageResults(messageResponses, metadata);
+    }
+    
+    // ==================== UTILITY METHODS ====================
+    
+    private User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+    
+    private ChatGroup getChatGroupById(UUID groupId) {
+        return chatGroupRepository.findById(groupId)
+            .orElseThrow(() -> new RuntimeException("Chat group not found"));
+    }
+    
+    private boolean canCreateGroup(User user, ChatGroup.GroupType type) {
+        // Admin/Moderator can create any type
+        if (user.getRole() == User.UserRole.ADMIN || user.getRole() == User.UserRole.MODERATOR) {
+            return true;
+        }
+        
+        // Regular members can create certain types
+        return type != ChatGroup.GroupType.MAIN && 
+               type != ChatGroup.GroupType.ANNOUNCEMENT &&
+               type != ChatGroup.GroupType.LEADERSHIP;
+    }
+    
+    private void createSystemMessage(ChatGroup chatGroup, String content, String metadata) {
+        Message systemMessage = Message.createSystemMessage(chatGroup, content, metadata);
+        messageRepository.save(systemMessage);
+    }
+    
+    private void notifyGroupMembers(ChatGroup chatGroup, String eventType, String message) {
+        messagingTemplate.convertAndSend("/topic/group/" + chatGroup.getId(), 
+            new GroupNotification(eventType, message, LocalDateTime.now()));
+    }
+    
+    private void notifyGroupMessage(ChatGroup chatGroup, MessageResponse messageResponse) {
+        messagingTemplate.convertAndSend("/topic/group/" + chatGroup.getId() + "/messages", messageResponse);
+    }
+    
+    private boolean isUserOnline(User user) {
+        // This would typically check against a Redis cache or session store
+        // For now, return a simple heuristic based on last login
+        return user.getLastLogin() != null && 
+               user.getLastLogin().isAfter(LocalDateTime.now().minusMinutes(5));
+    }
+    
+    private String convertUserIdsToJson(List<UUID> userIds) {
+        // Simple JSON conversion - in production, use Jackson or Gson
+        return userIds.stream()
+            .map(uuid -> "\"" + uuid.toString() + "\"")
+            .collect(Collectors.joining(",", "[", "]"));
+    }
+    
+    private void sendMentionNotifications(Message message, List<UUID> mentionedUserIds) {
+        // Implementation for sending push notifications to mentioned users
+        // This would integrate with FCM or similar service
+    }
+    
+    private List<Message> searchMessagesInSpecificGroups(User user, ChatSearchRequest request) {
+        // Implementation for searching in specific groups
+        return List.of(); // Placeholder
+    }
+    
+    private List<Message> applySearchFilters(List<Message> messages, ChatSearchRequest request) {
+        // Apply date filters, message type filters, etc.
+        return messages; // Placeholder
+    }
+    
+    // Inner class for WebSocket notifications
+    public static class GroupNotification {
+        public String eventType;
+        public String message;
+        public LocalDateTime timestamp;
+        
+        public GroupNotification(String eventType, String message, LocalDateTime timestamp) {
+            this.eventType = eventType;
+            this.message = message;
+            this.timestamp = timestamp;
+        }
+    }
+}
