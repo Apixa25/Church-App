@@ -1,21 +1,77 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import dashboardApi, { DashboardResponse } from '../services/dashboardApi';
+import ActivityFeed from './ActivityFeed';
+import QuickActions from './QuickActions';
+import DashboardStats from './DashboardStats';
+import NotificationCenter from './NotificationCenter';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+
+  useEffect(() => {
+    fetchDashboardData();
+    
+    // Auto-refresh every 5 minutes
+    const interval = setInterval(() => {
+      fetchDashboardData();
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await dashboardApi.getDashboard();
+      setDashboardData(data);
+      setLastRefresh(new Date());
+    } catch (err) {
+      console.error('Failed to fetch dashboard data:', err);
+      setError('Failed to load dashboard data. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
+  const handleRefresh = () => {
+    fetchDashboardData();
+  };
+
+  const formatLastRefresh = () => {
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - lastRefresh.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes === 1) return '1 minute ago';
+    return `${diffInMinutes} minutes ago`;
+  };
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
         <div className="header-content">
-          <h1>🏛️ Church App Dashboard</h1>
+          <div className="header-left">
+            <h1>🏛️ Church App</h1>
+            <div className="refresh-info">
+              <span>Last updated: {formatLastRefresh()}</span>
+              <button onClick={handleRefresh} className="refresh-btn" disabled={isLoading}>
+                {isLoading ? '🔄' : '↻'} Refresh
+              </button>
+            </div>
+          </div>
           <div className="user-info">
             <div className="user-details">
               {user?.profilePicUrl && (
@@ -38,57 +94,80 @@ const Dashboard: React.FC = () => {
       </header>
 
       <main className="dashboard-content">
-        <div className="dashboard-grid">
-          <div className="dashboard-card">
-            <h3>📊 Quick Stats</h3>
-            <p>Welcome to your church community platform!</p>
-            <ul>
-              <li>✅ Authentication: Complete</li>
-              <li>🔄 User Profile: {user?.name}</li>
-              <li>📧 Email: {user?.email}</li>
-              <li>👥 Role: {user?.role}</li>
-            </ul>
+        {error && (
+          <div className="error-banner">
+            <span>⚠️ {error}</span>
+            <button onClick={handleRefresh}>Try Again</button>
           </div>
+        )}
 
-          <div className="dashboard-card">
-            <h3>⚡ Quick Actions</h3>
-            <p>Manage your profile and church community:</p>
-            <div className="action-buttons">
-              <button 
-                onClick={() => navigate('/profile')}
-                className="action-button primary"
-              >
-                👤 View My Profile
-              </button>
-              <button 
-                onClick={() => navigate('/profile/edit')}
-                className="action-button"
-              >
-                ✏️ Edit Profile
-              </button>
+        <div className="dashboard-layout">
+          {/* Left Column - Activity Feed */}
+          <div className="dashboard-left">
+            <div className="dashboard-card">
+              <ActivityFeed 
+                activities={dashboardData?.recentActivity || []} 
+                isLoading={isLoading} 
+              />
             </div>
           </div>
 
-          <div className="dashboard-card">
-            <h3>🚧 Coming Soon</h3>
-            <p>More sections will be implemented:</p>
-            <ul>
-              <li>💬 Group Chats</li>
-              <li>🙏 Prayer Requests</li>
-              <li>📢 Announcements</li>
-              <li>📅 Calendar/Events</li>
-              <li>📚 Resources Library</li>
-              <li>💝 Giving/Donations</li>
-              <li>⚙️ Admin Tools</li>
-              <li>🔧 Settings</li>
-            </ul>
-          </div>
+          {/* Right Column - Stats, Actions, Notifications */}
+          <div className="dashboard-right">
+            <div className="dashboard-card">
+              <DashboardStats 
+                stats={dashboardData?.stats || {
+                  totalMembers: 0,
+                  newMembersThisWeek: 0,
+                  totalPrayerRequests: 0,
+                  upcomingEvents: 0,
+                  unreadAnnouncements: 0,
+                  additionalStats: {}
+                }} 
+                isLoading={isLoading} 
+              />
+            </div>
 
-          <div className="dashboard-card">
-            <h3>🎯 Current Status</h3>
-            <p>Section 1: Signup/Login - ✅ Complete!</p>
-            <p>Section 2: User Profiles - ✅ Complete!</p>
-            <p>Ready for Section 3: Home/Dashboard</p>
+            <div className="dashboard-card">
+              <QuickActions 
+                actions={dashboardData?.quickActions || []} 
+                isLoading={isLoading} 
+              />
+            </div>
+
+            <div className="dashboard-card">
+              <NotificationCenter 
+                notifications={dashboardData?.notifications || {
+                  totalUnread: 0,
+                  prayerRequests: 0,
+                  announcements: 0,
+                  chatMessages: 0,
+                  events: 0,
+                  previews: []
+                }} 
+                isLoading={isLoading} 
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Status Banner */}
+        <div className="status-banner">
+          <div className="status-item completed">
+            <span className="status-icon">✅</span>
+            <span>Section 1: Authentication</span>
+          </div>
+          <div className="status-item completed">
+            <span className="status-icon">✅</span>
+            <span>Section 2: User Profiles</span>
+          </div>
+          <div className="status-item current">
+            <span className="status-icon">🚀</span>
+            <span>Section 3: Home/Dashboard - COMPLETE!</span>
+          </div>
+          <div className="status-item upcoming">
+            <span className="status-icon">⏳</span>
+            <span>Next: Group Chats & Social Network</span>
           </div>
         </div>
       </main>
