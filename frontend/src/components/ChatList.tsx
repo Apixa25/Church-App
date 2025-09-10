@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import chatApi, { ChatGroup } from '../services/chatApi';
+import UserList from './UserList';
+import CreateGroup from './CreateGroup';
 
 interface ChatListProps {
   onGroupSelect?: (group: ChatGroup) => void;
@@ -12,7 +14,8 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
   const [joinableGroups, setJoinableGroups] = useState<ChatGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showJoinable, setShowJoinable] = useState(false);
+  // Removed showJoinable state as we now use activeView for navigation
+  const [activeView, setActiveView] = useState<'myChats' | 'joinGroups' | 'directMessages' | 'createGroup'>('myChats');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -125,15 +128,33 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
         </div>
         <div className="header-actions">
           <button 
-            onClick={() => setShowJoinable(!showJoinable)}
-            className="toggle-joinable-btn"
+            onClick={() => setActiveView('myChats')}
+            className={`nav-btn ${activeView === 'myChats' ? 'active' : ''}`}
           >
-            {showJoinable ? '👥 My Chats' : '🔍 Join Groups'}
+            👥 My Chats
+          </button>
+          <button 
+            onClick={() => setActiveView('directMessages')}
+            className={`nav-btn ${activeView === 'directMessages' ? 'active' : ''}`}
+          >
+            💬 Direct Messages
+          </button>
+          <button 
+            onClick={() => setActiveView('joinGroups')}
+            className={`nav-btn ${activeView === 'joinGroups' ? 'active' : ''}`}
+          >
+            🔍 Join Groups
+          </button>
+          <button 
+            onClick={() => setActiveView('createGroup')}
+            className={`nav-btn create-btn ${activeView === 'createGroup' ? 'active' : ''}`}
+          >
+            ➕ Create Group
           </button>
         </div>
       </div>
 
-      {showJoinable ? (
+      {activeView === 'joinGroups' ? (
         <div className="joinable-groups">
           <h3>Available Groups</h3>
           {joinableGroups.length === 0 ? (
@@ -173,6 +194,17 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
             </div>
           )}
         </div>
+      ) : activeView === 'directMessages' ? (
+        <UserList />
+      ) : activeView === 'createGroup' ? (
+        <CreateGroup 
+          onGroupCreated={(groupId) => {
+            // Refresh groups and switch to My Chats view
+            loadGroups();
+            setActiveView('myChats');
+          }}
+          onCancel={() => setActiveView('myChats')}
+        />
       ) : (
         <div className="user-groups">
           {groups.length === 0 ? (
@@ -180,7 +212,7 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
               <p>👋 Welcome to Church Chat!</p>
               <p>Join a group to start chatting with your church family</p>
               <button 
-                onClick={() => setShowJoinable(true)}
+                onClick={() => setActiveView('joinGroups')}
                 className="primary-button"
               >
                 Find Groups to Join

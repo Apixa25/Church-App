@@ -72,7 +72,7 @@ public class ChatService {
         chatGroupMemberRepository.save(creatorMember);
         
         // Create system message for group creation
-        createSystemMessage(chatGroup, user.getName() + " created the group", null);
+        createSystemMessage(chatGroup, user, user.getName() + " created the group", null);
         
         return ChatGroupResponse.fromEntity(chatGroup);
     }
@@ -137,7 +137,7 @@ public class ChatService {
         }
         
         // Create system message
-        createSystemMessage(chatGroup, user.getName() + " joined the group", null);
+        createSystemMessage(chatGroup, user, user.getName() + " joined the group", null);
         
         // Notify other members via WebSocket
         notifyGroupMembers(chatGroup, "user_joined", user.getName() + " joined the group");
@@ -179,10 +179,63 @@ public class ChatService {
         chatGroupMemberRepository.save(membership);
         
         // Create system message
-        createSystemMessage(chatGroup, user.getName() + " left the group", null);
+        createSystemMessage(chatGroup, user, user.getName() + " left the group", null);
         
         // Notify other members
         notifyGroupMembers(chatGroup, "user_left", user.getName() + " left the group");
+    }
+    
+    @Transactional
+    public ChatGroupResponse createOrGetDirectMessage(String userEmail, String targetUserEmail) {
+        User user = getUserByEmail(userEmail);
+        User targetUser = getUserByEmail(targetUserEmail);
+        
+        // Check if direct message conversation already exists between these users
+        List<ChatGroup> existingDM = chatGroupRepository.findDirectMessageBetweenUsers(user, targetUser);
+        
+        if (!existingDM.isEmpty()) {
+            // Return existing conversation
+            ChatGroup dmGroup = existingDM.get(0);
+            ChatGroupMember membership = chatGroupMemberRepository
+                .findByUserAndChatGroupAndIsActiveTrue(user, dmGroup).orElse(null);
+            
+            boolean isMember = membership != null;
+            boolean canPost = isMember && membership.canPost();
+            boolean canModerate = isMember && membership.canModerate();
+            String userRole = isMember ? membership.getMemberRole().name() : null;
+            Long unreadCount = isMember ? messageRepository.countUnreadMessagesForUserInGroup(user, dmGroup) : 0L;
+            
+            return ChatGroupResponse.fromEntityWithUserContext(dmGroup, isMember, canPost, canModerate, userRole, unreadCount);
+        }
+        
+        // Create new direct message conversation
+        ChatGroup dmGroup = new ChatGroup();
+        dmGroup.setName(user.getName() + " & " + targetUser.getName());
+        dmGroup.setType(ChatGroup.GroupType.DIRECT_MESSAGE);
+        dmGroup.setDescription("Direct message conversation");
+        dmGroup.setCreatedBy(user);
+        dmGroup.setIsPrivate(true);
+        dmGroup.setMaxMembers(2);
+        
+        dmGroup = chatGroupRepository.save(dmGroup);
+        
+        // Add both users as members with equal permissions
+        ChatGroupMember userMember = new ChatGroupMember();
+        userMember.setUser(user);
+        userMember.setChatGroup(dmGroup);
+        userMember.setMemberRole(ChatGroupMember.MemberRole.MEMBER);
+        chatGroupMemberRepository.save(userMember);
+        
+        ChatGroupMember targetMember = new ChatGroupMember();
+        targetMember.setUser(targetUser);
+        targetMember.setChatGroup(dmGroup);
+        targetMember.setMemberRole(ChatGroupMember.MemberRole.MEMBER);
+        chatGroupMemberRepository.save(targetMember);
+        
+        // Create system message for DM creation
+        createSystemMessage(dmGroup, user, "Started a conversation", null);
+        
+        return ChatGroupResponse.fromEntity(dmGroup);
     }
     
     // ==================== MESSAGE OPERATIONS ====================
@@ -359,7 +412,7 @@ public class ChatService {
         chatGroupMemberRepository.save(targetMember);
         
         // Create system message
-        createSystemMessage(chatGroup, 
+        createSystemMessage(chatGroup, user,
             user.getName() + " changed " + targetMember.getUser().getName() + "'s role to " + role.getDisplayName(),
             null);
     }
@@ -423,8 +476,8 @@ public class ChatService {
                type != ChatGroup.GroupType.LEADERSHIP;
     }
     
-    private void createSystemMessage(ChatGroup chatGroup, String content, String metadata) {
-        Message systemMessage = Message.createSystemMessage(chatGroup, content, metadata);
+    private void createSystemMessage(ChatGroup chatGroup, User user, String content, String metadata) {
+        Message systemMessage = Message.createSystemMessage(chatGroup, user, content, metadata);
         messageRepository.save(systemMessage);
     }
     

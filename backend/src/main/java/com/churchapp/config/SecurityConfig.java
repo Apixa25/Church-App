@@ -69,6 +69,7 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/test/**").permitAll()  // Keep test endpoint public for now
+                .requestMatchers("/chat/**").authenticated()  // JWT authentication for chat APIs
                 .requestMatchers("/profile/**").authenticated()
                 .requestMatchers("/dashboard/**").authenticated()  // Explicitly protect dashboard
                 .anyRequest().authenticated()
@@ -87,6 +88,22 @@ public class SecurityConfig {
                 .userInfoEndpoint(userInfo -> userInfo
                     .userService(oauth2UserService())
                 )
+            )
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint((request, response, authException) -> {
+                    // For API endpoints, return 401 instead of redirecting to login
+                    String requestURI = request.getRequestURI();
+                    if (requestURI.startsWith("/chat") || 
+                        requestURI.startsWith("/profile") || 
+                        requestURI.startsWith("/dashboard")) {
+                        response.setStatus(401);
+                        response.setContentType("application/json");
+                        response.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"JWT authentication required\"}");
+                    } else {
+                        // For browser requests, allow OAuth2 redirect
+                        response.sendRedirect("/oauth2/authorization/google");
+                    }
+                })
             );
         
         return http.build();
