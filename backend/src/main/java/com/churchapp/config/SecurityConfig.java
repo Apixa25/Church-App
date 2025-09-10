@@ -58,11 +58,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                .maximumSessions(1)
-                .maxSessionsPreventsLogin(false)
-            )
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/oauth2/**").permitAll()
@@ -73,20 +69,21 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-            .oauth2Login(oauth2 -> oauth2
-                .authorizationEndpoint(authorization -> authorization
-                    .baseUri("/oauth2/authorization")
-                )
-                .redirectionEndpoint(redirection -> redirection
-                    .baseUri("/oauth2/callback/*")
-                )
-                .defaultSuccessUrl("/auth/oauth2/success", true)
-                .failureUrl("/auth/oauth2/failure")
-                .userInfoEndpoint(userInfo -> userInfo
-                    .userService(oauth2UserService())
-                )
-            );
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            // Temporarily disable OAuth2 to allow JWT authentication to work
+            // .oauth2Login(oauth2 -> oauth2
+            //     .authorizationEndpoint(authorization -> authorization
+            //         .baseUri("/oauth2/authorization")
+            //     )
+            //     .redirectionEndpoint(redirection -> redirection
+            //         .baseUri("/oauth2/callback/*")
+            //     )
+            //     .defaultSuccessUrl("/auth/oauth2/success", true)
+            //     .failureUrl("/auth/oauth2/failure")
+            //     .userInfoEndpoint(userInfo -> userInfo
+            //         .userService(oauth2UserService())
+            //     )
+            // );
         
         return http.build();
     }
