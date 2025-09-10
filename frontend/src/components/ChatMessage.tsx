@@ -24,8 +24,30 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   const isSystemMessage = message.messageType === 'SYSTEM';
   
   const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    try {
+      // Handle different timestamp formats that might come from backend
+      let date: Date;
+      
+      if (Array.isArray(timestamp)) {
+        // Handle array format [year, month, day, hour, minute, second, nanosecond]
+        const [year, month, day, hour = 0, minute = 0, second = 0] = timestamp as number[];
+        date = new Date(year, month - 1, day, hour, minute, second); // Month is 0-indexed in Date constructor
+      } else {
+        // Handle string format (ISO-8601 or other)
+        date = new Date(timestamp);
+      }
+      
+      // Validate the date
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid timestamp format:', timestamp);
+        return 'Invalid date';
+      }
+      
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (error) {
+      console.error('Error formatting timestamp:', timestamp, error);
+      return 'Invalid date';
+    }
   };
 
   const handleEdit = () => {
