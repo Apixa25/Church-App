@@ -81,4 +81,14 @@ public interface ChatGroupRepository extends JpaRepository<ChatGroup, UUID> {
     @Query("SELECT cg FROM ChatGroup cg WHERE cg.isActive = true AND " +
            "(SELECT COUNT(m) FROM Message m WHERE m.chatGroup = cg AND m.timestamp > :since) = 0")
     List<ChatGroup> findInactiveGroups(@Param("since") LocalDateTime since);
+    
+    // Find direct message conversation between two users
+    @Query("SELECT cg FROM ChatGroup cg " +
+           "JOIN ChatGroupMember cgm1 ON cg.id = cgm1.chatGroup.id " +
+           "JOIN ChatGroupMember cgm2 ON cg.id = cgm2.chatGroup.id " +
+           "WHERE cg.type = 'DIRECT_MESSAGE' AND cg.isActive = true AND " +
+           "cgm1.user = :user1 AND cgm1.isActive = true AND " +
+           "cgm2.user = :user2 AND cgm2.isActive = true AND " +
+           "cgm1.user != cgm2.user")
+    List<ChatGroup> findDirectMessageBetweenUsers(@Param("user1") User user1, @Param("user2") User user2);
 }

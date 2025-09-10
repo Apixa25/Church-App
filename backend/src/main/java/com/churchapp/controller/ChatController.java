@@ -1,13 +1,14 @@
 package com.churchapp.controller;
 
 import com.churchapp.dto.*;
+import com.churchapp.repository.UserRepository;
 import com.churchapp.service.ChatService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -16,6 +17,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import com.churchapp.entity.User;
 
 @RestController
 @RequestMapping("/chat")
@@ -24,13 +27,14 @@ import java.util.UUID;
 public class ChatController {
     
     private final ChatService chatService;
+    private final UserRepository userRepository;
     
     // ==================== CHAT GROUP ENDPOINTS ====================
     
     @GetMapping("/groups")
-    public ResponseEntity<List<ChatGroupResponse>> getUserChatGroups(@AuthenticationPrincipal User user) {
+    public ResponseEntity<List<ChatGroupResponse>> getUserChatGroups(@AuthenticationPrincipal UserDetails userDetails) {
         try {
-            List<ChatGroupResponse> groups = chatService.getUserChatGroups(user.getUsername());
+            List<ChatGroupResponse> groups = chatService.getUserChatGroups(userDetails.getUsername());
             return ResponseEntity.ok(groups);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
@@ -38,9 +42,9 @@ public class ChatController {
     }
     
     @GetMapping("/groups/joinable")
-    public ResponseEntity<List<ChatGroupResponse>> getJoinableGroups(@AuthenticationPrincipal User user) {
+    public ResponseEntity<List<ChatGroupResponse>> getJoinableGroups(@AuthenticationPrincipal UserDetails userDetails) {
         try {
-            List<ChatGroupResponse> groups = chatService.getJoinableGroups(user.getUsername());
+            List<ChatGroupResponse> groups = chatService.getJoinableGroups(userDetails.getUsername());
             return ResponseEntity.ok(groups);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
@@ -48,10 +52,10 @@ public class ChatController {
     }
     
     @PostMapping("/groups")
-    public ResponseEntity<?> createChatGroup(@AuthenticationPrincipal User user,
+    public ResponseEntity<?> createChatGroup(@AuthenticationPrincipal UserDetails userDetails,
                                            @Valid @RequestBody ChatGroupRequest request) {
         try {
-            ChatGroupResponse group = chatService.createChatGroup(user.getUsername(), request);
+            ChatGroupResponse group = chatService.createChatGroup(userDetails.getUsername(), request);
             return ResponseEntity.ok(group);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -61,10 +65,10 @@ public class ChatController {
     }
     
     @PostMapping("/groups/{groupId}/join")
-    public ResponseEntity<?> joinChatGroup(@AuthenticationPrincipal User user,
+    public ResponseEntity<?> joinChatGroup(@AuthenticationPrincipal UserDetails userDetails,
                                          @PathVariable UUID groupId) {
         try {
-            ChatGroupResponse group = chatService.joinChatGroup(user.getUsername(), groupId);
+            ChatGroupResponse group = chatService.joinChatGroup(userDetails.getUsername(), groupId);
             return ResponseEntity.ok(group);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -74,13 +78,54 @@ public class ChatController {
     }
     
     @PostMapping("/groups/{groupId}/leave")
-    public ResponseEntity<?> leaveChatGroup(@AuthenticationPrincipal User user,
+    public ResponseEntity<?> leaveChatGroup(@AuthenticationPrincipal UserDetails userDetails,
                                           @PathVariable UUID groupId) {
         try {
-            chatService.leaveChatGroup(user.getUsername(), groupId);
+            chatService.leaveChatGroup(userDetails.getUsername(), groupId);
             Map<String, String> response = new HashMap<>();
             response.put("message", "Successfully left the group");
             return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @GetMapping("/users")
+    public ResponseEntity<List<Map<String, Object>>> getUsers(@AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            List<User> allUsers = userRepository.findAllActiveUsers();
+            
+            // Filter out current user and convert to response format
+            List<Map<String, Object>> userList = allUsers.stream()
+                .filter(user -> !user.getEmail().equals(userDetails.getUsername()))
+                .map(user -> {
+                    Map<String, Object> userMap = new HashMap<>();
+                    userMap.put("id", user.getId().toString());
+                    userMap.put("name", user.getName());
+                    userMap.put("email", user.getEmail());
+                    userMap.put("profilePicUrl", user.getProfilePicUrl());
+                    userMap.put("role", user.getRole().name());
+                    userMap.put("isOnline", isUserOnline(user));
+                    userMap.put("lastSeen", user.getLastLogin() != null ? user.getLastLogin().toString() : null);
+                    return userMap;
+                })
+                .collect(Collectors.toList());
+                
+            return ResponseEntity.ok(userList);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Failed to fetch users");
+            return ResponseEntity.ok(List.of(error));
+        }
+    }
+    
+    @PostMapping("/direct-message")
+    public ResponseEntity<?> createOrGetDirectMessage(@RequestParam String targetUserEmail, @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            ChatGroupResponse directMessage = chatService.createOrGetDirectMessage(userDetails.getUsername(), targetUserEmail);
+            return ResponseEntity.ok(directMessage);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -92,13 +137,13 @@ public class ChatController {
     
     @GetMapping("/groups/{groupId}/messages")
     public ResponseEntity<Page<MessageResponse>> getGroupMessages(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable UUID groupId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
         try {
             Page<MessageResponse> messages = chatService.getGroupMessages(
-                user.getUsername(), groupId, page, size);
+                userDetails.getUsername(), groupId, page, size);
             return ResponseEntity.ok(messages);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
@@ -106,10 +151,10 @@ public class ChatController {
     }
     
     @PostMapping("/messages")
-    public ResponseEntity<?> sendMessage(@AuthenticationPrincipal User user,
+    public ResponseEntity<?> sendMessage(@AuthenticationPrincipal UserDetails userDetails,
                                        @Valid @RequestBody MessageRequest request) {
         try {
-            MessageResponse message = chatService.sendMessage(user.getUsername(), request);
+            MessageResponse message = chatService.sendMessage(userDetails.getUsername(), request);
             return ResponseEntity.ok(message);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -119,7 +164,7 @@ public class ChatController {
     }
     
     @PostMapping("/messages/media")
-    public ResponseEntity<?> sendMediaMessage(@AuthenticationPrincipal User user,
+    public ResponseEntity<?> sendMediaMessage(@AuthenticationPrincipal UserDetails userDetails,
                                             @RequestParam("groupId") UUID groupId,
                                             @RequestParam("file") MultipartFile file,
                                             @RequestParam(value = "content", required = false) String content,
@@ -153,7 +198,7 @@ public class ChatController {
             request.setMediaFilename(file.getOriginalFilename());
             request.setMediaSize(file.getSize());
             
-            MessageResponse message = chatService.sendMessage(user.getUsername(), request);
+            MessageResponse message = chatService.sendMessage(userDetails.getUsername(), request);
             return ResponseEntity.ok(message);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -163,7 +208,7 @@ public class ChatController {
     }
     
     @PutMapping("/messages/{messageId}")
-    public ResponseEntity<?> editMessage(@AuthenticationPrincipal User user,
+    public ResponseEntity<?> editMessage(@AuthenticationPrincipal UserDetails userDetails,
                                        @PathVariable UUID messageId,
                                        @RequestBody Map<String, String> request) {
         try {
@@ -174,7 +219,7 @@ public class ChatController {
                 return ResponseEntity.badRequest().body(error);
             }
             
-            MessageResponse message = chatService.editMessage(user.getUsername(), messageId, newContent);
+            MessageResponse message = chatService.editMessage(userDetails.getUsername(), messageId, newContent);
             return ResponseEntity.ok(message);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -184,10 +229,10 @@ public class ChatController {
     }
     
     @DeleteMapping("/messages/{messageId}")
-    public ResponseEntity<?> deleteMessage(@AuthenticationPrincipal User user,
+    public ResponseEntity<?> deleteMessage(@AuthenticationPrincipal UserDetails userDetails,
                                          @PathVariable UUID messageId) {
         try {
-            chatService.deleteMessage(user.getUsername(), messageId);
+            chatService.deleteMessage(userDetails.getUsername(), messageId);
             Map<String, String> response = new HashMap<>();
             response.put("message", "Message deleted successfully");
             return ResponseEntity.ok(response);
@@ -199,7 +244,7 @@ public class ChatController {
     }
     
     @PostMapping("/groups/{groupId}/mark-read")
-    public ResponseEntity<?> markMessagesAsRead(@AuthenticationPrincipal User user,
+    public ResponseEntity<?> markMessagesAsRead(@AuthenticationPrincipal UserDetails userDetails,
                                               @PathVariable UUID groupId,
                                               @RequestBody(required = false) Map<String, Object> request) {
         try {
@@ -209,7 +254,7 @@ public class ChatController {
                 timestamp = LocalDateTime.parse(request.get("timestamp").toString());
             }
             
-            chatService.markMessagesAsRead(user.getUsername(), groupId, timestamp);
+            chatService.markMessagesAsRead(userDetails.getUsername(), groupId, timestamp);
             Map<String, String> response = new HashMap<>();
             response.put("message", "Messages marked as read");
             return ResponseEntity.ok(response);
@@ -224,10 +269,10 @@ public class ChatController {
     
     @GetMapping("/groups/{groupId}/members")
     public ResponseEntity<List<ChatGroupMemberResponse>> getGroupMembers(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable UUID groupId) {
         try {
-            List<ChatGroupMemberResponse> members = chatService.getGroupMembers(user.getUsername(), groupId);
+            List<ChatGroupMemberResponse> members = chatService.getGroupMembers(userDetails.getUsername(), groupId);
             return ResponseEntity.ok(members);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
@@ -235,7 +280,7 @@ public class ChatController {
     }
     
     @PutMapping("/groups/{groupId}/members/{memberId}/role")
-    public ResponseEntity<?> updateMemberRole(@AuthenticationPrincipal User user,
+    public ResponseEntity<?> updateMemberRole(@AuthenticationPrincipal UserDetails userDetails,
                                             @PathVariable UUID groupId,
                                             @PathVariable UUID memberId,
                                             @RequestBody Map<String, String> request) {
@@ -247,7 +292,7 @@ public class ChatController {
                 return ResponseEntity.badRequest().body(error);
             }
             
-            chatService.updateMemberRole(user.getUsername(), groupId, memberId, newRole);
+            chatService.updateMemberRole(userDetails.getUsername(), groupId, memberId, newRole);
             Map<String, String> response = new HashMap<>();
             response.put("message", "Member role updated successfully");
             return ResponseEntity.ok(response);
@@ -261,10 +306,10 @@ public class ChatController {
     // ==================== SEARCH ENDPOINTS ====================
     
     @PostMapping("/search")
-    public ResponseEntity<ChatSearchResponse> searchMessages(@AuthenticationPrincipal User user,
+    public ResponseEntity<ChatSearchResponse> searchMessages(@AuthenticationPrincipal UserDetails userDetails,
                                                            @Valid @RequestBody ChatSearchRequest request) {
         try {
-            ChatSearchResponse results = chatService.searchMessages(user.getUsername(), request);
+            ChatSearchResponse results = chatService.searchMessages(userDetails.getUsername(), request);
             return ResponseEntity.ok(results);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
@@ -272,7 +317,7 @@ public class ChatController {
     }
     
     @GetMapping("/search")
-    public ResponseEntity<ChatSearchResponse> searchMessagesGet(@AuthenticationPrincipal User user,
+    public ResponseEntity<ChatSearchResponse> searchMessagesGet(@AuthenticationPrincipal UserDetails userDetails,
                                                               @RequestParam String query,
                                                               @RequestParam(required = false) List<UUID> groupIds,
                                                               @RequestParam(defaultValue = "50") int limit,
@@ -284,7 +329,7 @@ public class ChatController {
             request.setLimit(limit);
             request.setOffset(offset);
             
-            ChatSearchResponse results = chatService.searchMessages(user.getUsername(), request);
+            ChatSearchResponse results = chatService.searchMessages(userDetails.getUsername(), request);
             return ResponseEntity.ok(results);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
@@ -294,10 +339,10 @@ public class ChatController {
     // ==================== UTILITY ENDPOINTS ====================
     
     @GetMapping("/status")
-    public ResponseEntity<Map<String, Object>> getChatStatus(@AuthenticationPrincipal User user) {
+    public ResponseEntity<Map<String, Object>> getChatStatus(@AuthenticationPrincipal UserDetails userDetails) {
         try {
             Map<String, Object> status = new HashMap<>();
-            status.put("userEmail", user.getUsername());
+            status.put("userEmail", userDetails.getUsername());
             status.put("timestamp", LocalDateTime.now());
             status.put("chatServiceStatus", "active");
             status.put("webSocketEnabled", true);
@@ -332,5 +377,12 @@ public class ChatController {
         type.put("value", value);
         type.put("label", label);
         return type;
+    }
+    
+    private boolean isUserOnline(User user) {
+        // This would typically check against a Redis cache or session store
+        // For now, return a simple heuristic based on last login
+        return user.getLastLogin() != null && 
+               user.getLastLogin().isAfter(java.time.LocalDateTime.now().minusMinutes(5));
     }
 }

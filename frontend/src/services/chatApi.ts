@@ -162,6 +162,18 @@ const chatApi = {
     await api.post(`/chat/groups/${groupId}/leave`);
   },
 
+  createDirectMessage: async (targetUserEmail: string): Promise<ChatGroup> => {
+    const response = await api.post('/chat/direct-message', null, {
+      params: { targetUserEmail }
+    });
+    return response.data;
+  },
+
+  getUsers: async (): Promise<any[]> => {
+    const response = await api.get('/chat/users');
+    return response.data;
+  },
+
   // Message management
   getMessages: async (groupId: string, page: number = 0, size: number = 50): Promise<{
     content: ChatMessage[];

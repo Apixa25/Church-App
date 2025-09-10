@@ -245,9 +245,10 @@ public class Message {
         return message;
     }
     
-    public static Message createSystemMessage(ChatGroup chatGroup, String content, String metadata) {
+    public static Message createSystemMessage(ChatGroup chatGroup, User user, String content, String metadata) {
         Message message = new Message();
         message.setChatGroup(chatGroup);
+        message.setUser(user);
         message.setContent(content);
         message.setMessageType(MessageType.SYSTEM);
         message.setSystemMetadata(metadata);
