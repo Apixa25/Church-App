@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authAPI } from '../services/api';
+import webSocketService from '../services/websocketService';
 
 export interface User {
   userId: string;
@@ -40,6 +41,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (savedToken && savedUser) {
       setToken(savedToken);
       setUser(JSON.parse(savedUser));
+      
+      // Update WebSocket service with existing token
+      webSocketService.updateToken(savedToken);
     }
     
     setLoading(false);
@@ -67,6 +71,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('authToken', authData.token);
       localStorage.setItem('refreshToken', authData.refreshToken);
       localStorage.setItem('user', JSON.stringify(userData));
+
+      // Update WebSocket service with new token
+      webSocketService.updateToken(authData.token);
 
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 'Login failed';
@@ -99,6 +106,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('refreshToken', authData.refreshToken);
       localStorage.setItem('user', JSON.stringify(userData));
 
+      // Update WebSocket service with new token
+      webSocketService.updateToken(authData.token);
+
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 'Registration failed';
       throw new Error(errorMessage);
@@ -115,6 +125,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
+
+    // Update WebSocket service to disconnect
+    webSocketService.updateToken(null);
   };
 
   const value: AuthContextType = {
