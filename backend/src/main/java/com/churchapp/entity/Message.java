@@ -153,6 +153,10 @@ public class Message {
         
         // User can edit their own messages within 24 hours
         if (user.equals(editor)) {
+            // If timestamp is null (before persistence), assume it's a new message (editable)
+            if (timestamp == null) {
+                return true;
+            }
             return timestamp.isAfter(LocalDateTime.now().minusHours(24));
         }
         

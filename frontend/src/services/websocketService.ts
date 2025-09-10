@@ -32,13 +32,22 @@ class WebSocketService {
   private token: string | null = null;
 
   constructor() {
-    this.token = localStorage.getItem('token');
+    this.token = localStorage.getItem('authToken');
   }
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (this.isConnected && this.client?.connected) {
         resolve();
+        return;
+      }
+
+      // Refresh token before connecting
+      this.token = localStorage.getItem('authToken');
+      
+      if (!this.token) {
+        console.error('No JWT token found for WebSocket connection');
+        reject(new Error('Authentication required - no token found'));
         return;
       }
 
@@ -59,7 +68,16 @@ class WebSocketService {
         onStompError: (frame: any) => {
           console.error('WebSocket STOMP Error:', frame);
           this.isConnected = false;
-          reject(new Error('WebSocket connection failed'));
+          
+          // Check if it's an authentication error
+          if (frame.headers && frame.headers.message && 
+              frame.headers.message.includes('401') || 
+              frame.headers.message.includes('Unauthorized')) {
+            console.error('WebSocket authentication failed - token may be invalid');
+            reject(new Error('Authentication failed - please login again'));
+          } else {
+            reject(new Error('WebSocket connection failed'));
+          }
         },
         onWebSocketError: (error: any) => {
           console.error('WebSocket Error:', error);
@@ -361,9 +379,21 @@ class WebSocketService {
   updateToken(token: string | null): void {
     this.token = token;
     if (token) {
-      localStorage.setItem('token', token);
+      localStorage.setItem('authToken', token);
+      
+      // If we're connected, reconnect with the new token
+      if (this.isConnected) {
+        this.disconnect();
+        // Small delay before reconnecting to allow proper cleanup
+        setTimeout(() => {
+          this.connect().catch(error => {
+            console.error('Failed to reconnect WebSocket with new token:', error);
+          });
+        }, 100);
+      }
     } else {
-      localStorage.removeItem('token');
+      localStorage.removeItem('authToken');
+      this.disconnect(); // Disconnect if no token
     }
   }
 }

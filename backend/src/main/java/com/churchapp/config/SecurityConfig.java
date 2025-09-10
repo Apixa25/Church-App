@@ -69,6 +69,7 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/test/**").permitAll()  // Keep test endpoint public for now
+                .requestMatchers("/ws/**").permitAll()    // Allow WebSocket handshake - auth handled in WebSocketConfig
                 .requestMatchers("/chat/**").authenticated()  // JWT authentication for chat APIs
                 .requestMatchers("/profile/**").authenticated()
                 .requestMatchers("/dashboard/**").authenticated()  // Explicitly protect dashboard
@@ -95,7 +96,8 @@ public class SecurityConfig {
                     String requestURI = request.getRequestURI();
                     if (requestURI.startsWith("/chat") || 
                         requestURI.startsWith("/profile") || 
-                        requestURI.startsWith("/dashboard")) {
+                        requestURI.startsWith("/dashboard") ||
+                        requestURI.startsWith("/ws")) {
                         response.setStatus(401);
                         response.setContentType("application/json");
                         response.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"JWT authentication required\"}");
