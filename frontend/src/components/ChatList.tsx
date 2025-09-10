@@ -77,18 +77,43 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
   };
 
   const formatLastMessageTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) {
-      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-      return diffInMinutes < 1 ? 'Just now' : `${diffInMinutes}m`;
-    } else if (diffInHours < 24) {
-      return `${diffInHours}h`;
-    } else {
-      const diffInDays = Math.floor(diffInHours / 24);
-      return diffInDays === 1 ? '1d' : `${diffInDays}d`;
+    try {
+      // Handle different timestamp formats that might come from backend
+      let date: Date;
+      
+      if (Array.isArray(timestamp)) {
+        // Handle array format [year, month, day, hour, minute, second, nanosecond]
+        const [year, month, day, hour = 0, minute = 0, second = 0] = timestamp as number[];
+        date = new Date(year, month - 1, day, hour, minute, second); // Month is 0-indexed in Date constructor
+      } else {
+        // Handle string format (ISO-8601 or other)
+        date = new Date(timestamp);
+      }
+      
+      // Validate the date
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid timestamp format:', timestamp);
+        return 'Invalid date';
+      }
+      
+      const now = new Date();
+      const diffInMs = now.getTime() - date.getTime();
+      const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+      const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+      const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+      
+      if (diffInMinutes < 1) {
+        return 'Just now';
+      } else if (diffInMinutes < 60) {
+        return `${diffInMinutes}m`;
+      } else if (diffInHours < 24) {
+        return `${diffInHours}h`;
+      } else {
+        return diffInDays === 1 ? '1d' : `${diffInDays}d`;
+      }
+    } catch (error) {
+      console.error('Error formatting timestamp:', timestamp, error);
+      return 'Invalid date';
     }
   };
 
