@@ -317,6 +317,12 @@ const ChatRoom: React.FC = () => {
         </div>
         <div className="header-right">
           <button 
+            onClick={() => navigate('/dashboard')} 
+            className="back-home-button"
+          >
+            🏠 Home
+          </button>
+          <button 
             onClick={() => setShowMembers(!showMembers)}
             className={`members-button ${showMembers ? 'active' : ''}`}
           >

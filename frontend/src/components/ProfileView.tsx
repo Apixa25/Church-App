@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { profileAPI } from '../services/api';
 import { UserProfile, ProfileCompletionStatus } from '../types/Profile';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,6 +13,7 @@ interface ProfileViewProps {
 const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditButton = true }) => {
   const { user } = useAuth();
   const { userId: paramUserId } = useParams<{ userId: string }>();
+  const navigate = useNavigate();
   const userId = propUserId || paramUserId;
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [completionStatus, setCompletionStatus] = useState<ProfileCompletionStatus | null>(null);
@@ -124,6 +125,16 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   return (
     <div className="profile-view-container">
       <div className="profile-view">
+        {/* Navigation */}
+        <div className="profile-navigation">
+          <button 
+            onClick={() => navigate('/dashboard')} 
+            className="back-home-button"
+          >
+            🏠 Back Home
+          </button>
+        </div>
+        
         {/* Profile Header */}
         <div className="profile-header">
           <div className="profile-avatar">
