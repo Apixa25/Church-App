@@ -7,7 +7,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.domain.Pageable;
+
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -30,5 +33,13 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Long countActiveUsers();
     
     @Query("SELECT u FROM User u WHERE u.isActive = true ORDER BY u.createdAt DESC")
-    java.util.List<User> findAllActiveUsers();
+    List<User> findAllActiveUsers();
+    
+    // Dashboard-specific queries
+    List<User> findByCreatedAtAfterOrderByCreatedAtDesc(LocalDateTime createdAfter, Pageable pageable);
+    
+    @Query("SELECT u FROM User u WHERE u.updatedAt > :updatedAfter AND u.updatedAt != u.createdAt ORDER BY u.updatedAt DESC")
+    List<User> findByUpdatedAtAfterAndUpdatedAtNotEqualToCreatedAtOrderByUpdatedAtDesc(@Param("updatedAfter") LocalDateTime updatedAfter);
+    
+    long countByCreatedAtAfter(LocalDateTime createdAfter);
 }
