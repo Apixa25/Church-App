@@ -52,7 +52,7 @@ public class MessageResponse {
         this.userName = message.getUser().getName();
         this.userDisplayName = message.getUser().getName();
         this.userProfilePicUrl = message.getUser().getProfilePicUrl();
-        this.content = message.getDisplayContent();
+        this.content = message.getContent(); // Use raw content, not display content
         this.messageType = message.getMessageType();
         this.messageTypeDisplay = message.getMessageType().getDisplayName();
         this.mediaUrl = message.getMediaUrl();

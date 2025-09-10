@@ -136,7 +136,21 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
               
               {message.messageType === 'IMAGE' && message.mediaUrl && (
                 <div className="media-content">
-                  <img src={message.mediaUrl} alt="Shared content" className="message-image" />
+                  <img 
+                    src={message.mediaUrl} 
+                    alt={message.content || "Shared image"} 
+                    className="message-image"
+                    onError={(e) => {
+                      console.error('Failed to load image:', message.mediaUrl);
+                      const target = e.currentTarget as HTMLImageElement;
+                      target.style.display = 'none';
+                      // Show fallback text
+                      const fallback = document.createElement('div');
+                      fallback.className = 'image-error-fallback';
+                      fallback.innerHTML = `<span>🖼️ Image failed to load</span><br><small>${message.mediaFilename || 'Unknown file'}</small>`;
+                      target.parentNode?.appendChild(fallback);
+                    }}
+                  />
                   {message.content && <p className="media-caption">{message.content}</p>}
                 </div>
               )}
@@ -175,7 +189,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                 </div>
               )}
               
-              {(message.messageType === 'TEXT' || !message.messageType) && (
+              {(message.messageType === 'TEXT' || !message.messageType) && message.content && (
                 <p className="message-text">{message.content}</p>
               )}
             </>
