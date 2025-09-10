@@ -4,6 +4,7 @@ import { profileAPI } from '../services/api';
 import { UserProfile, ProfileCompletionStatus } from '../types/Profile';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileEdit from './ProfileEdit';
+import { formatFullDate } from '../utils/dateUtils';
 
 interface ProfileViewProps {
   userId?: string;
@@ -65,13 +66,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
+  // Removed local formatDate function - now using robust dateUtils.formatFullDate
 
   const getRoleDisplay = (role: string) => {
     const roleMap = {
@@ -206,20 +201,20 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
 
           <div className="profile-section">
             <h3>📅 Member Since</h3>
-            <p>{formatDate(profile.createdAt)}</p>
+            <p>{formatFullDate(profile.createdAt)}</p>
           </div>
 
           {profile.lastLogin && (
             <div className="profile-section">
               <h3>🕒 Last Active</h3>
-              <p>{formatDate(profile.lastLogin)}</p>
+              <p>{formatFullDate(profile.lastLogin)}</p>
             </div>
           )}
 
           {profile.updatedAt && profile.updatedAt !== profile.createdAt && (
             <div className="profile-section">
               <h3>✏️ Profile Updated</h3>
-              <p>{formatDate(profile.updatedAt)}</p>
+              <p>{formatFullDate(profile.updatedAt)}</p>
             </div>
           )}
         </div>
