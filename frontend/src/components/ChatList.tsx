@@ -114,7 +114,15 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
   return (
     <div className="chat-list">
       <div className="chat-list-header">
-        <h2>💬 Chats</h2>
+        <div className="header-left">
+          <button 
+            onClick={() => navigate('/dashboard')} 
+            className="back-home-button"
+          >
+            🏠 Back Home
+          </button>
+          <h2>💬 Chats</h2>
+        </div>
         <div className="header-actions">
           <button 
             onClick={() => setShowJoinable(!showJoinable)}

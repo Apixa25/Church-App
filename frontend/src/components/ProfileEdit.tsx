@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { profileAPI } from '../services/api';
 import { UserProfile, ProfileUpdateRequest, FileUploadResponse } from '../types/Profile';
 import { useAuth } from '../contexts/AuthContext';
@@ -21,6 +22,7 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
   onProfileUpdate, 
   onCancel 
 }) => {
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
@@ -126,6 +128,16 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
   return (
     <div className="profile-edit-container">
       <div className="profile-edit">
+        {/* Navigation */}
+        <div className="profile-navigation">
+          <button 
+            onClick={() => navigate('/dashboard')} 
+            className="back-home-button"
+          >
+            🏠 Back Home
+          </button>
+        </div>
+        
         <h2>✏️ Edit Profile</h2>
         <p>Update your information and personalize your church community experience</p>
 

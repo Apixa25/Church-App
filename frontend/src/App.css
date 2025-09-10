@@ -2216,3 +2216,76 @@ body {
     padding: 10px;
   }
 }
+
+/* Back Home Button Styles */
+.back-home-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.back-home-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.back-home-button:active {
+  transform: translateY(0);
+}
+
+/* Navigation Container Styles */
+.profile-navigation {
+  margin-bottom: 20px;
+  padding: 10px 0;
+  border-bottom: 1px solid #e1e5e9;
+}
+
+/* Chat List Header Layout */
+.chat-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chat-list-header .header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.chat-list-header .header-left h2 {
+  margin: 0;
+}
+
+/* Chat Room Header Back Home Button */
+.chat-header .header-right .back-home-button {
+  margin-right: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .back-home-button {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
+  .chat-list-header .header-left {
+    gap: 10px;
+  }
+  
+  .chat-list-header .header-left h2 {
+    font-size: 20px;
+  }
+}
