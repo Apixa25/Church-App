@@ -6,6 +6,7 @@ import ActivityFeed from './ActivityFeed';
 import QuickActions from './QuickActions';
 import DashboardStats from './DashboardStats';
 import NotificationCenter from './NotificationCenter';
+import PrayerNotifications from './PrayerNotifications';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -30,7 +31,8 @@ const Dashboard: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await dashboardApi.getDashboard();
+      // Use enhanced dashboard service that includes prayer requests
+      const data = await dashboardApi.getDashboardWithPrayers();
       setDashboardData(data);
       setLastRefresh(new Date());
     } catch (err) {
@@ -86,9 +88,12 @@ const Dashboard: React.FC = () => {
                 <p className="user-role">Role: {user?.role}</p>
               </div>
             </div>
-            <button onClick={handleLogout} className="logout-button">
-              🚪 Logout
-            </button>
+            <div className="header-actions">
+              <PrayerNotifications />
+              <button onClick={handleLogout} className="logout-button">
+                🚪 Logout
+              </button>
+            </div>
           </div>
         </div>
       </header>

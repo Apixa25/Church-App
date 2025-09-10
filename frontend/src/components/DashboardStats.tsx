@@ -42,8 +42,16 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, isLoading }) => 
         <div className="stat-card">
           <div className="stat-icon">🙏</div>
           <div className="stat-content">
-            <h4>{stats.totalPrayerRequests}</h4>
-            <p>Prayer Requests</p>
+            <h4>{stats.activePrayerRequests || stats.totalPrayerRequests}</h4>
+            <p>Active Prayers</p>
+          </div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-icon">✨</div>
+          <div className="stat-content">
+            <h4>{stats.answeredPrayerRequests || 0}</h4>
+            <p>Answered Prayers</p>
           </div>
         </div>
         

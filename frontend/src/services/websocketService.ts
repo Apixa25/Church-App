@@ -22,6 +22,23 @@ export interface PresenceUpdate {
   timestamp: string;
 }
 
+export interface PrayerRequestUpdate {
+  type: 'prayer_request' | 'prayer_interaction' | 'prayer_update';
+  prayerRequestId: string;
+  userId?: string;
+  content?: any;
+  timestamp: string;
+}
+
+export interface PrayerInteractionUpdate {
+  type: 'prayer_interaction';
+  prayerRequestId: string;
+  interactionType: string;
+  userId: string;
+  content?: string;
+  timestamp: string;
+}
+
 class WebSocketService {
   private client: Client | null = null;
   private subscriptions: Map<string, StompSubscription> = new Map();
@@ -427,6 +444,120 @@ class WebSocketService {
     this.client.publish({
       destination: '/app/chat/presence',
       body: JSON.stringify({ status }),
+    });
+  }
+
+  // Subscribe to prayer request updates
+  subscribeToPrayerRequests(callback: (update: PrayerRequestUpdate) => void): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = 'prayer-requests';
+    
+    // Clean up existing subscription if it exists
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
+    const destination = '/topic/prayers';
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing prayer request update:', error);
+      }
+    });
+
+    this.subscriptions.set(subscriptionKey, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    };
+  }
+
+  // Subscribe to specific prayer request interactions
+  subscribeToPrayerInteractions(
+    prayerRequestId: string,
+    callback: (interaction: PrayerInteractionUpdate) => void
+  ): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = `prayer-interactions-${prayerRequestId}`;
+    
+    // Clean up existing subscription if it exists
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
+    const destination = `/topic/prayers/${prayerRequestId}/interactions`;
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing prayer interaction update:', error);
+      }
+    });
+
+    this.subscriptions.set(subscriptionKey, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    };
+  }
+
+  // Subscribe to user's personal prayer notifications
+  subscribeToUserPrayerNotifications(callback: (notification: WebSocketMessage) => void): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = 'user-prayer-notifications';
+    
+    // Clean up existing subscription if it exists
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
+    const destination = '/user/queue/prayers';
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing prayer notification:', error);
+      }
+    });
+
+    this.subscriptions.set(subscriptionKey, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    };
+  }
+
+  // Send prayer interaction via WebSocket
+  sendPrayerInteraction(prayerRequestId: string, interaction: any): void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    this.client.publish({
+      destination: `/app/prayers/${prayerRequestId}/interact`,
+      body: JSON.stringify(interaction),
     });
   }
 
