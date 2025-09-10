@@ -28,25 +28,46 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, 
                                     FilterChain filterChain) throws ServletException, IOException {
         
+        final String requestURI = request.getRequestURI();
+        
+        // Skip JWT processing for OAuth2 endpoints - they use their own authentication
+        if (requestURI.startsWith("/api/auth/oauth2/") || 
+            requestURI.startsWith("/api/oauth2/") ||
+            requestURI.startsWith("/oauth2/")) {
+            logger.debug("Skipping JWT authentication for OAuth2 endpoint: " + requestURI);
+            filterChain.doFilter(request, response);
+            return;
+        }
+        
         final String authorizationHeader = request.getHeader("Authorization");
+        
+        // Log authentication attempt for debugging
+        logger.debug("Processing request to: " + requestURI + " with Authorization header: " + 
+                    (authorizationHeader != null ? "Present" : "Missing"));
         
         String email = null;
         String jwt = null;
         
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             jwt = authorizationHeader.substring(7);
+            logger.debug("Extracted JWT token from Authorization header");
+            
             try {
                 email = jwtUtil.getEmailFromToken(jwt);
+                logger.debug("Successfully extracted email from JWT: " + email);
             } catch (ExpiredJwtException e) {
-                logger.warn("JWT token is expired");
+                logger.warn("JWT token is expired for request: " + requestURI);
             } catch (SignatureException e) {
-                logger.error("JWT signature does not match");
+                logger.error("JWT signature does not match for request: " + requestURI);
             } catch (Exception e) {
-                logger.error("JWT token parsing failed", e);
+                logger.error("JWT token parsing failed for request: " + requestURI, e);
             }
+        } else {
+            logger.debug("No Bearer token found in Authorization header for request: " + requestURI);
         }
         
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            logger.debug("Loading user details for email: " + email);
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(email);
             
             if (jwtUtil.validateToken(jwt, userDetails)) {
@@ -55,6 +76,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         userDetails, null, userDetails.getAuthorities());
                 authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                logger.debug("Successfully authenticated user: " + email + " for request: " + requestURI);
+            } else {
+                logger.warn("JWT token validation failed for user: " + email + " on request: " + requestURI);
             }
         }
         

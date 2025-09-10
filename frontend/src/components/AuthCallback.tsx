@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 const AuthCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user, setUser, setToken } = useAuth() as any;
+  const auth = useAuth();
 
   useEffect(() => {
     const token = searchParams.get('token');
@@ -39,25 +39,18 @@ const AuthCallback: React.FC = () => {
       localStorage.setItem('refreshToken', refreshToken || '');
       localStorage.setItem('user', JSON.stringify(userData));
 
-      // Update context (if setUser is available)
-      if (setUser && setToken) {
-        setUser(userData);
-        setToken(token);
-      }
-
-      // Navigate based on user status
-      if (isNewUser) {
-        navigate('/welcome'); // Could be a welcome screen or profile setup
-      } else {
-        navigate('/dashboard');
-      }
+      // Force a page reload to refresh the auth context
+      console.log('OAuth2 login successful, redirecting to dashboard');
+      setTimeout(() => {
+        window.location.href = isNewUser ? '/profile' : '/dashboard';
+      }, 1000);
     } else {
       console.error('Missing authentication data');
       navigate('/login', { 
         state: { error: 'Authentication data incomplete. Please try again.' } 
       });
     }
-  }, [searchParams, navigate, setUser, setToken]);
+  }, [searchParams, navigate]);
 
   return (
     <div className="auth-callback-container">

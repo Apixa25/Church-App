@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:8083/api';
+import api from './api';
 
 export interface DashboardActivityItem {
   id: string;
@@ -63,57 +61,27 @@ export interface DashboardResponse {
 
 const dashboardApi = {
   getDashboard: async (): Promise<DashboardResponse> => {
-    const token = localStorage.getItem('token');
-    const response = await axios.get(`${API_BASE_URL}/dashboard`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await api.get('/dashboard');
     return response.data;
   },
 
   getActivityFeed: async (): Promise<DashboardResponse> => {
-    const token = localStorage.getItem('token');
-    const response = await axios.get(`${API_BASE_URL}/dashboard/activity`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await api.get('/dashboard/activity');
     return response.data;
   },
 
   getStats: async (): Promise<{ stats: DashboardStats; lastUpdated: string }> => {
-    const token = localStorage.getItem('token');
-    const response = await axios.get(`${API_BASE_URL}/dashboard/stats`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await api.get('/dashboard/stats');
     return response.data;
   },
 
   getNotifications: async (): Promise<{ notifications: NotificationSummary; lastUpdated: string }> => {
-    const token = localStorage.getItem('token');
-    const response = await axios.get(`${API_BASE_URL}/dashboard/notifications`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await api.get('/dashboard/notifications');
     return response.data;
   },
 
   getQuickActions: async (): Promise<{ quickActions: QuickAction[]; lastUpdated: string }> => {
-    const token = localStorage.getItem('token');
-    const response = await axios.get(`${API_BASE_URL}/dashboard/quick-actions`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await api.get('/dashboard/quick-actions');
     return response.data;
   },
 };
