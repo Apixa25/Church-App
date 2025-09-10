@@ -59,7 +59,7 @@ public class SecurityConfig {
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // Allow sessions for OAuth2
+                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // Allow sessions for OAuth2, stateless for JWT
                 .maximumSessions(1)
                 .maxSessionsPreventsLogin(false)
             )
@@ -70,6 +70,7 @@ public class SecurityConfig {
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/test/**").permitAll()  // Keep test endpoint public for now
                 .requestMatchers("/profile/**").authenticated()
+                .requestMatchers("/dashboard/**").authenticated()  // Explicitly protect dashboard
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())
