@@ -11,6 +11,8 @@ import ProfileEdit from './components/ProfileEdit';
 import ChatList from './components/ChatList';
 import ChatRoom from './components/ChatRoom';
 import ChatSearch from './components/ChatSearch';
+import PrayerRequestsPage from './components/PrayerRequestsPage';
+import PrayerRequestDetail from './components/PrayerRequestDetail';
 import './App.css';
 
 const App: React.FC = () => {
@@ -86,6 +88,25 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <ChatSearch />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Prayer Request routes */}
+            <Route 
+              path="/prayers" 
+              element={
+                <ProtectedRoute>
+                  <PrayerRequestsPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/prayers/:prayerId" 
+              element={
+                <ProtectedRoute>
+                  <PrayerRequestDetail />
                 </ProtectedRoute>
               } 
             />
