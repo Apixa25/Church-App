@@ -3,8 +3,10 @@ package com.churchapp.controller;
 import com.churchapp.dto.*;
 import com.churchapp.repository.UserRepository;
 import com.churchapp.service.ChatService;
+import com.churchapp.service.FileUploadService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,10 +25,12 @@ import com.churchapp.entity.User;
 @RestController
 @RequestMapping("/chat")
 @RequiredArgsConstructor
+@Slf4j
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8100", "capacitor://localhost"})
 public class ChatController {
     
     private final ChatService chatService;
+    private final FileUploadService fileUploadService;
     private final UserRepository userRepository;
     
     // ==================== CHAT GROUP ENDPOINTS ====================
@@ -171,8 +175,21 @@ public class ChatController {
                                             @RequestParam(value = "parentMessageId", required = false) UUID parentMessageId,
                                             @RequestParam(value = "tempId", required = false) String tempId) {
         try {
-            // This would integrate with your FileUploadService to upload the media
-            // For now, we'll create a placeholder implementation
+            // Validate file before upload
+            if (file.isEmpty()) {
+                Map<String, String> error = Map.of("error", "File is empty");
+                return ResponseEntity.badRequest().body(error);
+            }
+            
+            // Upload file to S3 using FileUploadService
+            String mediaUrl;
+            try {
+                mediaUrl = fileUploadService.uploadFile(file, "chat-media");
+            } catch (Exception e) {
+                log.error("Error uploading file to S3", e);
+                Map<String, String> error = Map.of("error", "Failed to upload file: " + e.getMessage());
+                return ResponseEntity.status(500).body(error);
+            }
             
             MessageRequest request = new MessageRequest();
             request.setChatGroupId(groupId);
@@ -182,18 +199,18 @@ public class ChatController {
             
             // Determine message type from file
             String contentType = file.getContentType();
-            if (contentType.startsWith("image/")) {
+            if (contentType != null && contentType.startsWith("image/")) {
                 request.setMessageType(com.churchapp.entity.Message.MessageType.IMAGE);
-            } else if (contentType.startsWith("video/")) {
+            } else if (contentType != null && contentType.startsWith("video/")) {
                 request.setMessageType(com.churchapp.entity.Message.MessageType.VIDEO);
-            } else if (contentType.startsWith("audio/")) {
+            } else if (contentType != null && contentType.startsWith("audio/")) {
                 request.setMessageType(com.churchapp.entity.Message.MessageType.AUDIO);
             } else {
                 request.setMessageType(com.churchapp.entity.Message.MessageType.DOCUMENT);
             }
             
-            // TODO: Upload file and set URL
-            request.setMediaUrl("https://placeholder.com/" + file.getOriginalFilename());
+            // Set uploaded file URL and metadata
+            request.setMediaUrl(mediaUrl);
             request.setMediaType(contentType);
             request.setMediaFilename(file.getOriginalFilename());
             request.setMediaSize(file.getSize());

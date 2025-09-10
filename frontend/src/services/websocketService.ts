@@ -127,6 +127,16 @@ class WebSocketService {
       throw new Error('WebSocket not connected');
     }
 
+    const subscriptionKey = `group-messages-${groupId}`;
+    
+    // Clean up existing subscription if it exists to prevent duplicates
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      console.log('Cleaning up existing subscription for:', subscriptionKey);
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
     const destination = `/topic/group/${groupId}/messages`;
     const subscription = this.client.subscribe(destination, (message: IMessage) => {
       try {
@@ -137,11 +147,11 @@ class WebSocketService {
       }
     });
 
-    this.subscriptions.set(`group-messages-${groupId}`, subscription);
+    this.subscriptions.set(subscriptionKey, subscription);
 
     return () => {
       subscription.unsubscribe();
-      this.subscriptions.delete(`group-messages-${groupId}`);
+      this.subscriptions.delete(subscriptionKey);
     };
   }
 
@@ -154,6 +164,16 @@ class WebSocketService {
       throw new Error('WebSocket not connected');
     }
 
+    const subscriptionKey = `group-notifications-${groupId}`;
+    
+    // Clean up existing subscription if it exists to prevent duplicates
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      console.log('Cleaning up existing subscription for:', subscriptionKey);
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
     const destination = `/topic/group/${groupId}`;
     const subscription = this.client.subscribe(destination, (message: IMessage) => {
       try {
@@ -164,11 +184,11 @@ class WebSocketService {
       }
     });
 
-    this.subscriptions.set(`group-notifications-${groupId}`, subscription);
+    this.subscriptions.set(subscriptionKey, subscription);
 
     return () => {
       subscription.unsubscribe();
-      this.subscriptions.delete(`group-notifications-${groupId}`);
+      this.subscriptions.delete(subscriptionKey);
     };
   }
 
@@ -181,6 +201,16 @@ class WebSocketService {
       throw new Error('WebSocket not connected');
     }
 
+    const subscriptionKey = `typing-${groupId}`;
+    
+    // Clean up existing subscription if it exists to prevent duplicates
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      console.log('Cleaning up existing subscription for:', subscriptionKey);
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
     const destination = `/topic/group/${groupId}/typing`;
     const subscription = this.client.subscribe(destination, (message: IMessage) => {
       try {
@@ -191,11 +221,11 @@ class WebSocketService {
       }
     });
 
-    this.subscriptions.set(`typing-${groupId}`, subscription);
+    this.subscriptions.set(subscriptionKey, subscription);
 
     return () => {
       subscription.unsubscribe();
-      this.subscriptions.delete(`typing-${groupId}`);
+      this.subscriptions.delete(subscriptionKey);
     };
   }
 
@@ -208,6 +238,16 @@ class WebSocketService {
       throw new Error('WebSocket not connected');
     }
 
+    const subscriptionKey = `read-${groupId}`;
+    
+    // Clean up existing subscription if it exists to prevent duplicates
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      console.log('Cleaning up existing subscription for:', subscriptionKey);
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
     const destination = `/topic/group/${groupId}/read`;
     const subscription = this.client.subscribe(destination, (message: IMessage) => {
       try {
@@ -218,11 +258,11 @@ class WebSocketService {
       }
     });
 
-    this.subscriptions.set(`read-${groupId}`, subscription);
+    this.subscriptions.set(subscriptionKey, subscription);
 
     return () => {
       subscription.unsubscribe();
-      this.subscriptions.delete(`read-${groupId}`);
+      this.subscriptions.delete(subscriptionKey);
     };
   }
 
@@ -230,6 +270,16 @@ class WebSocketService {
   subscribeToErrors(callback: (error: any) => void): () => void {
     if (!this.isConnected || !this.client) {
       throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = 'errors';
+    
+    // Clean up existing subscription if it exists to prevent duplicates
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      console.log('Cleaning up existing subscription for:', subscriptionKey);
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
     }
 
     const destination = '/user/queue/errors';
@@ -242,11 +292,11 @@ class WebSocketService {
       }
     });
 
-    this.subscriptions.set('errors', subscription);
+    this.subscriptions.set(subscriptionKey, subscription);
 
     return () => {
       subscription.unsubscribe();
-      this.subscriptions.delete('errors');
+      this.subscriptions.delete(subscriptionKey);
     };
   }
 
@@ -254,6 +304,16 @@ class WebSocketService {
   subscribeToPresence(callback: (presence: PresenceUpdate) => void): () => void {
     if (!this.isConnected || !this.client) {
       throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = 'presence';
+    
+    // Clean up existing subscription if it exists to prevent duplicates
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      console.log('Cleaning up existing subscription for:', subscriptionKey);
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
     }
 
     const destination = '/topic/presence';
@@ -266,11 +326,11 @@ class WebSocketService {
       }
     });
 
-    this.subscriptions.set('presence', subscription);
+    this.subscriptions.set(subscriptionKey, subscription);
 
     return () => {
       subscription.unsubscribe();
-      this.subscriptions.delete('presence');
+      this.subscriptions.delete(subscriptionKey);
     };
   }
 
