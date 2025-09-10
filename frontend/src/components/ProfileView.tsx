@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { profileAPI } from '../services/api';
 import { UserProfile, ProfileCompletionStatus } from '../types/Profile';
@@ -22,14 +22,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
 
   const isOwnProfile = !userId || userId === user?.userId;
 
-  useEffect(() => {
-    fetchProfile();
-    if (isOwnProfile) {
-      fetchCompletionStatus();
-    }
-  }, [userId, isOwnProfile]);
-
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -45,7 +38,14 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    fetchProfile();
+    if (isOwnProfile) {
+      fetchCompletionStatus();
+    }
+  }, [userId, isOwnProfile, fetchProfile]);
 
   const fetchCompletionStatus = async () => {
     try {

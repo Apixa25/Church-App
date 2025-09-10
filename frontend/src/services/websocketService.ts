@@ -47,21 +47,21 @@ class WebSocketService {
         connectHeaders: {
           Authorization: `Bearer ${this.token}`,
         },
-        debug: (str) => {
+        debug: (str: string) => {
           console.log('WebSocket Debug:', str);
         },
-        onConnect: (frame) => {
+        onConnect: (frame: any) => {
           console.log('WebSocket Connected:', frame);
           this.isConnected = true;
           this.reconnectAttempts = 0;
           resolve();
         },
-        onStompError: (frame) => {
+        onStompError: (frame: any) => {
           console.error('WebSocket STOMP Error:', frame);
           this.isConnected = false;
           reject(new Error('WebSocket connection failed'));
         },
-        onWebSocketError: (error) => {
+        onWebSocketError: (error: any) => {
           console.error('WebSocket Error:', error);
           this.isConnected = false;
           reject(error);

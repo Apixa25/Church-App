@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import chatApi, { ChatGroup, ChatMessage, GroupMember } from '../services/chatApi';
 import webSocketService from '../services/websocketService';
 import MessageInput from './MessageInput';
-import ChatMessage from './ChatMessage';
+import ChatMessageComponent from './ChatMessage';
 import ChatMembers from './ChatMembers';
 
 const ChatRoom: React.FC = () => {
@@ -29,61 +29,7 @@ const ChatRoom: React.FC = () => {
   // WebSocket cleanup functions
   const unsubscribeFunctions = useRef<(() => void)[]>([]);
 
-  useEffect(() => {
-    if (!groupId) {
-      navigate('/chats');
-      return;
-    }
-
-    loadChatRoom();
-    
-    return () => {
-      // Cleanup WebSocket subscriptions
-      unsubscribeFunctions.current.forEach(unsub => unsub());
-      unsubscribeFunctions.current = [];
-    };
-  }, [groupId]);
-
-  const loadChatRoom = async () => {
-    if (!groupId) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Load group, messages, and members in parallel
-      const [groupsResponse, messagesResponse, membersResponse] = await Promise.all([
-        chatApi.getGroups(),
-        chatApi.getMessages(groupId, 0, 50),
-        chatApi.getGroupMembers(groupId)
-      ]);
-
-      const currentGroup = groupsResponse.find(g => g.id === groupId);
-      if (!currentGroup) {
-        setError('Chat group not found');
-        return;
-      }
-
-      setGroup(currentGroup);
-      setMessages(messagesResponse.content.reverse()); // Reverse to show oldest first
-      setMembers(membersResponse);
-      setHasMoreMessages(messagesResponse.number < messagesResponse.totalPages - 1);
-
-      // Connect to WebSocket and subscribe to this group
-      await connectWebSocket();
-
-      // Mark messages as read
-      chatApi.markAsRead(groupId);
-
-    } catch (err) {
-      setError('Failed to load chat room');
-      console.error('Error loading chat room:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const connectWebSocket = async () => {
+  const connectWebSocket = useCallback(async () => {
     if (!groupId) return;
 
     try {
@@ -142,7 +88,61 @@ const ChatRoom: React.FC = () => {
     } catch (err) {
       console.error('Failed to connect to WebSocket:', err);
     }
-  };
+  }, [groupId, user?.email]); // Add dependencies for loadMembers later
+
+  const loadChatRoom = useCallback(async () => {
+    if (!groupId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Load group, messages, and members in parallel
+      const [groupsResponse, messagesResponse, membersResponse] = await Promise.all([
+        chatApi.getGroups(),
+        chatApi.getMessages(groupId, 0, 50),
+        chatApi.getGroupMembers(groupId)
+      ]);
+
+      const currentGroup = groupsResponse.find(g => g.id === groupId);
+      if (!currentGroup) {
+        setError('Chat group not found');
+        return;
+      }
+
+      setGroup(currentGroup);
+      setMessages(messagesResponse.content.reverse()); // Reverse to show oldest first
+      setMembers(membersResponse);
+      setHasMoreMessages(messagesResponse.number < messagesResponse.totalPages - 1);
+
+      // Connect to WebSocket and subscribe to this group
+      await connectWebSocket();
+
+      // Mark messages as read
+      chatApi.markAsRead(groupId);
+
+    } catch (err) {
+      setError('Failed to load chat room');
+      console.error('Error loading chat room:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [groupId, connectWebSocket]);
+
+  useEffect(() => {
+    if (!groupId) {
+      navigate('/chats');
+      return;
+    }
+
+    loadChatRoom();
+    
+    return () => {
+      // Cleanup WebSocket subscriptions
+      unsubscribeFunctions.current.forEach(unsub => unsub());
+      unsubscribeFunctions.current = [];
+    };
+  }, [groupId, loadChatRoom, navigate]);
 
   const loadMoreMessages = async () => {
     if (!groupId || !hasMoreMessages) return;
@@ -241,7 +241,7 @@ const ChatRoom: React.FC = () => {
   };
 
   const handleLeaveGroup = async () => {
-    if (!groupId || !confirm('Are you sure you want to leave this group?')) return;
+    if (!groupId || !window.confirm('Are you sure you want to leave this group?')) return;
 
     try {
       await chatApi.leaveGroup(groupId);
@@ -353,13 +353,13 @@ const ChatRoom: React.FC = () => {
             )}
             
             {messages.map((message) => (
-              <ChatMessage
+              <ChatMessageComponent
                 key={message.id || message.tempId}
                 message={message}
                 currentUser={user}
                 onEdit={handleEditMessage}
                 onDelete={handleDeleteMessage}
-                onReply={(msg) => {/* Handle reply */}}
+                onReply={(msg: ChatMessage) => {/* Handle reply */}}
               />
             ))}
             
