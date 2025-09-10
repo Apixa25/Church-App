@@ -153,7 +153,7 @@ public class DashboardService {
             "Connect with your church family",
             "/chats",
             "chat",
-            "Coming Soon"
+            "Open Chats"
         ));
         
         actions.add(QuickAction.create(
