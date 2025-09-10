@@ -94,6 +94,10 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
         prayer.interactionSummary.interactionCounts[type] = userInteractions[type] 
           ? Math.max(0, currentCount - 1)  // Remove interaction
           : currentCount + 1;              // Add interaction
+          
+        // Update total interactions count
+        prayer.interactionSummary.totalInteractions = Object.values(prayer.interactionSummary.interactionCounts)
+          .reduce((total, count) => total + count, 0);
       }
     } catch (err: any) {
       setError(handleApiError(err));

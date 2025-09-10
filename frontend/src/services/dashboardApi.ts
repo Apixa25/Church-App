@@ -1,4 +1,5 @@
 import api from './api';
+import { prayerAPI } from './prayerApi';
 
 export interface DashboardActivityItem {
   id: string;
@@ -18,6 +19,8 @@ export interface DashboardStats {
   totalMembers: number;
   newMembersThisWeek: number;
   totalPrayerRequests: number;
+  activePrayerRequests: number;
+  answeredPrayerRequests: number;
   upcomingEvents: number;
   unreadAnnouncements: number;
   additionalStats: Record<string, any>;
@@ -83,6 +86,105 @@ const dashboardApi = {
   getQuickActions: async (): Promise<{ quickActions: QuickAction[]; lastUpdated: string }> => {
     const response = await api.get('/dashboard/quick-actions');
     return response.data;
+  },
+
+  // Prayer Request specific dashboard functions
+  getPrayerActivityItems: async (limit: number = 10): Promise<DashboardActivityItem[]> => {
+    try {
+      // Get recent prayer requests for dashboard
+      const response = await prayerAPI.getAllPrayerRequests(0, limit);
+      const prayers = response.data.content || response.data;
+      
+      return prayers.map(prayer => ({
+        id: prayer.id,
+        type: 'prayer_request',
+        title: prayer.title,
+        description: prayer.description || 'Prayer request submitted',
+        userDisplayName: prayer.isAnonymous ? 'Anonymous' : prayer.userName,
+        userProfilePicUrl: prayer.isAnonymous ? undefined : prayer.userProfilePicUrl,
+        userId: prayer.isAnonymous ? undefined : prayer.userId,
+        timestamp: prayer.createdAt,
+        actionUrl: `/prayers/${prayer.id}`,
+        iconType: 'prayer',
+        metadata: {
+          category: prayer.category,
+          status: prayer.status,
+          isAnonymous: prayer.isAnonymous,
+          interactionCount: prayer.interactionSummary?.totalInteractions || 0
+        }
+      }));
+    } catch (error) {
+      console.error('Error fetching prayer activity items:', error);
+      return [];
+    }
+  },
+
+  getPrayerQuickActions: (): QuickAction[] => {
+    return [
+      {
+        id: 'view-prayers',
+        title: 'View Prayer Requests',
+        description: 'See all community prayer requests and support others',
+        actionUrl: '/prayers',
+        iconType: 'prayer',
+        buttonText: 'View Prayers',
+        requiresAuth: true
+      },
+      {
+        id: 'submit-prayer',
+        title: 'Submit Prayer Request',
+        description: 'Share your prayer needs with the community',
+        actionUrl: '/prayers?mode=create',
+        iconType: 'prayer',
+        buttonText: 'Submit Prayer',
+        requiresAuth: true
+      },
+      {
+        id: 'my-prayers',
+        title: 'My Prayer Requests',
+        description: 'Manage your submitted prayer requests',
+        actionUrl: '/prayers?filter=my',
+        iconType: 'prayer',
+        buttonText: 'My Prayers',
+        requiresAuth: true
+      }
+    ];
+  },
+
+  getDashboardWithPrayers: async (): Promise<DashboardResponse> => {
+    try {
+      // Get the main dashboard data
+      const dashboardResponse = await api.get('/dashboard');
+      const dashboardData = dashboardResponse.data;
+
+      // Get prayer-specific activity items
+      const prayerActivityItems = await dashboardApi.getPrayerActivityItems(5);
+
+      // Merge prayer activities with existing activities
+      const combinedActivity = [
+        ...prayerActivityItems,
+        ...(dashboardData.recentActivity || [])
+      ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+       .slice(0, 20); // Keep only the 20 most recent items
+
+      // Add prayer quick actions if not already present
+      const prayerQuickActions = dashboardApi.getPrayerQuickActions();
+      const existingActionUrls = (dashboardData.quickActions || []).map(action => action.actionUrl);
+      const newPrayerActions = prayerQuickActions.filter(action => 
+        !existingActionUrls.includes(action.actionUrl)
+      );
+
+      return {
+        ...dashboardData,
+        recentActivity: combinedActivity,
+        quickActions: [...(dashboardData.quickActions || []), ...newPrayerActions]
+      };
+    } catch (error) {
+      console.error('Error getting dashboard with prayers:', error);
+      // Fallback to regular dashboard
+      const response = await api.get('/dashboard');
+      return response.data;
+    }
   },
 };
 

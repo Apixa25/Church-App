@@ -13,6 +13,7 @@ import {
 } from '../types/Prayer';
 import { prayerAPI, prayerInteractionAPI, handleApiError } from '../services/prayerApi';
 import { useAuth } from '../contexts/AuthContext';
+import { usePrayerNotifications } from '../hooks/usePrayerNotifications';
 
 interface PrayerRequestDetailProps {
   prayerId?: string;
@@ -28,6 +29,7 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
   const { prayerId: paramPrayerId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { subscribeToSpecificPrayer } = usePrayerNotifications();
 
   const prayerId = propPrayerId || paramPrayerId;
 
@@ -48,6 +50,19 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
       loadPrayerDetail();
     }
   }, [prayerId]);
+
+  // Set up real-time updates for this specific prayer
+  useEffect(() => {
+    if (!prayerId || !user) return;
+
+    const unsubscribe = subscribeToSpecificPrayer(prayerId);
+    
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [prayerId, user, subscribeToSpecificPrayer]);
 
   const loadPrayerDetail = async () => {
     if (!prayerId) return;
