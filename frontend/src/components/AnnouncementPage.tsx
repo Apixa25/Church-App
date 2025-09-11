@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Announcement } from '../types/Announcement';
 import AnnouncementList from './AnnouncementList';
 import AnnouncementForm from './AnnouncementForm';
@@ -11,6 +11,7 @@ type ViewMode = 'list' | 'create' | 'edit' | 'detail';
 
 const AnnouncementPage: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -116,15 +117,24 @@ const AnnouncementPage: React.FC = () => {
       default:
         return (
           <div className="page-header">
+            <div className="header-top">
+              <button 
+                className="back-home-btn"
+                onClick={() => navigate('/')}
+                title="Back to Dashboard"
+              >
+                🏠 Back Home
+              </button>
+              <h1 className="page-title">📢 Church Announcements</h1>
+              {canManageAnnouncements && (
+                <button onClick={handleCreateNew} className="create-button">
+                  ➕ New Announcement
+                </button>
+              )}
+            </div>
             <div className="header-content">
-              <h1>📢 Church Announcements</h1>
               <p>Stay updated with the latest church news and events</p>
             </div>
-            {canManageAnnouncements && (
-              <button onClick={handleCreateNew} className="create-button">
-                ➕ New Announcement
-              </button>
-            )}
           </div>
         );
     }

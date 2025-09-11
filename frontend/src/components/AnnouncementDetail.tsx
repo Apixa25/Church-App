@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Announcement, AnnouncementCategory } from '../types/Announcement';
 import { announcementAPI } from '../services/announcementApi';
+import { safeParseDate } from '../utils/dateUtils';
 import './AnnouncementDetail.css';
 
 interface AnnouncementDetailProps {
@@ -60,8 +61,11 @@ const AnnouncementDetail: React.FC<AnnouncementDetailProps> = ({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (timestamp: any) => {
+    const date = safeParseDate(timestamp);
+    if (!date) return 'Invalid date';
+    
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',

@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Announcement, AnnouncementCategory } from '../types/Announcement';
 import { announcementAPI } from '../services/announcementApi';
+import { safeParseDate } from '../utils/dateUtils';
 import './AnnouncementList.css';
 
 interface AnnouncementListProps {
@@ -166,8 +167,11 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (timestamp: any) => {
+    const date = safeParseDate(timestamp);
+    if (!date) return 'Invalid date';
+    
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
