@@ -78,8 +78,8 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
     List<Event> findRecentEventsForFeed(@Param("now") LocalDateTime now, Pageable pageable);
     
     // Find events happening today
-    @Query("SELECT e FROM Event e WHERE DATE(e.startTime) = CURRENT_DATE AND e.status = 'SCHEDULED' ORDER BY e.startTime ASC")
-    List<Event> findEventsToday();
+    @Query("SELECT e FROM Event e WHERE e.startTime >= :startOfDay AND e.startTime < :endOfDay AND e.status = 'SCHEDULED' ORDER BY e.startTime ASC")
+    List<Event> findEventsToday(@Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
     
     // Find events happening this week
     @Query("SELECT e FROM Event e WHERE e.startTime >= :weekStart AND e.startTime <= :weekEnd AND e.status = 'SCHEDULED' ORDER BY e.startTime ASC")

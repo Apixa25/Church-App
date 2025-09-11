@@ -126,7 +126,7 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
             <label>Start Date & Time *</label>
             <DatePicker
               selected={startTime}
-              onChange={setStartTime}
+              onChange={(date: Date | null) => date && setStartTime(date)}
               showTimeSelect
               timeIntervals={15}
               timeCaption="Time"
@@ -140,7 +140,7 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
             <label>End Date & Time</label>
             <DatePicker
               selected={endTime}
-              onChange={setEndTime}
+              onChange={(date: Date | null) => setEndTime(date)}
               showTimeSelect
               timeIntervals={15}
               timeCaption="Time"
