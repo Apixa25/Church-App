@@ -162,17 +162,26 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
     <div className="calendar-page">
       {/* Header */}
       <div className="calendar-header">
-        <div className="header-title">
-          <h1>Calendar & Events</h1>
-          <p>Manage and view church events</p>
-        </div>
-        <div className="header-actions">
+        <div className="header-top">
           <button 
-            className="btn btn-primary"
-            onClick={() => setShowCreateForm(true)}
+            className="back-home-btn"
+            onClick={() => navigate('/')}
+            title="Back to Dashboard"
           >
-            + Create Event
+            🏠 Back Home
           </button>
+          <div className="header-title">
+            <h1>📅 Calendar & Events</h1>
+            <p>Manage and view church events</p>
+          </div>
+          <div className="header-actions">
+            <button 
+              className="btn btn-primary"
+              onClick={() => setShowCreateForm(true)}
+            >
+              + Create Event
+            </button>
+          </div>
         </div>
       </div>
 
