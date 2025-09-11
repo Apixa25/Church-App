@@ -15,8 +15,10 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, isLoading }) =>
       chat: '💬',
       church: '⛪',
       megaphone: '📢',
+      announcement: '📢',
       calendar: '📅',
-      system: '⚙️'
+      system: '⚙️',
+      create: '➕'
     };
     return iconMap[iconType] || '📝';
   };
