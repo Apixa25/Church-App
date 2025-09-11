@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
   PrayerRequest, 
-  PrayerInteraction,
   InteractionType,
   PRAYER_CATEGORY_LABELS,
   PRAYER_CATEGORY_COLORS,
@@ -76,7 +75,7 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
     setError(null);
 
     try {
-      const response = await prayerInteractionAPI.createInteraction({
+      await prayerInteractionAPI.createInteraction({
         prayerRequestId: prayer.id,
         type,
         content: undefined
@@ -266,7 +265,7 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .prayer-card {
           background: white;
           border-radius: 12px;

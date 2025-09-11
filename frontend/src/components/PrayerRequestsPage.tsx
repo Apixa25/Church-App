@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { 
   PrayerRequest, 
   PrayerStats,
@@ -9,7 +9,7 @@ import {
   PRAYER_CATEGORY_LABELS,
   PRAYER_STATUS_LABELS
 } from '../types/Prayer';
-import { prayerAPI, handleApiError } from '../services/prayerApi';
+import { prayerAPI } from '../services/prayerApi';
 import PrayerRequestForm from './PrayerRequestForm';
 import PrayerRequestList from './PrayerRequestList';
 import PrayerRequestDetail from './PrayerRequestDetail';
@@ -18,14 +18,12 @@ type ViewMode = 'list' | 'create' | 'edit' | 'detail';
 
 const PrayerRequestsPage: React.FC = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedPrayer, setSelectedPrayer] = useState<PrayerRequest | null>(null);
   const [stats, setStats] = useState<PrayerStats | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   // Filter states
   const [activeFilter, setActiveFilter] = useState<{
@@ -318,7 +316,7 @@ const PrayerRequestsPage: React.FC = () => {
         </>
       )}
 
-      <style jsx>{`
+      <style>{`
         .prayer-requests-page {
           max-width: 1200px;
           margin: 0 auto;

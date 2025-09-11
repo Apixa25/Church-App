@@ -169,7 +169,7 @@ const dashboardApi = {
 
       // Add prayer quick actions if not already present
       const prayerQuickActions = dashboardApi.getPrayerQuickActions();
-      const existingActionUrls = (dashboardData.quickActions || []).map(action => action.actionUrl);
+      const existingActionUrls = (dashboardData.quickActions || []).map((action: QuickAction) => action.actionUrl);
       const newPrayerActions = prayerQuickActions.filter(action => 
         !existingActionUrls.includes(action.actionUrl)
       );

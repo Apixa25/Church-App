@@ -270,7 +270,7 @@ const PrayerRequestList: React.FC<PrayerRequestListProps> = ({
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .prayer-request-list {
           width: 100%;
           max-width: 800px;
