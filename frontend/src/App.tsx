@@ -13,6 +13,7 @@ import ChatRoom from './components/ChatRoom';
 import ChatSearch from './components/ChatSearch';
 import PrayerRequestsPage from './components/PrayerRequestsPage';
 import PrayerRequestDetail from './components/PrayerRequestDetail';
+import AnnouncementPage from './components/AnnouncementPage';
 import './App.css';
 
 const App: React.FC = () => {
@@ -107,6 +108,34 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <PrayerRequestDetail />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Announcement routes */}
+            <Route 
+              path="/announcements" 
+              element={
+                <ProtectedRoute>
+                  <AnnouncementPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/announcements/create" 
+              element={
+                <ProtectedRoute>
+                  <AnnouncementPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/announcements/:announcementId" 
+              element={
+                <ProtectedRoute>
+                  <AnnouncementPage />
                 </ProtectedRoute>
               } 
             />
