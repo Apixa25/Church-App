@@ -94,7 +94,7 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
     if (watchedImageUrl && watchedImageUrl !== imagePreview) {
       setImagePreview(watchedImageUrl);
     }
-  }, [watchedImageUrl]);
+  }, [watchedImageUrl, imagePreview]);
 
   // Check permissions
   useEffect(() => {

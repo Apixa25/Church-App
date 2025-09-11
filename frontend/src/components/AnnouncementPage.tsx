@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Announcement } from '../types/Announcement';
 import AnnouncementList from './AnnouncementList';
 import AnnouncementForm from './AnnouncementForm';
@@ -11,7 +11,6 @@ type ViewMode = 'list' | 'create' | 'edit' | 'detail';
 
 const AnnouncementPage: React.FC = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -38,7 +37,7 @@ const AnnouncementPage: React.FC = () => {
       setViewMode('list');
       setSearchParams({}); // Clear any invalid params
     }
-  }, [searchParams, canManageAnnouncements, selectedAnnouncement]);
+  }, [searchParams, canManageAnnouncements, selectedAnnouncement, setSearchParams]);
 
   const handleCreateNew = () => {
     if (!canManageAnnouncements) {

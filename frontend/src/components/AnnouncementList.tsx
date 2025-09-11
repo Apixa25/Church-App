@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Announcement, AnnouncementCategory } from '../types/Announcement';
@@ -51,21 +51,16 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
   const isModerator = user?.role === 'MODERATOR';
   const canManageAnnouncements = isAdmin || isModerator;
 
-  useEffect(() => {
-    loadAnnouncements(true);
-    loadPinnedAnnouncements();
-  }, [selectedCategory, searchText]);
-
-  const loadPinnedAnnouncements = async () => {
+  const loadPinnedAnnouncements = useCallback(async () => {
     try {
       const response = await announcementAPI.getPinnedAnnouncements();
       setPinnedAnnouncements(response.data);
     } catch (err) {
       console.error('Error loading pinned announcements:', err);
     }
-  };
+  }, []);
 
-  const loadAnnouncements = async (reset = false) => {
+  const loadAnnouncements = useCallback(async (reset = false) => {
     try {
       if (reset) {
         setLoading(true);
@@ -104,7 +99,12 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
       setLoading(false);
       setIsLoadingMore(false);
     }
-  };
+  }, [page, limit, searchText, selectedCategory]);
+
+  useEffect(() => {
+    loadAnnouncements(true);
+    loadPinnedAnnouncements();
+  }, [loadAnnouncements, loadPinnedAnnouncements]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,7 +147,7 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
   };
 
   const handleDelete = async (announcementId: string) => {
-    if (!confirm('Are you sure you want to delete this announcement?')) return;
+    if (!window.confirm('Are you sure you want to delete this announcement?')) return;
 
     try {
       await announcementAPI.deleteAnnouncement(announcementId);
