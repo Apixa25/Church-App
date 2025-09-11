@@ -170,14 +170,6 @@ public class DashboardService {
             "View Announcements"
         ));
         
-        actions.add(QuickAction.create(
-            "events",
-            "Events & Calendar",
-            "View upcoming church events",
-            "/events",
-            "calendar",
-            "Coming Soon"
-        ));
         
         // Admin-only actions
         if (currentUser.getRole() == User.UserRole.ADMIN) {
