@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Announcement, AnnouncementCategory } from '../types/Announcement';
 import { announcementAPI } from '../services/announcementApi';
@@ -36,11 +36,7 @@ const AnnouncementDetail: React.FC<AnnouncementDetailProps> = ({
   const isAdmin = user?.role === 'ADMIN';
   const canEdit = isAdmin || announcement?.userId === user?.userId;
 
-  useEffect(() => {
-    loadAnnouncement();
-  }, [announcementId]);
-
-  const loadAnnouncement = async () => {
+  const loadAnnouncement = useCallback(async () => {
     try {
       setLoading(true);
       const response = await announcementAPI.getAnnouncement(announcementId);
@@ -52,7 +48,11 @@ const AnnouncementDetail: React.FC<AnnouncementDetailProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [announcementId]);
+
+  useEffect(() => {
+    loadAnnouncement();
+  }, [loadAnnouncement]);
 
   const handleEdit = () => {
     if (announcement && onEdit) {
@@ -192,7 +192,7 @@ const AnnouncementDetail: React.FC<AnnouncementDetailProps> = ({
           <div className="announcement-image-container">
             <img 
               src={announcement.imageUrl} 
-              alt="Announcement image" 
+              alt="" 
               className="announcement-image"
             />
           </div>
