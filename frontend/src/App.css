@@ -244,12 +244,14 @@ body {
   font-size: 18px;
   font-weight: 600;
   margin: 0;
+  color: white;
 }
 
 .user-role {
   font-size: 14px;
   opacity: 0.9;
   margin: 0;
+  color: white;
 }
 
 .logout-button {
