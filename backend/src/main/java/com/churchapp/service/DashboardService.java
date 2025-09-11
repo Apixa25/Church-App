@@ -137,16 +137,7 @@ public class DashboardService {
             "Edit Profile"
         ));
         
-        // Coming soon sections
-        actions.add(QuickAction.create(
-            "prayer_requests",
-            "Prayer Requests",
-            "Share prayer requests and pray for others",
-            "/prayer-requests",
-            "prayer",
-            "Coming Soon"
-        ));
-        
+        // Coming soon sections        
         actions.add(QuickAction.create(
             "group_chats",
             "Group Chats",
