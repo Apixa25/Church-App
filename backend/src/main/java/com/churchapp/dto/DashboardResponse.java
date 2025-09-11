@@ -26,6 +26,8 @@ public class DashboardResponse {
         private long totalMembers;
         private long newMembersThisWeek;
         private long totalPrayerRequests;
+        private long activePrayerRequests;
+        private long answeredPrayerRequests;
         private long upcomingEvents;
         private long unreadAnnouncements;
         private Map<String, Object> additionalStats;
