@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   PrayerRequest, 
   PrayerStats,
@@ -18,6 +18,7 @@ type ViewMode = 'list' | 'create' | 'edit' | 'detail';
 
 const PrayerRequestsPage: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -160,7 +161,16 @@ const PrayerRequestsPage: React.FC = () => {
     <div className="prayer-requests-page">
       <div className="page-header">
         <div className="header-content">
-          <h1 className="page-title">🙏 Prayer Requests</h1>
+          <div className="header-top">
+            <button 
+              className="back-home-btn"
+              onClick={() => navigate('/')}
+              title="Back to Dashboard"
+            >
+              🏠 Back Home
+            </button>
+            <h1 className="page-title">🙏 Prayer Requests</h1>
+          </div>
           <p className="page-description">
             Share your prayer needs and support others in their spiritual journey
           </p>
@@ -338,8 +348,41 @@ const PrayerRequestsPage: React.FC = () => {
           gap: 1.5rem;
         }
 
+        .header-top {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .back-home-btn {
+          background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+          color: white;
+          border: none;
+          padding: 0.75rem 1.25rem;
+          border-radius: 8px;
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 2px 8px rgba(116, 185, 255, 0.3);
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .back-home-btn:hover {
+          background: linear-gradient(135deg, #0984e3 0%, #74b9ff 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(116, 185, 255, 0.4);
+        }
+
+        .back-home-btn:active {
+          transform: translateY(0);
+        }
+
         .header-content h1 {
-          margin: 0 0 0.5rem 0;
+          margin: 0;
           color: #2c3e50;
           font-size: 2rem;
           font-weight: 700;
@@ -582,6 +625,18 @@ const PrayerRequestsPage: React.FC = () => {
             flex-direction: column;
             text-align: center;
             padding: 1.5rem;
+          }
+
+          .header-top {
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+          }
+
+          .back-home-btn {
+            align-self: center;
+            padding: 0.65rem 1rem;
+            font-size: 0.85rem;
           }
 
           .prayer-stats {
