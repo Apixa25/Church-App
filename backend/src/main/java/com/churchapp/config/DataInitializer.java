@@ -1,8 +1,10 @@
 package com.churchapp.config;
 
+import com.churchapp.entity.Announcement;
 import com.churchapp.entity.ChatGroup;
 import com.churchapp.entity.ChatGroupMember;
 import com.churchapp.entity.User;
+import com.churchapp.repository.AnnouncementRepository;
 import com.churchapp.repository.ChatGroupRepository;
 import com.churchapp.repository.ChatGroupMemberRepository;
 import com.churchapp.repository.UserRepository;
@@ -12,6 +14,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 import java.util.List;
 
@@ -27,11 +31,66 @@ public class DataInitializer implements CommandLineRunner {
     private final ChatGroupRepository chatGroupRepository;
     private final ChatGroupMemberRepository chatGroupMemberRepository;
     private final UserRepository userRepository;
+    private final AnnouncementRepository announcementRepository;
     
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+        initializeDefaultUsers();
         initializeDefaultChatGroups();
+        initializeSampleAnnouncements();
+    }
+    
+    private void initializeDefaultUsers() {
+        log.info("Initializing default users...");
+        
+        // Check if admin user already exists
+        List<User> allUsers = userRepository.findAllActiveUsers();
+        boolean adminExists = allUsers.stream()
+            .anyMatch(user -> user.getRole() == User.UserRole.ADMIN);
+        
+        if (adminExists) {
+            log.info("Admin user already exists, skipping admin user initialization");
+        } else {
+            log.info("No admin user found, creating default admin user");
+            createDefaultAdminUser();
+        }
+        
+        // Only create member user if no users exist at all
+        if (userRepository.count() == 0) {
+            log.info("No users found, creating default member user");
+            createDefaultMemberUser();
+        }
+    }
+    
+    private void createDefaultAdminUser() {
+        // Create default admin user
+        User adminUser = new User();
+        adminUser.setEmail("admin@church.local");
+        adminUser.setName("Church Administrator");
+        adminUser.setRole(User.UserRole.ADMIN);
+        adminUser.setIsActive(true);
+        adminUser.setBio("Default church administrator account");
+        adminUser.setCreatedAt(LocalDateTime.now());
+        adminUser.setUpdatedAt(LocalDateTime.now());
+        
+        User savedAdmin = userRepository.save(adminUser);
+        log.info("Created default admin user: {}", savedAdmin.getEmail());
+    }
+    
+    private void createDefaultMemberUser() {
+        // Create default member user for testing
+        User memberUser = new User();
+        memberUser.setEmail("member@church.local");
+        memberUser.setName("John Doe");
+        memberUser.setRole(User.UserRole.MEMBER);
+        memberUser.setIsActive(true);
+        memberUser.setBio("Sample church member account");
+        memberUser.setCreatedAt(LocalDateTime.now());
+        memberUser.setUpdatedAt(LocalDateTime.now());
+        
+        User savedMember = userRepository.save(memberUser);
+        log.info("Created default member user: {}", savedMember.getEmail());
     }
     
     private void initializeDefaultChatGroups() {
@@ -100,4 +159,63 @@ public class DataInitializer implements CommandLineRunner {
     }
     
     private record ChatGroupInfo(String name, ChatGroup.GroupType type, String description, boolean isPrivate) {}
+    
+    private void initializeSampleAnnouncements() {
+        log.info("Initializing sample announcements...");
+        
+        // Check if announcements already exist
+        if (announcementRepository.count() > 0) {
+            log.info("Announcements already exist, skipping initialization");
+            return;
+        }
+        
+        // Get admin user to create announcements
+        List<User> allUsers = userRepository.findAllActiveUsers();
+        User admin = allUsers.stream()
+            .filter(user -> user.getRole() == User.UserRole.ADMIN)
+            .findFirst()
+            .orElse(null);
+            
+        if (admin == null) {
+            log.warn("No admin user found, skipping announcement initialization");
+            return;
+        }
+        
+        // Create sample announcements
+        createSampleAnnouncement(admin, "Welcome to Our Church Community! 🏛️",
+            "We're excited to have you join our digital church family! This app will help you stay connected with our community, receive important updates, and participate in church activities. Feel free to explore all the features and reach out if you have any questions.",
+            Announcement.AnnouncementCategory.GENERAL, true);
+            
+        createSampleAnnouncement(admin, "Sunday Service Update ⛪",
+            "Join us this Sunday at 10:00 AM for our weekly worship service. We'll be continuing our sermon series on 'Faith in Action' and we're excited to worship together as a community.",
+            Announcement.AnnouncementCategory.WORSHIP, false);
+            
+        createSampleAnnouncement(admin, "Community Potluck Dinner 🍽️",
+            "Save the date! Our monthly community potluck dinner is coming up next Friday at 6:00 PM in the fellowship hall. Bring a dish to share and enjoy great food and fellowship with your church family.",
+            Announcement.AnnouncementCategory.EVENTS, false);
+            
+        createSampleAnnouncement(admin, "Youth Group Activities 🎮",
+            "Attention youth and parents! Our youth group meets every Wednesday at 7:00 PM. This week we're having a game night with pizza. All middle and high school students are welcome!",
+            Announcement.AnnouncementCategory.YOUTH, false);
+            
+        createSampleAnnouncement(admin, "Prayer Request Guidelines 🙏",
+            "We encourage you to share your prayer requests through our app. Please remember that prayer requests can be submitted anonymously if you prefer. Our prayer team reviews and prays over each request.",
+            Announcement.AnnouncementCategory.PRAYER, false);
+            
+        log.info("Successfully initialized sample announcements");
+    }
+    
+    private void createSampleAnnouncement(User creator, String title, String content, 
+                                        Announcement.AnnouncementCategory category, boolean pinned) {
+        Announcement announcement = new Announcement();
+        announcement.setUser(creator);
+        announcement.setTitle(title);
+        announcement.setContent(content);
+        announcement.setCategory(category);
+        announcement.setIsPinned(pinned);
+        // deletedAt is null by default (not deleted)
+        
+        announcementRepository.save(announcement);
+        log.debug("Created sample announcement: {}", title);
+    }
 }
