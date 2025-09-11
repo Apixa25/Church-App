@@ -1,0 +1,353 @@
+/* Calendar View Styles */
+.calendar-view {
+  padding: 20px;
+}
+
+.calendar-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Calendar Controls */
+.calendar-controls {
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+}
+
+.view-mode-toggle {
+  display: flex;
+  background: #f7fafc;
+  border-radius: 8px;
+  padding: 4px;
+  gap: 2px;
+}
+
+.mode-btn {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #718096;
+  transition: all 0.3s ease;
+}
+
+.mode-btn.active {
+  background: #4299e1;
+  color: white;
+  box-shadow: 0 2px 4px rgba(66, 153, 225, 0.3);
+}
+
+.mode-btn:hover:not(.active) {
+  background: #e2e8f0;
+  color: #4a5568;
+}
+
+/* Main Calendar Layout */
+.calendar-main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  align-items: start;
+}
+
+/* DatePicker Container */
+.datepicker-container {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom DatePicker Styles */
+.custom-calendar {
+  width: 100% !important;
+  border: none !important;
+  font-family: inherit !important;
+}
+
+.custom-calendar .react-datepicker__header {
+  background: #4299e1 !important;
+  border-bottom: none !important;
+  border-radius: 8px 8px 0 0 !important;
+  padding: 15px 10px !important;
+}
+
+.custom-calendar .react-datepicker__current-month {
+  color: white !important;
+  font-weight: 600 !important;
+  font-size: 1.1rem !important;
+  margin-bottom: 8px !important;
+}
+
+.custom-calendar .react-datepicker__day-name {
+  color: white !important;
+  font-weight: 500 !important;
+  font-size: 0.9rem !important;
+  width: 2.5rem !important;
+  line-height: 2rem !important;
+}
+
+.custom-calendar .react-datepicker__week {
+  display: flex !important;
+}
+
+.custom-calendar .react-datepicker__day {
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  line-height: 1.2 !important;
+  margin: 2px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+}
+
+.custom-calendar .react-datepicker__day:hover {
+  background: #bee3f8 !important;
+  border-radius: 6px !important;
+}
+
+.custom-calendar .react-datepicker__day--selected {
+  background: #4299e1 !important;
+  color: white !important;
+}
+
+.custom-calendar .react-datepicker__day--today {
+  font-weight: bold !important;
+  color: #4299e1 !important;
+}
+
+.custom-calendar .react-datepicker__day--today.react-datepicker__day--selected {
+  color: white !important;
+}
+
+/* Calendar Day Content */
+.calendar-day-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.day-number {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.event-indicators {
+  display: flex;
+  gap: 2px;
+  margin-top: 2px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
+}
+
+.event-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.more-events {
+  font-size: 8px;
+  color: #718096;
+  font-weight: 500;
+}
+
+/* Event Category Colors */
+.event-dot.worship { background: #9f7aea; }
+.event-dot.bible_study { background: #48bb78; }
+.event-dot.prayer { background: #ed8936; }
+.event-dot.fellowship { background: #4299e1; }
+.event-dot.outreach { background: #38b2ac; }
+.event-dot.youth { background: #ed64a6; }
+.event-dot.children { background: #f6e05e; }
+.event-dot.mens { background: #4fd1c7; }
+.event-dot.womens { background: #fc8181; }
+.event-dot.seniors { background: #a78bfa; }
+.event-dot.missions { background: #68d391; }
+.event-dot.ministry { background: #4299e1; }
+.event-dot.social { background: #f687b3; }
+.event-dot.education { background: #90cdf4; }
+.event-dot.music { background: #fbb6ce; }
+.event-dot.general { background: #cbd5e0; }
+.event-dot.other { background: #cbd5e0; }
+
+/* Selected Date Events */
+.selected-date-events {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.selected-date-header {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.selected-date-header h3 {
+  color: #2d3748;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 0 0 5px 0;
+}
+
+.selected-date-header p {
+  color: #718096;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.events-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.no-events {
+  text-align: center;
+  padding: 40px 20px;
+  color: #718096;
+}
+
+.no-events p {
+  margin: 0 0 15px 0;
+  font-size: 1rem;
+}
+
+.events-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Calendar Legend */
+.calendar-legend {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  grid-column: 1 / -1;
+}
+
+.calendar-legend h4 {
+  color: #2d3748;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 15px 0;
+}
+
+.legend-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #4a5568;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Button Styles */
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-primary {
+  background: #4299e1;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #3182ce;
+  transform: translateY(-1px);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .calendar-main {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .selected-date-events {
+    max-height: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .calendar-view {
+    padding: 15px;
+  }
+  
+  .calendar-container {
+    gap: 15px;
+  }
+  
+  .datepicker-container,
+  .selected-date-events,
+  .calendar-legend {
+    padding: 15px;
+  }
+  
+  .custom-calendar .react-datepicker__day {
+    width: 2rem !important;
+    height: 2rem !important;
+    margin: 1px !important;
+  }
+  
+  .custom-calendar .react-datepicker__day-name {
+    width: 2rem !important;
+    font-size: 0.8rem !important;
+  }
+  
+  .legend-items {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 8px;
+  }
+  
+  .legend-item {
+    font-size: 0.8rem;
+  }
+}
