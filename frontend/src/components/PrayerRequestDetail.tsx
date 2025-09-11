@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   PrayerRequest, 
@@ -45,26 +45,7 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
 
   const isOwner = user && prayer && (user.email === prayer.userId || user.userId === prayer.userId);
 
-  useEffect(() => {
-    if (prayerId) {
-      loadPrayerDetail();
-    }
-  }, [prayerId]);
-
-  // Set up real-time updates for this specific prayer
-  useEffect(() => {
-    if (!prayerId || !user) return;
-
-    const unsubscribe = subscribeToSpecificPrayer(prayerId);
-    
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
-  }, [prayerId, user, subscribeToSpecificPrayer]);
-
-  const loadPrayerDetail = async () => {
+  const loadPrayerDetail = useCallback(async () => {
     if (!prayerId) return;
 
     try {
@@ -82,7 +63,11 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
       ]);
 
       setInteractions(interactionsResponse.data);
-      setComments(commentsResponse.data);
+      // Handle comments response - it might be PrayerInteractionListResponse or PrayerInteraction[]
+      const commentsData = Array.isArray(commentsResponse.data) 
+        ? commentsResponse.data
+        : commentsResponse.data.content || [];
+      setComments(commentsData);
 
       // Load user interactions if logged in
       if (user) {
@@ -93,7 +78,26 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [prayerId, user]);
+
+  useEffect(() => {
+    if (prayerId) {
+      loadPrayerDetail();
+    }
+  }, [prayerId, loadPrayerDetail]);
+
+  // Set up real-time updates for this specific prayer
+  useEffect(() => {
+    if (!prayerId || !user) return;
+
+    const unsubscribe = subscribeToSpecificPrayer(prayerId);
+    
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [prayerId, user, subscribeToSpecificPrayer]);
 
   const loadUserInteractions = async () => {
     if (!user || !prayerId) return;
@@ -123,7 +127,7 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
     if (!user || !prayerId || !prayer) return;
 
     try {
-      const response = await prayerInteractionAPI.createInteraction({
+      await prayerInteractionAPI.createInteraction({
         prayerRequestId: prayerId,
         type,
         content: undefined
@@ -166,7 +170,10 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
       
       // Reload comments
       const commentsResponse = await prayerInteractionAPI.getCommentsByPrayer(prayerId);
-      setComments(commentsResponse.data);
+      const commentsData = Array.isArray(commentsResponse.data) 
+        ? commentsResponse.data
+        : commentsResponse.data.content || [];
+      setComments(commentsData);
       
       // Clear comment form
       setCommentText('');
@@ -422,7 +429,7 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
         )}
       </div>
 
-      <style jsx>{`
+      <style>{`
         .prayer-request-detail {
           max-width: 800px;
           margin: 0 auto;

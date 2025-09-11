@@ -151,7 +151,7 @@ const PrayerNotifications: React.FC = () => {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         .prayer-notifications {
           position: relative;
           display: inline-block;

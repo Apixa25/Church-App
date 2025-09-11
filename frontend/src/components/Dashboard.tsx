@@ -125,6 +125,8 @@ const Dashboard: React.FC = () => {
                   totalMembers: 0,
                   newMembersThisWeek: 0,
                   totalPrayerRequests: 0,
+                  activePrayerRequests: 0,
+                  answeredPrayerRequests: 0,
                   upcomingEvents: 0,
                   unreadAnnouncements: 0,
                   additionalStats: {}

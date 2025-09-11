@@ -91,6 +91,16 @@ export interface PrayerListResponse {
   last: boolean;
 }
 
+export interface PrayerInteractionListResponse {
+  content: PrayerInteraction[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+}
+
 export interface PrayerStats {
   activePrayerCount: number;
   answeredPrayerCount: number;

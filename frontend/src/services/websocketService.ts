@@ -88,8 +88,8 @@ class WebSocketService {
           
           // Check if it's an authentication error
           if (frame.headers && frame.headers.message && 
-              frame.headers.message.includes('401') || 
-              frame.headers.message.includes('Unauthorized')) {
+              (frame.headers.message.includes('401') || 
+              frame.headers.message.includes('Unauthorized'))) {
             console.error('WebSocket authentication failed - token may be invalid');
             reject(new Error('Authentication failed - please login again'));
           } else {

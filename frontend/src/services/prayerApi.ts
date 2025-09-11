@@ -4,6 +4,7 @@ import {
   PrayerRequestCreateRequest,
   PrayerRequestUpdateRequest,
   PrayerListResponse,
+  PrayerInteractionListResponse,
   PrayerStats,
   PrayerCategory,
   PrayerStatus,
@@ -129,7 +130,7 @@ export const prayerInteractionAPI = {
   // Get only comments for a prayer request
   getCommentsByPrayer: (prayerRequestId: string, page?: number, size?: number) => {
     const params = page !== undefined && size !== undefined ? { page, size } : {};
-    return api.get<PrayerInteraction[] | PrayerListResponse>(`/prayer-interactions/prayer/${prayerRequestId}/comments`, {
+    return api.get<PrayerInteraction[] | PrayerInteractionListResponse>(`/prayer-interactions/prayer/${prayerRequestId}/comments`, {
       params
     });
   },

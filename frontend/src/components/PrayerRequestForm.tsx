@@ -239,7 +239,7 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
         </div>
       </form>
 
-      <style jsx>{`
+      <style>{`
         .prayer-request-form {
           max-width: 600px;
           margin: 0 auto;
