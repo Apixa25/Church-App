@@ -123,29 +123,11 @@ const dashboardApi = {
     return [
       {
         id: 'view-prayers',
-        title: 'View Prayer Requests',
-        description: 'See all community prayer requests and support others',
+        title: 'Prayer Requests',
+        description: 'View, submit, and manage prayer requests with the community',
         actionUrl: '/prayers',
         iconType: 'prayer',
-        buttonText: 'View Prayers',
-        requiresAuth: true
-      },
-      {
-        id: 'submit-prayer',
-        title: 'Submit Prayer Request',
-        description: 'Share your prayer needs with the community',
-        actionUrl: '/prayers?mode=create',
-        iconType: 'prayer',
-        buttonText: 'Submit Prayer',
-        requiresAuth: true
-      },
-      {
-        id: 'my-prayers',
-        title: 'My Prayer Requests',
-        description: 'Manage your submitted prayer requests',
-        actionUrl: '/prayers?filter=my',
-        iconType: 'prayer',
-        buttonText: 'My Prayers',
+        buttonText: 'Prayer Requests',
         requiresAuth: true
       }
     ];
