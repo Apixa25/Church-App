@@ -5,6 +5,7 @@ import { Event, EventCategory, EventStatus } from '../types/Event';
 import CalendarView from './CalendarView';
 import EventList from './EventList';
 import EventCreateForm from './EventCreateForm';
+import webSocketService, { EventUpdate, EventRsvpUpdate } from '../services/websocketService';
 import './CalendarPage.css';
 
 interface CalendarPageProps {}
@@ -77,6 +78,53 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
       loadEvents();
     }
   }, [filters]);
+
+  // WebSocket subscriptions for real-time updates
+  useEffect(() => {
+    const connectWebSocket = async () => {
+      try {
+        if (!webSocketService.isWebSocketConnected()) {
+          await webSocketService.connect();
+        }
+
+        // Subscribe to event updates
+        const eventUnsubscribe = webSocketService.subscribeToEventUpdates((update: EventUpdate) => {
+          console.log('Received event update:', update);
+          
+          // Refresh events when there's an update
+          loadEvents();
+          
+          // Show notification (optional)
+          if (update.type === 'event_created') {
+            // Could show toast notification here
+          }
+        });
+
+        // Subscribe to RSVP updates
+        const rsvpUnsubscribe = webSocketService.subscribeToRsvpUpdates((update: EventRsvpUpdate) => {
+          console.log('Received RSVP update:', update);
+          
+          // Refresh events to get updated RSVP counts
+          loadEvents();
+        });
+
+        // Cleanup function
+        return () => {
+          eventUnsubscribe();
+          rsvpUnsubscribe();
+        };
+      } catch (error) {
+        console.error('Failed to connect WebSocket for events:', error);
+      }
+    };
+
+    connectWebSocket();
+
+    // Cleanup on unmount
+    return () => {
+      // WebSocket subscriptions will be cleaned up automatically
+    };
+  }, []);
 
   const handleEventCreated = (newEvent: Event) => {
     setEvents(prev => [newEvent, ...prev]);

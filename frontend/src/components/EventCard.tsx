@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Event, getEventCategoryDisplay, getEventStatusDisplay, getRsvpResponseDisplay } from '../types/Event';
 import { eventAPI } from '../services/eventApi';
+import EventRsvpManager from './EventRsvpManager';
 import './EventCard.css';
 
 interface EventCardProps {
@@ -23,6 +24,7 @@ const EventCard: React.FC<EventCardProps> = ({
   showTime = true
 }) => {
   const [isRsvpLoading, setIsRsvpLoading] = useState(false);
+  const [showRsvpManager, setShowRsvpManager] = useState(false);
 
   const formatEventDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -241,37 +243,26 @@ const EventCard: React.FC<EventCardProps> = ({
 
           {!isEventPast() && (
             <div className="rsvp-actions">
-              {event.rsvpSummary.userRsvpResponse ? (
-                <div className="current-rsvp">
-                  <span>Your RSVP: {getRsvpResponseDisplay(event.rsvpSummary.userRsvpResponse as any)}</span>
-                </div>
-              ) : (
-                <div className="rsvp-buttons">
-                  <button
-                    className="rsvp-btn yes"
-                    onClick={() => handleRsvpClick('YES')}
-                    disabled={isRsvpLoading}
-                  >
-                    Going
-                  </button>
-                  <button
-                    className="rsvp-btn maybe"
-                    onClick={() => handleRsvpClick('MAYBE')}
-                    disabled={isRsvpLoading}
-                  >
-                    Maybe
-                  </button>
-                  <button
-                    className="rsvp-btn no"
-                    onClick={() => handleRsvpClick('NO')}
-                    disabled={isRsvpLoading}
-                  >
-                    Can't Go
-                  </button>
-                </div>
-              )}
+              <button
+                className="btn btn-primary"
+                onClick={() => setShowRsvpManager(!showRsvpManager)}
+              >
+                {event.rsvpSummary.userRsvpResponse ? 'Manage RSVP' : 'RSVP Now'}
+              </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Full RSVP Manager (when expanded) */}
+      {showRsvpManager && !compact && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <EventRsvpManager
+            event={event}
+            onRsvpUpdate={onUpdate}
+            showGuestInput={true}
+            showNotesInput={true}
+          />
         </div>
       )}
     </div>

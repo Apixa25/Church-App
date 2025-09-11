@@ -7,6 +7,7 @@ import QuickActions from './QuickActions';
 import DashboardStats from './DashboardStats';
 import NotificationCenter from './NotificationCenter';
 import PrayerNotifications from './PrayerNotifications';
+import EventNotifications from './EventNotifications';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -31,8 +32,8 @@ const Dashboard: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
-      // Use enhanced dashboard service that includes prayer requests
-      const data = await dashboardApi.getDashboardWithPrayers();
+      // Use enhanced dashboard service that includes all features (prayers, announcements, events)
+      const data = await dashboardApi.getDashboardWithAll();
       setDashboardData(data);
       setLastRefresh(new Date());
     } catch (err) {
@@ -90,6 +91,7 @@ const Dashboard: React.FC = () => {
             </div>
             <div className="header-actions">
               <PrayerNotifications />
+              <EventNotifications />
               <button onClick={handleLogout} className="logout-button">
                 🚪 Logout
               </button>
@@ -168,13 +170,25 @@ const Dashboard: React.FC = () => {
             <span className="status-icon">✅</span>
             <span>Section 2: User Profiles</span>
           </div>
+          <div className="status-item completed">
+            <span className="status-icon">✅</span>
+            <span>Section 3: Home/Dashboard</span>
+          </div>
+          <div className="status-item completed">
+            <span className="status-icon">✅</span>
+            <span>Section 4: Chats & Social Network</span>
+          </div>
+          <div className="status-item completed">
+            <span className="status-icon">✅</span>
+            <span>Section 5: Prayer Requests</span>
+          </div>
+          <div className="status-item completed">
+            <span className="status-icon">✅</span>
+            <span>Section 6: Announcements</span>
+          </div>
           <div className="status-item current">
             <span className="status-icon">🚀</span>
-            <span>Section 3: Home/Dashboard - COMPLETE!</span>
-          </div>
-          <div className="status-item upcoming">
-            <span className="status-icon">⏳</span>
-            <span>Next: Group Chats & Social Network</span>
+            <span>Section 7: Calendar/Events - COMPLETING!</span>
           </div>
         </div>
       </main>

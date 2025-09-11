@@ -17,6 +17,8 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, isLoading }) =>
       megaphone: '📢',
       announcement: '📢',
       calendar: '📅',
+      event: '🎉',
+      rsvp: '✅',
       system: '⚙️',
       create: '➕'
     };

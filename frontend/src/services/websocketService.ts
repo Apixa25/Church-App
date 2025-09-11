@@ -39,6 +39,28 @@ export interface PrayerInteractionUpdate {
   timestamp: string;
 }
 
+export interface EventUpdate {
+  type: 'event_created' | 'event_updated' | 'event_cancelled' | 'event_deleted';
+  eventId: string;
+  eventTitle?: string;
+  eventStartTime?: string;
+  creatorId: string;
+  content?: any;
+  timestamp: string;
+}
+
+export interface EventRsvpUpdate {
+  type: 'event_rsvp' | 'rsvp_updated' | 'rsvp_cancelled';
+  eventId: string;
+  eventTitle?: string;
+  eventStartTime?: string;
+  userId: string;
+  userName?: string;
+  response?: string;
+  guestCount?: number;
+  timestamp: string;
+}
+
 class WebSocketService {
   private client: Client | null = null;
   private subscriptions: Map<string, StompSubscription> = new Map();
@@ -558,6 +580,165 @@ class WebSocketService {
     this.client.publish({
       destination: `/app/prayers/${prayerRequestId}/interact`,
       body: JSON.stringify(interaction),
+    });
+  }
+
+  // Subscribe to all event updates
+  subscribeToEventUpdates(callback: (update: EventUpdate) => void): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = 'event-updates';
+    
+    // Clean up existing subscription if it exists
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
+    const destination = '/topic/events';
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing event update:', error);
+      }
+    });
+
+    this.subscriptions.set(subscriptionKey, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    };
+  }
+
+  // Subscribe to RSVP updates for all events
+  subscribeToRsvpUpdates(callback: (update: EventRsvpUpdate) => void): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = 'rsvp-updates';
+    
+    // Clean up existing subscription if it exists
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
+    const destination = '/topic/events/rsvps';
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing RSVP update:', error);
+      }
+    });
+
+    this.subscriptions.set(subscriptionKey, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    };
+  }
+
+  // Subscribe to specific event RSVP updates
+  subscribeToEventRsvps(
+    eventId: string,
+    callback: (update: EventRsvpUpdate) => void
+  ): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = `event-rsvps-${eventId}`;
+    
+    // Clean up existing subscription if it exists
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
+    const destination = `/topic/events/${eventId}/rsvps`;
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing event RSVP update:', error);
+      }
+    });
+
+    this.subscriptions.set(subscriptionKey, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    };
+  }
+
+  // Subscribe to user's personal event notifications
+  subscribeToUserEventNotifications(callback: (notification: WebSocketMessage) => void): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = 'user-event-notifications';
+    
+    // Clean up existing subscription if it exists
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
+    const destination = '/user/queue/events';
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing event notification:', error);
+      }
+    });
+
+    this.subscriptions.set(subscriptionKey, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    };
+  }
+
+  // Send event RSVP via WebSocket
+  sendEventRsvp(eventId: string, rsvpData: any): void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    this.client.publish({
+      destination: `/app/events/${eventId}/rsvp`,
+      body: JSON.stringify(rsvpData),
+    });
+  }
+
+  // Send event reminder request
+  sendEventReminder(eventId: string): void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    this.client.publish({
+      destination: `/app/events/${eventId}/remind`,
+      body: JSON.stringify({}),
     });
   }
 

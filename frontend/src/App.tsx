@@ -14,6 +14,7 @@ import ChatSearch from './components/ChatSearch';
 import PrayerRequestsPage from './components/PrayerRequestsPage';
 import PrayerRequestDetail from './components/PrayerRequestDetail';
 import AnnouncementPage from './components/AnnouncementPage';
+import CalendarPage from './components/CalendarPage';
 import './App.css';
 
 const App: React.FC = () => {
@@ -136,6 +137,34 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <AnnouncementPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Calendar/Events routes */}
+            <Route 
+              path="/calendar" 
+              element={
+                <ProtectedRoute>
+                  <CalendarPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/events" 
+              element={
+                <ProtectedRoute>
+                  <CalendarPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/events/:eventId" 
+              element={
+                <ProtectedRoute>
+                  <CalendarPage />
                 </ProtectedRoute>
               } 
             />

@@ -1,6 +1,7 @@
 import api from './api';
 import { prayerAPI } from './prayerApi';
 import { announcementAPI } from './announcementApi';
+import { eventAPI } from './eventApi';
 
 export interface DashboardActivityItem {
   id: string;
@@ -196,34 +197,130 @@ const dashboardApi = {
     return actions;
   },
 
-  getDashboardWithPrayers: async (): Promise<DashboardResponse> => {
+  // Event specific dashboard functions
+  getEventActivityItems: async (limit: number = 10): Promise<DashboardActivityItem[]> => {
+    try {
+      // Get recent events for dashboard
+      const response = await eventAPI.getUpcomingEvents({ page: 0, size: limit });
+      const events = response.data.events;
+      
+      return events.map(event => ({
+        id: event.id,
+        type: 'event',
+        title: event.title,
+        description: event.description || `Event scheduled for ${new Date(event.startTime).toLocaleDateString()}`,
+        userDisplayName: event.creatorName,
+        userProfilePicUrl: event.creatorProfilePicUrl,
+        userId: event.creatorId,
+        timestamp: event.createdAt,
+        actionUrl: `/events/${event.id}`,
+        iconType: 'event',
+        metadata: {
+          category: event.category,
+          status: event.status,
+          startTime: event.startTime,
+          endTime: event.endTime,
+          location: event.location,
+          attendeeCount: event.rsvpSummary?.totalAttendees || 0,
+          rsvpCount: event.rsvpSummary?.totalResponses || 0
+        }
+      }));
+    } catch (error) {
+      console.error('Error fetching event activity items:', error);
+      return [];
+    }
+  },
+
+  // Get recent RSVPs for dashboard
+  getRsvpActivityItems: async (limit: number = 5): Promise<DashboardActivityItem[]> => {
+    try {
+      const response = await eventAPI.getUserUpcomingRsvps();
+      const rsvps = response.data.slice(0, limit);
+      
+      return rsvps.map(rsvp => ({
+        id: `rsvp-${rsvp.eventId}`,
+        type: 'rsvp',
+        title: `RSVP: ${rsvp.eventTitle}`,
+        description: `You're ${rsvp.response.toLowerCase()} for this event`,
+        userDisplayName: rsvp.userName,
+        userProfilePicUrl: rsvp.userProfilePicUrl,
+        userId: rsvp.userId,
+        timestamp: rsvp.timestamp,
+        actionUrl: `/events/${rsvp.eventId}`,
+        iconType: 'rsvp',
+        metadata: {
+          response: rsvp.response,
+          eventStartTime: rsvp.eventStartTime,
+          eventLocation: rsvp.eventLocation,
+          guestCount: rsvp.guestCount
+        }
+      }));
+    } catch (error) {
+      console.error('Error fetching RSVP activity items:', error);
+      return [];
+    }
+  },
+
+  getEventQuickActions: (): QuickAction[] => {
+    return [
+      {
+        id: 'view-calendar',
+        title: 'Calendar & Events',
+        description: 'View upcoming events and manage your RSVPs',
+        actionUrl: '/calendar',
+        iconType: 'calendar',
+        buttonText: 'View Calendar',
+        requiresAuth: true
+      },
+      {
+        id: 'my-rsvps',
+        title: 'My RSVPs',
+        description: 'View events you\'ve RSVP\'d to',
+        actionUrl: '/events',
+        iconType: 'rsvp',
+        buttonText: 'My Events',
+        requiresAuth: true
+      }
+    ];
+  },
+
+  getDashboardWithAll: async (): Promise<DashboardResponse> => {
     try {
       // Get the main dashboard data
       const dashboardResponse = await api.get('/dashboard');
       const dashboardData = dashboardResponse.data;
 
-      // Get prayer-specific activity items
-      const prayerActivityItems = await dashboardApi.getPrayerActivityItems(5);
-
-      // Get announcement-specific activity items
-      const announcementActivityItems = await dashboardApi.getAnnouncementActivityItems(5);
+      // Get all activity items in parallel
+      const [prayerActivityItems, announcementActivityItems, eventActivityItems, rsvpActivityItems] = await Promise.all([
+        dashboardApi.getPrayerActivityItems(5),
+        dashboardApi.getAnnouncementActivityItems(5),
+        dashboardApi.getEventActivityItems(5),
+        dashboardApi.getRsvpActivityItems(3)
+      ]);
 
       // Merge all activities with existing activities
       const combinedActivity = [
         ...prayerActivityItems,
         ...announcementActivityItems,
+        ...eventActivityItems,
+        ...rsvpActivityItems,
         ...(dashboardData.recentActivity || [])
       ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-       .slice(0, 20); // Keep only the 20 most recent items
+       .slice(0, 25); // Keep the 25 most recent items
 
-      // Add prayer and announcement quick actions if not already present
+      // Add all quick actions if not already present
       const prayerQuickActions = dashboardApi.getPrayerQuickActions();
       const announcementQuickActions = dashboardApi.getAnnouncementQuickActions(
         dashboardData.userRole || localStorage.getItem('userRole')
       );
+      const eventQuickActions = dashboardApi.getEventQuickActions();
       
       const existingActionUrls = (dashboardData.quickActions || []).map((action: QuickAction) => action.actionUrl);
-      const newActions = [...prayerQuickActions, ...announcementQuickActions].filter(action => 
+      const newActions = [
+        ...prayerQuickActions, 
+        ...announcementQuickActions, 
+        ...eventQuickActions
+      ].filter(action => 
         !existingActionUrls.includes(action.actionUrl)
       );
 
@@ -233,11 +330,16 @@ const dashboardApi = {
         quickActions: [...(dashboardData.quickActions || []), ...newActions]
       };
     } catch (error) {
-      console.error('Error getting dashboard with prayers and announcements:', error);
+      console.error('Error getting dashboard with all features:', error);
       // Fallback to regular dashboard
       const response = await api.get('/dashboard');
       return response.data;
     }
+  },
+
+  // Keep old function for backward compatibility
+  getDashboardWithPrayers: async (): Promise<DashboardResponse> => {
+    return dashboardApi.getDashboardWithAll();
   },
 };
 
