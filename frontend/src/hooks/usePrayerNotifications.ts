@@ -166,6 +166,8 @@ export const usePrayerNotifications = () => {
       try {
         if (!webSocketService.isWebSocketConnected()) {
           await webSocketService.connect();
+          // Wait a bit more for connection to be fully established
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
         setIsConnected(true);
@@ -180,6 +182,11 @@ export const usePrayerNotifications = () => {
       } catch (error) {
         console.error('Failed to establish prayer notification subscriptions:', error);
         setIsConnected(false);
+        
+        // Retry connection after a delay
+        setTimeout(() => {
+          setupSubscriptions();
+        }, 3000);
       }
     };
 

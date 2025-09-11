@@ -449,7 +449,7 @@ class WebSocketService {
 
   // Subscribe to prayer request updates
   subscribeToPrayerRequests(callback: (update: PrayerRequestUpdate) => void): () => void {
-    if (!this.isConnected || !this.client) {
+    if (!this.client || !this.client.connected) {
       throw new Error('WebSocket not connected');
     }
 

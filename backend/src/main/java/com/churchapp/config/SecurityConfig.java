@@ -70,6 +70,7 @@ public class SecurityConfig {
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/test/**").permitAll()  // Keep test endpoint public for now
                 .requestMatchers("/ws/**").permitAll()    // Allow WebSocket handshake - auth handled in WebSocketConfig
+                .requestMatchers("/announcements/**").permitAll()  // Allow public access to announcements for now
                 .requestMatchers("/chat/**").authenticated()  // JWT authentication for chat APIs
                 .requestMatchers("/profile/**").authenticated()
                 .requestMatchers("/dashboard/**").authenticated()  // Explicitly protect dashboard
@@ -97,6 +98,8 @@ public class SecurityConfig {
                     if (requestURI.startsWith("/chat") || 
                         requestURI.startsWith("/profile") || 
                         requestURI.startsWith("/dashboard") ||
+                        requestURI.startsWith("/announcements") ||  // Add announcements to API endpoints
+                        requestURI.startsWith("/prayers") ||        // Add prayers to API endpoints
                         requestURI.startsWith("/ws")) {
                         response.setStatus(401);
                         response.setContentType("application/json");
