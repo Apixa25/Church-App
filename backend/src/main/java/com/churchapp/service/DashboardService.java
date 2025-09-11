@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 public class DashboardService {
     
     private final UserRepository userRepository;
+    private final PrayerRequestService prayerRequestService;
     
     public DashboardResponse getDashboardData(String currentUserEmail) {
         User currentUser = userRepository.findByEmail(currentUserEmail)
@@ -101,6 +102,10 @@ public class DashboardService {
         LocalDateTime oneWeekAgo = LocalDateTime.now().minus(7, ChronoUnit.DAYS);
         long newMembersThisWeek = userRepository.countByCreatedAtAfter(oneWeekAgo);
         
+        // Get actual prayer statistics
+        long activePrayerRequests = prayerRequestService.getActivePrayerCount();
+        long answeredPrayerRequests = prayerRequestService.getAnsweredPrayerCount();
+        
         Map<String, Object> additionalStats = new HashMap<>();
         additionalStats.put("activeUsersToday", totalMembers); // Placeholder
         additionalStats.put("profileCompletionRate", "85%"); // Placeholder
@@ -108,7 +113,9 @@ public class DashboardService {
         return new DashboardStats(
             totalMembers,
             newMembersThisWeek,
-            0L, // Prayer requests - will be implemented in future sections
+            activePrayerRequests + answeredPrayerRequests, // totalPrayerRequests
+            activePrayerRequests, // Now using actual active prayer count
+            answeredPrayerRequests, // Now using actual answered prayer count
             0L, // Upcoming events - will be implemented in future sections
             0L, // Unread announcements - will be implemented in future sections
             additionalStats
