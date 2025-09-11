@@ -1,5 +1,6 @@
 import api from './api';
 import { prayerAPI } from './prayerApi';
+import { announcementAPI } from './announcementApi';
 
 export interface DashboardActivityItem {
   id: string;
@@ -133,6 +134,68 @@ const dashboardApi = {
     ];
   },
 
+  // Announcement specific dashboard functions
+  getAnnouncementActivityItems: async (limit: number = 10): Promise<DashboardActivityItem[]> => {
+    try {
+      // Get recent announcements for dashboard
+      const response = await announcementAPI.getAnnouncementsForFeed(limit);
+      const announcements = response.data;
+      
+      return announcements.map(announcement => ({
+        id: announcement.id,
+        type: 'announcement',
+        title: announcement.title,
+        description: announcement.content.length > 100 
+          ? announcement.content.substring(0, 100) + '...' 
+          : announcement.content,
+        userDisplayName: announcement.userName,
+        userProfilePicUrl: announcement.userProfilePicUrl,
+        userId: announcement.userId,
+        timestamp: announcement.createdAt,
+        actionUrl: `/announcements/${announcement.id}`,
+        iconType: 'announcement',
+        metadata: {
+          category: announcement.category,
+          isPinned: announcement.isPinned,
+          userRole: announcement.userRole
+        }
+      }));
+    } catch (error) {
+      console.error('Error fetching announcement activity items:', error);
+      return [];
+    }
+  },
+
+  getAnnouncementQuickActions: (userRole?: string): QuickAction[] => {
+    const actions: QuickAction[] = [
+      {
+        id: 'view-announcements',
+        title: 'Announcements',
+        description: 'View church announcements and important updates',
+        actionUrl: '/announcements',
+        iconType: 'announcement',
+        buttonText: 'View Announcements',
+        requiresAuth: true
+      }
+    ];
+
+    // Add create action for admins and moderators
+    if (userRole === 'ADMIN' || userRole === 'MODERATOR') {
+      actions.push({
+        id: 'create-announcement',
+        title: 'New Announcement',
+        description: 'Create a new church announcement',
+        actionUrl: '/announcements/create',
+        iconType: 'create',
+        buttonText: 'New Announcement',
+        requiresAuth: true,
+        requiredRole: 'ADMIN,MODERATOR'
+      });
+    }
+
+    return actions;
+  },
+
   getDashboardWithPrayers: async (): Promise<DashboardResponse> => {
     try {
       // Get the main dashboard data
@@ -142,27 +205,35 @@ const dashboardApi = {
       // Get prayer-specific activity items
       const prayerActivityItems = await dashboardApi.getPrayerActivityItems(5);
 
-      // Merge prayer activities with existing activities
+      // Get announcement-specific activity items
+      const announcementActivityItems = await dashboardApi.getAnnouncementActivityItems(5);
+
+      // Merge all activities with existing activities
       const combinedActivity = [
         ...prayerActivityItems,
+        ...announcementActivityItems,
         ...(dashboardData.recentActivity || [])
       ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
        .slice(0, 20); // Keep only the 20 most recent items
 
-      // Add prayer quick actions if not already present
+      // Add prayer and announcement quick actions if not already present
       const prayerQuickActions = dashboardApi.getPrayerQuickActions();
+      const announcementQuickActions = dashboardApi.getAnnouncementQuickActions(
+        dashboardData.userRole || localStorage.getItem('userRole')
+      );
+      
       const existingActionUrls = (dashboardData.quickActions || []).map((action: QuickAction) => action.actionUrl);
-      const newPrayerActions = prayerQuickActions.filter(action => 
+      const newActions = [...prayerQuickActions, ...announcementQuickActions].filter(action => 
         !existingActionUrls.includes(action.actionUrl)
       );
 
       return {
         ...dashboardData,
         recentActivity: combinedActivity,
-        quickActions: [...(dashboardData.quickActions || []), ...newPrayerActions]
+        quickActions: [...(dashboardData.quickActions || []), ...newActions]
       };
     } catch (error) {
-      console.error('Error getting dashboard with prayers:', error);
+      console.error('Error getting dashboard with prayers and announcements:', error);
       // Fallback to regular dashboard
       const response = await api.get('/dashboard');
       return response.data;

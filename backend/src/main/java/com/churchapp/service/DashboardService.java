@@ -25,6 +25,7 @@ public class DashboardService {
     
     private final UserRepository userRepository;
     private final PrayerRequestService prayerRequestService;
+    private final AnnouncementService announcementService;
     
     public DashboardResponse getDashboardData(String currentUserEmail) {
         User currentUser = userRepository.findByEmail(currentUserEmail)
@@ -106,9 +107,15 @@ public class DashboardService {
         long activePrayerRequests = prayerRequestService.getActivePrayerCount();
         long answeredPrayerRequests = prayerRequestService.getAnsweredPrayerCount();
         
+        // Get announcement statistics
+        long totalAnnouncements = announcementService.getAnnouncementCount();
+        long pinnedAnnouncements = announcementService.getPinnedAnnouncementCount();
+        
         Map<String, Object> additionalStats = new HashMap<>();
         additionalStats.put("activeUsersToday", totalMembers); // Placeholder
         additionalStats.put("profileCompletionRate", "85%"); // Placeholder
+        additionalStats.put("totalAnnouncements", totalAnnouncements);
+        additionalStats.put("pinnedAnnouncements", pinnedAnnouncements);
         
         return new DashboardStats(
             totalMembers,
@@ -117,7 +124,7 @@ public class DashboardService {
             activePrayerRequests, // Now using actual active prayer count
             answeredPrayerRequests, // Now using actual answered prayer count
             0L, // Upcoming events - will be implemented in future sections
-            0L, // Unread announcements - will be implemented in future sections
+            totalAnnouncements, // Now using actual announcement count
             additionalStats
         );
     }
@@ -157,10 +164,10 @@ public class DashboardService {
         actions.add(QuickAction.create(
             "announcements",
             "Announcements",
-            "Stay updated with church news",
+            "Stay updated with church news and announcements",
             "/announcements", 
             "megaphone",
-            "Coming Soon"
+            "View Announcements"
         ));
         
         actions.add(QuickAction.create(
@@ -187,6 +194,16 @@ public class DashboardService {
         
         // Moderator and Admin actions
         if (currentUser.getRole() == User.UserRole.ADMIN || currentUser.getRole() == User.UserRole.MODERATOR) {
+            actions.add(QuickAction.createForRole(
+                "create_announcement",
+                "New Announcement",
+                "Create a new church announcement",
+                "/announcements/create",
+                "megaphone",
+                "Create Announcement",
+                "MODERATOR"
+            ));
+            
             actions.add(QuickAction.createForRole(
                 "moderate_content",
                 "Content Moderation",
