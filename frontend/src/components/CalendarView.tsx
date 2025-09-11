@@ -115,7 +115,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           <div className="datepicker-container">
             <DatePicker
               selected={selectedDate}
-              onChange={onDateSelect}
+              onChange={(date: Date | null) => date && onDateSelect(date)}
               inline
               showWeekNumbers
               renderDayContents={renderDayContents}

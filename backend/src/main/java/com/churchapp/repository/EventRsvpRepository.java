@@ -58,8 +58,8 @@ public interface EventRsvpRepository extends JpaRepository<EventRsvp, EventRsvpI
     List<EventRsvp> findUserUpcomingYesRsvps(@Param("userId") UUID userId, @Param("now") LocalDateTime now);
     
     // Find RSVPs for events happening today
-    @Query("SELECT r FROM EventRsvp r WHERE DATE(r.event.startTime) = CURRENT_DATE AND r.response = 'YES' ORDER BY r.event.startTime ASC")
-    List<EventRsvp> findRsvpsForEventsToday();
+    @Query("SELECT r FROM EventRsvp r WHERE r.event.startTime >= :startOfDay AND r.event.startTime < :endOfDay AND r.response = 'YES' ORDER BY r.event.startTime ASC")
+    List<EventRsvp> findRsvpsForEventsToday(@Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
     
     // Find RSVPs for events happening this week
     @Query("SELECT r FROM EventRsvp r WHERE r.event.startTime >= :weekStart AND r.event.startTime <= :weekEnd AND r.response = 'YES' ORDER BY r.event.startTime ASC")
