@@ -102,13 +102,18 @@ public class EventController {
     public ResponseEntity<?> deleteEvent(@PathVariable UUID eventId,
                                        @AuthenticationPrincipal User user) {
         try {
+            log.info("Deleting event {} by user: {}", eventId, user.getUsername());
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            log.info("Current user profile: {} (ID: {})", currentProfile.getName(), currentProfile.getUserId());
+            
             eventService.deleteEvent(eventId, currentProfile.getUserId());
             
+            log.info("Event {} deleted successfully", eventId);
             Map<String, String> response = new HashMap<>();
             response.put("message", "Event deleted successfully");
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
+            log.error("Error deleting event {}: {}", eventId, e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(error);

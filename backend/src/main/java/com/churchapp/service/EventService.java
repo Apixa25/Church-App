@@ -4,6 +4,7 @@ import com.churchapp.entity.Event;
 import com.churchapp.entity.User;
 import com.churchapp.entity.ChatGroup;
 import com.churchapp.repository.EventRepository;
+import com.churchapp.repository.EventRsvpRepository;
 import com.churchapp.repository.UserRepository;
 import com.churchapp.repository.ChatGroupRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ import java.util.UUID;
 public class EventService {
     
     private final EventRepository eventRepository;
+    private final EventRsvpRepository eventRsvpRepository;
     private final UserRepository userRepository;
     private final ChatGroupRepository chatGroupRepository;
     
@@ -119,10 +121,24 @@ public class EventService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         
-        if (!event.getCreator().getId().equals(userId) && user.getRole() != User.UserRole.ADMIN) {
-            throw new RuntimeException("Not authorized to delete this event");
+        log.info("Delete authorization check - Event: {} | Creator: {} | Current User: {} | User Role: {}", 
+                eventId, event.getCreator().getId(), userId, user.getRole());
+        
+        boolean isCreator = event.getCreator().getId().equals(userId);
+        boolean isAdmin = user.getRole() == User.UserRole.ADMIN;
+        
+        log.info("Authorization result - Is Creator: {} | Is Admin: {} | Can Delete: {}", 
+                isCreator, isAdmin, (isCreator || isAdmin));
+        
+        if (!isCreator && !isAdmin) {
+            throw new RuntimeException("Not authorized to delete this event. Only the event creator or administrators can delete events.");
         }
         
+        // Delete all RSVPs for this event first to avoid foreign key constraint violations
+        log.info("Deleting all RSVPs for event: {}", eventId);
+        eventRsvpRepository.deleteByEventId(eventId);
+        
+        // Now delete the event
         eventRepository.delete(event);
         log.info("Event deleted with id: {} by user: {}", eventId, userId);
     }

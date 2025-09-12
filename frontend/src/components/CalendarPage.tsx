@@ -150,7 +150,14 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
 
   const handleEventDeleted = async (eventId: string) => {
     try {
+      // Get current user info for debugging
+      const currentUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : null;
+      const authToken = localStorage.getItem('authToken');
+      
       console.log('🗑️ Deleting event:', eventId);
+      console.log('👤 Current user details:', currentUser);
+      console.log('🔑 Auth token exists:', !!authToken);
+      console.log('🎫 Token preview:', authToken ? authToken.substring(0, 30) + '...' : 'No token');
       
       // Call backend API to delete the event
       await eventAPI.deleteEvent(eventId);
@@ -161,9 +168,18 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
       setEvents(prev => prev.filter(event => event.id !== eventId));
       
     } catch (error: any) {
-      console.error('❌ Failed to delete event:', error);
-      // Could add toast notification here
-      alert('Failed to delete event. Please try again.');
+      console.error('❌ Failed to delete event:', {
+        eventId,
+        error: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        errorData: error.response?.data,
+        fullError: error
+      });
+      
+      // Show specific error message if available
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to delete event';
+      alert(`Failed to delete event: ${errorMessage}`);
     }
   };
 
