@@ -5,6 +5,7 @@
 
 /**
  * Robust date parsing that handles both string and array formats
+ * This function ensures consistent date parsing without timezone offset issues
  */
 export const parseEventDate = (dateInput: string | number[]): Date | null => {
   try {
@@ -13,11 +14,31 @@ export const parseEventDate = (dateInput: string | number[]): Date | null => {
     if (Array.isArray(dateInput)) {
       // Handle array format [year, month, day, hour, minute, second, nanosecond]
       const [year, month, day, hour = 0, minute = 0, second = 0] = dateInput;
+      // Use local timezone constructor to avoid UTC conversion issues
       date = new Date(year, month - 1, day, hour, minute, second); // Month is 0-indexed in Date constructor
     } else {
-      // Handle string format - ensure proper parsing
-      const cleanDateString = dateInput.replace(/Z$/, ''); // Remove trailing Z if present
-      date = new Date(cleanDateString);
+      // Handle string format with careful timezone handling
+      let cleanDateString = dateInput;
+      
+      // Remove trailing Z and handle various timezone formats
+      cleanDateString = cleanDateString.replace(/Z$/, '');
+      cleanDateString = cleanDateString.replace(/\+00:00$/, '');
+      
+      // Try parsing as local time first to avoid timezone shifts
+      if (cleanDateString.includes('T')) {
+        // For ISO format, parse as local time to avoid UTC conversion
+        const parts = cleanDateString.split('T');
+        const datePart = parts[0];
+        const timePart = parts[1] || '00:00:00';
+        
+        const [year, month, day] = datePart.split('-').map(Number);
+        const [hour, minute, second] = timePart.split(':').map(Number);
+        
+        date = new Date(year, month - 1, day, hour || 0, minute || 0, second || 0);
+      } else {
+        // Fallback to regular Date parsing
+        date = new Date(cleanDateString);
+      }
     }
     
     // Validate the date
@@ -104,6 +125,16 @@ export const formatEventDuration = (startTime: string | number[], endTime?: stri
  */
 export const getDateKey = (dateInput: string | number[]): string | null => {
   const date = parseEventDate(dateInput);
+  if (date) {
+    // Debug logging for date offset issues
+    console.log('getDateKey:', {
+      input: dateInput,
+      parsedDate: date,
+      dateString: date.toDateString(),
+      localDate: date.toLocaleDateString(),
+      isoString: date.toISOString()
+    });
+  }
   return date ? date.toDateString() : null;
 };
 
