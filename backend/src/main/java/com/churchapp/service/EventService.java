@@ -34,6 +34,10 @@ public class EventService {
         User creator = userRepository.findById(creatorId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + creatorId));
         
+        log.info("Creating event - Title: '{}', StartTime: '{}', EndTime: '{}', Category: '{}', Status: '{}'", 
+                eventRequest.getTitle(), eventRequest.getStartTime(), eventRequest.getEndTime(), 
+                eventRequest.getCategory(), eventRequest.getStatus());
+        
         Event event = new Event();
         event.setTitle(eventRequest.getTitle().trim());
         event.setDescription(eventRequest.getDescription() != null ? eventRequest.getDescription().trim() : null);
@@ -48,6 +52,9 @@ public class EventService {
         event.setRecurrenceEndDate(eventRequest.getRecurrenceEndDate());
         event.setRequiresApproval(eventRequest.getRequiresApproval() != null ? eventRequest.getRequiresApproval() : false);
         event.setStatus(Event.EventStatus.SCHEDULED);
+        
+        log.info("About to save event with final values - StartTime: '{}', EndTime: '{}', MaxAttendees: '{}'", 
+                event.getStartTime(), event.getEndTime(), event.getMaxAttendees());
         
         // Set group if provided
         if (eventRequest.getGroup() != null && eventRequest.getGroup().getId() != null) {

@@ -43,15 +43,23 @@ public class EventController {
     public ResponseEntity<?> createEvent(@AuthenticationPrincipal User user,
                                        @Valid @RequestBody EventRequest request) {
         try {
+            log.info("Creating event with request: {}", request);
+            log.info("Request details - Title: '{}', StartTime: '{}', Category: '{}', Status: '{}'", 
+                    request.getTitle(), request.getStartTime(), request.getCategory(), request.getStatus());
+            
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
             
             // Convert EventRequest to Event entity
             Event eventEntity = convertToEntity(request);
+            log.info("Converted event entity - Title: '{}', StartTime: '{}', Category: '{}', Status: '{}'", 
+                    eventEntity.getTitle(), eventEntity.getStartTime(), eventEntity.getCategory(), eventEntity.getStatus());
+            
             Event createdEvent = eventService.createEvent(currentProfile.getUserId(), eventEntity);
             
             EventResponse response = EventResponse.fromEvent(createdEvent);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
+            log.error("Error creating event: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(error);

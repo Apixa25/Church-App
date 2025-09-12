@@ -89,6 +89,10 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
         ...data,
         startTime: formatDateForBackend(startTime),
         endTime: endTime ? formatDateForBackend(endTime) : undefined,
+        // Fix maxAttendees: convert empty string to undefined
+        maxAttendees: data.maxAttendees && data.maxAttendees.toString().trim() !== '' 
+          ? parseInt(data.maxAttendees.toString(), 10) 
+          : undefined,
       };
 
       // Debug logging to see what we're sending
@@ -107,6 +111,9 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         allEventData: eventData
       });
+      
+      // Log the exact payload being sent
+      console.log('📦 EXACT PAYLOAD TO BACKEND:', JSON.stringify(eventData, null, 2));
 
       let result;
       if (editEvent) {
