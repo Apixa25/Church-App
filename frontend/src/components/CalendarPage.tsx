@@ -148,8 +148,23 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
     setShowCreateForm(true);
   };
 
-  const handleEventDeleted = (eventId: string) => {
-    setEvents(prev => prev.filter(event => event.id !== eventId));
+  const handleEventDeleted = async (eventId: string) => {
+    try {
+      console.log('🗑️ Deleting event:', eventId);
+      
+      // Call backend API to delete the event
+      await eventAPI.deleteEvent(eventId);
+      
+      console.log('✅ Event deleted successfully from backend');
+      
+      // Update frontend state to remove the event
+      setEvents(prev => prev.filter(event => event.id !== eventId));
+      
+    } catch (error: any) {
+      console.error('❌ Failed to delete event:', error);
+      // Could add toast notification here
+      alert('Failed to delete event. Please try again.');
+    }
   };
 
   const handleFilterChange = (filterType: keyof typeof filters, value: string) => {
