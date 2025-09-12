@@ -1,156 +1,178 @@
 /**
- * Utility functions for handling timestamps and dates
- * Provides robust handling of different timestamp formats from backend
+ * Utility functions for handling date parsing and formatting
+ * Handles various date formats that might come from the backend
  */
-
-export type TimestampFormat = string | number[] | Date;
 
 /**
- * Safely converts various timestamp formats to a JavaScript Date object
+ * Robust date parsing that handles both string and array formats
  */
-export const safeParseDate = (timestamp: TimestampFormat): Date | null => {
+export const parseEventDate = (dateInput: string | number[]): Date | null => {
   try {
-    if (!timestamp) return null;
+    let date: Date;
     
-    if (timestamp instanceof Date) {
-      return timestamp;
-    }
-    
-    if (Array.isArray(timestamp)) {
+    if (Array.isArray(dateInput)) {
       // Handle array format [year, month, day, hour, minute, second, nanosecond]
-      const [year, month, day, hour = 0, minute = 0, second = 0] = timestamp as number[];
-      // Month is 0-indexed in Date constructor
-      return new Date(year, month - 1, day, hour, minute, second);
+      const [year, month, day, hour = 0, minute = 0, second = 0] = dateInput;
+      date = new Date(year, month - 1, day, hour, minute, second); // Month is 0-indexed in Date constructor
+    } else {
+      // Handle string format - ensure proper parsing
+      const cleanDateString = dateInput.replace(/Z$/, ''); // Remove trailing Z if present
+      date = new Date(cleanDateString);
     }
-    
-    // Handle string format (ISO-8601 or other)
-    const date = new Date(timestamp as string);
     
     // Validate the date
     if (isNaN(date.getTime())) {
-      console.warn('Invalid timestamp format:', timestamp);
+      console.warn('Invalid date format in parseEventDate:', dateInput);
       return null;
     }
     
     return date;
   } catch (error) {
-    console.error('Error parsing timestamp:', timestamp, error);
+    console.error('Error parsing date:', error, dateInput);
     return null;
   }
 };
 
 /**
- * Formats a timestamp for display in relative time (e.g., "2h ago", "3 days ago")
+ * Format event date for display
  */
-export const formatRelativeTime = (
-  timestamp: TimestampFormat,
-  options: {
-    shortFormat?: boolean;
-    includeSeconds?: boolean;
-  } = {}
-): string => {
-  const { shortFormat = false, includeSeconds = false } = options;
+export const formatEventDate = (dateInput: string | number[]): string => {
+  const date = parseEventDate(dateInput);
   
-  const date = safeParseDate(timestamp);
-  if (!date) return 'Invalid date';
+  if (!date) {
+    return 'Invalid Date';
+  }
+  
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+};
+
+/**
+ * Format event time for display
+ */
+export const formatEventTime = (dateInput: string | number[]): string => {
+  const date = parseEventDate(dateInput);
+  
+  if (!date) {
+    return 'Invalid Time';
+  }
+  
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
+/**
+ * Calculate and format event duration
+ */
+export const formatEventDuration = (startTime: string | number[], endTime?: string | number[]): string => {
+  if (!endTime) return '';
+  
+  const start = parseEventDate(startTime);
+  const end = parseEventDate(endTime);
+  
+  if (!start || !end) {
+    return '';
+  }
+  
+  const duration = (end.getTime() - start.getTime()) / (1000 * 60); // in minutes
+  
+  if (duration <= 0) return '';
+  
+  if (duration < 60) {
+    return `${Math.round(duration)}min`;
+  }
+  
+  const hours = Math.floor(duration / 60);
+  const minutes = Math.round(duration % 60);
+  
+  if (minutes === 0) {
+    return `${hours}h`;
+  }
+  
+  return `${hours}h ${minutes}min`;
+};
+
+/**
+ * Get date key for grouping events by date
+ */
+export const getDateKey = (dateInput: string | number[]): string | null => {
+  const date = parseEventDate(dateInput);
+  return date ? date.toDateString() : null;
+};
+
+/**
+ * Check if an event is in the past
+ */
+export const isEventPast = (startTime: string | number[]): boolean => {
+  const eventDate = parseEventDate(startTime);
+  return eventDate ? eventDate < new Date() : false;
+};
+
+/**
+ * Safe date parsing for general use (used by announcements and other components)
+ * Alias for parseEventDate to maintain compatibility
+ */
+export const safeParseDate = (dateInput: string | number[]): Date | null => {
+  return parseEventDate(dateInput);
+};
+
+/**
+ * Format full date with time for profile and general display
+ */
+export const formatFullDate = (dateInput: string | number[]): string => {
+  const date = parseEventDate(dateInput);
+  
+  if (!date) {
+    return 'Invalid Date';
+  }
+  
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
+/**
+ * Format date for announcements and general use
+ */
+export const formatAnnouncementDate = (dateInput: string | number[]): string => {
+  const date = parseEventDate(dateInput);
+  
+  if (!date) {
+    return 'Invalid Date';
+  }
   
   const now = new Date();
   const diffInMs = now.getTime() - date.getTime();
-  const diffInSeconds = Math.floor(diffInMs / 1000);
   const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
   const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-  const diffInWeeks = Math.floor(diffInDays / 7);
-  const diffInMonths = Math.floor(diffInDays / 30);
-  
-  if (includeSeconds && diffInSeconds < 60) {
-    if (diffInSeconds < 10) return 'Just now';
-    return shortFormat ? `${diffInSeconds}s` : `${diffInSeconds} seconds ago`;
-  }
   
   if (diffInMinutes < 1) {
     return 'Just now';
   } else if (diffInMinutes < 60) {
-    return shortFormat ? `${diffInMinutes}m` : `${diffInMinutes}m ago`;
+    return `${diffInMinutes}m ago`;
   } else if (diffInHours < 24) {
-    return shortFormat ? `${diffInHours}h` : `${diffInHours}h ago`;
+    return `${diffInHours}h ago`;
   } else if (diffInDays < 7) {
-    if (diffInDays === 1) {
-      return shortFormat ? '1d' : '1 day ago';
-    }
-    return shortFormat ? `${diffInDays}d` : `${diffInDays} days ago`;
-  } else if (diffInWeeks < 4) {
-    if (diffInWeeks === 1) {
-      return shortFormat ? '1w' : '1 week ago';
-    }
-    return shortFormat ? `${diffInWeeks}w` : `${diffInWeeks} weeks ago`;
-  } else if (diffInMonths < 12) {
-    if (diffInMonths === 1) {
-      return shortFormat ? '1mo' : '1 month ago';
-    }
-    return shortFormat ? `${diffInMonths}mo` : `${diffInMonths} months ago`;
+    return diffInDays === 1 ? '1 day ago' : `${diffInDays} days ago`;
   } else {
-    // For very old dates, just show the date
-    return date.toLocaleDateString();
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+    });
   }
-};
-
-/**
- * Formats a timestamp for display as clock time (e.g., "2:34 PM")
- */
-export const formatClockTime = (timestamp: TimestampFormat): string => {
-  const date = safeParseDate(timestamp);
-  if (!date) return 'Invalid date';
-  
-  return date.toLocaleTimeString([], { 
-    hour: '2-digit', 
-    minute: '2-digit',
-    hour12: true 
-  });
-};
-
-/**
- * Formats a timestamp for display as a full date (e.g., "Dec 25, 2023")
- */
-export const formatFullDate = (timestamp: TimestampFormat): string => {
-  const date = safeParseDate(timestamp);
-  if (!date) return 'Invalid date';
-  
-  return date.toLocaleDateString([], {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
-};
-
-/**
- * Formats a timestamp for display based on how recent it is
- * Recent dates show time, older dates show full date
- */
-export const formatSmartTimestamp = (timestamp: TimestampFormat): string => {
-  const date = safeParseDate(timestamp);
-  if (!date) return 'Invalid date';
-  
-  const now = new Date();
-  const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-  
-  if (diffInHours < 24) {
-    return formatClockTime(timestamp);
-  } else {
-    return formatFullDate(timestamp);
-  }
-};
-
-/**
- * Checks if a timestamp represents a date within the last few minutes
- */
-export const isRecent = (timestamp: TimestampFormat, thresholdMinutes: number = 5): boolean => {
-  const date = safeParseDate(timestamp);
-  if (!date) return false;
-  
-  const now = new Date();
-  const diffInMs = now.getTime() - date.getTime();
-  const diffInMinutes = diffInMs / (1000 * 60);
-  
-  return diffInMinutes <= thresholdMinutes && diffInMinutes >= 0;
 };

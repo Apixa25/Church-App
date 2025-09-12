@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import DatePicker from 'react-datepicker';
 import { Event, getEventCategoryDisplay, getEventStatusDisplay } from '../types/Event';
 import EventCard from './EventCard';
+import { getDateKey } from '../utils/dateUtils';
 import 'react-datepicker/dist/react-datepicker.css';
 import './CalendarView.css';
 
@@ -29,11 +30,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     const grouped: Record<string, Event[]> = {};
     
     events.forEach(event => {
-      const dateKey = new Date(event.startTime).toDateString();
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = [];
+      const dateKey = getDateKey(event.startTime);
+      if (dateKey) {
+        if (!grouped[dateKey]) {
+          grouped[dateKey] = [];
+        }
+        grouped[dateKey].push(event);
       }
-      grouped[dateKey].push(event);
     });
     
     return grouped;
