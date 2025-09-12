@@ -3,6 +3,7 @@ import { prayerAPI } from './prayerApi';
 import { announcementAPI } from './announcementApi';
 import { eventAPI } from './eventApi';
 import { resourceAPI } from './resourceApi';
+import { Resource } from '../types/Resource';
 
 export interface DashboardActivityItem {
   id: string;
@@ -292,7 +293,7 @@ const dashboardApi = {
       const response = await resourceAPI.getRecentResourcesForFeed(limit);
       const resources = response.data;
       
-      return resources.map(resource => ({
+      return resources.map((resource: Resource) => ({
         id: resource.id,
         type: 'resource',
         title: resource.title,

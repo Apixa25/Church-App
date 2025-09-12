@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState, useEffect, useCallback } from 'react';
 import { resourceAPI } from '../services/resourceApi';
 import { Resource, ResourceStats, getResourceCategoryLabel, formatFileSize, getFileIconByType } from '../types/Resource';
 import './ResourceAdminPanel.css';
@@ -13,7 +12,6 @@ const ResourceAdminPanel: React.FC<ResourceAdminPanelProps> = ({
   onBack,
   onError,
 }) => {
-  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'pending' | 'all' | 'stats'>('pending');
   const [pendingResources, setPendingResources] = useState<Resource[]>([]);
   const [allResources, setAllResources] = useState<Resource[]>([]);
@@ -24,20 +22,8 @@ const ResourceAdminPanel: React.FC<ResourceAdminPanelProps> = ({
   const [totalPages, setTotalPages] = useState(0);
   
   const pageSize = 10;
-  const isAdmin = user?.role === 'ADMIN';
-  const isModerator = user?.role === 'MODERATOR';
 
-  useEffect(() => {
-    if (activeTab === 'pending') {
-      loadPendingResources();
-    } else if (activeTab === 'all') {
-      loadAllResources();
-    } else if (activeTab === 'stats') {
-      loadStats();
-    }
-  }, [activeTab, currentPage, searchTerm]);
-
-  const loadPendingResources = async () => {
+  const loadPendingResources = useCallback(async () => {
     try {
       setLoading(true);
       const response = await resourceAPI.getPendingResources(currentPage, pageSize);
@@ -49,9 +35,9 @@ const ResourceAdminPanel: React.FC<ResourceAdminPanelProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, pageSize, onError]);
 
-  const loadAllResources = async () => {
+  const loadAllResources = useCallback(async () => {
     try {
       setLoading(true);
       const response = await resourceAPI.getAllResources(currentPage, pageSize, searchTerm || undefined);
@@ -63,9 +49,9 @@ const ResourceAdminPanel: React.FC<ResourceAdminPanelProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, pageSize, searchTerm, onError]);
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     try {
       setLoading(true);
       const response = await resourceAPI.getResourceStats();
@@ -76,7 +62,7 @@ const ResourceAdminPanel: React.FC<ResourceAdminPanelProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [onError]);
 
   const handleApprove = async (resourceId: string) => {
     try {
@@ -317,6 +303,16 @@ const ResourceAdminPanel: React.FC<ResourceAdminPanelProps> = ({
       )}
     </div>
   );
+
+  useEffect(() => {
+    if (activeTab === 'pending') {
+      loadPendingResources();
+    } else if (activeTab === 'all') {
+      loadAllResources();
+    } else if (activeTab === 'stats') {
+      loadStats();
+    }
+  }, [activeTab, currentPage, searchTerm, loadAllResources, loadPendingResources, loadStats]);
 
   return (
     <div className="resource-admin-panel">
