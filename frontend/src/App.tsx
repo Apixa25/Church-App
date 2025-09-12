@@ -15,6 +15,7 @@ import PrayerRequestsPage from './components/PrayerRequestsPage';
 import PrayerRequestDetail from './components/PrayerRequestDetail';
 import AnnouncementPage from './components/AnnouncementPage';
 import CalendarPage from './components/CalendarPage';
+import ResourcePage from './components/ResourcePage';
 import './App.css';
 
 const App: React.FC = () => {
@@ -165,6 +166,43 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <CalendarPage />
+                </ProtectedRoute>
+              } 
+            />
+
+            {/* Resources/Library routes */}
+            <Route 
+              path="/resources" 
+              element={
+                <ProtectedRoute>
+                  <ResourcePage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/resources/create" 
+              element={
+                <ProtectedRoute>
+                  <ResourcePage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/resources/:resourceId" 
+              element={
+                <ProtectedRoute>
+                  <ResourcePage />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/library" 
+              element={
+                <ProtectedRoute>
+                  <ResourcePage />
                 </ProtectedRoute>
               } 
             />

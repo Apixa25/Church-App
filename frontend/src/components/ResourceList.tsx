@@ -1,0 +1,360 @@
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { resourceAPI } from '../services/resourceApi';
+import { Resource, ResourceCategory, getResourceCategoryLabel, formatFileSize, getFileIconByType } from '../types/Resource';
+import './ResourceList.css';
+
+interface ResourceListProps {
+  onCreateNew: () => void;
+  onEditResource: (resource: Resource) => void;
+  onViewResource: (resource: Resource) => void;
+  onError: (error: string) => void;
+}
+
+const ResourceList: React.FC<ResourceListProps> = ({
+  onCreateNew,
+  onEditResource,
+  onViewResource,
+  onError,
+}) => {
+  const { user } = useAuth();
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'all' | 'my-resources'>('all');
+  const [approvalFilter, setApprovalFilter] = useState<boolean | undefined>(undefined);
+
+  const pageSize = 12;
+  const isAdmin = user?.role === 'ADMIN';
+  const isModerator = user?.role === 'MODERATOR';
+
+  useEffect(() => {
+    loadResources();
+  }, [currentPage, searchTerm, selectedCategory, viewMode, approvalFilter]);
+
+  const loadResources = async () => {
+    try {
+      setLoading(true);
+      
+      let response;
+      if (viewMode === 'my-resources' && user) {
+        response = await resourceAPI.getUserResources(currentPage, pageSize, approvalFilter);
+      } else {
+        response = await resourceAPI.getApprovedResources(
+          currentPage,
+          pageSize,
+          selectedCategory || undefined,
+          searchTerm || undefined
+        );
+      }
+
+      setResources(response.data.resources);
+      setTotalPages(response.data.totalPages);
+      setTotalElements(response.data.totalElements);
+    } catch (error: any) {
+      console.error('Error loading resources:', error);
+      onError(error.response?.data?.error || 'Failed to load resources');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCurrentPage(0);
+    loadResources();
+  };
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    setCurrentPage(0);
+  };
+
+  const handleViewModeChange = (mode: 'all' | 'my-resources') => {
+    setViewMode(mode);
+    setCurrentPage(0);
+    setApprovalFilter(undefined);
+  };
+
+  const handleApprovalFilterChange = (approved?: boolean) => {
+    setApprovalFilter(approved);
+    setCurrentPage(0);
+  };
+
+  const handleDownload = async (resource: Resource, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!resource.fileUrl) {
+      onError('No file available for download');
+      return;
+    }
+
+    try {
+      // Track the download
+      await resourceAPI.trackDownload(resource.id);
+      
+      // Open file in new tab for download
+      window.open(resource.fileUrl, '_blank');
+    } catch (error: any) {
+      console.error('Error tracking download:', error);
+      // Still allow download even if tracking fails
+      window.open(resource.fileUrl, '_blank');
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const canEditResource = (resource: Resource) => {
+    if (!user) return false;
+    return resource.uploadedById === user.id || isAdmin || isModerator;
+  };
+
+  const renderResourceCard = (resource: Resource) => (
+    <div key={resource.id} className="resource-card" onClick={() => onViewResource(resource)}>
+      <div className="resource-card-header">
+        <div className="resource-icon">
+          {getFileIconByType(resource.fileType)}
+        </div>
+        <div className="resource-meta">
+          <span className="resource-category">
+            {getResourceCategoryLabel(resource.category)}
+          </span>
+          {viewMode === 'my-resources' && (
+            <span className={`approval-status ${resource.isApproved ? 'approved' : 'pending'}`}>
+              {resource.isApproved ? '✅ Approved' : '⏳ Pending'}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="resource-content">
+        <h3 className="resource-title">{resource.title}</h3>
+        {resource.description && (
+          <p className="resource-description">
+            {resource.description.length > 120
+              ? `${resource.description.substring(0, 120)}...`
+              : resource.description}
+          </p>
+        )}
+      </div>
+
+      <div className="resource-footer">
+        <div className="resource-info">
+          <div className="uploader-info">
+            <img
+              src={resource.uploaderProfilePicUrl || '/default-avatar.png'}
+              alt={resource.uploaderName}
+              className="uploader-avatar"
+            />
+            <span className="uploader-name">{resource.uploaderName}</span>
+          </div>
+          <div className="resource-stats">
+            <span className="upload-date">{formatDate(resource.createdAt)}</span>
+            {resource.fileSize && (
+              <span className="file-size">{formatFileSize(resource.fileSize)}</span>
+            )}
+            <span className="download-count">↓ {resource.downloadCount}</span>
+          </div>
+        </div>
+
+        <div className="resource-actions" onClick={(e) => e.stopPropagation()}>
+          {resource.fileUrl && (
+            <button
+              className="btn btn-sm btn-outline-primary"
+              onClick={(e) => handleDownload(resource, e)}
+              title="Download file"
+            >
+              ⬇️
+            </button>
+          )}
+          {canEditResource(resource) && (
+            <button
+              className="btn btn-sm btn-outline-secondary"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditResource(resource);
+              }}
+              title="Edit resource"
+            >
+              ✏️
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="resource-list">
+      {/* Search and Filter Bar */}
+      <div className="resource-list-filters">
+        <form onSubmit={handleSearch} className="search-form">
+          <input
+            type="text"
+            placeholder="Search resources..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+          <button type="submit" className="search-btn">🔍</button>
+        </form>
+
+        <div className="filter-controls">
+          <select
+            value={selectedCategory}
+            onChange={(e) => handleCategoryChange(e.target.value)}
+            className="category-filter"
+          >
+            <option value="">All Categories</option>
+            {Object.values(ResourceCategory).map((category) => (
+              <option key={category} value={category}>
+                {getResourceCategoryLabel(category)}
+              </option>
+            ))}
+          </select>
+
+          {user && (
+            <div className="view-mode-toggle">
+              <button
+                className={`toggle-btn ${viewMode === 'all' ? 'active' : ''}`}
+                onClick={() => handleViewModeChange('all')}
+              >
+                All Resources
+              </button>
+              <button
+                className={`toggle-btn ${viewMode === 'my-resources' ? 'active' : ''}`}
+                onClick={() => handleViewModeChange('my-resources')}
+              >
+                My Resources
+              </button>
+            </div>
+          )}
+
+          {viewMode === 'my-resources' && (
+            <div className="approval-filter">
+              <button
+                className={`filter-btn ${approvalFilter === undefined ? 'active' : ''}`}
+                onClick={() => handleApprovalFilterChange(undefined)}
+              >
+                All
+              </button>
+              <button
+                className={`filter-btn ${approvalFilter === true ? 'active' : ''}`}
+                onClick={() => handleApprovalFilterChange(true)}
+              >
+                ✅ Approved
+              </button>
+              <button
+                className={`filter-btn ${approvalFilter === false ? 'active' : ''}`}
+                onClick={() => handleApprovalFilterChange(false)}
+              >
+                ⏳ Pending
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Results Summary */}
+      <div className="resource-list-summary">
+        <span className="results-count">
+          {totalElements} resource{totalElements !== 1 ? 's' : ''} found
+        </span>
+        {searchTerm && (
+          <span className="search-term">for "{searchTerm}"</span>
+        )}
+        {selectedCategory && (
+          <span className="category-filter-display">
+            in {getResourceCategoryLabel(selectedCategory as ResourceCategory)}
+          </span>
+        )}
+      </div>
+
+      {/* Loading State */}
+      {loading && (
+        <div className="loading-state">
+          <div className="loading-spinner"></div>
+          <p>Loading resources...</p>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && resources.length === 0 && (
+        <div className="empty-state">
+          <div className="empty-icon">📚</div>
+          <h3>No resources found</h3>
+          <p>
+            {searchTerm || selectedCategory
+              ? 'Try adjusting your search or filter criteria'
+              : 'Be the first to add a resource to the library!'}
+          </p>
+          {user && (
+            <button className="btn btn-primary" onClick={onCreateNew}>
+              ➕ Add First Resource
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Resource Grid */}
+      {!loading && resources.length > 0 && (
+        <div className="resource-grid">
+          {resources.map(renderResourceCard)}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button
+            className="pagination-btn"
+            onClick={() => setCurrentPage(0)}
+            disabled={currentPage === 0}
+          >
+            ⏮️
+          </button>
+          <button
+            className="pagination-btn"
+            onClick={() => setCurrentPage(currentPage - 1)}
+            disabled={currentPage === 0}
+          >
+            ⏪
+          </button>
+          
+          <span className="pagination-info">
+            Page {currentPage + 1} of {totalPages}
+          </span>
+          
+          <button
+            className="pagination-btn"
+            onClick={() => setCurrentPage(currentPage + 1)}
+            disabled={currentPage >= totalPages - 1}
+          >
+            ⏩
+          </button>
+          <button
+            className="pagination-btn"
+            onClick={() => setCurrentPage(totalPages - 1)}
+            disabled={currentPage >= totalPages - 1}
+          >
+            ⏭️
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ResourceList;
