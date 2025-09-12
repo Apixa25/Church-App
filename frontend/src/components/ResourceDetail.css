@@ -1,0 +1,285 @@
+/* Resource Detail Styles */
+.resource-detail {
+  max-width: 800px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.resource-detail-header {
+  padding: 32px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.resource-detail-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+
+.resource-category {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.resource-date {
+  opacity: 0.9;
+}
+
+.resource-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 24px 0;
+  line-height: 1.2;
+}
+
+.resource-uploader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.uploader-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.uploader-info .uploader-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.upload-stats {
+  opacity: 0.9;
+  font-size: 0.9rem;
+}
+
+.resource-detail-content {
+  padding: 32px;
+}
+
+.resource-detail-content h3 {
+  font-size: 1.4rem;
+  color: #1e293b;
+  margin: 0 0 16px 0;
+  font-weight: 700;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+.resource-description {
+  margin-bottom: 32px;
+}
+
+.description-text {
+  color: #475569;
+  font-size: 1.1rem;
+  line-height: 1.7;
+}
+
+.description-text p {
+  margin: 0 0 16px 0;
+}
+
+.description-text p:last-child {
+  margin-bottom: 0;
+}
+
+.resource-file {
+  margin-bottom: 32px;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.file-details {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.file-icon {
+  font-size: 2.5rem;
+}
+
+.file-text .file-name {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 1.1rem;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.file-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 0.9rem;
+}
+
+.file-type {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.file-size {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.download-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: none;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.download-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.resource-detail-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 32px;
+  background: #fafbfc;
+  border-top: 1px solid #f1f5f9;
+}
+
+.action-group {
+  display: flex;
+  gap: 12px;
+}
+
+/* Loading and Error States */
+.resource-detail-loading {
+  text-align: center;
+  padding: 80px 20px;
+  color: #64748b;
+}
+
+.resource-detail-loading p {
+  margin-top: 16px;
+  font-size: 1.1rem;
+}
+
+.resource-detail-error {
+  text-align: center;
+  padding: 80px 20px;
+  color: #64748b;
+}
+
+.resource-detail-error h3 {
+  color: #dc3545;
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+}
+
+.resource-detail-error p {
+  font-size: 1.1rem;
+  margin-bottom: 24px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .resource-detail {
+    margin: 0 16px;
+  }
+  
+  .resource-detail-header {
+    padding: 24px 20px;
+  }
+  
+  .resource-title {
+    font-size: 2rem;
+  }
+  
+  .resource-detail-content {
+    padding: 24px 20px;
+  }
+  
+  .resource-detail-actions {
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+  }
+  
+  .action-group {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .action-group .btn {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .resource-detail-meta {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  
+  .resource-uploader {
+    gap: 12px;
+  }
+  
+  .uploader-avatar {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .resource-title {
+    font-size: 1.75rem;
+  }
+  
+  .file-info {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+  
+  .file-details {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .download-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
