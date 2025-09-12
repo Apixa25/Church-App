@@ -2,6 +2,7 @@ import api from './api';
 import { prayerAPI } from './prayerApi';
 import { announcementAPI } from './announcementApi';
 import { eventAPI } from './eventApi';
+import { resourceAPI } from './resourceApi';
 
 export interface DashboardActivityItem {
   id: string;
@@ -284,6 +285,62 @@ const dashboardApi = {
     ];
   },
 
+  // Resource specific dashboard functions
+  getResourceActivityItems: async (limit: number = 10): Promise<DashboardActivityItem[]> => {
+    try {
+      // Get recent approved resources for dashboard
+      const response = await resourceAPI.getRecentResourcesForFeed(limit);
+      const resources = response.data;
+      
+      return resources.map(resource => ({
+        id: resource.id,
+        type: 'resource',
+        title: resource.title,
+        description: resource.description || 'New resource uploaded',
+        userDisplayName: resource.uploaderName,
+        userProfilePicUrl: resource.uploaderProfilePicUrl,
+        userId: resource.uploadedById,
+        timestamp: resource.createdAt,
+        actionUrl: `/resources/${resource.id}`,
+        iconType: 'resource',
+        metadata: {
+          category: resource.category,
+          fileName: resource.fileName,
+          fileType: resource.fileType,
+          fileSize: resource.fileSize,
+          downloadCount: resource.downloadCount,
+          hasFile: !!resource.fileUrl
+        }
+      }));
+    } catch (error) {
+      console.error('Error fetching resource activity items:', error);
+      return [];
+    }
+  },
+
+  getResourceQuickActions: (): QuickAction[] => {
+    return [
+      {
+        id: 'view-resources',
+        title: 'Resources & Library',
+        description: 'Browse studies, devotionals, documents and more',
+        actionUrl: '/resources',
+        iconType: 'resource',
+        buttonText: 'Browse Library',
+        requiresAuth: true
+      },
+      {
+        id: 'upload-resource',
+        title: 'Upload Resource',
+        description: 'Share a file or text resource with the community',
+        actionUrl: '/resources/create-file',
+        iconType: 'upload',
+        buttonText: 'Upload File',
+        requiresAuth: true
+      }
+    ];
+  },
+
   getDashboardWithAll: async (): Promise<DashboardResponse> => {
     try {
       // Get the main dashboard data
@@ -291,11 +348,12 @@ const dashboardApi = {
       const dashboardData = dashboardResponse.data;
 
       // Get all activity items in parallel
-      const [prayerActivityItems, announcementActivityItems, eventActivityItems, rsvpActivityItems] = await Promise.all([
+      const [prayerActivityItems, announcementActivityItems, eventActivityItems, rsvpActivityItems, resourceActivityItems] = await Promise.all([
         dashboardApi.getPrayerActivityItems(5),
         dashboardApi.getAnnouncementActivityItems(5),
         dashboardApi.getEventActivityItems(5),
-        dashboardApi.getRsvpActivityItems(3)
+        dashboardApi.getRsvpActivityItems(3),
+        dashboardApi.getResourceActivityItems(3)
       ]);
 
       // Merge all activities with existing activities
@@ -304,6 +362,7 @@ const dashboardApi = {
         ...announcementActivityItems,
         ...eventActivityItems,
         ...rsvpActivityItems,
+        ...resourceActivityItems,
         ...(dashboardData.recentActivity || [])
       ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
        .slice(0, 25); // Keep the 25 most recent items
@@ -314,12 +373,14 @@ const dashboardApi = {
         dashboardData.userRole || localStorage.getItem('userRole')
       );
       const eventQuickActions = dashboardApi.getEventQuickActions();
+      const resourceQuickActions = dashboardApi.getResourceQuickActions();
       
       const existingActionUrls = (dashboardData.quickActions || []).map((action: QuickAction) => action.actionUrl);
       const newActions = [
         ...prayerQuickActions, 
         ...announcementQuickActions, 
-        ...eventQuickActions
+        ...eventQuickActions,
+        ...resourceQuickActions
       ].filter(action => 
         !existingActionUrls.includes(action.actionUrl)
       );

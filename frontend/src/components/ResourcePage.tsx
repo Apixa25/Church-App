@@ -4,10 +4,12 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Resource } from '../types/Resource';
 import ResourceList from './ResourceList';
 import ResourceForm from './ResourceForm';
+import ResourceFileUploadForm from './ResourceFileUploadForm';
 import ResourceDetail from './ResourceDetail';
+import ResourceAdminPanel from './ResourceAdminPanel';
 import './ResourcePage.css';
 
-type ViewMode = 'list' | 'create' | 'edit' | 'detail';
+type ViewMode = 'list' | 'create' | 'create-file' | 'edit' | 'detail' | 'admin';
 
 const ResourcePage: React.FC = () => {
   const { user } = useAuth();
@@ -32,6 +34,10 @@ const ResourcePage: React.FC = () => {
       // The detail component will load the resource
     } else if (mode === 'create' && user) {
       setViewMode('create');
+    } else if (mode === 'create-file' && user) {
+      setViewMode('create-file');
+    } else if (mode === 'admin' && canManageResources) {
+      setViewMode('admin');
     } else if (mode === 'edit' && selectedResource) {
       setViewMode('edit');
     } else {
@@ -49,6 +55,29 @@ const ResourcePage: React.FC = () => {
     setSelectedResource(null);
     setViewMode('create');
     setSearchParams({ mode: 'create' });
+    setError(null);
+  };
+
+  const handleCreateWithFile = () => {
+    if (!user) {
+      setError('You must be logged in to create resources');
+      return;
+    }
+    
+    setSelectedResource(null);
+    setViewMode('create-file');
+    setSearchParams({ mode: 'create-file' });
+    setError(null);
+  };
+
+  const handleShowAdmin = () => {
+    if (!canManageResources) {
+      setError('You do not have permission to access admin features');
+      return;
+    }
+    
+    setViewMode('admin');
+    setSearchParams({ mode: 'admin' });
     setError(null);
   };
 
@@ -113,6 +142,15 @@ const ResourcePage: React.FC = () => {
           />
         );
 
+      case 'create-file':
+        return (
+          <ResourceFileUploadForm
+            onSuccess={handleResourceCreated}
+            onCancel={handleBackToList}
+            onError={setError}
+          />
+        );
+
       case 'edit':
         if (!selectedResource) {
           return <div>No resource selected for editing</div>;
@@ -141,12 +179,22 @@ const ResourcePage: React.FC = () => {
           />
         );
 
+      case 'admin':
+        return (
+          <ResourceAdminPanel
+            onBack={handleBackToList}
+            onError={setError}
+          />
+        );
+
       default:
         return (
           <ResourceList
             onCreateNew={handleCreateNew}
+            onCreateWithFile={handleCreateWithFile}
             onEditResource={handleEditResource}
             onViewResource={handleViewResource}
+            onShowAdmin={canManageResources ? handleShowAdmin : undefined}
             onError={setError}
           />
         );
@@ -164,11 +212,25 @@ const ResourcePage: React.FC = () => {
         {viewMode === 'list' && user && (
           <div className="resource-page-actions">
             <button
-              className="btn btn-primary"
+              className="btn btn-secondary"
               onClick={handleCreateNew}
             >
-              ➕ Add Resource
+              📝 Add Text
             </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleCreateWithFile}
+            >
+              📁 Upload File
+            </button>
+            {canManageResources && (
+              <button
+                className="btn btn-outline-primary"
+                onClick={handleShowAdmin}
+              >
+                🛡️ Admin
+              </button>
+            )}
           </div>
         )}
 
