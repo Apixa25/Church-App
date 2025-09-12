@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Resource } from '../types/Resource';
 import ResourceList from './ResourceList';
 import ResourceForm from './ResourceForm';
@@ -14,6 +14,7 @@ type ViewMode = 'list' | 'create' | 'create-file' | 'edit' | 'detail' | 'admin';
 const ResourcePage: React.FC = () => {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
@@ -206,6 +207,16 @@ const ResourcePage: React.FC = () => {
         <div className="resource-page-title">
           <h1>📚 Resources & Library</h1>
           <p>Access studies, devotionals, documents and more</p>
+        </div>
+        
+        {/* Navigation */}
+        <div className="resource-navigation">
+          <button 
+            onClick={() => navigate('/dashboard')} 
+            className="back-home-button"
+          >
+            🏠 Back Home
+          </button>
         </div>
 
         {viewMode === 'list' && user && (
