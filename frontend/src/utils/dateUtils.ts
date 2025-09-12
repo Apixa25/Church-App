@@ -13,8 +13,25 @@ export const parseEventDate = (dateInput: string | number[]): Date | null => {
     
     if (Array.isArray(dateInput)) {
       // Handle array format [year, month, day, hour, minute, second, nanosecond]
+      // CRITICAL: Backend sends month as 1-indexed (1=Jan, 9=Sep) but Date constructor expects 0-indexed (0=Jan, 8=Sep)
       const [year, month, day, hour = 0, minute = 0, second = 0] = dateInput;
-      // Use local timezone constructor to avoid UTC conversion issues
+      
+      // Debug logging for array date parsing issues
+      if (day === 13) { // Only log when day is 13 to reduce noise
+        console.log('🐛 Array date parsing (Day 13):', {
+          input: dateInput,
+          year, 
+          month: `${month} (backend 1-indexed)`, 
+          day, 
+          hour, 
+          minute, 
+          second,
+          monthForDateConstructor: `${month - 1} (0-indexed for Date constructor)`,
+          willCreateDate: `new Date(${year}, ${month - 1}, ${day}, ${hour}, ${minute}, ${second})`
+        });
+      }
+      
+      // Use local timezone constructor with proper month conversion
       date = new Date(year, month - 1, day, hour, minute, second); // Month is 0-indexed in Date constructor
     } else {
       // Handle string format with careful timezone handling
@@ -126,13 +143,21 @@ export const formatEventDuration = (startTime: string | number[], endTime?: stri
 export const getDateKey = (dateInput: string | number[]): string | null => {
   const date = parseEventDate(dateInput);
   if (date) {
-    // Debug logging for date offset issues
-    console.log('getDateKey:', {
-      input: dateInput,
+    // Enhanced debug logging for date offset issues
+    console.log('getDateKey DEBUG:', {
+      originalInput: dateInput,
+      inputType: Array.isArray(dateInput) ? 'array' : 'string',
+      arrayLength: Array.isArray(dateInput) ? dateInput.length : 'N/A',
       parsedDate: date,
       dateString: date.toDateString(),
       localDate: date.toLocaleDateString(),
-      isoString: date.toISOString()
+      isoString: date.toISOString(),
+      utcDate: date.toUTCString(),
+      year: date.getFullYear(),
+      month: date.getMonth() + 1, // Show 1-indexed month for clarity
+      day: date.getDate(),
+      hours: date.getHours(),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
     });
   }
   return date ? date.toDateString() : null;

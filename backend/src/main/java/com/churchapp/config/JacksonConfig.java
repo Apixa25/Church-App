@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -13,8 +14,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Jackson Configuration for proper timestamp serialization
- * Ensures LocalDateTime objects are serialized as ISO-8601 strings instead of arrays
+ * Jackson Configuration for proper timestamp serialization and deserialization
+ * Ensures LocalDateTime objects are serialized/deserialized as ISO-8601 strings instead of arrays
  */
 @Configuration
 public class JacksonConfig {
@@ -27,8 +28,9 @@ public class JacksonConfig {
     public ObjectMapper objectMapper() {
         JavaTimeModule javaTimeModule = new JavaTimeModule();
         
-        // Custom LocalDateTime serializer to ensure consistent ISO-8601 format
+        // Custom LocalDateTime serializer and deserializer to ensure consistent ISO-8601 format
         javaTimeModule.addSerializer(LocalDateTime.class, new LocalDateTimeSerializer(FORMATTER));
+        javaTimeModule.addDeserializer(LocalDateTime.class, new LocalDateTimeDeserializer(FORMATTER));
         
         return Jackson2ObjectMapperBuilder.json()
                 .modules(javaTimeModule)

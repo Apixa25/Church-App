@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import DatePicker from 'react-datepicker';
 import { eventAPI, EVENT_CATEGORY_OPTIONS } from '../services/eventApi';
 import { Event, EventRequest, EventCategory } from '../types/Event';
+import { parseEventDate } from '../utils/dateUtils';
 import 'react-datepicker/dist/react-datepicker.css';
 import './EventCreateForm.css';
 
@@ -21,19 +22,43 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [startTime, setStartTime] = useState<Date>(
-    editEvent ? new Date(editEvent.startTime) : initialDate || new Date()
-  );
-  const [endTime, setEndTime] = useState<Date | null>(
-    editEvent?.endTime ? new Date(editEvent.endTime) : null
-  );
+  const [startTime, setStartTime] = useState<Date>(() => {
+    if (editEvent) {
+      const parsedDate = parseEventDate(editEvent.startTime);
+      if (parsedDate) {
+        console.log('🛠️ Parsed edit event start time:', {
+          original: editEvent.startTime,
+          parsed: parsedDate,
+          formatted: parsedDate.toLocaleDateString() + ' ' + parsedDate.toLocaleTimeString()
+        });
+        return parsedDate;
+      }
+      console.warn('⚠️ Failed to parse edit event start time, using current date');
+    }
+    return initialDate || new Date();
+  });
+  
+  const [endTime, setEndTime] = useState<Date | null>(() => {
+    if (editEvent?.endTime) {
+      const parsedDate = parseEventDate(editEvent.endTime);
+      if (parsedDate) {
+        console.log('🛠️ Parsed edit event end time:', {
+          original: editEvent.endTime,
+          parsed: parsedDate,
+          formatted: parsedDate.toLocaleDateString() + ' ' + parsedDate.toLocaleTimeString()
+        });
+        return parsedDate;
+      }
+      console.warn('⚠️ Failed to parse edit event end time, using null');
+    }
+    return null;
+  });
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-    watch,
-    setValue
+    watch
   } = useForm<EventRequest>({
     defaultValues: {
       title: editEvent?.title || '',
@@ -46,18 +71,42 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
     }
   });
 
-  const isRecurring = watch('isRecurring');
+  // const isRecurring = watch('isRecurring'); // TODO: Use for recurring event fields
 
   const onSubmit = async (data: EventRequest) => {
     try {
       setLoading(true);
       setError(null);
 
+      // Format dates properly for backend LocalDateTime parsing
+      const formatDateForBackend = (date: Date): string => {
+        // Format as: 2025-09-13T14:30:00.000
+        // This matches the backend Jackson configuration without timezone
+        return date.toISOString().slice(0, 23);
+      };
+
       const eventData: EventRequest = {
         ...data,
-        startTime: startTime.toISOString(),
-        endTime: endTime?.toISOString(),
+        startTime: formatDateForBackend(startTime),
+        endTime: endTime ? formatDateForBackend(endTime) : undefined,
       };
+
+      // Debug logging to see what we're sending
+      console.log('🚀 Creating/Updating event - SENDING TO BACKEND:', {
+        operation: editEvent ? 'UPDATE' : 'CREATE',
+        eventId: editEvent?.id,
+        eventCreatorId: editEvent?.creatorId,
+        currentUser: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : null,
+        title: eventData.title,
+        startTimeFormatted: eventData.startTime,
+        endTimeFormatted: eventData.endTime,
+        originalStartTime: startTime.toISOString(),
+        originalEndTime: endTime?.toISOString(),
+        userSelectedDate: startTime.toLocaleDateString(),
+        userSelectedTime: startTime.toLocaleTimeString(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        allEventData: eventData
+      });
 
       let result;
       if (editEvent) {
@@ -68,7 +117,21 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
 
       onSuccess(result.data);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to create event');
+      console.error('Event creation/update error:', {
+        operation: editEvent ? 'UPDATE' : 'CREATE',
+        eventId: editEvent?.id,
+        error: err,
+        response: err.response?.data,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        url: err.config?.url,
+        method: err.config?.method
+      });
+      setError(
+        err.response?.data?.message || 
+        err.response?.data?.error || 
+        `Failed to create event: ${err.response?.status} ${err.response?.statusText}`
+      );
     } finally {
       setLoading(false);
     }
