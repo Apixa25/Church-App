@@ -20,7 +20,9 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, isLoading }) =>
       event: '🎉',
       rsvp: '✅',
       system: '⚙️',
-      create: '➕'
+      create: '➕',
+      resource: '📚',
+      upload: '📁'
     };
     return iconMap[iconType] || '📝';
   };

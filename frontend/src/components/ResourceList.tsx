@@ -6,15 +6,19 @@ import './ResourceList.css';
 
 interface ResourceListProps {
   onCreateNew: () => void;
+  onCreateWithFile: () => void;
   onEditResource: (resource: Resource) => void;
   onViewResource: (resource: Resource) => void;
+  onShowAdmin?: () => void;
   onError: (error: string) => void;
 }
 
 const ResourceList: React.FC<ResourceListProps> = ({
   onCreateNew,
+  onCreateWithFile,
   onEditResource,
   onViewResource,
+  onShowAdmin,
   onError,
 }) => {
   const { user } = useAuth();
@@ -301,9 +305,14 @@ const ResourceList: React.FC<ResourceListProps> = ({
               : 'Be the first to add a resource to the library!'}
           </p>
           {user && (
-            <button className="btn btn-primary" onClick={onCreateNew}>
-              ➕ Add First Resource
-            </button>
+            <div className="empty-actions">
+              <button className="btn btn-secondary" onClick={onCreateNew}>
+                📝 Add Text Resource
+              </button>
+              <button className="btn btn-primary" onClick={onCreateWithFile}>
+                📁 Upload File
+              </button>
+            </div>
           )}
         </div>
       )}

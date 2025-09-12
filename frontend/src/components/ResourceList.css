@@ -170,6 +170,12 @@
   margin-bottom: 24px;
 }
 
+.empty-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
 /* Loading State */
 .loading-state {
   text-align: center;
