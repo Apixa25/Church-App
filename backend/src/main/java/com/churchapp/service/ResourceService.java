@@ -11,6 +11,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,6 +25,7 @@ public class ResourceService {
     
     private final ResourceRepository resourceRepository;
     private final UserRepository userRepository;
+    private final FileUploadService fileUploadService;
     
     public Resource createResource(UUID uploaderId, Resource resourceRequest) {
         User uploader = userRepository.findById(uploaderId)
@@ -131,6 +133,16 @@ public class ResourceService {
         
         if (!isUploader && !isAdmin) {
             throw new RuntimeException("Not authorized to delete this resource. Only the uploader or administrators can delete resources.");
+        }
+        
+        // Delete file from S3 if it exists
+        if (resource.getFileUrl() != null) {
+            try {
+                fileUploadService.deleteFile(resource.getFileUrl());
+                log.info("Deleted file from S3: {}", resource.getFileUrl());
+            } catch (Exception e) {
+                log.warn("Failed to delete file from S3, continuing with resource deletion: {}", e.getMessage());
+            }
         }
         
         resourceRepository.delete(resource);
@@ -295,5 +307,128 @@ public class ResourceService {
     
     public long countUserResources(UUID userId) {
         return resourceRepository.findByUploadedByIdOrderByCreatedAtDesc(userId).size();
+    }
+    
+    // File upload methods
+    public Resource createResourceWithFile(UUID uploaderId, String title, String description, 
+                                         Resource.ResourceCategory category, MultipartFile file) {
+        User uploader = userRepository.findById(uploaderId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + uploaderId));
+        
+        log.info("Creating resource with file - Title: '{}', Category: '{}', File: '{}'", 
+                title, category, file.getOriginalFilename());
+        
+        try {
+            // Upload file to S3
+            String fileUrl = fileUploadService.uploadFile(file, "resources");
+            
+            // Create resource entity
+            Resource resource = new Resource();
+            resource.setTitle(title.trim());
+            resource.setDescription(description != null ? description.trim() : null);
+            resource.setCategory(category != null ? category : Resource.ResourceCategory.GENERAL);
+            resource.setUploadedBy(uploader);
+            resource.setFileName(file.getOriginalFilename());
+            resource.setFileUrl(fileUrl);
+            resource.setFileSize(file.getSize());
+            resource.setFileType(file.getContentType());
+            resource.setDownloadCount(0);
+            
+            // Auto-approve if uploaded by admin/moderator, otherwise require approval
+            boolean autoApprove = (uploader.getRole() == User.UserRole.ADMIN || 
+                                  uploader.getRole() == User.UserRole.MODERATOR);
+            resource.setIsApproved(autoApprove);
+            
+            Resource savedResource = resourceRepository.save(resource);
+            log.info("Resource with file created with id: {} by user: {} (auto-approved: {})", 
+                    savedResource.getId(), uploaderId, autoApprove);
+            
+            return savedResource;
+            
+        } catch (Exception e) {
+            log.error("Error creating resource with file: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to create resource with file: " + e.getMessage(), e);
+        }
+    }
+    
+    public Resource updateResourceFile(UUID resourceId, UUID userId, MultipartFile file) {
+        Resource existingResource = resourceRepository.findById(resourceId)
+            .orElseThrow(() -> new RuntimeException("Resource not found with id: " + resourceId));
+        
+        // Check if user is the uploader or has admin/moderator role
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        
+        if (!existingResource.getUploadedBy().getId().equals(userId) && 
+            user.getRole() != User.UserRole.ADMIN && 
+            user.getRole() != User.UserRole.MODERATOR) {
+            throw new RuntimeException("Not authorized to update this resource file");
+        }
+        
+        log.info("Updating resource file for resource: {} by user: {}", resourceId, userId);
+        
+        try {
+            // Delete old file if it exists
+            if (existingResource.getFileUrl() != null) {
+                try {
+                    fileUploadService.deleteFile(existingResource.getFileUrl());
+                    log.info("Deleted old file: {}", existingResource.getFileUrl());
+                } catch (Exception e) {
+                    log.warn("Failed to delete old file, continuing with upload: {}", e.getMessage());
+                }
+            }
+            
+            // Upload new file to S3
+            String fileUrl = fileUploadService.uploadFile(file, "resources");
+            
+            // Update resource file information
+            existingResource.setFileName(file.getOriginalFilename());
+            existingResource.setFileUrl(fileUrl);
+            existingResource.setFileSize(file.getSize());
+            existingResource.setFileType(file.getContentType());
+            
+            // Reset download count for updated file
+            existingResource.setDownloadCount(0);
+            
+            // If file is updated, require re-approval unless done by admin/moderator
+            boolean isAdminOrMod = (user.getRole() == User.UserRole.ADMIN || 
+                                   user.getRole() == User.UserRole.MODERATOR);
+            if (!isAdminOrMod) {
+                existingResource.setIsApproved(false);
+                log.info("Resource {} requires re-approval after file update by non-admin user", resourceId);
+            }
+            
+            Resource updatedResource = resourceRepository.save(existingResource);
+            log.info("Resource file updated for id: {} by user: {}", resourceId, userId);
+            
+            return updatedResource;
+            
+        } catch (Exception e) {
+            log.error("Error updating resource file: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to update resource file: " + e.getMessage(), e);
+        }
+    }
+    
+    
+    // Helper method to determine file category based on content type
+    public Resource.ResourceCategory suggestCategoryFromFileType(String contentType) {
+        if (contentType == null) {
+            return Resource.ResourceCategory.GENERAL;
+        }
+        
+        if (contentType.startsWith("image/")) {
+            return Resource.ResourceCategory.IMAGES;
+        } else if (contentType.startsWith("video/")) {
+            return Resource.ResourceCategory.VIDEO;
+        } else if (contentType.startsWith("audio/")) {
+            return Resource.ResourceCategory.AUDIO;
+        } else if (contentType.equals("application/pdf") || 
+                   contentType.equals("application/msword") ||
+                   contentType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document") ||
+                   contentType.equals("text/plain")) {
+            return Resource.ResourceCategory.DOCUMENTS;
+        }
+        
+        return Resource.ResourceCategory.GENERAL;
     }
 }
