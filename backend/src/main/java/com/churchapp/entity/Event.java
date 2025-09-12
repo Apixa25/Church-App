@@ -83,6 +83,9 @@ public class Event {
     @Column(name = "requires_approval", nullable = false)
     private Boolean requiresApproval = false;
     
+    @Column(name = "original_category")
+    private String originalCategory;
+    
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
