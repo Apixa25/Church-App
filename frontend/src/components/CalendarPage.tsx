@@ -18,6 +18,7 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [filters, setFilters] = useState({
     category: '',
     status: '',
@@ -137,6 +138,14 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
         event.id === updatedEvent.id ? updatedEvent : event
       )
     );
+    // Close the edit form after successful update
+    setEditingEvent(null);
+    setShowCreateForm(false);
+  };
+
+  const handleEditEvent = (event: Event) => {
+    setEditingEvent(event);
+    setShowCreateForm(true);
   };
 
   const handleEventDeleted = (eventId: string) => {
@@ -257,7 +266,7 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
             selectedDate={selectedDate}
             onDateSelect={setSelectedDate}
             onEventSelect={(event) => navigate(`/events/${event.id}`)}
-            onEventUpdate={handleEventUpdated}
+            onEventUpdate={handleEditEvent}
             onEventDelete={handleEventDeleted}
             onCreateEvent={(date) => {
               setSelectedDate(date);
@@ -268,21 +277,28 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
           <EventList
             events={events}
             onEventSelect={(event) => navigate(`/events/${event.id}`)}
-            onEventUpdate={handleEventUpdated}
+            onEventUpdate={handleEditEvent}
             onEventDelete={handleEventDeleted}
             loading={loading}
           />
         )}
       </div>
 
-      {/* Create Event Modal */}
+      {/* Create/Edit Event Modal */}
       {showCreateForm && (
-        <div className="modal-overlay" onClick={() => setShowCreateForm(false)}>
+        <div className="modal-overlay" onClick={() => {
+          setShowCreateForm(false);
+          setEditingEvent(null);
+        }}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <EventCreateForm
-              onSuccess={handleEventCreated}
-              onCancel={() => setShowCreateForm(false)}
+              onSuccess={editingEvent ? handleEventUpdated : handleEventCreated}
+              onCancel={() => {
+                setShowCreateForm(false);
+                setEditingEvent(null);
+              }}
               initialDate={selectedDate}
+              editEvent={editingEvent || undefined}
             />
           </div>
         </div>

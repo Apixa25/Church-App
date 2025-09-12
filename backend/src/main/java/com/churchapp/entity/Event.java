@@ -100,19 +100,29 @@ public class Event {
     }
     
     public enum EventCategory {
+        GENERAL,
         WORSHIP,
         BIBLE_STUDY,
+        PRAYER,
         FELLOWSHIP,
         OUTREACH,
         YOUTH,
         CHILDREN,
+        MENS,
+        WOMENS,
+        SENIORS,
+        MISSIONS,
+        MINISTRY,
+        SOCIAL,
+        EDUCATION,
+        MUSIC,
+        OTHER,
+        // Legacy values for backward compatibility
         MENS_MINISTRY,
         WOMENS_MINISTRY,
-        PRAYER,
         SPECIAL_EVENT,
         MEETING,
-        VOLUNTEER,
-        GENERAL
+        VOLUNTEER
     }
     
     public enum RecurrenceType {

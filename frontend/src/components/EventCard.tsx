@@ -104,7 +104,11 @@ const EventCard: React.FC<EventCardProps> = ({
         
         {!compact && (
           <div className="event-actions" onClick={(e) => e.stopPropagation()}>
-            <button className="action-btn" title="Edit Event">
+            <button 
+              className="action-btn" 
+              title="Edit Event"
+              onClick={() => onUpdate(event)}
+            >
               ✏️
             </button>
             <button 
