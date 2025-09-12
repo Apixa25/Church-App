@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Event, getEventCategoryDisplay, getEventStatusDisplay, getRsvpResponseDisplay } from '../types/Event';
 import { eventAPI } from '../services/eventApi';
 import EventRsvpManager from './EventRsvpManager';
+import { formatEventDate, formatEventTime, formatEventDuration, isEventPast } from '../utils/dateUtils';
 import './EventCard.css';
 
 interface EventCardProps {
@@ -26,45 +27,7 @@ const EventCard: React.FC<EventCardProps> = ({
   const [isRsvpLoading, setIsRsvpLoading] = useState(false);
   const [showRsvpManager, setShowRsvpManager] = useState(false);
 
-  const formatEventDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
-  const formatEventTime = (dateString: string) => {
-    const time = new Date(dateString);
-    return time.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-  };
-
-  const formatEventDuration = () => {
-    if (!event.endTime) return '';
-    
-    const start = new Date(event.startTime);
-    const end = new Date(event.endTime);
-    const duration = (end.getTime() - start.getTime()) / (1000 * 60); // in minutes
-    
-    if (duration < 60) {
-      return `${duration}min`;
-    }
-    
-    const hours = Math.floor(duration / 60);
-    const minutes = duration % 60;
-    
-    if (minutes === 0) {
-      return `${hours}h`;
-    }
-    
-    return `${hours}h ${minutes}min`;
-  };
+  // Use centralized date utilities for consistent parsing
 
   const getEventStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -89,9 +52,7 @@ const EventCard: React.FC<EventCardProps> = ({
     }
   };
 
-  const isEventPast = () => {
-    return new Date(event.startTime) < new Date();
-  };
+  // Use centralized isEventPast utility
 
   const isEventToday = () => {
     const eventDate = new Date(event.startTime).toDateString();
@@ -121,7 +82,7 @@ const EventCard: React.FC<EventCardProps> = ({
 
   return (
     <div 
-      className={`event-card ${compact ? 'compact' : ''} ${isEventPast() ? 'past' : ''} ${isEventToday() ? 'today' : ''}`}
+      className={`event-card ${compact ? 'compact' : ''} ${isEventPast(event.startTime) ? 'past' : ''} ${isEventToday() ? 'today' : ''}`}
       onClick={onSelect}
     >
       {/* Event Header */}
@@ -180,7 +141,7 @@ const EventCard: React.FC<EventCardProps> = ({
             <span className="detail-text">
               {formatEventTime(event.startTime)}
               {event.endTime && ` - ${formatEventTime(event.endTime)}`}
-              {formatEventDuration() && ` (${formatEventDuration()})`}
+              {formatEventDuration(event.startTime, event.endTime) && ` (${formatEventDuration(event.startTime, event.endTime)})`}
             </span>
           </div>
         )}
@@ -241,7 +202,7 @@ const EventCard: React.FC<EventCardProps> = ({
             </div>
           </div>
 
-          {!isEventPast() && (
+          {!isEventPast(event.startTime) && (
             <div className="rsvp-actions">
               <button
                 className="btn btn-primary"
