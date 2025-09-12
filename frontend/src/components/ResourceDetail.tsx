@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { resourceAPI } from '../services/resourceApi';
 import { Resource, getResourceCategoryLabel, formatFileSize, getFileIconByType } from '../types/Resource';
@@ -27,11 +27,7 @@ const ResourceDetail: React.FC<ResourceDetailProps> = ({
   const isAdmin = user?.role === 'ADMIN';
   const isModerator = user?.role === 'MODERATOR';
 
-  useEffect(() => {
-    loadResource();
-  }, [resourceId]);
-
-  const loadResource = async () => {
+  const loadResource = useCallback(async () => {
     try {
       setLoading(true);
       const response = await resourceAPI.getResource(resourceId);
@@ -42,7 +38,11 @@ const ResourceDetail: React.FC<ResourceDetailProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [resourceId, onError]);
+
+  useEffect(() => {
+    loadResource();
+  }, [resourceId, loadResource]);
 
   const handleDownload = async () => {
     if (!resource?.fileUrl) {
@@ -83,7 +83,7 @@ const ResourceDetail: React.FC<ResourceDetailProps> = ({
 
   const canEditResource = () => {
     if (!user || !resource) return false;
-    return resource.uploadedById === user.id || isAdmin || isModerator;
+    return resource.uploadedById === user.userId || isAdmin || isModerator;
   };
 
   const formatDate = (dateString: string) => {

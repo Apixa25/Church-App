@@ -1,4 +1,4 @@
-import { api } from './api';
+import api from './api';
 import { Resource, ResourceRequest, ResourceResponse, ResourceStats, FileValidation, ResourceCategory } from '../types/Resource';
 
 export const resourceAPI = {

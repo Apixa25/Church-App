@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { resourceAPI } from '../services/resourceApi';
 import { Resource, ResourceCategory, getResourceCategoryLabel, formatFileSize, getFileIconByType } from '../types/Resource';
@@ -38,11 +38,7 @@ const ResourceList: React.FC<ResourceListProps> = ({
   const isAdmin = user?.role === 'ADMIN';
   const isModerator = user?.role === 'MODERATOR';
 
-  useEffect(() => {
-    loadResources();
-  }, [currentPage, searchTerm, selectedCategory, viewMode, approvalFilter]);
-
-  const loadResources = async () => {
+  const loadResources = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -67,7 +63,11 @@ const ResourceList: React.FC<ResourceListProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, searchTerm, selectedCategory, viewMode, approvalFilter, user, onError]);
+
+  useEffect(() => {
+    loadResources();
+  }, [currentPage, searchTerm, selectedCategory, viewMode, approvalFilter, loadResources]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,7 +122,7 @@ const ResourceList: React.FC<ResourceListProps> = ({
 
   const canEditResource = (resource: Resource) => {
     if (!user) return false;
-    return resource.uploadedById === user.id || isAdmin || isModerator;
+    return resource.uploadedById === user.userId || isAdmin || isModerator;
   };
 
   const renderResourceCard = (resource: Resource) => (

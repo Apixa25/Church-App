@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Resource } from '../types/Resource';
 import ResourceList from './ResourceList';
 import ResourceForm from './ResourceForm';
@@ -13,7 +13,6 @@ type ViewMode = 'list' | 'create' | 'create-file' | 'edit' | 'detail' | 'admin';
 
 const ResourcePage: React.FC = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -44,7 +43,7 @@ const ResourcePage: React.FC = () => {
       setViewMode('list');
       setSearchParams({}); // Clear any invalid params
     }
-  }, [searchParams, user, selectedResource, setSearchParams]);
+  }, [searchParams, user, selectedResource, setSearchParams, canManageResources]);
 
   const handleCreateNew = () => {
     if (!user) {
@@ -87,7 +86,7 @@ const ResourcePage: React.FC = () => {
       return;
     }
 
-    if (resource.uploadedById !== user.id && !canManageResources) {
+    if (resource.uploadedById !== user.userId && !canManageResources) {
       setError('You can only edit your own resources');
       return;
     }
