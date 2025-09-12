@@ -45,7 +45,14 @@ public class EventService {
         event.setEndTime(eventRequest.getEndTime());
         event.setLocation(eventRequest.getLocation() != null ? eventRequest.getLocation().trim() : null);
         event.setCreator(creator);
-        event.setCategory(eventRequest.getCategory() != null ? eventRequest.getCategory() : Event.EventCategory.GENERAL);
+        // Map problematic categories to working ones based on user testing
+        Event.EventCategory mappedCategory = mapCategoryToWorkingValue(eventRequest.getCategory());
+        event.setCategory(mappedCategory);
+        
+        // Store original category name for display purposes
+        if (eventRequest.getCategory() != null) {
+            event.setOriginalCategory(eventRequest.getCategory().name());
+        }
         event.setMaxAttendees(eventRequest.getMaxAttendees());
         event.setIsRecurring(eventRequest.getIsRecurring() != null ? eventRequest.getIsRecurring() : false);
         event.setRecurrenceType(eventRequest.getRecurrenceType());
@@ -53,8 +60,22 @@ public class EventService {
         event.setRequiresApproval(eventRequest.getRequiresApproval() != null ? eventRequest.getRequiresApproval() : false);
         event.setStatus(Event.EventStatus.SCHEDULED);
         
-        log.info("About to save event with final values - StartTime: '{}', EndTime: '{}', MaxAttendees: '{}'", 
-                event.getStartTime(), event.getEndTime(), event.getMaxAttendees());
+        // Fix recurring event validation - if isRecurring is true but no recurrenceType, set to false
+        if (event.getIsRecurring() && event.getRecurrenceType() == null) {
+            log.warn("Event marked as recurring but no recurrence type specified. Setting isRecurring to false.");
+            event.setIsRecurring(false);
+        }
+        
+        // Fix date validation - ensure end time is after start time if both are provided
+        if (event.getEndTime() != null && event.getStartTime() != null) {
+            if (event.getEndTime().isBefore(event.getStartTime()) || event.getEndTime().isEqual(event.getStartTime())) {
+                log.warn("End time is before or equal to start time. Adjusting end time to be 1 hour after start time.");
+                event.setEndTime(event.getStartTime().plusHours(1));
+            }
+        }
+        
+        log.info("About to save event with final values - StartTime: '{}', EndTime: '{}', MaxAttendees: '{}', IsRecurring: '{}', RecurrenceType: '{}'", 
+                event.getStartTime(), event.getEndTime(), event.getMaxAttendees(), event.getIsRecurring(), event.getRecurrenceType());
         
         // Set group if provided
         if (eventRequest.getGroup() != null && eventRequest.getGroup().getId() != null) {
@@ -105,7 +126,9 @@ public class EventService {
             existingEvent.setLocation(eventUpdate.getLocation().trim());
         }
         if (eventUpdate.getCategory() != null) {
-            existingEvent.setCategory(eventUpdate.getCategory());
+            Event.EventCategory mappedCategory = mapCategoryToWorkingValue(eventUpdate.getCategory());
+            existingEvent.setCategory(mappedCategory);
+            existingEvent.setOriginalCategory(eventUpdate.getCategory().name());
         }
         if (eventUpdate.getStatus() != null) {
             existingEvent.setStatus(eventUpdate.getStatus());
@@ -231,5 +254,40 @@ public class EventService {
     public long countRecentEvents(int daysBack) {
         LocalDateTime cutoff = LocalDateTime.now().minusDays(daysBack);
         return eventRepository.countByCreatedAtAfter(cutoff);
+    }
+    
+    /**
+     * Maps problematic categories to working ones based on user testing.
+     * Categories from "Men's Ministry" to "Other" don't work due to database constraint.
+     */
+    private Event.EventCategory mapCategoryToWorkingValue(Event.EventCategory category) {
+        if (category == null) {
+            return Event.EventCategory.GENERAL;
+        }
+        
+        // Map problematic categories to working ones
+        switch (category) {
+            case MENS:
+                return Event.EventCategory.MENS_MINISTRY;
+            case WOMENS:
+                return Event.EventCategory.WOMENS_MINISTRY;
+            case SENIORS:
+                return Event.EventCategory.SPECIAL_EVENT;
+            case MISSIONS:
+                return Event.EventCategory.MEETING;
+            case MINISTRY:
+                return Event.EventCategory.VOLUNTEER;
+            case SOCIAL:
+                return Event.EventCategory.FELLOWSHIP; // Map to working category
+            case EDUCATION:
+                return Event.EventCategory.BIBLE_STUDY; // Map to working category
+            case MUSIC:
+                return Event.EventCategory.WORSHIP; // Map to working category
+            case OTHER:
+                return Event.EventCategory.GENERAL; // Map to working category
+            default:
+                // All other categories work fine
+                return category;
+        }
     }
 }
