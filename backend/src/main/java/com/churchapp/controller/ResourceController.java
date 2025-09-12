@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
@@ -358,6 +359,162 @@ public class ResourceController {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to fetch popular resources");
             return ResponseEntity.internalServerError().body(error);
+        }
+    }
+    
+    // File upload endpoints
+    @PostMapping("/upload")
+    public ResponseEntity<?> createResourceWithFile(
+        @AuthenticationPrincipal User user,
+        @RequestParam("file") MultipartFile file,
+        @RequestParam("title") String title,
+        @RequestParam(value = "description", required = false) String description,
+        @RequestParam(value = "category", required = false) String categoryStr
+    ) {
+        try {
+            log.info("Creating resource with file - Title: '{}', File: '{}'", title, file.getOriginalFilename());
+            
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            
+            // Parse category
+            Resource.ResourceCategory category = Resource.ResourceCategory.GENERAL;
+            if (categoryStr != null && !categoryStr.trim().isEmpty()) {
+                try {
+                    category = Resource.ResourceCategory.valueOf(categoryStr.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    // Auto-suggest category based on file type
+                    category = resourceService.suggestCategoryFromFileType(file.getContentType());
+                    log.info("Invalid category '{}', auto-suggested '{}' based on file type", categoryStr, category);
+                }
+            } else {
+                // Auto-suggest category based on file type
+                category = resourceService.suggestCategoryFromFileType(file.getContentType());
+                log.info("No category provided, auto-suggested '{}' based on file type", category);
+            }
+            
+            Resource createdResource = resourceService.createResourceWithFile(
+                currentProfile.getUserId(), 
+                title, 
+                description, 
+                category, 
+                file
+            );
+            
+            ResourceResponse response = ResourceResponse.fromResource(createdResource);
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            log.error("Error creating resource with file: {}", e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @PutMapping("/{resourceId}/file")
+    public ResponseEntity<?> updateResourceFile(
+        @PathVariable UUID resourceId,
+        @AuthenticationPrincipal User user,
+        @RequestParam("file") MultipartFile file
+    ) {
+        try {
+            log.info("Updating resource file for resource: {}", resourceId);
+            
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            
+            Resource updatedResource = resourceService.updateResourceFile(resourceId, currentProfile.getUserId(), file);
+            
+            ResourceResponse response = ResourceResponse.fromResource(updatedResource);
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            log.error("Error updating resource file: {}", e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @DeleteMapping("/{resourceId}/file")
+    public ResponseEntity<?> removeResourceFile(
+        @PathVariable UUID resourceId,
+        @AuthenticationPrincipal User user
+    ) {
+        try {
+            log.info("Removing file from resource: {}", resourceId);
+            
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            
+            // Get the resource
+            Resource resource = resourceService.getResource(resourceId);
+            
+            // Check authorization (similar to update)
+            if (!resource.getUploadedBy().getId().equals(currentProfile.getUserId()) && 
+                !currentProfile.getRole().equals("admin") && 
+                !currentProfile.getRole().equals("moderator")) {
+                throw new RuntimeException("Not authorized to remove file from this resource");
+            }
+            
+            // If no file exists, return error
+            if (resource.getFileUrl() == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Resource has no file to remove");
+                return ResponseEntity.badRequest().body(error);
+            }
+            
+            // Create update request to remove file info
+            ResourceRequest updateRequest = new ResourceRequest();
+            updateRequest.setTitle(resource.getTitle());
+            updateRequest.setDescription(resource.getDescription());
+            updateRequest.setCategory(resource.getCategory());
+            // Leave file fields null to clear them
+            
+            Resource resourceUpdate = convertToEntity(updateRequest);
+            Resource updatedResource = resourceService.updateResource(resourceId, currentProfile.getUserId(), resourceUpdate);
+            
+            ResourceResponse response = ResourceResponse.fromResource(updatedResource);
+            return ResponseEntity.ok(response);
+            
+        } catch (RuntimeException e) {
+            log.error("Error removing resource file: {}", e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    // File type validation endpoint
+    @PostMapping("/validate-file")
+    public ResponseEntity<?> validateFile(
+        @RequestParam("file") MultipartFile file
+    ) {
+        try {
+            // Use the FileUploadService validation by attempting a dry run
+            // This is a simple check without actually uploading
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("valid", true);
+            response.put("filename", file.getOriginalFilename());
+            response.put("size", file.getSize());
+            response.put("type", file.getContentType());
+            response.put("suggestedCategory", resourceService.suggestCategoryFromFileType(file.getContentType()));
+            
+            // Basic validation checks
+            if (file.isEmpty()) {
+                response.put("valid", false);
+                response.put("error", "File is empty");
+            } else if (file.getSize() > 10 * 1024 * 1024) { // 10MB limit
+                response.put("valid", false);
+                response.put("error", "File size exceeds maximum limit of 10MB");
+            }
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("Error validating file: {}", e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "File validation failed: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
         }
     }
     
