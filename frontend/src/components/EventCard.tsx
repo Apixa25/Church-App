@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Event, getEventCategoryDisplay, getEventStatusDisplay, getRsvpResponseDisplay } from '../types/Event';
 import { eventAPI } from '../services/eventApi';
 import EventRsvpManager from './EventRsvpManager';
-import { formatEventDate, formatEventTime, formatEventDuration, isEventPast } from '../utils/dateUtils';
+import { formatEventDate, formatEventTime, formatEventDuration, isEventPast, formatAnnouncementDate } from '../utils/dateUtils';
 import './EventCard.css';
 
 interface EventCardProps {
@@ -177,7 +177,7 @@ const EventCard: React.FC<EventCardProps> = ({
             <span className="creator-name">By {event.creatorName}</span>
           </div>
           <span className="event-date-created">
-            {new Date(event.createdAt).toLocaleDateString()}
+            {formatAnnouncementDate(event.createdAt)}
           </span>
         </div>
       )}

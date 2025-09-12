@@ -259,6 +259,10 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
             onEventSelect={(event) => navigate(`/events/${event.id}`)}
             onEventUpdate={handleEventUpdated}
             onEventDelete={handleEventDeleted}
+            onCreateEvent={(date) => {
+              setSelectedDate(date);
+              setShowCreateForm(true);
+            }}
           />
         ) : (
           <EventList

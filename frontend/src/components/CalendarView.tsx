@@ -13,6 +13,7 @@ interface CalendarViewProps {
   onEventSelect: (event: Event) => void;
   onEventUpdate: (event: Event) => void;
   onEventDelete: (eventId: string) => void;
+  onCreateEvent?: (date: Date) => void;
 }
 
 const CalendarView: React.FC<CalendarViewProps> = ({
@@ -21,7 +22,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   onDateSelect,
   onEventSelect,
   onEventUpdate,
-  onEventDelete
+  onEventDelete,
+  onCreateEvent
 }) => {
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month');
 
@@ -150,7 +152,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   <p>No events scheduled for this date</p>
                   <button 
                     className="btn btn-primary btn-sm"
-                    onClick={() => {/* Open create event form with selected date */}}
+                    onClick={() => onCreateEvent && onCreateEvent(selectedDate)}
                   >
                     Create Event
                   </button>
