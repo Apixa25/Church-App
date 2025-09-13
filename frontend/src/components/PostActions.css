@@ -1,0 +1,383 @@
+/* PostActions Component Styles */
+
+.post-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid #e9ecef;
+  border-bottom: 1px solid #e9ecef;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+
+.post-actions.compact {
+  gap: 4px;
+  padding: 8px 0;
+  margin: 8px 0;
+}
+
+/* Action Group */
+.action-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.action-group.quick-actions {
+  margin-left: auto;
+}
+
+/* Action Button */
+.action-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 1px solid #dee2e6;
+  background: white;
+  border-radius: 20px;
+  font-size: 14px;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.action-button:hover:not(:disabled) {
+  border-color: #2196f3;
+  background: #f8f9ff;
+  color: #2196f3;
+  transform: translateY(-1px);
+}
+
+.action-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.action-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.action-button.active {
+  border-color: #2196f3;
+  background: #f8f9ff;
+  color: #2196f3;
+}
+
+/* Comment Button Special Styling */
+.comment-button:hover:not(:disabled) {
+  border-color: #4caf50;
+  background: #f1f8e9;
+  color: #4caf50;
+}
+
+.comment-button.active {
+  border-color: #4caf50;
+  background: #f1f8e9;
+  color: #4caf50;
+}
+
+/* Share Button Special Styling */
+.share-button:hover:not(:disabled) {
+  border-color: #ff9800;
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.share-button.active {
+  border-color: #ff9800;
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+/* Bookmark Button Special Styling */
+.bookmark-button:hover:not(:disabled) {
+  border-color: #9c27b0;
+  background: #f3e5f5;
+  color: #9c27b0;
+}
+
+.bookmark-button.active {
+  border-color: #9c27b0;
+  background: #f3e5f5;
+  color: #9c27b0;
+}
+
+/* More Button Special Styling */
+.more-button:hover:not(:disabled) {
+  border-color: #607d8b;
+  background: #eceff1;
+  color: #607d8b;
+}
+
+.action-icon {
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-count {
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 16px;
+  text-align: center;
+}
+
+/* Action Labels */
+.action-label {
+  font-size: 12px;
+  color: #6c757d;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Comment Form Container */
+.comment-form-container {
+  width: 100%;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e9ecef;
+}
+
+/* Action Stats */
+.action-stats {
+  display: flex;
+  gap: 16px;
+  margin-left: auto;
+  padding-left: 16px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.stat-icon {
+  font-size: 14px;
+}
+
+.stat-count {
+  font-weight: 600;
+  color: #495057;
+}
+
+.stat-label {
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .post-actions {
+    gap: 6px;
+  }
+
+  .action-button {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .action-icon {
+    font-size: 14px;
+  }
+
+  .action-count {
+    font-size: 12px;
+    min-width: 14px;
+  }
+
+  .action-stats {
+    gap: 12px;
+    padding-left: 12px;
+  }
+
+  .stat-item {
+    gap: 3px;
+    font-size: 11px;
+  }
+
+  .stat-icon {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .post-actions {
+    gap: 4px;
+    justify-content: space-between;
+  }
+
+  .post-actions.compact {
+    gap: 2px;
+  }
+
+  .action-group {
+    gap: 2px;
+  }
+
+  .action-button {
+    padding: 6px 8px;
+    font-size: 12px;
+    min-width: 44px; /* For touch accessibility */
+  }
+
+  .action-icon {
+    font-size: 14px;
+  }
+
+  .action-count {
+    display: none; /* Hide counts on very small screens */
+  }
+
+  .action-stats {
+    display: none; /* Hide stats on very small screens */
+  }
+
+  .quick-actions {
+    margin-left: 0;
+  }
+}
+
+/* Focus and Accessibility */
+.action-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.3);
+}
+
+.action-button:focus:not(:focus-visible) {
+  box-shadow: none;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .action-button {
+    border-width: 2px;
+  }
+
+  .action-button.active {
+    border-width: 3px;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .action-button {
+    transition: none !important;
+  }
+
+  .action-button:hover:not(:disabled) {
+    transform: none !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .post-actions {
+    border: none;
+    padding: 8px 0;
+    margin: 8px 0;
+  }
+
+  .action-button {
+    border: 1px solid #000 !important;
+    background: white !important;
+    color: #000 !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  .action-count,
+  .action-stats {
+    display: none !important;
+  }
+
+  .comment-form-container {
+    display: none !important;
+  }
+}
+
+/* Church-appropriate color scheme */
+.comment-button:hover:not(:disabled),
+.comment-button.active {
+  border-color: #4caf50;
+  background: #f1f8e9;
+  color: #4caf50;
+}
+
+.share-button:hover:not(:disabled),
+.share-button.active {
+  border-color: #ff9800;
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.bookmark-button:hover:not(:disabled),
+.bookmark-button.active {
+  border-color: #9c27b0;
+  background: #f3e5f5;
+  color: #9c27b0;
+}
+
+.more-button:hover:not(:disabled) {
+  border-color: #607d8b;
+  background: #eceff1;
+  color: #607d8b;
+}
+
+/* Loading states */
+.post-actions.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.post-actions.loading .action-button {
+  position: relative;
+}
+
+.post-actions.loading .action-button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #2196f3;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Special states for different post types */
+.post-actions[data-post-type="PRAYER"] .comment-button:hover:not(:disabled),
+.post-actions[data-post-type="PRAYER"] .comment-button.active {
+  border-color: #4caf50;
+  background: #e8f5e8;
+  color: #2e7d32;
+}
+
+.post-actions[data-post-type="TESTIMONY"] .share-button:hover:not(:disabled),
+.post-actions[data-post-type="TESTIMONY"] .share-button.active {
+  border-color: #ff9800;
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.post-actions[data-post-type="ANNOUNCEMENT"] .action-button:hover:not(:disabled) {
+  border-color: #f44336;
+  background: #ffebee;
+  color: #c62828;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

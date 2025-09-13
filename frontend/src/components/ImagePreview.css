@@ -1,0 +1,432 @@
+/* ImagePreview Component Styles */
+
+.image-preview {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+}
+
+.image-preview:hover {
+  border-color: #2196f3;
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.15);
+}
+
+.image-preview.loading {
+  opacity: 0.7;
+}
+
+.image-preview.loaded {
+  opacity: 1;
+}
+
+.image-preview.error {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+/* Size Variants */
+.image-preview-small {
+  width: 80px;
+  height: 80px;
+}
+
+.image-preview-medium {
+  width: 120px;
+  height: 120px;
+}
+
+.image-preview-large {
+  width: 200px;
+  height: 200px;
+}
+
+/* Image Container */
+.image-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: opacity 0.3s ease;
+}
+
+.preview-image.visible {
+  opacity: 1;
+}
+
+.preview-image.hidden {
+  opacity: 0;
+}
+
+/* Image Overlay */
+.image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.image-preview:hover .image-overlay {
+  opacity: 1;
+}
+
+.overlay-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-button,
+.remove-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.edit-button {
+  background: rgba(33, 150, 243, 0.9);
+  color: white;
+}
+
+.edit-button:hover {
+  background: rgba(33, 150, 243, 1);
+  transform: scale(1.1);
+}
+
+.remove-button {
+  background: rgba(220, 53, 69, 0.9);
+  color: white;
+}
+
+.remove-button:hover {
+  background: rgba(220, 53, 69, 1);
+  transform: scale(1.1);
+}
+
+/* Image Info */
+.image-info {
+  padding: 8px 12px;
+  background: white;
+  border-top: 1px solid #e9ecef;
+}
+
+.file-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #2d3748;
+  margin-bottom: 4px;
+  word-break: break-word;
+  line-height: 1.3;
+}
+
+.file-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #6c757d;
+}
+
+.file-size {
+  font-weight: 500;
+}
+
+.image-type {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+/* Loading States */
+.image-loading,
+.image-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.9);
+  z-index: 1;
+}
+
+.image-loading span {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #e9ecef;
+  border-top: 2px solid #2196f3;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Error State */
+.error-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+}
+
+.error-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+  opacity: 0.6;
+}
+
+.error-text {
+  flex: 1;
+}
+
+.error-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #dc3545;
+  margin-bottom: 4px;
+}
+
+.error-details {
+  font-size: 12px;
+  color: #6c757d;
+  word-break: break-word;
+}
+
+.error-content .remove-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
+  background: rgba(220, 53, 69, 0.9);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .image-preview-medium {
+    width: 100px;
+    height: 100px;
+  }
+
+  .image-preview-large {
+    width: 150px;
+    height: 150px;
+  }
+
+  .image-info {
+    padding: 6px 8px;
+  }
+
+  .file-name {
+    font-size: 11px;
+  }
+
+  .file-details {
+    font-size: 10px;
+  }
+
+  .overlay-controls {
+    gap: 6px;
+  }
+
+  .edit-button,
+  .remove-button {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .image-preview-small {
+    width: 70px;
+    height: 70px;
+  }
+
+  .image-preview-medium {
+    width: 80px;
+    height: 80px;
+  }
+
+  .image-preview-large {
+    width: 120px;
+    height: 120px;
+  }
+
+  .error-icon {
+    font-size: 24px;
+  }
+
+  .error-title {
+    font-size: 12px;
+  }
+
+  .error-details {
+    font-size: 11px;
+  }
+
+  .image-info {
+    padding: 4px 6px;
+  }
+
+  .file-name {
+    font-size: 10px;
+    margin-bottom: 2px;
+  }
+
+  .file-details {
+    font-size: 9px;
+  }
+
+  .edit-button,
+  .remove-button {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+}
+
+/* Focus and Accessibility */
+.edit-button:focus,
+.remove-button:focus,
+.error-content .remove-button:focus {
+  outline: 2px solid #2196f3;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.2);
+}
+
+.edit-button:focus:not(:focus-visible),
+.remove-button:focus:not(:focus-visible),
+.error-content .remove-button:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .image-preview {
+    border-width: 2px;
+  }
+
+  .image-overlay {
+    background: rgba(0, 0, 0, 0.8);
+  }
+
+  .edit-button {
+    background: #ffffff;
+    color: #000000;
+    border: 2px solid #000000;
+  }
+
+  .remove-button {
+    background: #ffffff;
+    color: #ff0000;
+    border: 2px solid #ff0000;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .image-preview,
+  .image-overlay,
+  .edit-button,
+  .remove-button,
+  .preview-image,
+  .loading-spinner {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .edit-button:hover,
+  .remove-button:hover {
+    transform: none !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .image-preview {
+    border: 1px solid #000 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  .image-overlay,
+  .overlay-controls {
+    display: none !important;
+  }
+
+  .image-info {
+    background: #f8f9fa !important;
+    -webkit-print-color-adjust: exact;
+  }
+}
+
+/* Church theme colors */
+.image-preview:hover {
+  border-color: #4caf50;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
+}
+
+.edit-button {
+  background: rgba(76, 175, 80, 0.9);
+}
+
+.edit-button:hover {
+  background: rgba(76, 175, 80, 1);
+}
+
+.remove-button {
+  background: rgba(220, 53, 69, 0.9);
+}
+
+.remove-button:hover {
+  background: rgba(220, 53, 69, 1);
+}
+
+.image-type {
+  background: #e8f5e8;
+  color: #2e7d32;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
