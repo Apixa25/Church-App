@@ -56,18 +56,14 @@ public class FeedService {
     }
 
     /**
-     * Get following feed - posts from users that the current user follows
+     * Get community feed - all posts from all users (church community model)
+     * No following system needed for small church communities
      */
     private Page<Post> getFollowingFeed(UUID userId, Pageable pageable) {
-        List<UUID> followingIds = userFollowRepository.findFollowingIdsByFollowerId(userId);
-
-        if (followingIds.isEmpty()) {
-            log.debug("User {} follows no one, returning chronological feed", userId);
-            return getChronologicalFeed(pageable);
-        }
-
-        log.debug("User {} follows {} users", userId, followingIds.size());
-        return postRepository.findPostsByFollowingUsers(followingIds, pageable);
+        log.debug("User {} requesting community feed - showing all posts", userId);
+        // In church community model, everyone sees everyone's posts
+        // This is simpler and more appropriate for church context
+        return getChronologicalFeed(pageable);
     }
 
     /**
