@@ -3,6 +3,14 @@
 ## 🎯 **Overview**
 This guide provides a comprehensive, step-by-step approach to implementing X.com-style social feed functionality for the Church App. The social feed will expand the existing "Recent Activity" system into a full-featured community posting platform with text, images, videos, likes, comments, and shares.
 
+## 🏛️ **Church Community Design Philosophy**
+**Important Design Decision**: Unlike X.com/Twitter, this social feed uses a **church community model** where:
+- ✅ **Everyone sees everyone's posts** (no following system required)
+- ✅ **Community-focused**: Promotes unity and connection
+- ✅ **Simplified**: Easier for church members of all ages
+- ✅ **Future-ready**: Following system can be added if community grows significantly
+- ✅ **Appropriate**: Matches church culture where transparency and community are valued
+
 ## 📋 **Prerequisites**
 - ✅ Current Church App codebase (backend + frontend)
 - ✅ Existing Recent Activity system working
@@ -30,7 +38,7 @@ This guide provides a comprehensive, step-by-step approach to implementing X.com
 - `post_comments` (comment/reply system)
 - `post_shares` (repost/share functionality)
 - `post_bookmarks` (save posts for later)
-- `user_follows` (following system)
+- `user_follows` (following system - optional for future scalability)
 - `hashtags` (hashtag tracking)
 - `post_hashtags` (many-to-many relationship)
 
@@ -68,7 +76,7 @@ This guide provides a comprehensive, step-by-step approach to implementing X.com
 
 **Repository Methods Needed**:
 - [ ] Find posts by user (with pagination)
-- [ ] Find posts by feed type (chronological, following, trending)
+- [ ] Find posts by feed type (chronological/community, trending)
 - [ ] Find comments for a post (with nested replies)
 - [ ] Count likes, comments, shares for posts
 - [ ] Search posts by content and hashtags
@@ -136,7 +144,7 @@ This guide provides a comprehensive, step-by-step approach to implementing X.com
 **Types to Define**:
 - [ ] Post interface with all properties
 - [ ] CreatePostRequest, UpdatePostRequest
-- [ ] FeedType enum (chronological, following, trending)
+- [ ] FeedType enum (chronological/community, trending)
 - [ ] Interaction types (like, comment, share, bookmark)
 
 ### **Step 2.2: API Service Layer**

@@ -157,19 +157,28 @@ public class PostController {
 
     @GetMapping("/feed")
     public ResponseEntity<Page<PostResponse>> getFeed(
-            @RequestParam(defaultValue = "chronological") String feedType,
+            @RequestParam(defaultValue = "community") String feedType,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @AuthenticationPrincipal User user) {
+            @RequestParam(defaultValue = "20") int size) {
 
         try {
-            FeedService.FeedType type = FeedService.FeedType.valueOf(feedType.toUpperCase());
+            // For church community: default to community feed (all posts)
+            FeedService.FeedType type;
+            if ("trending".equalsIgnoreCase(feedType)) {
+                type = FeedService.FeedType.TRENDING;
+            } else if ("following".equalsIgnoreCase(feedType)) {
+                // In church model, following = community (everyone sees everything)
+                type = FeedService.FeedType.CHRONOLOGICAL;
+            } else {
+                // Default to chronological (community feed)
+                type = FeedService.FeedType.CHRONOLOGICAL;
+            }
+
             Pageable pageable = PageRequest.of(page, size);
 
-            // Get user ID from email (simplified - in real app you'd have user service)
-            UUID userId = UUID.randomUUID(); // Placeholder - implement proper user lookup
-
-            Page<Post> posts = feedService.getFeed(userId, type, pageable);
+            // In church community model, all users see all posts
+            // No need for user-specific filtering
+            Page<Post> posts = feedService.getFeed(null, type, pageable);
             Page<PostResponse> responses = posts.map(PostResponse::fromEntity);
 
             return ResponseEntity.ok(responses);
