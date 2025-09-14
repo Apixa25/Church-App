@@ -163,4 +163,17 @@ public class Post {
     public boolean isQuotePost() {
         return quotedPost != null;
     }
+
+    // Getter methods for boolean fields (needed for DTOs)
+    public Boolean getIsReply() {
+        return isReply;
+    }
+
+    public Boolean getIsQuote() {
+        return isQuote;
+    }
+
+    public Boolean getIsAnonymous() {
+        return isAnonymous;
+    }
 }

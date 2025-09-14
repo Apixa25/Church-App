@@ -1,5 +1,6 @@
 package com.churchapp.repository;
 
+import com.churchapp.entity.Post;
 import com.churchapp.entity.PostComment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

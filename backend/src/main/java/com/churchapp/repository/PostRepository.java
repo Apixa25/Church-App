@@ -52,7 +52,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     Page<Post> findAllByUserIdIncludingReplies(@Param("userId") UUID userId, Pageable pageable);
 
     // Thread queries
-    @Query("SELECT p FROM Post p WHERE p.id = :postId OR p.parentPostId = :postId ORDER BY p.createdAt ASC")
+    @Query("SELECT p FROM Post p WHERE p.id = :postId OR p.parentPost.id = :postId ORDER BY p.createdAt ASC")
     List<Post> findThreadByPostId(@Param("postId") UUID postId);
 
     // Statistics queries

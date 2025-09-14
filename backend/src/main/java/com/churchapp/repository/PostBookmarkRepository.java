@@ -63,6 +63,6 @@ public interface PostBookmarkRepository extends JpaRepository<PostBookmark, Post
     void deleteByPostIds(@Param("postIds") List<UUID> postIds);
 
     // Find bookmarked posts for user (with post details)
-    @Query("SELECT pb FROM PostBookmark pb JOIN FETCH pb.id.post WHERE pb.id.userId = :userId ORDER BY pb.createdAt DESC")
+    @Query("SELECT pb FROM PostBookmark pb JOIN FETCH pb.post WHERE pb.id.userId = :userId ORDER BY pb.createdAt DESC")
     Page<PostBookmark> findBookmarksWithPostsByUserId(@Param("userId") UUID userId, Pageable pageable);
 }

@@ -46,7 +46,7 @@ public class CommentResponse {
         response.setMediaTypes(comment.getMediaTypes());
         response.setCreatedAt(comment.getCreatedAt());
         response.setUpdatedAt(comment.getUpdatedAt());
-        response.setAnonymous(comment.isAnonymous());
+        response.setAnonymous(comment.getIsAnonymous());
         response.setLikesCount(comment.getLikesCount());
 
         return response;
