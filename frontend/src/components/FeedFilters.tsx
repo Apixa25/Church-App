@@ -17,14 +17,14 @@ const FeedFilters: React.FC<FeedFiltersProps> = ({
     {
       type: FeedType.CHRONOLOGICAL,
       label: 'Community',
-      description: 'All posts from your church community',
+      description: 'All Posts',
       icon: '🏛️',
       color: '#2196f3'
     },
     {
       type: FeedType.TRENDING,
       label: 'Trending',
-      description: 'Popular posts from your community',
+      description: 'Popular Posts',
       icon: '🔥',
       color: '#ff9800'
     }
