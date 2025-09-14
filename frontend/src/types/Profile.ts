@@ -3,6 +3,13 @@ export interface UserProfile {
   email: string;
   name: string;
   bio?: string;
+  location?: string;
+  website?: string;
+  interests?: string;
+  phoneNumber?: string;
+  address?: string;
+  birthday?: string;
+  spiritualGift?: string;
   role: 'MEMBER' | 'MODERATOR' | 'ADMIN';
   profilePicUrl?: string;
   createdAt: string;
@@ -13,6 +20,13 @@ export interface UserProfile {
 export interface ProfileUpdateRequest {
   name?: string;
   bio?: string;
+  location?: string;
+  website?: string;
+  interests?: string;
+  phoneNumber?: string;
+  address?: string;
+  birthday?: string;
+  spiritualGift?: string;
   role?: 'MEMBER' | 'MODERATOR' | 'ADMIN';
   profilePicUrl?: string;
 }

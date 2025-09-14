@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -20,6 +21,10 @@ public class UserProfileResponse {
     private String location;
     private String website;
     private String interests; // JSON string of interests array
+    private String phoneNumber;
+    private String address;
+    private LocalDate birthday;
+    private String spiritualGift;
     private User.UserRole role;
     private String profilePicUrl;
     private LocalDateTime createdAt;
@@ -35,6 +40,10 @@ public class UserProfileResponse {
             user.getLocation(),
             user.getWebsite(),
             user.getInterests(),
+            user.getPhoneNumber(),
+            user.getAddress(),
+            user.getBirthday(),
+            user.getSpiritualGift(),
             user.getRole(),
             user.getProfilePicUrl(),
             user.getCreatedAt(),

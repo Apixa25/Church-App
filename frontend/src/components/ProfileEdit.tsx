@@ -12,6 +12,10 @@ interface ProfileFormData {
   location: string;
   website: string;
   interests: string[];
+  phoneNumber: string;
+  address: string;
+  birthday: string;
+  spiritualGift: string;
 }
 
 interface ProfileEditProps {
@@ -33,7 +37,11 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
     bio: '',
     location: '',
     website: '',
-    interests: []
+    interests: [],
+    phoneNumber: '',
+    address: '',
+    birthday: '',
+    spiritualGift: ''
   });
 
   const [isLoading] = useState(false);
@@ -53,11 +61,11 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
       setFormData({
         name: profileToUse.name || '',
         bio: profileToUse.bio || '',
-        location: (profileToUse as User).location || '',
-        website: (profileToUse as User).website || '',
+        location: (profileToUse as User).location || profileToUse.location || '',
+        website: (profileToUse as User).website || profileToUse.website || '',
         interests: (() => {
           try {
-            const interestsData = (profileToUse as User).interests;
+            const interestsData = (profileToUse as User).interests || profileToUse.interests;
             if (typeof interestsData === 'string') {
               return JSON.parse(interestsData);
             }
@@ -65,7 +73,11 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
           } catch (e) {
             return [];
           }
-        })()
+        })(),
+        phoneNumber: profileToUse.phoneNumber || '',
+        address: profileToUse.address || '',
+        birthday: profileToUse.birthday || '',
+        spiritualGift: profileToUse.spiritualGift || ''
       });
 
       if (profileToUse.profilePicUrl) {
@@ -197,6 +209,13 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
           email: externalProfile.email,
           name: result.name,
           bio: result.bio,
+          location: result.location,
+          website: result.website,
+          interests: result.interests,
+          phoneNumber: result.phoneNumber,
+          address: result.address,
+          birthday: result.birthday,
+          spiritualGift: result.spiritualGift,
           role: externalProfile.role,
           profilePicUrl: result.profilePicUrl,
           createdAt: externalProfile.createdAt,
@@ -365,6 +384,68 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
                 className="form-input"
               />
             </div>
+          </div>
+        </div>
+
+        {/* Contact & Personal Information */}
+        <div className="edit-section">
+          <h2>Contact & Personal Information</h2>
+          <p className="section-desc">
+            Optional information to help others connect with you
+          </p>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="phoneNumber">Phone Number</label>
+              <input
+                id="phoneNumber"
+                type="tel"
+                value={formData.phoneNumber}
+                onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                placeholder="(555) 123-4567"
+                maxLength={20}
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="birthday">Birthday</label>
+              <input
+                id="birthday"
+                type="date"
+                value={formData.birthday}
+                onChange={(e) => handleInputChange('birthday', e.target.value)}
+                className="form-input"
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="address">Address</label>
+            <textarea
+              id="address"
+              value={formData.address}
+              onChange={(e) => handleInputChange('address', e.target.value)}
+              placeholder="Street address, city, state, zip code..."
+              maxLength={500}
+              rows={3}
+              className="form-textarea"
+            />
+            <small className="char-count">{formData.address.length}/500</small>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="spiritualGift">Spiritual Gift</label>
+            <input
+              id="spiritualGift"
+              type="text"
+              value={formData.spiritualGift}
+              onChange={(e) => handleInputChange('spiritualGift', e.target.value)}
+              placeholder="e.g., Teaching, Hospitality, Administration, Encouragement..."
+              maxLength={255}
+              className="form-input"
+            />
+            <small className="field-help">Share your spiritual gifts to help others understand how you serve</small>
           </div>
         </div>
 

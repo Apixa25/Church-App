@@ -12,6 +12,10 @@ export interface User {
   location?: string;
   website?: string;
   interests?: string[];
+  phoneNumber?: string;
+  address?: string;
+  birthday?: string;
+  spiritualGift?: string;
   createdAt?: string;
 }
 
