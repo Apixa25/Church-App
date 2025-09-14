@@ -184,6 +184,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
                   src={profileUser.profilePicUrl}
                   alt={profileUser.name}
                   className="avatar-image"
+                  key={profileUser.profilePicUrl} // Force re-render when URL changes
                 />
               ) : (
                 <div className="avatar-placeholder">

@@ -49,7 +49,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const updateUser = (userData: Partial<User>) => {
-    setUser(prevUser => prevUser ? { ...prevUser, ...userData } : null);
+    setUser(prevUser => {
+      if (prevUser) {
+        const updatedUser = { ...prevUser, ...userData };
+        // Update localStorage with the new user data
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        return updatedUser;
+      }
+      return null;
+    });
   };
 
   const isAuthenticated = Boolean(user && token);

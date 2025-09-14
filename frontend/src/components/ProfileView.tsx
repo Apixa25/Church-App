@@ -140,6 +140,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
                 src={profile.profilePicUrl} 
                 alt={profile.name}
                 className="profile-picture-display"
+                key={profile.profilePicUrl} // Force re-render when URL changes
               />
             ) : (
               <div className="profile-picture-placeholder-large">
