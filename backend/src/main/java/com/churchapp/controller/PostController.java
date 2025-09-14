@@ -4,10 +4,12 @@ import com.churchapp.dto.*;
 import com.churchapp.entity.Post;
 import com.churchapp.entity.PostComment;
 import com.churchapp.service.FeedService;
+import com.churchapp.service.FileUploadService;
 import com.churchapp.service.NotificationService;
 import com.churchapp.service.PostInteractionService;
 import com.churchapp.service.PostService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -18,13 +20,15 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/posts")
+@RequestMapping("/posts")
 @RequiredArgsConstructor
+@Slf4j
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8100", "capacitor://localhost"})
 public class PostController {
 
@@ -32,6 +36,7 @@ public class PostController {
     private final PostInteractionService postInteractionService;
     private final FeedService feedService;
     private final NotificationService notificationService;
+    private final FileUploadService fileUploadService;
 
     // ========== POST CRUD OPERATIONS ==========
 
@@ -413,11 +418,46 @@ public class PostController {
             @RequestParam("files") MultipartFile[] files,
             @AuthenticationPrincipal User user) {
 
-        // This would integrate with AWS S3 service
-        // For now, return placeholder response
-
-        List<String> mediaUrls = List.of("https://example.com/media1.jpg");
-        return ResponseEntity.ok(mediaUrls);
+        try {
+            log.info("Uploading {} media files for user: {}", files.length, user.getUsername());
+            
+            // Validate input
+            if (files == null || files.length == 0) {
+                log.warn("No files provided for upload");
+                return ResponseEntity.badRequest().build();
+            }
+            
+            // Limit number of files (max 4 as per frontend)
+            if (files.length > 4) {
+                log.warn("Too many files provided: {}, max allowed: 4", files.length);
+                return ResponseEntity.badRequest().build();
+            }
+            
+            List<String> mediaUrls = new ArrayList<>();
+            
+            // Upload each file to S3
+            for (MultipartFile file : files) {
+                if (!file.isEmpty()) {
+                    try {
+                        // Upload to S3 in the "posts" folder
+                        String mediaUrl = fileUploadService.uploadFile(file, "posts");
+                        mediaUrls.add(mediaUrl);
+                        log.info("Successfully uploaded file: {} -> {}", file.getOriginalFilename(), mediaUrl);
+                    } catch (Exception e) {
+                        log.error("Failed to upload file: {}", file.getOriginalFilename(), e);
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .build();
+                    }
+                }
+            }
+            
+            log.info("Successfully uploaded {} media files", mediaUrls.size());
+            return ResponseEntity.ok(mediaUrls);
+            
+        } catch (Exception e) {
+            log.error("Error uploading media files for user: {}", user.getUsername(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     // ========== STATISTICS ==========
