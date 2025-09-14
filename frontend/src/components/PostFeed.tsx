@@ -11,6 +11,7 @@ interface PostFeedProps {
   feedType: FeedType;
   maxPosts?: number;
   showFilters?: boolean;
+  onFeedTypeChange?: (feedType: FeedType) => void;
   onPostUpdate?: (postId: string, updatedPost: Post) => void;
 }
 
@@ -18,6 +19,7 @@ const PostFeed: React.FC<PostFeedProps> = ({
   feedType,
   maxPosts,
   showFilters = true,
+  onFeedTypeChange,
   onPostUpdate
 }) => {
   // State
@@ -189,7 +191,10 @@ const PostFeed: React.FC<PostFeedProps> = ({
 
 
   const handleFeedTypeChange = (newFeedType: FeedType) => {
-    // This would be handled by parent component
+    // Call parent component's handler to update feed type
+    if (onFeedTypeChange) {
+      onFeedTypeChange(newFeedType);
+    }
   };
 
   const handlePostUpdate = (updatedPost: Post) => {
