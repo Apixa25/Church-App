@@ -112,6 +112,14 @@ const Dashboard: React.FC = () => {
                     src={user.profilePicUrl} 
                     alt={user.name}
                     className="profile-pic"
+                    key={user.profilePicUrl} // Force re-render when URL changes
+                    onError={(e) => {
+                      // Fallback to placeholder if image fails to load
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const placeholder = target.nextElementSibling as HTMLElement;
+                      if (placeholder) placeholder.style.display = 'flex';
+                    }}
                   />
                 ) : (
                   <div className="profile-pic-placeholder">
