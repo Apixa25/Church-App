@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Post, PostType, Comment } from '../types/Post';
 import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost } from '../services/postApi';
 import CommentThread from './CommentThread';
+import { formatRelativeDate } from '../utils/dateUtils';
 import './PostCard.css';
 
 interface PostCardProps {
@@ -152,16 +153,9 @@ const PostCard: React.FC<PostCardProps> = ({
     }
   };
 
+  // Use the centralized date formatting utility
   const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
-
-    return date.toLocaleDateString();
+    return formatRelativeDate(dateString);
   };
 
   const renderMedia = () => {
