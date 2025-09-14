@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Post, FeedType, FeedResponse } from '../types/Post';
 import { getFeed } from '../services/postApi';
+import webSocketService, { PostUpdate, PostInteractionUpdate, CommentUpdate } from '../services/websocketService';
 import PostCard from './PostCard';
 import FeedHeader from './FeedHeader';
 import FeedFilters from './FeedFilters';
@@ -34,6 +35,7 @@ const PostFeed: React.FC<PostFeedProps> = ({
   const observerRef = useRef<IntersectionObserver>();
   const lastPostRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
+  const wsSubscriptionsRef = useRef<(() => void)[]>([]);
 
   const POSTS_PER_PAGE = 20;
 
@@ -41,6 +43,56 @@ const PostFeed: React.FC<PostFeedProps> = ({
   useEffect(() => {
     loadPosts(true);
   }, [feedType]);
+
+  // Set up WebSocket subscriptions for real-time updates
+  useEffect(() => {
+    const setupWebSocketSubscriptions = async () => {
+      try {
+        // Clean up existing subscriptions
+        wsSubscriptionsRef.current.forEach(unsubscribe => unsubscribe());
+        wsSubscriptionsRef.current = [];
+
+        // Connect to WebSocket if not already connected
+        if (!webSocketService.isWebSocketConnected()) {
+          await webSocketService.connect();
+        }
+
+        // Subscribe to social feed updates
+        const unsubscribePosts = webSocketService.subscribeToSocialFeed((update: PostUpdate) => {
+          handleRealTimePostUpdate(update);
+        });
+
+        // Subscribe to social interactions
+        const unsubscribeInteractions = webSocketService.subscribeToSocialInteractions((update: PostInteractionUpdate) => {
+          handleRealTimeInteractionUpdate(update);
+        });
+
+        // Subscribe to comments
+        const unsubscribeComments = webSocketService.subscribeToComments((update: CommentUpdate) => {
+          handleRealTimeCommentUpdate(update);
+        });
+
+        wsSubscriptionsRef.current = [unsubscribePosts, unsubscribeInteractions, unsubscribeComments];
+
+      } catch (error) {
+        console.error('Failed to setup WebSocket subscriptions:', error);
+        // Fall back to polling if WebSocket fails
+        const pollInterval = setInterval(() => {
+          loadPosts(false);
+        }, 30000); // Poll every 30 seconds
+
+        return () => clearInterval(pollInterval);
+      }
+    };
+
+    setupWebSocketSubscriptions();
+
+    // Cleanup WebSocket subscriptions on unmount
+    return () => {
+      wsSubscriptionsRef.current.forEach(unsubscribe => unsubscribe());
+      wsSubscriptionsRef.current = [];
+    };
+  }, []);
 
   // Set up intersection observer for infinite scroll
   useEffect(() => {
@@ -134,6 +186,97 @@ const PostFeed: React.FC<PostFeedProps> = ({
       onPostUpdate(updatedPost.id, updatedPost);
     }
   };
+
+  // Real-time update handlers
+  const handleRealTimePostUpdate = useCallback((update: PostUpdate) => {
+    console.log('Real-time post update:', update);
+
+    if (update.type === 'post_created') {
+      // Add new post to the beginning of the feed
+      const newPost: Post = {
+        id: update.postId,
+        userId: update.userId,
+        userName: update.userName || 'Unknown User',
+        userProfilePicUrl: undefined,
+        content: update.content || '',
+        mediaUrls: [],
+        mediaTypes: [],
+        parentPostId: undefined,
+        quotedPostId: undefined,
+        isReply: false,
+        isQuote: false,
+        createdAt: update.timestamp,
+        updatedAt: update.timestamp,
+        postType: (update.postType as any) || 'GENERAL',
+        isAnonymous: false,
+        category: undefined,
+        location: undefined,
+        likesCount: 0,
+        commentsCount: 0,
+        sharesCount: 0,
+        bookmarksCount: 0
+      };
+
+      setPosts(prevPosts => [newPost, ...prevPosts]);
+      setTotalPosts(prev => prev + 1);
+
+    } else if (update.type === 'post_deleted') {
+      // Remove deleted post from feed
+      setPosts(prevPosts => prevPosts.filter(post => post.id !== update.postId));
+      setTotalPosts(prev => Math.max(0, prev - 1));
+    }
+  }, []);
+
+  const handleRealTimeInteractionUpdate = useCallback((update: PostInteractionUpdate) => {
+    console.log('Real-time interaction update:', update);
+
+    setPosts(prevPosts =>
+      prevPosts.map(post => {
+        if (post.id === update.postId) {
+          const updatedPost = { ...post };
+
+          switch (update.type) {
+            case 'post_like':
+              updatedPost.likesCount += 1;
+              break;
+            case 'post_unlike':
+              updatedPost.likesCount = Math.max(0, updatedPost.likesCount - 1);
+              break;
+            case 'post_comment':
+              updatedPost.commentsCount += 1;
+              break;
+            case 'post_share':
+              updatedPost.sharesCount += 1;
+              break;
+            case 'post_bookmark':
+              updatedPost.bookmarksCount += 1;
+              break;
+          }
+
+          return updatedPost;
+        }
+        return post;
+      })
+    );
+  }, []);
+
+  const handleRealTimeCommentUpdate = useCallback((update: CommentUpdate) => {
+    console.log('Real-time comment update:', update);
+
+    if (update.type === 'comment_created') {
+      setPosts(prevPosts =>
+        prevPosts.map(post => {
+          if (post.id === update.postId) {
+            return {
+              ...post,
+              commentsCount: post.commentsCount + 1
+            };
+          }
+          return post;
+        })
+      );
+    }
+  }, []);
 
   const handleRetry = () => {
     loadPosts(true);

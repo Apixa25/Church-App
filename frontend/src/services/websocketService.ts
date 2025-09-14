@@ -61,6 +61,35 @@ export interface EventRsvpUpdate {
   timestamp: string;
 }
 
+export interface PostUpdate {
+  type: 'post_created' | 'post_updated' | 'post_deleted';
+  postId: string;
+  userId: string;
+  userName?: string;
+  content?: string;
+  postType?: string;
+  timestamp: string;
+}
+
+export interface PostInteractionUpdate {
+  type: 'post_like' | 'post_unlike' | 'post_comment' | 'post_share' | 'post_bookmark';
+  postId: string;
+  userId: string;
+  userName?: string;
+  content?: string;
+  timestamp: string;
+}
+
+export interface CommentUpdate {
+  type: 'comment_created' | 'comment_updated' | 'comment_deleted';
+  commentId: string;
+  postId: string;
+  userId: string;
+  userName?: string;
+  content?: string;
+  timestamp: string;
+}
+
 class WebSocketService {
   private client: Client | null = null;
   private subscriptions: Map<string, StompSubscription> = new Map();
@@ -752,7 +781,7 @@ class WebSocketService {
     this.token = token;
     if (token) {
       localStorage.setItem('authToken', token);
-      
+
       // If we're connected, reconnect with the new token
       if (this.isConnected) {
         this.disconnect();
@@ -767,6 +796,260 @@ class WebSocketService {
       localStorage.removeItem('authToken');
       this.disconnect(); // Disconnect if no token
     }
+  }
+
+  // ========== SOCIAL FEED WEBSOCKET METHODS ==========
+
+  // Subscribe to all social feed post updates
+  subscribeToSocialFeed(callback: (update: PostUpdate) => void): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = 'social-feed-posts';
+
+    // Clean up existing subscription if it exists
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
+    const destination = '/topic/social/posts';
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing social feed post update:', error);
+      }
+    });
+
+    this.subscriptions.set(subscriptionKey, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    };
+  }
+
+  // Subscribe to social feed interactions (likes, comments, shares)
+  subscribeToSocialInteractions(callback: (update: PostInteractionUpdate) => void): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = 'social-feed-interactions';
+
+    // Clean up existing subscription if it exists
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
+    const destination = '/topic/social/interactions';
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing social feed interaction update:', error);
+      }
+    });
+
+    this.subscriptions.set(subscriptionKey, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    };
+  }
+
+  // Subscribe to comment updates for all posts
+  subscribeToComments(callback: (update: CommentUpdate) => void): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = 'social-feed-comments';
+
+    // Clean up existing subscription if it exists
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
+    const destination = '/topic/social/comments';
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing comment update:', error);
+      }
+    });
+
+    this.subscriptions.set(subscriptionKey, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    };
+  }
+
+  // Subscribe to specific post interactions
+  subscribeToPostInteractions(
+    postId: string,
+    callback: (update: PostInteractionUpdate) => void
+  ): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = `post-interactions-${postId}`;
+
+    // Clean up existing subscription if it exists
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
+    const destination = `/topic/social/posts/${postId}/interactions`;
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing post interaction update:', error);
+      }
+    });
+
+    this.subscriptions.set(subscriptionKey, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    };
+  }
+
+  // Subscribe to specific post comments
+  subscribeToPostComments(
+    postId: string,
+    callback: (update: CommentUpdate) => void
+  ): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = `post-comments-${postId}`;
+
+    // Clean up existing subscription if it exists
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
+    const destination = `/topic/social/posts/${postId}/comments`;
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing post comment update:', error);
+      }
+    });
+
+    this.subscriptions.set(subscriptionKey, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    };
+  }
+
+  // Subscribe to user's personal social feed notifications
+  subscribeToUserSocialNotifications(callback: (notification: WebSocketMessage) => void): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = 'user-social-notifications';
+
+    // Clean up existing subscription if it exists
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
+    const destination = '/user/queue/social';
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing social notification:', error);
+      }
+    });
+
+    this.subscriptions.set(subscriptionKey, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    };
+  }
+
+  // Send social feed interaction via WebSocket
+  sendSocialInteraction(interaction: any): void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    this.client.publish({
+      destination: '/app/social/interact',
+      body: JSON.stringify(interaction),
+    });
+  }
+
+  // Send new post via WebSocket (for real-time feed updates)
+  sendNewPost(post: any): void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    this.client.publish({
+      destination: '/app/social/posts',
+      body: JSON.stringify(post),
+    });
+  }
+
+  // Send comment via WebSocket
+  sendComment(postId: string, comment: any): void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    this.client.publish({
+      destination: `/app/social/posts/${postId}/comments`,
+      body: JSON.stringify(comment),
+    });
+  }
+
+  // Send typing indicator for social interactions
+  sendSocialTyping(postId: string, isTyping: boolean): void {
+    if (!this.isConnected || !this.client) {
+      return; // Don't throw error for typing status
+    }
+
+    this.client.publish({
+      destination: `/app/social/posts/${postId}/typing`,
+      body: JSON.stringify({ isTyping }),
+    });
   }
 }
 
