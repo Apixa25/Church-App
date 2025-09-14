@@ -2,6 +2,7 @@ package com.churchapp.controller;
 
 import com.churchapp.dto.*;
 import com.churchapp.entity.Post;
+import com.churchapp.entity.PostComment;
 import com.churchapp.service.FeedService;
 import com.churchapp.service.NotificationService;
 import com.churchapp.service.PostInteractionService;

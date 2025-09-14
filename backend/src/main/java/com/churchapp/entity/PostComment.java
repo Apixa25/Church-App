@@ -101,4 +101,9 @@ public class PostComment {
         }
         return current;
     }
+
+    // Getter method for boolean field (needed for DTOs)
+    public Boolean getIsAnonymous() {
+        return isAnonymous;
+    }
 }

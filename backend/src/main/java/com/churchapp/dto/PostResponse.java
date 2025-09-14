@@ -57,12 +57,12 @@ public class PostResponse {
             response.setQuotedPostId(post.getQuotedPost().getId());
         }
 
-        response.setReply(post.isReply());
-        response.setQuote(post.isQuote());
+        response.setReply(post.getIsReply());
+        response.setQuote(post.getIsQuote());
         response.setCreatedAt(post.getCreatedAt());
         response.setUpdatedAt(post.getUpdatedAt());
         response.setPostType(post.getPostType());
-        response.setAnonymous(post.isAnonymous());
+        response.setAnonymous(post.getIsAnonymous());
         response.setCategory(post.getCategory());
         response.setLocation(post.getLocation());
         response.setLikesCount(post.getLikesCount());

@@ -71,7 +71,7 @@ public class PostInteractionService {
     }
 
     public Page<PostLike> getPostLikes(UUID postId, Pageable pageable) {
-        return postLikeRepository.findById_PostIdOrderByCreatedAtDesc(postId, pageable);
+        return postLikeRepository.findRecentLikesByPostId(postId, pageable);
     }
 
     public long getPostLikeCount(UUID postId) {
@@ -143,7 +143,7 @@ public class PostInteractionService {
 
     private void deleteCommentRecursively(PostComment comment) {
         // Delete all replies first
-        List<PostComment> replies = postCommentRepository.findByParentCommentId(comment.getId());
+        List<PostComment> replies = postCommentRepository.findByParentCommentIdOrderByCreatedAtAsc(comment.getId());
         for (PostComment reply : replies) {
             deleteCommentRecursively(reply);
         }
@@ -170,7 +170,7 @@ public class PostInteractionService {
     }
 
     public List<PostComment> getCommentReplies(UUID commentId) {
-        return postCommentRepository.findByParentCommentId(commentId);
+        return postCommentRepository.findByParentCommentIdOrderByCreatedAtAsc(commentId);
     }
 
     public long getPostCommentCount(UUID postId) {

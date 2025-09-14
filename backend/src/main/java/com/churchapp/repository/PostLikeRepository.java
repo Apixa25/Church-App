@@ -49,7 +49,7 @@ public interface PostLikeRepository extends JpaRepository<PostLike, PostLike.Pos
 
     // Find recent likes for a post
     @Query("SELECT pl FROM PostLike pl WHERE pl.id.postId = :postId ORDER BY pl.createdAt DESC")
-    List<PostLike> findRecentLikesByPostId(@Param("postId") UUID postId,
+    org.springframework.data.domain.Page<PostLike> findRecentLikesByPostId(@Param("postId") UUID postId,
                                           org.springframework.data.domain.Pageable pageable);
 
     // Find users who liked a post
