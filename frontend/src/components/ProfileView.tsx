@@ -29,7 +29,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
       setLoading(true);
       setError(null);
 
-      const response = userId 
+      // If we have a specific userId and it's not our own profile, get that user's profile
+      // Otherwise, get our own profile
+      const response = (userId && userId !== user?.userId) 
         ? await profileAPI.getUserProfile(userId)
         : await profileAPI.getMyProfile();
       
@@ -40,7 +42,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, user?.userId]);
 
   useEffect(() => {
     fetchProfile();

@@ -284,17 +284,17 @@ export const getUserProfile = async (userId: string): Promise<any> => {
 };
 
 export const updateUserProfile = async (userId: string, profileData: any): Promise<any> => {
-  const response = await api.put(`/users/${userId}`, profileData);
+  const response = await api.put('/profile/me', profileData);
   return response.data;
 };
 
 export const uploadProfilePicture = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
-  const response = await api.post('/users/profile-picture', formData, {
+  const response = await api.post('/profile/me/upload-picture', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   });
-  return response.data.url;
+  return response.data.fileUrl;
 };
 
 export const followUser = async (userId: string): Promise<void> => {

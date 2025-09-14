@@ -102,13 +102,23 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="user-info">
             <div className="user-details">
-              {user?.profilePicUrl && (
-                <img 
-                  src={user.profilePicUrl} 
-                  alt={user.name}
-                  className="profile-pic"
-                />
-              )}
+              <div 
+                className="profile-pic-container clickable" 
+                onClick={() => navigate('/profile/edit')}
+                title="Click to edit your profile and upload a profile picture"
+              >
+                {user?.profilePicUrl ? (
+                  <img 
+                    src={user.profilePicUrl} 
+                    alt={user.name}
+                    className="profile-pic"
+                  />
+                ) : (
+                  <div className="profile-pic-placeholder">
+                    {user?.name?.charAt(0)?.toUpperCase() || '👤'}
+                  </div>
+                )}
+              </div>
               <div>
                 <p className="user-name">👋 Welcome, {user?.name}!</p>
                 <p className="user-role">Role: {user?.role}</p>
