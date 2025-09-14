@@ -240,18 +240,19 @@ body {
   object-fit: cover;
 }
 
-.user-name {
+/* Dashboard header user info styles - more specific to override conflicts */
+.dashboard-header .user-name {
   font-size: 18px;
   font-weight: 600;
   margin: 0;
-  color: white;
+  color: white !important;
 }
 
-.user-role {
+.dashboard-header .user-role {
   font-size: 14px;
   opacity: 0.9;
   margin: 0;
-  color: white;
+  color: white !important;
 }
 
 .logout-button {
@@ -2393,7 +2394,8 @@ body {
   flex: 1;
 }
 
-.user-name {
+/* General user-name style for other components (not dashboard header) */
+.user-name:not(.dashboard-header .user-name) {
   font-weight: 500;
   color: #333;
   margin-bottom: 2px;
