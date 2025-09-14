@@ -48,6 +48,18 @@ public class UserProfileService {
             user.setBio(request.getBio().trim().isEmpty() ? null : request.getBio().trim());
         }
         
+        if (request.getLocation() != null) {
+            user.setLocation(request.getLocation().trim().isEmpty() ? null : request.getLocation().trim());
+        }
+        
+        if (request.getWebsite() != null) {
+            user.setWebsite(request.getWebsite().trim().isEmpty() ? null : request.getWebsite().trim());
+        }
+        
+        if (request.getInterests() != null) {
+            user.setInterests(request.getInterests().trim().isEmpty() ? null : request.getInterests().trim());
+        }
+        
         // Only allow role updates for admins or specific business logic
         if (request.getRole() != null) {
             user.setRole(request.getRole());

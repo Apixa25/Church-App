@@ -44,6 +44,15 @@ public class User {
     @Column(name = "bio", columnDefinition = "TEXT")
     private String bio;
     
+    @Column(name = "location", length = 255)
+    private String location;
+    
+    @Column(name = "website", length = 500)
+    private String website;
+    
+    @Column(name = "interests", columnDefinition = "TEXT")
+    private String interests; // JSON string of interests array
+    
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
     private UserRole role = UserRole.MEMBER;
