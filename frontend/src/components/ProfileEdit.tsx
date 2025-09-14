@@ -1,283 +1,421 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { profileAPI } from '../services/api';
-import { UserProfile, ProfileUpdateRequest, FileUploadResponse } from '../types/Profile';
 import { useAuth } from '../contexts/AuthContext';
-
-interface ProfileEditProps {
-  profile?: UserProfile;
-  onProfileUpdate?: (updatedProfile: UserProfile) => void;
-  onCancel?: () => void;
-}
+import { User } from '../types/Post';
+import { updateUserProfile, uploadProfilePicture } from '../services/postApi';
+import './ProfileEdit.css';
 
 interface ProfileFormData {
   name: string;
   bio: string;
-  role: 'MEMBER' | 'MODERATOR' | 'ADMIN';
+  location: string;
+  website: string;
+  interests: string[];
 }
 
-const ProfileEdit: React.FC<ProfileEditProps> = ({ 
-  profile, 
-  onProfileUpdate, 
-  onCancel 
-}) => {
+const ProfileEdit: React.FC = () => {
+  const { user, updateUser } = useAuth();
   const navigate = useNavigate();
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-  } = useForm<ProfileFormData>({
-    defaultValues: {
-      name: profile?.name || '',
-      bio: profile?.bio || '',
-      role: profile?.role || 'MEMBER',
-    },
+
+  const [formData, setFormData] = useState<ProfileFormData>({
+    name: '',
+    bio: '',
+    location: '',
+    website: '',
+    interests: []
   });
 
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [profilePicUrl, setProfilePicUrl] = useState(profile?.profilePicUrl || '');
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
+  const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
+  const [profilePicPreview, setProfilePicPreview] = useState<string>('');
+  const [newInterest, setNewInterest] = useState('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Load current user data
   useEffect(() => {
-    if (profile) {
-      reset({
-        name: profile.name,
-        bio: profile.bio || '',
-        role: profile.role,
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        bio: user.bio || '',
+        location: user.location || '',
+        website: user.website || '',
+        interests: user.interests || []
       });
-      setProfilePicUrl(profile.profilePicUrl || '');
+
+      if (user.profilePicUrl) {
+        setProfilePicPreview(user.profilePicUrl);
+      }
     }
-  }, [profile, reset]);
+  }, [user]);
 
-  const onSubmit = async (data: ProfileFormData) => {
+  const handleInputChange = (field: keyof ProfileFormData, value: string | string[]) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    setError('');
+    setSuccess('');
+  };
+
+  const handleProfilePicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select a valid image file');
+        return;
+      }
+
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image file size must be less than 5MB');
+        return;
+      }
+
+      setProfilePicFile(file);
+      setProfilePicPreview(URL.createObjectURL(file));
+      setError('');
+    }
+  };
+
+  const handleAddInterest = () => {
+    const trimmedInterest = newInterest.trim();
+    if (trimmedInterest && !formData.interests.includes(trimmedInterest)) {
+      if (formData.interests.length >= 10) {
+        setError('You can add up to 10 interests');
+        return;
+      }
+
+      handleInputChange('interests', [...formData.interests, trimmedInterest]);
+      setNewInterest('');
+    }
+  };
+
+  const handleRemoveInterest = (interestToRemove: string) => {
+    handleInputChange('interests', formData.interests.filter(i => i !== interestToRemove));
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddInterest();
+    }
+  };
+
+  const validateForm = (): boolean => {
+    if (!formData.name.trim()) {
+      setError('Name is required');
+      return false;
+    }
+
+    if (formData.name.length > 50) {
+      setError('Name must be less than 50 characters');
+      return false;
+    }
+
+    if (formData.bio && formData.bio.length > 200) {
+      setError('Bio must be less than 200 characters');
+      return false;
+    }
+
+    if (formData.website && !isValidUrl(formData.website)) {
+      setError('Please enter a valid website URL');
+      return false;
+    }
+
+    return true;
+  };
+
+  const isValidUrl = (url: string): boolean => {
     try {
-      setLoading(true);
-      setError(null);
-      setSuccess(null);
+      new URL(url.startsWith('http') ? url : `https://${url}`);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
-      const updateData: ProfileUpdateRequest = {
-        name: data.name,
-        bio: data.bio || undefined,
-        role: data.role,
-        profilePicUrl: profilePicUrl || undefined,
+  const handleSave = async () => {
+    if (!validateForm() || !user) return;
+
+    setIsSaving(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      // Upload profile picture if changed
+      let profilePicUrl = user.profilePicUrl;
+      if (profilePicFile) {
+        const uploadResult = await uploadProfilePicture(profilePicFile);
+        profilePicUrl = uploadResult.url;
+      }
+
+      // Update profile data
+      const updatedProfile: Partial<User> = {
+        ...formData,
+        profilePicUrl,
+        interests: formData.interests
       };
 
-      const response = await profileAPI.updateMyProfile(updateData);
-      const updatedProfile = response.data;
+      const result = await updateUserProfile(updatedProfile);
 
-      setSuccess('Profile updated successfully! 🎉');
-      
-      if (onProfileUpdate) {
-        onProfileUpdate(updatedProfile);
-      }
+      // Update local user state
+      updateUser(result);
+
+      setSuccess('Profile updated successfully!');
+
+      // Navigate back to profile after a short delay
+      setTimeout(() => {
+        navigate(`/profile/${user.id}`);
+      }, 2000);
 
     } catch (err: any) {
-      const errorMessage = err.response?.data?.error || 'Failed to update profile';
-      setError(errorMessage);
+      console.error('Error updating profile:', err);
+      setError(err.message || 'Failed to update profile');
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setUploadingImage(true);
-      setError(null);
-
-      const response = await profileAPI.uploadProfilePicture(file);
-      const uploadResponse: FileUploadResponse = response.data;
-
-      if (uploadResponse.success && uploadResponse.fileUrl) {
-        setProfilePicUrl(uploadResponse.fileUrl);
-        setSuccess('Profile picture uploaded successfully! 📸');
-      } else {
-        throw new Error(uploadResponse.message);
-      }
-
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Failed to upload image';
-      setError(errorMessage);
-    } finally {
-      setUploadingImage(false);
-    }
+  const handleCancel = () => {
+    navigate(`/profile/${user?.id}`);
   };
 
-  const handleDeleteImage = async () => {
-    try {
-      setUploadingImage(true);
-      await profileAPI.deleteProfilePicture();
-      setProfilePicUrl('');
-      setSuccess('Profile picture removed successfully! 🗑️');
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.error || 'Failed to delete image';
-      setError(errorMessage);
-    } finally {
-      setUploadingImage(false);
-    }
+  const removeProfilePicture = () => {
+    setProfilePicFile(null);
+    setProfilePicPreview('');
   };
+
+  if (isLoading) {
+    return (
+      <div className="profile-edit loading">
+        <div className="loading-content">
+          <div className="loading-spinner"></div>
+          <span>Loading your profile...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="profile-edit-container">
-      <div className="profile-edit">
-        {/* Navigation */}
-        <div className="profile-navigation">
-          <button 
-            onClick={() => navigate('/dashboard')} 
-            className="back-home-button"
-          >
-            🏠 Back Home
-          </button>
+    <div className="profile-edit">
+      <div className="edit-container">
+        {/* Header */}
+        <div className="edit-header">
+          <h1>Edit Profile</h1>
+          <p>Update your church community profile</p>
         </div>
-        
-        <h2>✏️ Edit Profile</h2>
-        <p>Update your information and personalize your church community experience</p>
-
-        {error && (
-          <div className="error-message">
-            ⚠️ {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="success-message">
-            {success}
-          </div>
-        )}
 
         {/* Profile Picture Section */}
-        <div className="profile-picture-section">
-          <h3>📸 Profile Picture</h3>
-          <div className="profile-picture-container">
-            {profilePicUrl ? (
-              <div className="profile-picture-preview">
-                <img src={profilePicUrl} alt="Profile" className="profile-picture-large" />
-                <div className="picture-controls">
-                  <button
-                    type="button"
-                    className="change-picture-button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingImage}
-                  >
-                    {uploadingImage ? '⏳' : '🔄'} Change
-                  </button>
-                  <button
-                    type="button"
-                    className="delete-picture-button"
-                    onClick={handleDeleteImage}
-                    disabled={uploadingImage}
-                  >
-                    {uploadingImage ? '⏳' : '🗑️'} Remove
-                  </button>
+        <div className="edit-section">
+          <h2>Profile Picture</h2>
+          <div className="profile-pic-section">
+            <div className="current-pic">
+              {profilePicPreview ? (
+                <img
+                  src={profilePicPreview}
+                  alt="Profile preview"
+                  className="pic-preview"
+                />
+              ) : (
+                <div className="pic-placeholder">
+                  {user?.name.charAt(0).toUpperCase()}
                 </div>
-              </div>
-            ) : (
-              <div className="no-profile-picture">
-                <div className="profile-picture-placeholder">
-                  <span>📷</span>
-                </div>
+              )}
+            </div>
+
+            <div className="pic-actions">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleProfilePicChange}
+                style={{ display: 'none' }}
+              />
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="pic-btn upload"
+              >
+                📷 Upload Photo
+              </button>
+
+              {profilePicPreview && (
                 <button
                   type="button"
-                  className="upload-picture-button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingImage}
+                  onClick={removeProfilePicture}
+                  className="pic-btn remove"
                 >
-                  {uploadingImage ? '⏳ Uploading...' : '📤 Upload Picture'}
+                  🗑️ Remove
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImageUpload}
-            accept="image/*"
-            style={{ display: 'none' }}
-          />
+
+          <div className="pic-help">
+            <small>Upload a square image (JPG, PNG) up to 5MB for best results</small>
+          </div>
         </div>
 
-        {/* Profile Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="profile-form">
+        {/* Basic Information */}
+        <div className="edit-section">
+          <h2>Basic Information</h2>
+
           <div className="form-group">
             <label htmlFor="name">Full Name *</label>
             <input
-              type="text"
               id="name"
-              {...register('name', {
-                required: 'Name is required',
-                minLength: {
-                  value: 2,
-                  message: 'Name must be at least 2 characters',
-                },
-                maxLength: {
-                  value: 100,
-                  message: 'Name must be less than 100 characters',
-                },
-              })}
-              disabled={loading}
+              type="text"
+              value={formData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              placeholder="Enter your full name"
+              maxLength={50}
+              className="form-input"
             />
-            {errors.name && <span className="error">{errors.name.message}</span>}
+            <small className="char-count">{formData.name.length}/50</small>
           </div>
 
           <div className="form-group">
             <label htmlFor="bio">Bio</label>
             <textarea
               id="bio"
+              value={formData.bio}
+              onChange={(e) => handleInputChange('bio', e.target.value)}
+              placeholder="Tell the community about yourself, your faith journey, or your interests..."
+              maxLength={200}
               rows={4}
-              placeholder="Tell your church community a bit about yourself..."
-              {...register('bio', {
-                maxLength: {
-                  value: 1000,
-                  message: 'Bio must be less than 1000 characters',
-                },
-              })}
-              disabled={loading}
+              className="form-textarea"
             />
-            {errors.bio && <span className="error">{errors.bio.message}</span>}
+            <small className="char-count">{formData.bio.length}/200</small>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="role">Church Role</label>
-            <select
-              id="role"
-              {...register('role')}
-              disabled={loading || user?.role !== 'ADMIN'}
-            >
-              <option value="MEMBER">👤 Member</option>
-              <option value="MODERATOR">⭐ Moderator</option>
-              <option value="ADMIN">👑 Admin</option>
-            </select>
-            {user?.role !== 'ADMIN' && (
-              <small className="role-note">
-                Only administrators can change user roles
-              </small>
-            )}
-          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="location">Location</label>
+              <input
+                id="location"
+                type="text"
+                value={formData.location}
+                onChange={(e) => handleInputChange('location', e.target.value)}
+                placeholder="City, State/Country"
+                maxLength={100}
+                className="form-input"
+              />
+            </div>
 
-          <div className="form-actions">
-            <button type="submit" className="save-button" disabled={loading || uploadingImage}>
-              {loading ? '⏳ Saving...' : '💾 Save Changes'}
-            </button>
-            {onCancel && (
+            <div className="form-group">
+              <label htmlFor="website">Website</label>
+              <input
+                id="website"
+                type="url"
+                value={formData.website}
+                onChange={(e) => handleInputChange('website', e.target.value)}
+                placeholder="https://your-website.com"
+                className="form-input"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Interests */}
+        <div className="edit-section">
+          <h2>Interests & Hobbies</h2>
+          <p className="section-desc">
+            Share your interests to connect with others who share similar passions
+          </p>
+
+          <div className="interests-section">
+            <div className="add-interest">
+              <input
+                type="text"
+                value={newInterest}
+                onChange={(e) => setNewInterest(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Add an interest (e.g., Bible Study, Music, Community Service)"
+                maxLength={30}
+                className="interest-input"
+              />
               <button
                 type="button"
-                className="cancel-button"
-                onClick={onCancel}
-                disabled={loading || uploadingImage}
+                onClick={handleAddInterest}
+                disabled={!newInterest.trim()}
+                className="add-interest-btn"
               >
-                ❌ Cancel
+                Add
               </button>
+            </div>
+
+            <div className="interests-list">
+              {formData.interests.map((interest, index) => (
+                <div key={index} className="interest-tag">
+                  <span>{interest}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveInterest(interest)}
+                    className="remove-interest"
+                    aria-label={`Remove ${interest}`}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {formData.interests.length === 0 && (
+              <div className="no-interests">
+                <p>No interests added yet. Add some to help others connect with you!</p>
+              </div>
             )}
           </div>
-        </form>
+        </div>
+
+        {/* Messages */}
+        {error && (
+          <div className="message error">
+            <span className="message-icon">⚠️</span>
+            <span>{error}</span>
+          </div>
+        )}
+
+        {success && (
+          <div className="message success">
+            <span className="message-icon">✅</span>
+            <span>{success}</span>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="edit-actions">
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="cancel-btn"
+            disabled={isSaving}
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="save-btn"
+          >
+            {isSaving ? (
+              <>
+                <div className="save-spinner"></div>
+                Saving...
+              </>
+            ) : (
+              'Save Profile'
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
