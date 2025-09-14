@@ -159,7 +159,7 @@
   border: none !important;
   background: none !important;
   border-radius: 0 !important;
-  font-size: 28px !important;
+  font-size: 21px !important;
   color: #666 !important;
   cursor: pointer !important;
   min-width: 44px !important;
@@ -267,6 +267,16 @@
   cursor: not-allowed;
 }
 
+/* Comment Thread Container */
+.comment-thread-container {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 16px;
+}
+
 /* Comments Preview */
 .comments-preview {
   margin-top: 16px;
@@ -339,7 +349,7 @@
 
   .action-button {
     padding: 0 !important;
-    font-size: 24px !important;
+    font-size: 18px !important;
   }
 
   .author-avatar {

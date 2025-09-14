@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Post, PostType, Comment } from '../types/Post';
 import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost } from '../services/postApi';
+import CommentThread from './CommentThread';
 import './PostCard.css';
 
 interface PostCardProps {
@@ -24,6 +25,7 @@ const PostCard: React.FC<PostCardProps> = ({
   const [commentsCount, setCommentsCount] = useState(post.commentsCount);
   const [isLoading, setIsLoading] = useState(false);
   const [showCommentForm, setShowCommentForm] = useState(false);
+  const [showCommentThread, setShowCommentThread] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<Comment[]>([]);
 
@@ -252,8 +254,8 @@ const PostCard: React.FC<PostCardProps> = ({
 
         <button
           className="action-button comment-button"
-          onClick={() => setShowCommentForm(!showCommentForm)}
-          aria-label="Add comment"
+          onClick={() => setShowCommentThread(!showCommentThread)}
+          aria-label="View comments"
         >
           💬 {commentsCount > 0 && commentsCount}
         </button>
@@ -276,51 +278,23 @@ const PostCard: React.FC<PostCardProps> = ({
         </button>
       </div>
 
-      {/* Comment Form */}
-      {showCommentForm && (
-        <form className="comment-form" onSubmit={handleComment}>
-          <textarea
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-            placeholder="Share your thoughts..."
-            maxLength={1000}
-            rows={3}
+      {/* Comment Thread */}
+      {showCommentThread && (
+        <div className="comment-thread-container">
+          <CommentThread
+            postId={post.id}
+            initialComments={comments}
+            onCommentCountChange={(count) => {
+              setCommentsCount(count);
+              // Update parent component if callback provided
+              if (onPostUpdate) {
+                onPostUpdate({
+                  ...post,
+                  commentsCount: count
+                });
+              }
+            }}
           />
-          <div className="comment-form-actions">
-            <button
-              type="button"
-              onClick={() => setShowCommentForm(false)}
-              className="cancel-button"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!commentText.trim() || isLoading}
-              className="submit-button"
-            >
-              {isLoading ? 'Posting...' : 'Comment'}
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* Comments Preview (if enabled) */}
-      {showComments && comments.length > 0 && (
-        <div className="comments-preview">
-          {comments.slice(0, maxComments).map((comment) => (
-            <div key={comment.id} className="comment-item">
-              <div className="comment-author">
-                {comment.isAnonymous ? 'Anonymous' : comment.userName}
-              </div>
-              <div className="comment-content">{comment.content}</div>
-            </div>
-          ))}
-          {commentsCount > maxComments && (
-            <button className="view-more-comments">
-              View all {commentsCount} comments
-            </button>
-          )}
         </div>
       )}
     </div>
