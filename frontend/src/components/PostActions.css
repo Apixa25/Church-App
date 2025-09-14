@@ -33,10 +33,10 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 8px 12px;
-  border: 1px solid #dee2e6;
-  background: white;
-  border-radius: 20px;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 0;
   font-size: 14px;
   color: #6c757d;
   cursor: pointer;
@@ -44,17 +44,18 @@
   font-weight: 500;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
 }
 
 .action-button:hover:not(:disabled) {
-  border-color: #2196f3;
-  background: #f8f9ff;
-  color: #2196f3;
-  transform: translateY(-1px);
+  background: none;
+  transform: scale(1.2);
 }
 
 .action-button:active:not(:disabled) {
-  transform: translateY(0);
+  transform: scale(0.9);
 }
 
 .action-button:disabled {
@@ -64,59 +65,44 @@
 }
 
 .action-button.active {
-  border-color: #2196f3;
-  background: #f8f9ff;
-  color: #2196f3;
+  background: none;
+  transform: scale(1.1);
 }
 
 /* Comment Button Special Styling */
 .comment-button:hover:not(:disabled) {
-  border-color: #4caf50;
-  background: #f1f8e9;
-  color: #4caf50;
+  background: none;
 }
 
 .comment-button.active {
-  border-color: #4caf50;
-  background: #f1f8e9;
-  color: #4caf50;
+  background: none;
 }
 
 /* Share Button Special Styling */
 .share-button:hover:not(:disabled) {
-  border-color: #ff9800;
-  background: #fff3e0;
-  color: #f57c00;
+  background: none;
 }
 
 .share-button.active {
-  border-color: #ff9800;
-  background: #fff3e0;
-  color: #f57c00;
+  background: none;
 }
 
 /* Bookmark Button Special Styling */
 .bookmark-button:hover:not(:disabled) {
-  border-color: #9c27b0;
-  background: #f3e5f5;
-  color: #9c27b0;
+  background: none;
 }
 
 .bookmark-button.active {
-  border-color: #9c27b0;
-  background: #f3e5f5;
-  color: #9c27b0;
+  background: none;
 }
 
 /* More Button Special Styling */
 .more-button:hover:not(:disabled) {
-  border-color: #607d8b;
-  background: #eceff1;
-  color: #607d8b;
+  background: none;
 }
 
 .action-icon {
-  font-size: 16px;
+  font-size: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -181,12 +167,14 @@
   }
 
   .action-button {
-    padding: 6px 10px;
+    padding: 0;
     font-size: 13px;
+    min-width: 40px;
+    min-height: 40px;
   }
 
   .action-icon {
-    font-size: 14px;
+    font-size: 24px;
   }
 
   .action-count {
@@ -224,13 +212,14 @@
   }
 
   .action-button {
-    padding: 6px 8px;
+    padding: 0;
     font-size: 12px;
     min-width: 44px; /* For touch accessibility */
+    min-height: 44px;
   }
 
   .action-icon {
-    font-size: 14px;
+    font-size: 24px;
   }
 
   .action-count {
