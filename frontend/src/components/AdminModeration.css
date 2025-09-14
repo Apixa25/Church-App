@@ -309,7 +309,9 @@
   gap: 2px;
 }
 
-.user-name {
+/* Admin moderation specific user-name style (not dashboard header) */
+.admin-moderation .user-name,
+.user-name:not(.dashboard-header .user-name) {
   font-weight: 600;
   color: #333;
 }
