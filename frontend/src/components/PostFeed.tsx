@@ -26,13 +26,15 @@ const PostFeed: React.FC<PostFeedProps> = ({
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string>('');
   const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(0);
+  const [, setPage] = useState(0); // Page state kept for compatibility but tracked via ref
 
   // Refs
   const lastPostRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
   const wsSubscriptionsRef = useRef<(() => void)[]>([]);
+  const pageRef = useRef(0); // Use ref to track page without causing re-renders
+  const loadPostsRef = useRef<((reset: boolean) => Promise<void>) | undefined>(undefined);
 
   const POSTS_PER_PAGE = 20;
 
@@ -43,13 +45,14 @@ const PostFeed: React.FC<PostFeedProps> = ({
         setLoading(true);
         setPosts([]);
         setPage(0);
+        pageRef.current = 0;
         setHasMore(true);
         setError('');
       } else {
         setLoadingMore(true);
       }
 
-      const currentPage = reset ? 0 : page;
+      const currentPage = reset ? 0 : pageRef.current;
       const response: FeedResponse = await getFeed(
         feedType === FeedType.CHRONOLOGICAL ? 'community' :
         feedType === FeedType.TRENDING ? 'trending' : 'community',
@@ -65,7 +68,9 @@ const PostFeed: React.FC<PostFeedProps> = ({
 
       // Total posts tracking removed for simplicity
       setHasMore(response.content.length === POSTS_PER_PAGE && !maxPosts);
-      setPage(currentPage + 1);
+      const nextPage = currentPage + 1;
+      setPage(nextPage);
+      pageRef.current = nextPage;
 
     } catch (err: any) {
       console.error('Error loading posts:', err);
@@ -74,7 +79,10 @@ const PostFeed: React.FC<PostFeedProps> = ({
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [feedType, page, maxPosts]);
+  }, [feedType, maxPosts]); // Stable dependencies
+
+  // Update the ref whenever loadPosts changes
+  loadPostsRef.current = loadPosts;
 
   const loadMorePosts = useCallback(async () => {
     if (loadingMore || !hasMore || (maxPosts && posts.length >= maxPosts)) return;
@@ -235,7 +243,10 @@ const PostFeed: React.FC<PostFeedProps> = ({
         console.error('Failed to setup WebSocket subscriptions:', error);
         // Fall back to polling if WebSocket fails
         const pollInterval = setInterval(() => {
-          loadPosts(false);
+          // Use ref to avoid dependency issues
+          if (loadPostsRef.current) {
+            loadPostsRef.current(false);
+          }
         }, 30000); // Poll every 30 seconds
 
         return () => clearInterval(pollInterval);
@@ -249,7 +260,7 @@ const PostFeed: React.FC<PostFeedProps> = ({
       wsSubscriptionsRef.current.forEach(unsubscribe => unsubscribe());
       wsSubscriptionsRef.current = [];
     };
-  }, [handleRealTimePostUpdate, handleRealTimeInteractionUpdate, handleRealTimeCommentUpdate, loadPosts]);
+  }, [handleRealTimePostUpdate, handleRealTimeInteractionUpdate, handleRealTimeCommentUpdate]); // Removed loadPosts from dependencies
 
   // Set up intersection observer for infinite scroll
   useEffect(() => {

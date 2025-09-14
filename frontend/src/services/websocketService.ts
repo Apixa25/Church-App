@@ -105,8 +105,26 @@ class WebSocketService {
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
+      // Prevent multiple simultaneous connection attempts
       if (this.isConnected && this.client?.connected) {
+        console.log('WebSocket already connected, reusing existing connection');
         resolve();
+        return;
+      }
+
+      // If already connecting, wait for that connection
+      if (this.client && this.client.state === 1) { // 1 = CONNECTING state
+        console.log('WebSocket connection already in progress, waiting...');
+        const checkConnection = () => {
+          if (this.isConnected && this.client?.connected) {
+            resolve();
+          } else if (!this.client || this.client.state === 0) { // 0 = INACTIVE state
+            reject(new Error('Connection failed'));
+          } else {
+            setTimeout(checkConnection, 100);
+          }
+        };
+        checkConnection();
         return;
       }
 
