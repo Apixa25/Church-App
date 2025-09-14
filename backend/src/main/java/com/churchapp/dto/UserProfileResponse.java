@@ -17,6 +17,9 @@ public class UserProfileResponse {
     private String email;
     private String name;
     private String bio;
+    private String location;
+    private String website;
+    private String interests; // JSON string of interests array
     private User.UserRole role;
     private String profilePicUrl;
     private LocalDateTime createdAt;
@@ -29,6 +32,9 @@ public class UserProfileResponse {
             user.getEmail(),
             user.getName(),
             user.getBio(),
+            user.getLocation(),
+            user.getWebsite(),
+            user.getInterests(),
             user.getRole(),
             user.getProfilePicUrl(),
             user.getCreatedAt(),

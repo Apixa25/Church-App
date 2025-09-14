@@ -201,6 +201,49 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
             )}
           </div>
 
+          {/* Location */}
+          {(profile as any).location && (
+            <div className="profile-section">
+              <h3>📍 Location</h3>
+              <p>{(profile as any).location}</p>
+            </div>
+          )}
+
+          {/* Website */}
+          {(profile as any).website && (
+            <div className="profile-section">
+              <h3>🌐 Website</h3>
+              <a href={(profile as any).website} target="_blank" rel="noopener noreferrer" className="profile-website">
+                {(profile as any).website}
+              </a>
+            </div>
+          )}
+
+          {/* Interests */}
+          {(profile as any).interests && (
+            <div className="profile-section">
+              <h3>🎯 Interests</h3>
+              <div className="interests-tags">
+                {(() => {
+                  try {
+                    const interests = typeof (profile as any).interests === 'string' 
+                      ? JSON.parse((profile as any).interests) 
+                      : (profile as any).interests;
+                    return Array.isArray(interests) && interests.length > 0 
+                      ? interests.map((interest: string, index: number) => (
+                          <span key={index} className="interest-tag">
+                            {interest}
+                          </span>
+                        ))
+                      : null;
+                  } catch (e) {
+                    return <span className="interest-tag">{(profile as any).interests}</span>;
+                  }
+                })()}
+              </div>
+            </div>
+          )}
+
           <div className="profile-section">
             <h3>📅 Member Since</h3>
             <p>{formatFullDate(profile.createdAt)}</p>

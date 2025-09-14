@@ -55,7 +55,17 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
         bio: profileToUse.bio || '',
         location: (profileToUse as User).location || '',
         website: (profileToUse as User).website || '',
-        interests: (profileToUse as User).interests || []
+        interests: (() => {
+          try {
+            const interestsData = (profileToUse as User).interests;
+            if (typeof interestsData === 'string') {
+              return JSON.parse(interestsData);
+            }
+            return Array.isArray(interestsData) ? interestsData : [];
+          } catch (e) {
+            return [];
+          }
+        })()
       });
 
       if (profileToUse.profilePicUrl) {
@@ -166,11 +176,11 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
         profilePicUrl = uploadResult;
       }
 
-      // Update profile data
-      const updatedProfile: Partial<User> = {
+      // Update profile data - create API request object with correct types
+      const updatedProfile = {
         ...formData,
         profilePicUrl,
-        interests: formData.interests
+        interests: JSON.stringify(formData.interests) // Convert array to JSON string for backend
       };
 
       const result = await updateUserProfile(user!.userId, updatedProfile);
