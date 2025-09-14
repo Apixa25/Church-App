@@ -3,11 +3,17 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import dashboardApi, { DashboardResponse } from '../services/dashboardApi';
 import ActivityFeed from './ActivityFeed';
+import PostFeed from './PostFeed';
+import PostComposer from './PostComposer';
 import QuickActions from './QuickActions';
 import DashboardStats from './DashboardStats';
 import NotificationCenter from './NotificationCenter';
 import PrayerNotifications from './PrayerNotifications';
 import EventNotifications from './EventNotifications';
+import NotificationSystem from './NotificationSystem';
+import SearchComponent from './SearchComponent';
+import { FeedType } from '../types/Post';
+import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -16,6 +22,9 @@ const Dashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [feedView, setFeedView] = useState<'activity' | 'social'>('social'); // Default to social feed
+  const [showComposer, setShowComposer] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -51,6 +60,17 @@ const Dashboard: React.FC = () => {
 
   const handleRefresh = () => {
     fetchDashboardData();
+  };
+
+  const handlePostCreated = (newPost: any) => {
+    // The PostFeed component will handle refreshing itself
+    setShowComposer(false);
+    // Could also refresh dashboard stats if needed
+    fetchDashboardData();
+  };
+
+  const handleFeedViewChange = (view: 'activity' | 'social') => {
+    setFeedView(view);
   };
 
   const formatLastRefresh = () => {
@@ -90,6 +110,13 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
             <div className="header-actions">
+              <button
+                onClick={() => setShowSearch(true)}
+                className="search-button"
+                title="Search posts and community"
+              >
+                🔍 Search
+              </button>
               <PrayerNotifications />
               <EventNotifications />
               <button onClick={handleLogout} className="logout-button">
@@ -109,13 +136,71 @@ const Dashboard: React.FC = () => {
         )}
 
         <div className="dashboard-layout">
-          {/* Left Column - Activity Feed */}
+          {/* Left Column - Social Feed */}
           <div className="dashboard-left">
+            {/* Feed View Toggle */}
+            <div className="feed-view-toggle">
+              <button
+                className={`feed-toggle-btn ${feedView === 'social' ? 'active' : ''}`}
+                onClick={() => handleFeedViewChange('social')}
+              >
+                🌟 Social Feed
+              </button>
+              <button
+                className={`feed-toggle-btn ${feedView === 'activity' ? 'active' : ''}`}
+                onClick={() => handleFeedViewChange('activity')}
+              >
+                📊 Activity Feed
+              </button>
+            </div>
+
+            {/* Create Post Button */}
+            {feedView === 'social' && (
+              <div className="create-post-section">
+                <button
+                  className="create-post-btn"
+                  onClick={() => setShowComposer(true)}
+                  disabled={isLoading}
+                >
+                  ✍️ Share Something
+                </button>
+              </div>
+            )}
+
+            {/* Post Composer Modal */}
+            {showComposer && (
+              <div className="composer-modal-overlay" onClick={() => setShowComposer(false)}>
+                <div className="composer-modal-content" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    className="composer-close-btn"
+                    onClick={() => setShowComposer(false)}
+                    aria-label="Close composer"
+                  >
+                    ✕
+                  </button>
+                  <PostComposer
+                    onPostCreated={handlePostCreated}
+                    onCancel={() => setShowComposer(false)}
+                    placeholder="Share what's happening in your church community..."
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Feed Content */}
             <div className="dashboard-card">
-              <ActivityFeed 
-                activities={dashboardData?.recentActivity || []} 
-                isLoading={isLoading} 
-              />
+              {feedView === 'social' ? (
+                <PostFeed
+                  showFilters={true}
+                  showHeader={true}
+                  maxPosts={50}
+                />
+              ) : (
+                <ActivityFeed
+                  activities={dashboardData?.recentActivity || []}
+                  isLoading={isLoading}
+                />
+              )}
             </div>
           </div>
 
@@ -186,11 +271,37 @@ const Dashboard: React.FC = () => {
             <span className="status-icon">✅</span>
             <span>Section 6: Announcements</span>
           </div>
+          <div className="status-item completed">
+            <span className="status-icon">✅</span>
+            <span>Section 7: Calendar/Events</span>
+          </div>
+          <div className="status-item completed">
+            <span className="status-icon">✅</span>
+            <span>Phase 3: Social Feed Integration - COMPLETE!</span>
+          </div>
           <div className="status-item current">
-            <span className="status-icon">🚀</span>
-            <span>Section 7: Calendar/Events - COMPLETING!</span>
+            <span className="status-icon">🎉</span>
+            <span>🎊 CHURCH APP SOCIAL FEED - FULLY OPERATIONAL! 🎊</span>
           </div>
         </div>
+
+        {/* Notification System */}
+        <NotificationSystem
+          position="top-right"
+          maxNotifications={50}
+          autoHideDelay={5000}
+        />
+
+        {/* Search Component */}
+        <SearchComponent
+          isOpen={showSearch}
+          onClose={() => setShowSearch(false)}
+          onPostSelect={(post) => {
+            // Handle post selection from search
+            console.log('Post selected from search:', post);
+            // Could navigate to post detail or highlight in feed
+          }}
+        />
       </main>
     </div>
   );
