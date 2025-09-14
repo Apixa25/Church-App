@@ -1,6 +1,7 @@
 /**
  * Utility functions for handling date parsing and formatting
  * Handles various date formats that might come from the backend
+ * FIXED: Comprehensive timezone-aware date handling
  */
 
 /**
@@ -16,45 +17,35 @@ export const parseEventDate = (dateInput: string | number[]): Date | null => {
       // CRITICAL: Backend sends month as 1-indexed (1=Jan, 9=Sep) but Date constructor expects 0-indexed (0=Jan, 8=Sep)
       const [year, month, day, hour = 0, minute = 0, second = 0] = dateInput;
       
-      // Debug logging for array date parsing issues
-      if (day === 13) { // Only log when day is 13 to reduce noise
-        console.log('🐛 Array date parsing (Day 13):', {
-          input: dateInput,
-          year, 
-          month: `${month} (backend 1-indexed)`, 
-          day, 
-          hour, 
-          minute, 
-          second,
-          monthForDateConstructor: `${month - 1} (0-indexed for Date constructor)`,
-          willCreateDate: `new Date(${year}, ${month - 1}, ${day}, ${hour}, ${minute}, ${second})`
-        });
-      }
-      
       // Use local timezone constructor with proper month conversion
       date = new Date(year, month - 1, day, hour, minute, second); // Month is 0-indexed in Date constructor
     } else {
-      // Handle string format with careful timezone handling
+      // Handle string format with proper timezone handling
       let cleanDateString = dateInput;
       
-      // Remove trailing Z and handle various timezone formats
-      cleanDateString = cleanDateString.replace(/Z$/, '');
-      cleanDateString = cleanDateString.replace(/\+00:00$/, '');
-      
-      // Try parsing as local time first to avoid timezone shifts
-      if (cleanDateString.includes('T')) {
-        // For ISO format, parse as local time to avoid UTC conversion
-        const parts = cleanDateString.split('T');
-        const datePart = parts[0];
-        const timePart = parts[1] || '00:00:00';
-        
-        const [year, month, day] = datePart.split('-').map(Number);
-        const [hour, minute, second] = timePart.split(':').map(Number);
-        
-        date = new Date(year, month - 1, day, hour || 0, minute || 0, second || 0);
-      } else {
-        // Fallback to regular Date parsing
+      // Handle various timezone formats
+      if (cleanDateString.endsWith('Z')) {
+        // UTC timezone - parse as UTC then convert to local
         date = new Date(cleanDateString);
+      } else if (cleanDateString.includes('+') || cleanDateString.includes('-')) {
+        // Has timezone offset - parse directly
+        date = new Date(cleanDateString);
+      } else {
+        // No timezone info - assume local time
+        if (cleanDateString.includes('T')) {
+          // ISO format without timezone - parse as local time
+          const parts = cleanDateString.split('T');
+          const datePart = parts[0];
+          const timePart = parts[1] || '00:00:00';
+          
+          const [year, month, day] = datePart.split('-').map(Number);
+          const [hour, minute, second] = timePart.split(':').map(Number);
+          
+          date = new Date(year, month - 1, day, hour || 0, minute || 0, second || 0);
+        } else {
+          // Fallback to regular Date parsing
+          date = new Date(cleanDateString);
+        }
       }
     }
     
@@ -231,4 +222,81 @@ export const formatAnnouncementDate = (dateInput: string | number[]): string => 
       year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
     });
   }
+};
+
+/**
+ * Universal date formatter for social media posts, comments, and general use
+ * This is the main function that should be used across all components
+ */
+export const formatRelativeDate = (dateInput: string | number[]): string => {
+  try {
+    const date = parseEventDate(dateInput);
+    
+    if (!date) {
+      return 'Invalid Date';
+    }
+    
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    const diffInWeeks = Math.floor(diffInDays / 7);
+    const diffInMonths = Math.floor(diffInDays / 30);
+    const diffInYears = Math.floor(diffInDays / 365);
+    
+    if (diffInMinutes < 1) {
+      return 'Just now';
+    } else if (diffInMinutes < 60) {
+      return `${diffInMinutes}m ago`;
+    } else if (diffInHours < 24) {
+      return `${diffInHours}h ago`;
+    } else if (diffInDays < 7) {
+      return diffInDays === 1 ? '1 day ago' : `${diffInDays} days ago`;
+    } else if (diffInWeeks < 4) {
+      return diffInWeeks === 1 ? '1 week ago' : `${diffInWeeks} weeks ago`;
+    } else if (diffInMonths < 12) {
+      return diffInMonths === 1 ? '1 month ago' : `${diffInMonths} months ago`;
+    } else {
+      return diffInYears === 1 ? '1 year ago' : `${diffInYears} years ago`;
+    }
+  } catch (error) {
+    console.error('Error formatting relative date:', error, dateInput);
+    return 'Invalid Date';
+  }
+};
+
+/**
+ * Format date for calendar events with timezone awareness
+ */
+export const formatCalendarDate = (dateInput: string | number[]): string => {
+  const date = parseEventDate(dateInput);
+  
+  if (!date) {
+    return 'Invalid Date';
+  }
+  
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+};
+
+/**
+ * Format time for calendar events
+ */
+export const formatCalendarTime = (dateInput: string | number[]): string => {
+  const date = parseEventDate(dateInput);
+  
+  if (!date) {
+    return 'Invalid Time';
+  }
+  
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
 };

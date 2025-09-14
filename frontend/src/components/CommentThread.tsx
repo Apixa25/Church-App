@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Comment } from '../types/Post';
 import { getPostComments, addComment } from '../services/postApi';
+import { formatRelativeDate } from '../utils/dateUtils';
 import './CommentThread.css';
 
 interface CommentThreadProps {
@@ -243,16 +244,9 @@ const CommentThread: React.FC<CommentThreadProps> = ({
     );
   };
 
+  // Use the centralized date formatting utility
   const formatTimestamp = (timestamp: string): string => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
-
-    return date.toLocaleDateString();
+    return formatRelativeDate(timestamp);
   };
 
   if (loading) {
