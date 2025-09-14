@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User, Post } from '../types/Post';
+import { Post } from '../types/Post';
 import { getUserProfile, getUserPosts, followUser, unfollowUser } from '../services/postApi';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth, User } from '../contexts/AuthContext';
 import PostCard from './PostCard';
 import './UserProfile.css';
 

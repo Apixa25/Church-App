@@ -25,7 +25,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       setIsLoading(true);
       setError('');
 
-      const data = await getAnalyticsData(selectedTimeRange);
+      const data = await getAnalyticsData();
       setAnalytics(data);
     } catch (err: any) {
       console.error('Error loading analytics:', err);
@@ -35,7 +35,8 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     }
   };
 
-  const formatNumber = (num: number): string => {
+  const formatNumber = (num?: number): string => {
+    if (!num && num !== 0) return '0';
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1) + 'M';
     }
@@ -45,7 +46,8 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     return num.toString();
   };
 
-  const formatPercentage = (num: number): string => {
+  const formatPercentage = (num?: number): string => {
+    if (!num && num !== 0) return '0%';
     return `${num >= 0 ? '+' : ''}${num.toFixed(1)}%`;
   };
 
@@ -118,7 +120,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           <div className="metric-value">
             {formatNumber(analytics.totalMembers)}
           </div>
-          <div className={`metric-change ${analytics.memberGrowth >= 0 ? 'positive' : 'negative'}`}>
+          <div className={`metric-change ${(analytics.memberGrowth ?? 0) >= 0 ? 'positive' : 'negative'}`}>
             {formatPercentage(analytics.memberGrowth)}
           </div>
         </div>
@@ -131,7 +133,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           <div className="metric-value">
             {formatNumber(analytics.totalPosts)}
           </div>
-          <div className={`metric-change ${analytics.postGrowth >= 0 ? 'positive' : 'negative'}`}>
+          <div className={`metric-change ${(analytics.postGrowth ?? 0) >= 0 ? 'positive' : 'negative'}`}>
             {formatPercentage(analytics.postGrowth)}
           </div>
         </div>
@@ -144,7 +146,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           <div className="metric-value">
             {formatNumber(analytics.totalInteractions)}
           </div>
-          <div className={`metric-change ${analytics.interactionGrowth >= 0 ? 'positive' : 'negative'}`}>
+          <div className={`metric-change ${(analytics.interactionGrowth ?? 0) >= 0 ? 'positive' : 'negative'}`}>
             {formatPercentage(analytics.interactionGrowth)}
           </div>
         </div>
@@ -155,9 +157,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             <span className="metric-title">Engagement Rate</span>
           </div>
           <div className="metric-value">
-            {analytics.engagementRate.toFixed(1)}%
+            {(analytics.engagementRate ?? 0).toFixed(1)}%
           </div>
-          <div className={`metric-change ${analytics.engagementChange >= 0 ? 'positive' : 'negative'}`}>
+          <div className={`metric-change ${(analytics.engagementChange ?? 0) >= 0 ? 'positive' : 'negative'}`}>
             {formatPercentage(analytics.engagementChange)}
           </div>
         </div>
@@ -221,21 +223,21 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                 <div className="contributor-rank">#{index + 1}</div>
                 <div className="contributor-avatar">
                   {contributor.profilePicUrl ? (
-                    <img src={contributor.profilePicUrl} alt={contributor.name} />
+                    <img src={contributor.profilePicUrl} alt={contributor.userName} />
                   ) : (
                     <div className="avatar-placeholder">
-                      {contributor.name.charAt(0).toUpperCase()}
+                      {contributor.userName.charAt(0).toUpperCase()}
                     </div>
                   )}
                 </div>
                 <div className="contributor-info">
-                  <span className="contributor-name">{contributor.name}</span>
+                  <span className="contributor-name">{contributor.userName}</span>
                   <span className="contributor-stats">
-                    {formatNumber(contributor.postsCount)} posts • {formatNumber(contributor.interactions)} interactions
+                    {formatNumber(contributor.postsCount)} posts • {formatNumber(contributor.interactions || contributor.commentsCount)} interactions
                   </span>
                 </div>
                 <div className="contributor-score">
-                  {formatNumber(contributor.engagementScore)}
+                  {formatNumber(contributor.engagementScore || contributor.likesReceived)}
                 </div>
               </div>
             ))}
@@ -255,16 +257,16 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                 <div className="topic-stats">
                   <div className="topic-stat">
                     <span className="stat-label">Posts</span>
-                    <span className="stat-value">{formatNumber(topic.postsCount)}</span>
+                    <span className="stat-value">{formatNumber(topic.postsCount || topic.count)}</span>
                   </div>
                   <div className="topic-stat">
                     <span className="stat-label">Interactions</span>
-                    <span className="stat-value">{formatNumber(topic.interactions)}</span>
+                    <span className="stat-value">{formatNumber(topic.interactions || topic.count)}</span>
                   </div>
                 </div>
                 <div className="topic-trend">
-                  <span className={`trend-indicator ${topic.trend >= 0 ? 'up' : 'down'}`}>
-                    {topic.trend >= 0 ? '📈' : '📉'} {Math.abs(topic.trend)}%
+                  <span className={`trend-indicator ${topic.trend === 'up' ? 'up' : 'down'}`}>
+                    {topic.trend === 'up' ? '📈' : topic.trend === 'down' ? '📉' : '➡️'} {topic.trend}
                   </span>
                 </div>
               </div>
@@ -350,7 +352,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
         <div className="analytics-info">
           <p>
-            <strong>Last updated:</strong> {new Date(analytics.lastUpdated).toLocaleString()}
+            <strong>Last updated:</strong> {analytics.lastUpdated ? new Date(analytics.lastUpdated).toLocaleString() : 'Never'}
           </p>
           <p>
             <strong>Time period:</strong> {getTimeRangeLabel(selectedTimeRange)}

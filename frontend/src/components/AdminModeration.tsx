@@ -10,7 +10,8 @@ import {
   getModerationLog,
   CommunityStats,
   ReportedContent,
-  ModerationAction
+  ModerationAction,
+  ModerationActionType
 } from '../services/postApi';
 import './AdminModeration.css';
 
@@ -50,10 +51,10 @@ const AdminModeration: React.FC = () => {
     }
   };
 
-  const handleModerateContent = async (reportId: string, action: ModerationAction, reason?: string) => {
+  const handleModerateContent = async (reportId: string, action: ModerationActionType, reason?: string) => {
     try {
       setActionLoading(reportId);
-      await moderateContent(reportId, action, reason);
+      await moderateContent(reportId, action, reason || '');
 
       // Refresh the reports list
       const updatedReports = await getReportedContent();
@@ -74,11 +75,11 @@ const AdminModeration: React.FC = () => {
       setActionLoading(userId);
 
       if (action === 'ban') {
-        await banUser(userId, reason);
+        await banUser(userId, reason || 'No reason provided');
       } else if (action === 'unban') {
         await unbanUser(userId);
       } else if (action === 'warn') {
-        await warnUser(userId, reason);
+        await warnUser(userId, reason || 'No reason provided');
       }
 
       // Refresh data
@@ -91,7 +92,7 @@ const AdminModeration: React.FC = () => {
     }
   };
 
-  const getActionColor = (action: ModerationAction) => {
+  const getActionColor = (action: ModerationActionType) => {
     switch (action) {
       case 'approve': return '#4caf50';
       case 'remove': return '#f44336';
@@ -101,7 +102,7 @@ const AdminModeration: React.FC = () => {
     }
   };
 
-  const getActionIcon = (action: ModerationAction) => {
+  const getActionIcon = (action: ModerationActionType) => {
     switch (action) {
       case 'approve': return '✅';
       case 'remove': return '🗑️';
@@ -207,14 +208,14 @@ const AdminModeration: React.FC = () => {
                   <div key={report.id} className="report-card">
                     <div className="report-header">
                       <div className="report-meta">
-                        <span className="report-type">{report.reportType}</span>
+                        <span className="report-type">{report.reportType || report.contentType}</span>
                         <span className="report-date">
-                          Reported {new Date(report.reportedAt).toLocaleDateString()}
+                          Reported {new Date(report.reportedAt || report.createdAt).toLocaleDateString()}
                         </span>
                       </div>
                       <div className="report-priority">
-                        <span className={`priority-badge ${report.priority}`}>
-                          {report.priority.toUpperCase()}
+                        <span className={`priority-badge ${report.priority || 'medium'}`}>
+                          {(report.priority || 'medium').toUpperCase()}
                         </span>
                       </div>
                     </div>
@@ -223,19 +224,19 @@ const AdminModeration: React.FC = () => {
                       <div className="reported-item">
                         <div className="item-header">
                           <div className="user-info">
-                            <span className="user-name">{report.reportedUserName}</span>
+                            <span className="user-name">{report.reportedUserName || 'Unknown User'}</span>
                             <span className="item-type">{report.contentType}</span>
                           </div>
                         </div>
                         <div className="item-content">
-                          {report.contentPreview}
+                          {report.contentPreview || 'Content preview not available'}
                         </div>
                       </div>
 
                       <div className="report-details">
                         <div className="reporter-info">
                           <span className="reporter-label">Reported by:</span>
-                          <span className="reporter-name">{report.reporterName}</span>
+                          <span className="reporter-name">{report.reporterName || 'Anonymous'}</span>
                         </div>
                         <div className="report-reason">
                           <span className="reason-label">Reason:</span>

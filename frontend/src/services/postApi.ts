@@ -102,12 +102,18 @@ export const searchPosts = async (
   size: number = 20,
   filters?: PostSearchFilters
 ): Promise<FeedResponse> => {
-  const params = new URLSearchParams({
-    query,
-    page: page.toString(),
-    size: size.toString(),
-    ...filters
-  });
+  const params = new URLSearchParams();
+  params.append('query', query);
+  params.append('page', page.toString());
+  params.append('size', size.toString());
+  
+  if (filters) {
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        params.append(key, value.toString());
+      }
+    });
+  }
 
   const response = await api.get('/posts/search', { params });
   return response.data;
@@ -268,4 +274,168 @@ export const invalidateFeedCache = (): void => {
 
 export const invalidateCommentsCache = (postId: string): void => {
   console.log(`Invalidating comments cache for post ${postId}`);
+};
+
+// ========== USER PROFILE OPERATIONS ==========
+
+export const getUserProfile = async (userId: string): Promise<any> => {
+  const response = await api.get(`/users/${userId}`);
+  return response.data;
+};
+
+export const updateUserProfile = async (userId: string, profileData: any): Promise<any> => {
+  const response = await api.put(`/users/${userId}`, profileData);
+  return response.data;
+};
+
+export const uploadProfilePicture = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post('/users/profile-picture', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+  return response.data.url;
+};
+
+export const followUser = async (userId: string): Promise<void> => {
+  await api.post(`/users/${userId}/follow`);
+};
+
+export const unfollowUser = async (userId: string): Promise<void> => {
+  await api.delete(`/users/${userId}/follow`);
+};
+
+// ========== ADMIN & MODERATION OPERATIONS ==========
+
+export interface ReportedContent {
+  id: string;
+  contentType: 'POST' | 'COMMENT';
+  contentId: string;
+  reportedBy: string;
+  reportedUserName?: string;
+  reporterName?: string;
+  reason: string;
+  status: 'PENDING' | 'REVIEWED' | 'RESOLVED';
+  createdAt: string;
+  reportedAt?: string;
+  reportType?: string;
+  priority?: 'low' | 'medium' | 'high';
+  contentPreview?: string;
+  additionalInfo?: string;
+}
+
+export interface CommunityStats {
+  totalUsers: number;
+  totalPosts: number;
+  totalComments: number;
+  activeUsers: number;
+  reportsCount: number;
+  activeReports?: number;
+  moderatedToday?: number;
+  bannedUsers?: number;
+  totalReportsHandled?: number;
+  reportsThisWeek?: number;
+  contentRemoved?: number;
+  removalRate?: number;
+  warningsIssued?: number;
+  warningsThisWeek?: number;
+  banRate?: number;
+}
+
+export type ModerationActionType = 'approve' | 'remove' | 'hide' | 'warn' | 'ban' | 'unban';
+
+export interface ModerationAction {
+  id: string;
+  moderatorId: string;
+  action: ModerationActionType;
+  targetId: string;
+  reason: string;
+  createdAt: string;
+}
+
+export const getReportedContent = async (): Promise<ReportedContent[]> => {
+  const response = await api.get('/admin/reports');
+  return response.data;
+};
+
+export const moderateContent = async (contentId: string, action: ModerationActionType, reason: string): Promise<void> => {
+  await api.post(`/admin/moderate/${contentId}`, { action, reason });
+};
+
+export const getCommunityStats = async (): Promise<CommunityStats> => {
+  const response = await api.get('/admin/stats');
+  return response.data;
+};
+
+export const banUser = async (userId: string, reason: string): Promise<void> => {
+  await api.post(`/admin/users/${userId}/ban`, { reason });
+};
+
+export const unbanUser = async (userId: string): Promise<void> => {
+  await api.delete(`/admin/users/${userId}/ban`);
+};
+
+export const warnUser = async (userId: string, message: string): Promise<void> => {
+  await api.post(`/admin/users/${userId}/warn`, { message });
+};
+
+export const getModerationLog = async (): Promise<ModerationAction[]> => {
+  const response = await api.get('/admin/moderation-log');
+  return response.data;
+};
+
+// ========== ANALYTICS OPERATIONS ==========
+
+export interface AnalyticsData {
+  totalPosts: number;
+  totalComments: number;
+  totalLikes: number;
+  totalShares: number;
+  activeUsers: number;
+  totalMembers?: number;
+  memberGrowth?: number;
+  postGrowth?: number;
+  totalInteractions?: number;
+  interactionGrowth?: number;
+  engagementRate?: number;
+  engagementChange?: number;
+  prayerRequests?: number;
+  testimonies?: number;
+  announcements?: number;
+  answeredPrayers?: number;
+  lastUpdated?: string;
+  activityData: Array<{
+    date: string;
+    posts: number;
+    comments: number;
+    likes: number;
+  }>;
+  contentCategories: Array<{
+    name: string;
+    count: number;
+    percentage: number;
+  }>;
+  topContributors: Array<{
+    userId: string;
+    userName: string;
+    name?: string; // Alias for userName
+    profilePicUrl?: string;
+    postsCount: number;
+    commentsCount: number;
+    likesReceived: number;
+    interactions?: number;
+    engagementScore?: number;
+  }>;
+  popularTopics: Array<{
+    hashtag: string;
+    count: number;
+    trend: 'up' | 'down' | 'stable';
+    postsCount?: number;
+    interactions?: number;
+  }>;
+}
+
+export const getAnalyticsData = async (): Promise<AnalyticsData> => {
+  const response = await api.get('/admin/analytics');
+  return response.data;
 };

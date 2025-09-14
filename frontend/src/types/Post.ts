@@ -1,5 +1,20 @@
 // Post-related TypeScript interfaces for Church App Social Feed
 
+// Define User interface here for convenience
+export interface User {
+  userId: string;
+  id: string; // Alias for userId for compatibility
+  email: string;
+  name: string;
+  role: string;
+  profilePicUrl?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  interests?: string[];
+  createdAt?: string;
+}
+
 export enum PostType {
   GENERAL = 'GENERAL',
   PRAYER = 'PRAYER',
@@ -64,6 +79,7 @@ export interface Comment {
   // Computed fields
   isLikedByCurrentUser?: boolean;
   repliesCount?: number;
+  replies?: Comment[];
 }
 
 export interface PostLike {

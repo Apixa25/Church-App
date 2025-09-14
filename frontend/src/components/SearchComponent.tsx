@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { searchPosts, getFeed } from '../services/postApi';
-import { Post, FeedType, PostSearchFilters } from '../types/Post';
+import { Post, PostSearchFilters } from '../types/Post';
 import PostCard from './PostCard';
 import './SearchComponent.css';
 
@@ -27,7 +27,7 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
   const [showFilters, setShowFilters] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Popular search terms and hashtags for church community
   const popularSearches = [
@@ -54,6 +54,27 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
     }
   }, [isOpen, initialQuery]);
 
+  const performSearch = useCallback(async () => {
+    if (!query.trim()) return;
+
+    setIsSearching(true);
+    try {
+      const filters: PostSearchFilters = {
+        ...searchFilters,
+        query: query.trim()
+      };
+
+      const response = await searchPosts(query, 0, 20, filters);
+      setSearchResults(response.content);
+      setHasSearched(true);
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, [query, searchFilters]);
+
   useEffect(() => {
     // Debounced search
     if (searchTimeoutRef.current) {
@@ -74,7 +95,7 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [query, searchFilters]);
+  }, [query, searchFilters, performSearch]);
 
   const loadTrendingPosts = async () => {
     try {
@@ -82,27 +103,6 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
       setTrendingPosts(response.content);
     } catch (error) {
       console.error('Error loading trending posts:', error);
-    }
-  };
-
-  const performSearch = async () => {
-    if (!query.trim()) return;
-
-    setIsSearching(true);
-    try {
-      const filters: PostSearchFilters = {
-        ...searchFilters,
-        query: query.trim()
-      };
-
-      const response = await searchPosts(query, 0, 20, filters);
-      setSearchResults(response.content);
-      setHasSearched(true);
-    } catch (error) {
-      console.error('Search error:', error);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
     }
   };
 
@@ -118,12 +118,6 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
     }));
   };
 
-  const handlePostClick = (post: Post) => {
-    if (onPostSelect) {
-      onPostSelect(post);
-    }
-    onClose();
-  };
 
   const clearSearch = () => {
     setQuery('');

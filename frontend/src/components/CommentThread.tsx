@@ -55,7 +55,7 @@ const CommentThread: React.FC<CommentThreadProps> = ({
     try {
       const comment = await addComment(postId, {
         content: content.trim(),
-        parentCommentId,
+        parentCommentId: parentCommentId || undefined,
         anonymous: false
       });
 
