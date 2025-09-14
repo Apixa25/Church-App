@@ -60,6 +60,22 @@ public class UserProfileService {
             user.setInterests(request.getInterests().trim().isEmpty() ? null : request.getInterests().trim());
         }
         
+        if (request.getPhoneNumber() != null) {
+            user.setPhoneNumber(request.getPhoneNumber().trim().isEmpty() ? null : request.getPhoneNumber().trim());
+        }
+        
+        if (request.getAddress() != null) {
+            user.setAddress(request.getAddress().trim().isEmpty() ? null : request.getAddress().trim());
+        }
+        
+        if (request.getBirthday() != null) {
+            user.setBirthday(request.getBirthday());
+        }
+        
+        if (request.getSpiritualGift() != null) {
+            user.setSpiritualGift(request.getSpiritualGift().trim().isEmpty() ? null : request.getSpiritualGift().trim());
+        }
+        
         // Only allow role updates for admins or specific business logic
         if (request.getRole() != null) {
             user.setRole(request.getRole());

@@ -4,6 +4,8 @@ import com.churchapp.entity.User;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.time.LocalDate;
+
 @Data
 public class UserProfileRequest {
     
@@ -20,6 +22,17 @@ public class UserProfileRequest {
     private String website;
     
     private String interests; // JSON string of interests array
+    
+    @Size(max = 20, message = "Phone number must be less than 20 characters")
+    private String phoneNumber;
+    
+    @Size(max = 500, message = "Address must be less than 500 characters")
+    private String address;
+    
+    private LocalDate birthday;
+    
+    @Size(max = 255, message = "Spiritual gift must be less than 255 characters")
+    private String spiritualGift;
     
     private User.UserRole role;
     

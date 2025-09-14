@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -52,6 +53,18 @@ public class User {
     
     @Column(name = "interests", columnDefinition = "TEXT")
     private String interests; // JSON string of interests array
+    
+    @Column(name = "phone_number", length = 20)
+    private String phoneNumber;
+    
+    @Column(name = "address", length = 500)
+    private String address;
+    
+    @Column(name = "birthday")
+    private LocalDate birthday;
+    
+    @Column(name = "spiritual_gift", length = 255)
+    private String spiritualGift;
     
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)

@@ -244,6 +244,38 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
             </div>
           )}
 
+          {/* Phone Number */}
+          {profile.phoneNumber && (
+            <div className="profile-section">
+              <h3>📞 Phone Number</h3>
+              <p>{profile.phoneNumber}</p>
+            </div>
+          )}
+
+          {/* Address */}
+          {profile.address && (
+            <div className="profile-section">
+              <h3>🏠 Address</h3>
+              <p className="profile-address">{profile.address}</p>
+            </div>
+          )}
+
+          {/* Birthday */}
+          {profile.birthday && (
+            <div className="profile-section">
+              <h3>🎂 Birthday</h3>
+              <p>{formatFullDate(profile.birthday)}</p>
+            </div>
+          )}
+
+          {/* Spiritual Gift */}
+          {profile.spiritualGift && (
+            <div className="profile-section">
+              <h3>✨ Spiritual Gift</h3>
+              <p className="spiritual-gift">{profile.spiritualGift}</p>
+            </div>
+          )}
+
           <div className="profile-section">
             <h3>📅 Member Since</h3>
             <p>{formatFullDate(profile.createdAt)}</p>
