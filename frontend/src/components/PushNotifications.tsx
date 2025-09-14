@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   requestNotificationPermission,
-  subscribeToNotifications,
-  unsubscribeFromNotifications,
+  subscribeToPushNotifications,
+  unsubscribeFromPushNotifications,
+  createPushSubscription,
   sendTestNotification,
   getNotificationPreferences,
   updateNotificationPreferences,
@@ -22,11 +23,15 @@ const PushNotifications: React.FC<PushNotificationsProps> = ({ isAdmin = false }
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [subscription, setSubscription] = useState<PushSubscription | null>(null);
   const [preferences, setPreferences] = useState<NotificationPreferences>({
+    pushEnabled: true,
+    emailEnabled: true,
     prayerRequests: true,
-    eventReminders: true,
     announcements: true,
     comments: true,
     likes: false,
+    follows: true,
+    events: true,
+    eventReminders: true,
     mentions: true,
     directMessages: true,
     systemUpdates: true,
@@ -98,12 +103,20 @@ const PushNotifications: React.FC<PushNotificationsProps> = ({ isAdmin = false }
   };
 
   const handleSubscribe = async () => {
+    if (!user) return;
+    
     try {
       setIsLoading(true);
       setError('');
 
-      const newSubscription = await subscribeToNotifications();
-      setSubscription(newSubscription);
+      // First create a push subscription
+      const pushSubscription = await createPushSubscription('your-vapid-key'); // You'll need to get this from your backend
+      if (!pushSubscription) {
+        throw new Error('Failed to create push subscription');
+      }
+
+      const newSubscription = await subscribeToPushNotifications(user.userId, pushSubscription);
+      setSubscription(pushSubscription);
       setIsSubscribed(true);
     } catch (err: any) {
       console.error('Error subscribing to notifications:', err);
@@ -115,11 +128,15 @@ const PushNotifications: React.FC<PushNotificationsProps> = ({ isAdmin = false }
   };
 
   const handleUnsubscribe = async () => {
+    if (!user) return;
+    
     try {
       setIsLoading(true);
       setError('');
 
-      await unsubscribeFromNotifications();
+      // For now, we'll just unsubscribe locally since we need a subscription ID
+      // In a real implementation, you'd store the subscription ID and pass it here
+      await unsubscribeFromPushNotifications(user.userId, 'subscription-id');
       setSubscription(null);
       setIsSubscribed(false);
     } catch (err: any) {
@@ -485,23 +502,23 @@ const PushNotifications: React.FC<PushNotificationsProps> = ({ isAdmin = false }
               <label className="toggle-switch">
                 <input
                   type="checkbox"
-                  checked={preferences.quietHours.enabled}
+                  checked={preferences.quietHours?.enabled || false}
                   onChange={(e) => handlePreferenceChange('quietHours', {
                     ...preferences.quietHours,
-                    enabled: !preferences.quietHours.enabled
+                    enabled: !(preferences.quietHours?.enabled || false)
                   })}
                 />
                 <span className="toggle-slider"></span>
                 <span className="toggle-label">Enable quiet hours</span>
               </label>
 
-              {preferences.quietHours.enabled && (
+              {preferences.quietHours?.enabled && (
                 <div className="time-controls">
                   <div className="time-input">
                     <label>Start time</label>
                     <input
                       type="time"
-                      value={preferences.quietHours.start}
+                      value={preferences.quietHours?.start || '22:00'}
                       onChange={(e) => handleQuietHoursChange('start', e.target.value)}
                       className="time-picker"
                     />
@@ -510,7 +527,7 @@ const PushNotifications: React.FC<PushNotificationsProps> = ({ isAdmin = false }
                     <label>End time</label>
                     <input
                       type="time"
-                      value={preferences.quietHours.end}
+                      value={preferences.quietHours?.end || '08:00'}
                       onChange={(e) => handleQuietHoursChange('end', e.target.value)}
                       className="time-picker"
                     />

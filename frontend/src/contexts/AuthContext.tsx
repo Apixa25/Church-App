@@ -4,10 +4,22 @@ import webSocketService from '../services/websocketService';
 
 export interface User {
   userId: string;
+  id: string; // Alias for userId for compatibility
   email: string;
   name: string;
   role: string;
   profilePicUrl?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  interests?: string[];
+  createdAt?: string;
+  // Social properties
+  username?: string;
+  isVerified?: boolean;
+  followerCount?: number;
+  followingCount?: number;
+  postsCount?: number;
 }
 
 interface AuthContextType {
@@ -18,6 +30,7 @@ interface AuthContextType {
   logout: () => void;
   loading: boolean;
   isAuthenticated: boolean;
+  updateUser?: (userData: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,6 +43,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const updateUser = (userData: Partial<User>) => {
+    setUser(prevUser => prevUser ? { ...prevUser, ...userData } : null);
+  };
 
   const isAuthenticated = Boolean(user && token);
 
@@ -57,6 +74,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const userData: User = {
         userId: authData.userId,
+        id: authData.userId, // Alias for compatibility
         email: authData.email,
         name: authData.name,
         role: authData.role,
@@ -91,6 +109,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const userData: User = {
         userId: authData.userId,
+        id: authData.userId, // Alias for compatibility
         email: authData.email,
         name: authData.name,
         role: authData.role,
@@ -138,6 +157,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     loading,
     isAuthenticated,
+    updateUser
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

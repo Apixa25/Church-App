@@ -1,0 +1,140 @@
+/* Empty Feed State Styles */
+.empty-feed-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  min-height: 400px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+  margin: 1rem 0;
+  border: 2px dashed #dee2e6;
+}
+
+.empty-feed-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.7;
+}
+
+.empty-feed-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.5rem;
+}
+
+.empty-feed-message {
+  font-size: 1rem;
+  color: #6c757d;
+  margin-bottom: 2rem;
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.empty-feed-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.empty-feed-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.empty-feed-button.primary {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+}
+
+.empty-feed-button.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.empty-feed-button.secondary {
+  background: white;
+  color: #6c757d;
+  border: 2px solid #dee2e6;
+}
+
+.empty-feed-button.secondary:hover {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+  transform: translateY(-1px);
+}
+
+.empty-feed-suggestions {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #dee2e6;
+}
+
+.empty-feed-suggestions h4 {
+  font-size: 1.1rem;
+  color: #495057;
+  margin-bottom: 1rem;
+}
+
+.suggestion-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.suggestion-tag {
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.suggestion-tag:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+  transform: translateY(-1px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .empty-feed-state {
+    padding: 2rem 1rem;
+    min-height: 300px;
+  }
+  
+  .empty-feed-icon {
+    font-size: 3rem;
+  }
+  
+  .empty-feed-title {
+    font-size: 1.3rem;
+  }
+  
+  .empty-feed-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .empty-feed-button {
+    width: 100%;
+    max-width: 200px;
+    justify-content: center;
+  }
+}

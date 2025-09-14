@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { User } from '../types/Post';
+import { UserProfile } from '../types/Profile';
 import { updateUserProfile, uploadProfilePicture } from '../services/postApi';
 import './ProfileEdit.css';
 
@@ -13,7 +14,17 @@ interface ProfileFormData {
   interests: string[];
 }
 
-const ProfileEdit: React.FC = () => {
+interface ProfileEditProps {
+  profile?: UserProfile;
+  onProfileUpdate?: (updatedProfile: UserProfile) => void;
+  onCancel?: () => void;
+}
+
+const ProfileEdit: React.FC<ProfileEditProps> = ({ 
+  profile: externalProfile, 
+  onProfileUpdate, 
+  onCancel 
+}) => {
   const { user, updateUser } = useAuth();
   const navigate = useNavigate();
 
@@ -25,7 +36,7 @@ const ProfileEdit: React.FC = () => {
     interests: []
   });
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
@@ -35,22 +46,23 @@ const ProfileEdit: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load current user data
+  // Load current user data or external profile
   useEffect(() => {
-    if (user) {
+    const profileToUse = externalProfile || user;
+    if (profileToUse) {
       setFormData({
-        name: user.name || '',
-        bio: user.bio || '',
-        location: user.location || '',
-        website: user.website || '',
-        interests: user.interests || []
+        name: profileToUse.name || '',
+        bio: profileToUse.bio || '',
+        location: (profileToUse as User).location || '',
+        website: (profileToUse as User).website || '',
+        interests: (profileToUse as User).interests || []
       });
 
-      if (user.profilePicUrl) {
-        setProfilePicPreview(user.profilePicUrl);
+      if (profileToUse.profilePicUrl) {
+        setProfilePicPreview(profileToUse.profilePicUrl);
       }
     }
-  }, [user]);
+  }, [user, externalProfile]);
 
   const handleInputChange = (field: keyof ProfileFormData, value: string | string[]) => {
     setFormData(prev => ({
@@ -151,7 +163,7 @@ const ProfileEdit: React.FC = () => {
       let profilePicUrl = user.profilePicUrl;
       if (profilePicFile) {
         const uploadResult = await uploadProfilePicture(profilePicFile);
-        profilePicUrl = uploadResult.url;
+        profilePicUrl = uploadResult;
       }
 
       // Update profile data
@@ -161,10 +173,30 @@ const ProfileEdit: React.FC = () => {
         interests: formData.interests
       };
 
-      const result = await updateUserProfile(updatedProfile);
+      const result = await updateUserProfile(user!.userId, updatedProfile);
 
       // Update local user state
-      updateUser(result);
+      if (updateUser) {
+        updateUser(result);
+      }
+
+      // Call external callback if provided
+      if (onProfileUpdate && externalProfile) {
+        const updatedUserProfile: UserProfile = {
+          userId: externalProfile.userId,
+          email: externalProfile.email,
+          name: result.name,
+          bio: result.bio,
+          role: externalProfile.role,
+          profilePicUrl: result.profilePicUrl,
+          createdAt: externalProfile.createdAt,
+          updatedAt: new Date().toISOString(),
+          lastLogin: externalProfile.lastLogin
+        };
+        onProfileUpdate(updatedUserProfile);
+        if (onCancel) onCancel();
+        return;
+      }
 
       setSuccess('Profile updated successfully!');
 
@@ -182,7 +214,11 @@ const ProfileEdit: React.FC = () => {
   };
 
   const handleCancel = () => {
-    navigate(`/profile/${user?.id}`);
+    if (onCancel) {
+      onCancel();
+    } else {
+      navigate(`/profile/${user?.id}`);
+    }
   };
 
   const removeProfilePicture = () => {
