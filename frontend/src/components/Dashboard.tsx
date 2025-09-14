@@ -23,7 +23,7 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [feedView, setFeedView] = useState<'activity' | 'social'>('social'); // Default to social feed
-  const [feedType] = useState<FeedType>(FeedType.CHRONOLOGICAL);
+  const [feedType, setFeedType] = useState<FeedType>(FeedType.CHRONOLOGICAL); // Make feedType dynamic
   const [showComposer, setShowComposer] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
 
@@ -72,6 +72,10 @@ const Dashboard: React.FC = () => {
 
   const handleFeedViewChange = (view: 'activity' | 'social') => {
     setFeedView(view);
+  };
+
+  const handleFeedTypeChange = (newFeedType: FeedType) => {
+    setFeedType(newFeedType);
   };
 
   const formatLastRefresh = () => {
@@ -195,6 +199,7 @@ const Dashboard: React.FC = () => {
                   feedType={feedType}
                   showFilters={true}
                   maxPosts={50}
+                  onFeedTypeChange={handleFeedTypeChange}
                   onPostUpdate={(postId, updatedPost) => {
                     // Handle post updates in dashboard context
                     console.log('Post updated in dashboard:', postId, updatedPost);
