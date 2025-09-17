@@ -47,6 +47,7 @@ const ResourceDetail: React.FC<ResourceDetailProps> = ({
         youtubeTitle: response.data.youtubeTitle,
         fileType: response.data.fileType
       });
+      console.log('🔍 Date field:', response.data.createdAt, 'type:', typeof response.data.createdAt);
       setResource(response.data);
     } catch (error: any) {
       console.error('❌ ResourceDetail: Error loading resource:', error);
@@ -102,8 +103,50 @@ const ResourceDetail: React.FC<ResourceDetailProps> = ({
     return resource.uploadedById === user.userId || isAdmin || isModerator;
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (dateInput: any) => {
+    if (!dateInput) {
+      console.warn('ResourceDetail formatDate: No date input provided');
+      return 'Unknown Date';
+    }
+    
+    console.log('ResourceDetail formatDate input:', dateInput, 'type:', typeof dateInput, 'isArray:', Array.isArray(dateInput));
+    
+    let date: Date;
+    
+    // Handle LocalDateTime array format: [year, month, day, hour, minute, second, nanoseconds]
+    if (Array.isArray(dateInput) && dateInput.length >= 6) {
+      // Convert array to Date (month is 0-indexed in JavaScript)
+      const [year, month, day, hour, minute, second] = dateInput;
+      date = new Date(year, month - 1, day, hour, minute, second);
+      console.log('ResourceDetail parsed from array:', date, 'isValid:', !isNaN(date.getTime()));
+    } else if (typeof dateInput === 'string') {
+      // Handle string dates
+      date = new Date(dateInput);
+      
+      // If that fails, try parsing as ISO string without timezone
+      if (isNaN(date.getTime()) && dateInput.includes('T')) {
+        const withoutTimezone = dateInput.split(/[+-]\d{2}:\d{2}$/)[0];
+        date = new Date(withoutTimezone);
+      }
+      
+      // If still fails, try parsing just the date part
+      if (isNaN(date.getTime()) && dateInput.includes('T')) {
+        const datePart = dateInput.split('T')[0];
+        date = new Date(datePart);
+      }
+      
+      console.log('ResourceDetail parsed from string:', date, 'isValid:', !isNaN(date.getTime()));
+    } else {
+      console.error('ResourceDetail unsupported date format:', dateInput);
+      return 'Invalid Date';
+    }
+    
+    if (isNaN(date.getTime())) {
+      console.error('ResourceDetail invalid date:', dateInput);
+      return 'Invalid Date';
+    }
+    
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
