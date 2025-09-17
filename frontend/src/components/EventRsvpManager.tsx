@@ -162,7 +162,7 @@ const EventRsvpManager: React.FC<EventRsvpManagerProps> = ({
       {error && (
         <div className="error-message">
           <span>{error}</span>
-          <button onClick={() => setError(null)}>✕</button>
+          <button type="button" onClick={() => setError(null)}>✕</button>
         </div>
       )}
 
@@ -218,6 +218,7 @@ const EventRsvpManager: React.FC<EventRsvpManagerProps> = ({
           {canUserRsvp() && (
             <div className="rsvp-actions">
               <button 
+                type="button"
                 className="btn btn-secondary"
                 onClick={() => setShowRsvpForm(!showRsvpForm)}
                 disabled={loading}
@@ -225,6 +226,7 @@ const EventRsvpManager: React.FC<EventRsvpManagerProps> = ({
                 Change RSVP
               </button>
               <button 
+                type="button"
                 className="btn btn-outline"
                 onClick={handleRsvpDelete}
                 disabled={loading}
@@ -240,6 +242,7 @@ const EventRsvpManager: React.FC<EventRsvpManagerProps> = ({
             <div>
               <p>You haven't responded to this event yet.</p>
               <button 
+                type="button"
                 className="btn btn-primary"
                 onClick={() => setShowRsvpForm(true)}
                 disabled={loading}
@@ -263,6 +266,7 @@ const EventRsvpManager: React.FC<EventRsvpManagerProps> = ({
           {/* Response Options */}
           <div className="rsvp-options">
             <button
+              type="button"
               className={getRsvpButtonStyle(RsvpResponse.YES)}
               onClick={() => handleRsvpSubmit(RsvpResponse.YES)}
               disabled={loading}
@@ -270,6 +274,7 @@ const EventRsvpManager: React.FC<EventRsvpManagerProps> = ({
               ✅ I'm Going
             </button>
             <button
+              type="button"
               className={getRsvpButtonStyle(RsvpResponse.MAYBE)}
               onClick={() => handleRsvpSubmit(RsvpResponse.MAYBE)}
               disabled={loading}
@@ -277,6 +282,7 @@ const EventRsvpManager: React.FC<EventRsvpManagerProps> = ({
               ❓ Maybe
             </button>
             <button
+              type="button"
               className={getRsvpButtonStyle(RsvpResponse.NO)}
               onClick={() => handleRsvpSubmit(RsvpResponse.NO)}
               disabled={loading}
@@ -323,6 +329,7 @@ const EventRsvpManager: React.FC<EventRsvpManagerProps> = ({
           {/* Form Actions */}
           <div className="form-actions">
             <button 
+              type="button"
               className="btn btn-secondary"
               onClick={() => setShowRsvpForm(false)}
               disabled={loading}

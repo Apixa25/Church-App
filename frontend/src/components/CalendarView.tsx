@@ -13,6 +13,7 @@ interface CalendarViewProps {
   onEventSelect: (event: Event) => void;
   onEventUpdate: (event: Event) => void;
   onEventDelete: (eventId: string) => void;
+  onRsvpUpdate?: (event: Event) => void;
   onCreateEvent?: (date: Date) => void;
 }
 
@@ -23,6 +24,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   onEventSelect,
   onEventUpdate,
   onEventDelete,
+  onRsvpUpdate,
   onCreateEvent
 }) => {
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month');
@@ -166,6 +168,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       onSelect={() => onEventSelect(event)}
                       onUpdate={onEventUpdate}
                       onDelete={onEventDelete}
+                      onRsvpUpdate={onRsvpUpdate}
                       compact={true}
                     />
                   ))}

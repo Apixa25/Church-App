@@ -8,6 +8,7 @@ interface EventListProps {
   onEventSelect: (event: Event) => void;
   onEventUpdate: (event: Event) => void;
   onEventDelete: (eventId: string) => void;
+  onRsvpUpdate?: (event: Event) => void;
   loading?: boolean;
 }
 
@@ -18,6 +19,7 @@ const EventList: React.FC<EventListProps> = ({
   onEventSelect,
   onEventUpdate,
   onEventDelete,
+  onRsvpUpdate,
   loading = false
 }) => {
   const [sortBy, setSortBy] = useState<SortOption>('date-asc');
@@ -193,6 +195,7 @@ const EventList: React.FC<EventListProps> = ({
                   onSelect={() => onEventSelect(event)}
                   onUpdate={onEventUpdate}
                   onDelete={onEventDelete}
+                  onRsvpUpdate={onRsvpUpdate}
                   showDate={true}
                   showTime={true}
                 />

@@ -148,6 +148,13 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
     setShowCreateForm(true);
   };
 
+  const handleRsvpUpdate = (updatedEvent: Event) => {
+    // Update the event in the local state without opening edit dialog
+    setEvents(prevEvents => 
+      prevEvents.map(e => e.id === updatedEvent.id ? updatedEvent : e)
+    );
+  };
+
   const handleEventDeleted = async (eventId: string) => {
     try {
       // Get current user info for debugging
@@ -299,6 +306,7 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
             onEventSelect={(event) => navigate(`/events/${event.id}`)}
             onEventUpdate={handleEditEvent}
             onEventDelete={handleEventDeleted}
+            onRsvpUpdate={handleRsvpUpdate}
             onCreateEvent={(date) => {
               setSelectedDate(date);
               setShowCreateForm(true);
@@ -310,6 +318,7 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
             onEventSelect={(event) => navigate(`/events/${event.id}`)}
             onEventUpdate={handleEditEvent}
             onEventDelete={handleEventDeleted}
+            onRsvpUpdate={handleRsvpUpdate}
             loading={loading}
           />
         )}

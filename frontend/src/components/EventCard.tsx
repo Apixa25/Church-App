@@ -10,6 +10,7 @@ interface EventCardProps {
   onSelect: () => void;
   onUpdate: (event: Event) => void;
   onDelete: (eventId: string) => void;
+  onRsvpUpdate?: (event: Event) => void;
   compact?: boolean;
   showDate?: boolean;
   showTime?: boolean;
@@ -20,6 +21,7 @@ const EventCard: React.FC<EventCardProps> = ({
   onSelect,
   onUpdate,
   onDelete,
+  onRsvpUpdate,
   compact = false,
   showDate = true,
   showTime = true
@@ -105,6 +107,7 @@ const EventCard: React.FC<EventCardProps> = ({
         {!compact && (
           <div className="event-actions" onClick={(e) => e.stopPropagation()}>
             <button 
+              type="button"
               className="action-btn" 
               title="Edit Event"
               onClick={() => onUpdate(event)}
@@ -112,6 +115,7 @@ const EventCard: React.FC<EventCardProps> = ({
               ✏️
             </button>
             <button 
+              type="button"
               className="action-btn delete"
               title="Delete Event"
               onClick={() => onDelete(event.id)}
@@ -209,6 +213,7 @@ const EventCard: React.FC<EventCardProps> = ({
           {!isEventPast(event.startTime) && (
             <div className="rsvp-actions">
               <button
+                type="button"
                 className="btn btn-primary"
                 onClick={() => setShowRsvpManager(!showRsvpManager)}
               >
@@ -224,7 +229,7 @@ const EventCard: React.FC<EventCardProps> = ({
         <div onClick={(e) => e.stopPropagation()}>
           <EventRsvpManager
             event={event}
-            onRsvpUpdate={onUpdate}
+            onRsvpUpdate={onRsvpUpdate || onUpdate}
             showGuestInput={true}
             showNotesInput={true}
           />
