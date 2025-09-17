@@ -67,10 +67,10 @@ public class FeedService {
     }
 
     /**
-     * Get trending feed - posts with high engagement in the last 24 hours
+     * Get trending feed - posts with high engagement in the last 7 days
      */
     private Page<Post> getTrendingFeed(Pageable pageable) {
-        LocalDateTime since = LocalDateTime.now().minusHours(24);
+        LocalDateTime since = LocalDateTime.now().minusDays(7);
         Page<Post> trendingPosts = postRepository.findTrendingPosts(since, pageable);
 
         log.debug("Found {} trending posts since {}", trendingPosts.getTotalElements(), since);

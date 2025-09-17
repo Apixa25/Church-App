@@ -24,7 +24,7 @@ const FeedFilters: React.FC<FeedFiltersProps> = ({
     {
       type: FeedType.TRENDING,
       label: 'Trending',
-      description: 'Popular Posts',
+      description: 'Popular (7 Days)',
       icon: '🔥',
       color: '#ff9800'
     }
