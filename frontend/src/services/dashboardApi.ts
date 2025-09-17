@@ -334,15 +334,6 @@ const dashboardApi = {
         buttonText: 'Browse Library',
         requiresAuth: true
       },
-      {
-        id: 'upload-resource',
-        title: 'Upload Resource',
-        description: 'Share a file or text resource with the community',
-        actionUrl: '/resources/create-file',
-        iconType: 'upload',
-        buttonText: 'Upload File',
-        requiresAuth: true
-      }
     ];
   },
 
