@@ -81,8 +81,16 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
       // Format dates properly for backend LocalDateTime parsing
       const formatDateForBackend = (date: Date): string => {
         // Format as: 2025-09-13T14:30:00.000
-        // This matches the backend Jackson configuration without timezone
-        return date.toISOString().slice(0, 23);
+        // CRITICAL FIX: Use local time components instead of toISOString() to avoid timezone conversion
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
+        
+        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}`;
       };
 
       const eventData: EventRequest = {
@@ -109,6 +117,17 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
         userSelectedDate: startTime.toLocaleDateString(),
         userSelectedTime: startTime.toLocaleTimeString(),
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        // ENHANCED DEBUG: Show the difference between old and new formatting
+        oldFormatting: startTime.toISOString().slice(0, 23),
+        newFormatting: eventData.startTime,
+        dateComponents: {
+          year: startTime.getFullYear(),
+          month: startTime.getMonth() + 1,
+          day: startTime.getDate(),
+          hours: startTime.getHours(),
+          minutes: startTime.getMinutes(),
+          seconds: startTime.getSeconds()
+        },
         allEventData: eventData
       });
       
