@@ -102,7 +102,7 @@ public class ChatGroup {
     // Helper methods
     public boolean isMember(User user) {
         return members.stream()
-            .anyMatch(member -> member.getUser().equals(user));
+            .anyMatch(member -> member.getUser().equals(user) && member.getIsActive());
     }
     
     public boolean isCreator(User user) {
