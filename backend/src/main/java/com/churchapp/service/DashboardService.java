@@ -8,6 +8,7 @@ import com.churchapp.dto.DashboardResponse.NotificationSummary;
 import com.churchapp.dto.DashboardResponse.NotificationSummary.NotificationPreview;
 import com.churchapp.entity.User;
 import com.churchapp.repository.UserRepository;
+import com.churchapp.repository.EventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,6 +27,7 @@ public class DashboardService {
     private final UserRepository userRepository;
     private final PrayerRequestService prayerRequestService;
     private final AnnouncementService announcementService;
+    private final EventRepository eventRepository;
     
     public DashboardResponse getDashboardData(String currentUserEmail) {
         User currentUser = userRepository.findByEmail(currentUserEmail)
@@ -111,6 +113,10 @@ public class DashboardService {
         long totalAnnouncements = announcementService.getAnnouncementCount();
         long pinnedAnnouncements = announcementService.getPinnedAnnouncementCount();
         
+        // Get upcoming events count - FIXED: Now actually counting upcoming events
+        LocalDateTime now = LocalDateTime.now();
+        long upcomingEvents = eventRepository.findUpcomingEvents(now, PageRequest.of(0, Integer.MAX_VALUE)).getTotalElements();
+        
         Map<String, Object> additionalStats = new HashMap<>();
         additionalStats.put("activeUsersToday", totalMembers); // Placeholder
         additionalStats.put("profileCompletionRate", "85%"); // Placeholder
@@ -123,7 +129,7 @@ public class DashboardService {
             activePrayerRequests + answeredPrayerRequests, // totalPrayerRequests
             activePrayerRequests, // Now using actual active prayer count
             answeredPrayerRequests, // Now using actual answered prayer count
-            0L, // Upcoming events - will be implemented in future sections
+            upcomingEvents, // FIXED: Now using actual upcoming events count
             totalAnnouncements, // Now using actual announcement count
             additionalStats
         );
