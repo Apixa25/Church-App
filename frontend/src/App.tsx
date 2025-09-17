@@ -16,6 +16,7 @@ import PrayerRequestDetail from './components/PrayerRequestDetail';
 import AnnouncementPage from './components/AnnouncementPage';
 import CalendarPage from './components/CalendarPage';
 import ResourcePage from './components/ResourcePage';
+import MyRSVPsPage from './components/MyRSVPsPage';
 import './App.css';
 
 const App: React.FC = () => {
@@ -166,6 +167,15 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <CalendarPage />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/my-rsvps" 
+              element={
+                <ProtectedRoute>
+                  <MyRSVPsPage />
                 </ProtectedRoute>
               } 
             />

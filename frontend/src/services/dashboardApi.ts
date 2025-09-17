@@ -282,7 +282,7 @@ const dashboardApi = {
         id: 'my-rsvps',
         title: 'My RSVPs',
         description: 'View events you\'ve RSVP\'d to',
-        actionUrl: '/events',
+        actionUrl: '/my-rsvps',
         iconType: 'rsvp',
         buttonText: 'My Events',
         requiresAuth: true
