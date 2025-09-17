@@ -172,7 +172,7 @@ public class PostService {
     }
 
     private Page<Post> getTrendingFeed(Pageable pageable) {
-        LocalDateTime since = LocalDateTime.now().minusHours(24);
+        LocalDateTime since = LocalDateTime.now().minusDays(7);
         return postRepository.findTrendingPosts(since, pageable);
     }
 

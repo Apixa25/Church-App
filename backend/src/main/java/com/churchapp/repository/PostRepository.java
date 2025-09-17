@@ -37,7 +37,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     @Query("SELECT p FROM Post p WHERE p.user.id IN :followingIds AND p.isReply = false AND p.isAnonymous = false ORDER BY p.createdAt DESC")
     Page<Post> findPostsByFollowingUsers(@Param("followingIds") List<UUID> followingIds, Pageable pageable);
 
-    // Trending posts (posts with high engagement in last 24 hours)
+    // Trending posts (posts with high engagement in last 7 days)
     @Query("SELECT p FROM Post p WHERE p.createdAt >= :since AND p.isAnonymous = false " +
            "ORDER BY (p.likesCount + p.commentsCount + p.sharesCount) DESC")
     Page<Post> findTrendingPosts(@Param("since") LocalDateTime since, Pageable pageable);
