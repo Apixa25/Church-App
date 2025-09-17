@@ -120,6 +120,24 @@ const ResourceList: React.FC<ResourceListProps> = ({
     }
   };
 
+  const handleDeleteResource = async (resource: Resource) => {
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete "${resource.title}"? This action cannot be undone.`
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      await resourceAPI.deleteResource(resource.id);
+      // Refresh the resource list
+      loadResources();
+      console.log('Resource deleted successfully:', resource.id);
+    } catch (error: any) {
+      console.error('Delete failed:', error);
+      onError(error.response?.data?.error || 'Failed to delete resource');
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -218,16 +236,28 @@ const ResourceList: React.FC<ResourceListProps> = ({
             </button>
           )}
           {canEditResource(resource) && (
-            <button
-              className="btn btn-sm btn-outline-secondary"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEditResource(resource);
-              }}
-              title="Edit resource"
-            >
-              ✏️
-            </button>
+            <>
+              <button
+                className="btn btn-sm btn-outline-secondary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditResource(resource);
+                }}
+                title="Edit resource"
+              >
+                ✏️
+              </button>
+              <button
+                className="btn btn-sm btn-outline-danger"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteResource(resource);
+                }}
+                title="Delete resource"
+              >
+                🗑️
+              </button>
+            </>
           )}
         </div>
       </div>
