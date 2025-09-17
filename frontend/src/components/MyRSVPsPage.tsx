@@ -20,7 +20,16 @@ const MyRSVPsPage: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      const response = await eventAPI.getUserRsvps();
+      // Use different API based on current filter
+      let response;
+      if (filter === 'upcoming') {
+        // Use dedicated upcoming API that only returns YES responses for future events
+        response = await eventAPI.getUserUpcomingRsvps();
+      } else {
+        // Use general API for all RSVPs (past, all)
+        response = await eventAPI.getUserRsvps();
+      }
+      
       setRsvps(response.data);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to load your RSVPs');
@@ -31,18 +40,30 @@ const MyRSVPsPage: React.FC = () => {
 
   useEffect(() => {
     loadRSVPs();
-  }, []);
+  }, [filter]); // Reload when filter changes
 
   // Filter RSVPs based on current filters
   const filteredRSVPs = rsvps.filter(rsvp => {
+    // For 'upcoming' filter, the API already returns only future YES responses
+    // So we only need to apply response filter if it's not 'all'
+    if (filter === 'upcoming') {
+      // The upcoming API already filters for future events and YES responses
+      // Only apply additional response filter if user wants to see specific responses
+      if (responseFilter !== 'all' && rsvp.response !== responseFilter) return false;
+      return true;
+    }
+
+    // For 'past' and 'all' filters, apply time-based filtering
     const now = new Date();
     const eventDate = new Date(rsvp.eventStartTime);
     const isUpcoming = eventDate > now;
     const isPast = eventDate <= now;
 
     // Time filter
-    if (filter === 'upcoming' && !isUpcoming) return false;
     if (filter === 'past' && !isPast) return false;
+    if (filter === 'all') {
+      // 'all' shows everything, so no time filtering needed
+    }
 
     // Response filter
     if (responseFilter !== 'all' && rsvp.response !== responseFilter) return false;
@@ -174,13 +195,13 @@ const MyRSVPsPage: React.FC = () => {
       {/* Filters */}
       <div className="rsvp-filters">
         <div className="filter-group">
-          <label>Time Period:</label>
+          <label>Event Filter:</label>
           <div className="filter-buttons">
             <button 
               className={filter === 'upcoming' ? 'active' : ''}
               onClick={() => setFilter('upcoming')}
             >
-              🔮 Upcoming
+              🔮 Attending
             </button>
             <button 
               className={filter === 'past' ? 'active' : ''}
