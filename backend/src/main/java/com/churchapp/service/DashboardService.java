@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -47,7 +48,7 @@ public class DashboardService {
         
         // Get recent user registrations (last 30 days)
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minus(30, ChronoUnit.DAYS);
-        Pageable recentUsersPageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable recentUsersPageable = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"));
         
         List<User> recentUsers = userRepository.findByCreatedAtAfterOrderByCreatedAtDesc(thirtyDaysAgo, recentUsersPageable);
         
@@ -73,26 +74,52 @@ public class DashboardService {
             ));
         }
         
-        // Add some system activities for demonstration
-        activities.add(DashboardActivityItem.systemActivity(
+        // Add some system activities for demonstration with varied timestamps
+        LocalDateTime now = LocalDateTime.now();
+        activities.add(new DashboardActivityItem(
+            UUID.randomUUID(),
+            "system",
             "Welcome to Church App!",
             "Your church community platform is ready for use",
-            "church"
+            "System",
+            null,
+            null,
+            now.minus(2, ChronoUnit.HOURS),
+            null,
+            "church",
+            null
         ));
         
-        activities.add(DashboardActivityItem.systemActivity(
-            "Prayer Requests Coming Soon",
+        activities.add(new DashboardActivityItem(
+            UUID.randomUUID(),
+            "system",
+            "Prayer Requests Available",
             "Share and support each other through prayer",
-            "prayer"
+            "System",
+            null,
+            null,
+            now.minus(1, ChronoUnit.HOURS),
+            null,
+            "prayer",
+            null
         ));
         
-        activities.add(DashboardActivityItem.systemActivity(
-            "Group Chats Coming Soon", 
+        activities.add(new DashboardActivityItem(
+            UUID.randomUUID(),
+            "system",
+            "Group Chats Available", 
             "Connect with your church family in real-time",
-            "chat"
+            "System",
+            null,
+            null,
+            now.minus(30, ChronoUnit.MINUTES),
+            null,
+            "chat",
+            null
         ));
         
-        // Sort by timestamp descending and limit to recent items
+        // ENHANCED: Sort by timestamp descending to ensure true chronological order
+        // This ensures all activity types are properly mixed by time, not grouped by type
         return activities.stream()
             .sorted((a, b) -> b.getTimestamp().compareTo(a.getTimestamp()))
             .limit(15)

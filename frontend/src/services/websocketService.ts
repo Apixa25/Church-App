@@ -98,20 +98,27 @@ class WebSocketService {
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
   private token: string | null = null;
+  private connectionPromise: Promise<void> | null = null;
 
   constructor() {
     this.token = localStorage.getItem('authToken');
   }
 
   connect(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      // Prevent multiple simultaneous connection attempts
-      if (this.isConnected && this.client?.connected) {
-        console.log('WebSocket already connected, reusing existing connection');
-        resolve();
-        return;
-      }
+    // If already connected, return immediately
+    if (this.isConnected && this.client?.connected) {
+      console.log('WebSocket already connected, reusing existing connection');
+      return Promise.resolve();
+    }
 
+    // If already connecting, return the existing promise
+    if (this.connectionPromise) {
+      console.log('WebSocket connection already in progress, waiting for existing connection...');
+      return this.connectionPromise;
+    }
+
+    // Create new connection promise
+    this.connectionPromise = new Promise<void>((resolve, reject) => {
       // If already connecting, wait for that connection
       if (this.client && this.client.state === 1) { // 1 = CONNECTING state
         console.log('WebSocket connection already in progress, waiting...');
@@ -149,11 +156,13 @@ class WebSocketService {
           console.log('WebSocket Connected:', frame);
           this.isConnected = true;
           this.reconnectAttempts = 0;
+          this.connectionPromise = null; // Clear the connection promise
           resolve();
         },
         onStompError: (frame: any) => {
           console.error('WebSocket STOMP Error:', frame);
           this.isConnected = false;
+          this.connectionPromise = null; // Clear the connection promise
           
           // Check if it's an authentication error
           if (frame.headers && frame.headers.message && 
@@ -168,6 +177,7 @@ class WebSocketService {
         onWebSocketError: (error: any) => {
           console.error('WebSocket Error:', error);
           this.isConnected = false;
+          this.connectionPromise = null; // Clear the connection promise
           reject(error);
         },
         onDisconnect: () => {
@@ -179,6 +189,8 @@ class WebSocketService {
 
       this.client.activate();
     });
+
+    return this.connectionPromise;
   }
 
   disconnect(): void {
@@ -191,6 +203,7 @@ class WebSocketService {
     }
     
     this.isConnected = false;
+    this.connectionPromise = null; // Clear the connection promise
   }
 
   private attemptReconnect(): void {
@@ -631,7 +644,9 @@ class WebSocketService {
   }
 
   // Subscribe to all event updates
-  subscribeToEventUpdates(callback: (update: EventUpdate) => void): () => void {
+  async subscribeToEventUpdates(callback: (update: EventUpdate) => void): Promise<() => void> {
+    await this.ensureConnection();
+    
     if (!this.isConnected || !this.client) {
       throw new Error('WebSocket not connected');
     }
@@ -792,6 +807,15 @@ class WebSocketService {
   // Get connection status
   isWebSocketConnected(): boolean {
     return this.isConnected && this.client?.connected === true;
+  }
+
+  // Ensure connection is ready before subscribing
+  private async ensureConnection(): Promise<void> {
+    if (!this.isWebSocketConnected()) {
+      await this.connect();
+      // Wait a bit more for the connection to be fully established
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
   }
 
   // Update token (when user logs in/out)
@@ -990,7 +1014,9 @@ class WebSocketService {
   }
 
   // Subscribe to user's personal social feed notifications
-  subscribeToUserSocialNotifications(callback: (notification: WebSocketMessage) => void): () => void {
+  async subscribeToUserSocialNotifications(callback: (notification: WebSocketMessage) => void): Promise<() => void> {
+    await this.ensureConnection();
+    
     if (!this.isConnected || !this.client) {
       throw new Error('WebSocket not connected');
     }

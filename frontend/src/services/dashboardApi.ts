@@ -202,8 +202,12 @@ const dashboardApi = {
   // Event specific dashboard functions
   getEventActivityItems: async (limit: number = 10): Promise<DashboardActivityItem[]> => {
     try {
-      // Get recent events for dashboard
-      const response = await eventAPI.getUpcomingEvents({ page: 0, size: limit });
+      // FIXED: Get recently created events (not just upcoming events) for activity feed
+      // Use the new getRecentEvents endpoint to get events ordered by creation date
+      const response = await eventAPI.getRecentEvents({ 
+        page: 0, 
+        size: limit
+      });
       const events = response.data.events;
       
       return events.map(event => ({
@@ -214,7 +218,7 @@ const dashboardApi = {
         userDisplayName: event.creatorName,
         userProfilePicUrl: event.creatorProfilePicUrl,
         userId: event.creatorId,
-        timestamp: event.createdAt,
+        timestamp: event.createdAt, // Use createdAt for chronological ordering
         actionUrl: `/events/${event.id}`,
         iconType: 'event',
         metadata: {

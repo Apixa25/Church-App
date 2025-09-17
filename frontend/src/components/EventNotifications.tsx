@@ -24,7 +24,7 @@ const EventNotifications: React.FC = () => {
         }
 
         // Subscribe to event updates
-        const eventUnsubscribe = webSocketService.subscribeToEventUpdates((update: EventUpdate) => {
+        const eventUnsubscribe = await webSocketService.subscribeToEventUpdates((update: EventUpdate) => {
           const notification: EventNotification = {
             id: `event-${update.eventId}-${Date.now()}`,
             type: 'event',

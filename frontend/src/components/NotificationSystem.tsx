@@ -42,7 +42,7 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
         setIsConnected(true);
 
         // Subscribe to user social notifications
-        const unsubscribe = webSocketService.subscribeToUserSocialNotifications(
+        const unsubscribe = await webSocketService.subscribeToUserSocialNotifications(
           (message: WebSocketMessage) => {
             handleWebSocketNotification(message);
           }
