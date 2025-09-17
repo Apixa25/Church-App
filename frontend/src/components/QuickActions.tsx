@@ -22,7 +22,10 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions, isLoading }) => {
       flag: '🚩',
       book: '📚',
       heart: '💝',
-      settings: '⚙️'
+      settings: '⚙️',
+      rsvp: '🎫',
+      resource: '📚',
+      upload: '📁'
     };
     return iconMap[iconType] || '📝';
   };
