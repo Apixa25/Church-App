@@ -178,11 +178,11 @@ const PrayerRequestsPage: React.FC = () => {
 
         {stats && (
           <div className="prayer-stats">
-            <div className="stat-card">
+            <div className="stat-card active-prayers">
               <span className="stat-number">{stats.activePrayerCount}</span>
               <span className="stat-label">Active Prayers</span>
             </div>
-            <div className="stat-card">
+            <div className="stat-card answered-prayers">
               <span className="stat-number">{stats.answeredPrayerCount}</span>
               <span className="stat-label">Answered Prayers</span>
             </div>
@@ -402,11 +402,38 @@ const PrayerRequestsPage: React.FC = () => {
 
         .stat-card {
           text-align: center;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           color: white;
           padding: 1.25rem;
           border-radius: 12px;
           min-width: 120px;
+          font-weight: 600;
+        }
+
+        .stat-card.active-prayers {
+          background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+          box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+        }
+
+        .stat-card.answered-prayers {
+          background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+          box-shadow: 0 4px 12px rgba(81, 207, 102, 0.3);
+        }
+
+        .stat-card:hover {
+          transform: translateY(-2px);
+          transition: all 0.3s ease;
+        }
+
+        .stat-card.active-prayers:hover {
+          background: linear-gradient(135deg, #ffe0e0 0%, #ffcccc 100%);
+          color: #d63031;
+          box-shadow: 0 6px 16px rgba(255, 107, 107, 0.2);
+        }
+
+        .stat-card.answered-prayers:hover {
+          background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%);
+          color: #2d5a2d;
+          box-shadow: 0 6px 16px rgba(81, 207, 102, 0.2);
         }
 
         .stat-number {
