@@ -8,6 +8,7 @@ import {
   PRAYER_STATUS_COLORS,
   INTERACTION_TYPE_LABELS
 } from '../types/Prayer';
+import { formatRelativeDate } from '../utils/dateUtils';
 import { prayerInteractionAPI, handleApiError } from '../services/prayerApi';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -105,27 +106,9 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid date';
-      
-      const now = new Date();
-      const diffTime = now.getTime() - date.getTime();
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-      
-      if (diffDays === 0) {
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      } else if (diffDays === 1) {
-        return 'Yesterday';
-      } else if (diffDays < 7) {
-        return `${diffDays} days ago`;
-      } else {
-        return date.toLocaleDateString();
-      }
-    } catch (error) {
-      return 'Invalid date';
-    }
+  // Use the robust date utility function
+  const formatDate = (dateString: string | number[]) => {
+    return formatRelativeDate(dateString);
   };
 
   const getInteractionCount = (type: InteractionType): number => {

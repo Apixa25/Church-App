@@ -13,7 +13,7 @@ export interface DashboardActivityItem {
   userDisplayName: string;
   userProfilePicUrl?: string;
   userId?: string;
-  timestamp: string;
+  timestamp: string | number[];
   actionUrl?: string;
   iconType: string;
   metadata?: any;

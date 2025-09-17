@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePrayerNotifications, PrayerNotification } from '../hooks/usePrayerNotifications';
+import { formatRelativeDate } from '../utils/dateUtils';
 
 const PrayerNotifications: React.FC = () => {
   const navigate = useNavigate();
@@ -24,19 +25,8 @@ const PrayerNotifications: React.FC = () => {
     setIsExpanded(false);
   };
 
-  const formatTimestamp = (timestamp: string) => {
-    try {
-      const date = new Date(timestamp);
-      const now = new Date();
-      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-      
-      if (diffInMinutes < 1) return 'Just now';
-      if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-      if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
-      return `${Math.floor(diffInMinutes / 1440)}d ago`;
-    } catch (error) {
-      return '';
-    }
+  const formatTimestamp = (timestamp: string | number[]) => {
+    return formatRelativeDate(timestamp);
   };
 
   const getNotificationIcon = (type: PrayerNotification['type']) => {
