@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { resourceAPI } from '../services/resourceApi';
-import { Resource, ResourceCategory, ResourceRequest, getResourceCategoryLabel } from '../types/Resource';
+import { 
+  Resource, 
+  ResourceCategory, 
+  ResourceRequest, 
+  getResourceCategoryLabel,
+  isValidYouTubeUrl,
+  extractYouTubeVideoId,
+  generateYouTubeEmbedUrl,
+  generateYouTubeThumbnailUrl
+} from '../types/Resource';
 import './ResourceForm.css';
 
 interface ResourceFormProps {
@@ -20,9 +29,15 @@ const ResourceForm: React.FC<ResourceFormProps> = ({
     title: '',
     description: '',
     category: ResourceCategory.GENERAL,
+    youtubeUrl: '',
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [youtubePreview, setYoutubePreview] = useState<{
+    videoId: string;
+    embedUrl: string;
+    thumbnailUrl: string;
+  } | null>(null);
 
   const isEditing = !!resource;
 
@@ -32,7 +47,17 @@ const ResourceForm: React.FC<ResourceFormProps> = ({
         title: resource.title,
         description: resource.description || '',
         category: resource.category,
+        youtubeUrl: resource.youtubeUrl || '',
       });
+      
+      // Set YouTube preview if it's a YouTube resource
+      if (resource.youtubeVideoId) {
+        setYoutubePreview({
+          videoId: resource.youtubeVideoId,
+          embedUrl: generateYouTubeEmbedUrl(resource.youtubeVideoId),
+          thumbnailUrl: generateYouTubeThumbnailUrl(resource.youtubeVideoId),
+        });
+      }
     }
   }, [resource]);
 
@@ -49,6 +74,13 @@ const ResourceForm: React.FC<ResourceFormProps> = ({
 
     if (formData.description && formData.description.length > 2000) {
       newErrors.description = 'Description cannot exceed 2000 characters';
+    }
+
+    // Validate YouTube URL if provided
+    if (formData.youtubeUrl && formData.youtubeUrl.trim()) {
+      if (!isValidYouTubeUrl(formData.youtubeUrl)) {
+        newErrors.youtubeUrl = 'Please enter a valid YouTube URL';
+      }
     }
 
     setErrors(newErrors);
@@ -69,7 +101,17 @@ const ResourceForm: React.FC<ResourceFormProps> = ({
         title: formData.title.trim(),
         description: formData.description.trim() || undefined,
         category: formData.category,
+        youtubeUrl: formData.youtubeUrl.trim() || undefined,
       };
+
+      // Add YouTube metadata if URL is provided and valid
+      if (formData.youtubeUrl && formData.youtubeUrl.trim()) {
+        const videoId = extractYouTubeVideoId(formData.youtubeUrl);
+        if (videoId) {
+          resourceRequest.youtubeVideoId = videoId;
+          resourceRequest.youtubeThumbnailUrl = generateYouTubeThumbnailUrl(videoId);
+        }
+      }
 
       let response;
       if (isEditing && resource) {
@@ -92,6 +134,22 @@ const ResourceForm: React.FC<ResourceFormProps> = ({
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+
+    // Handle YouTube URL changes
+    if (field === 'youtubeUrl' && typeof value === 'string') {
+      if (value.trim() && isValidYouTubeUrl(value)) {
+        const videoId = extractYouTubeVideoId(value);
+        if (videoId) {
+          setYoutubePreview({
+            videoId,
+            embedUrl: generateYouTubeEmbedUrl(videoId),
+            thumbnailUrl: generateYouTubeThumbnailUrl(videoId),
+          });
+        }
+      } else {
+        setYoutubePreview(null);
+      }
     }
   };
 
@@ -150,6 +208,49 @@ const ResourceForm: React.FC<ResourceFormProps> = ({
             ))}
           </select>
         </div>
+
+        {/* YouTube URL Field */}
+        <div className="form-group">
+          <label htmlFor="youtubeUrl" className="form-label">
+            YouTube Video URL
+          </label>
+          <input
+            type="url"
+            id="youtubeUrl"
+            value={formData.youtubeUrl}
+            onChange={(e) => handleInputChange('youtubeUrl', e.target.value)}
+            className={`form-input ${errors.youtubeUrl ? 'error' : ''}`}
+            placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
+            disabled={loading}
+          />
+          {errors.youtubeUrl && <span className="error-text">{errors.youtubeUrl}</span>}
+          <p className="form-help-text">
+            🎥 Optional: Add a YouTube video to your resource. Supports watch URLs, short URLs, and embed URLs.
+          </p>
+        </div>
+
+        {/* YouTube Preview */}
+        {youtubePreview && (
+          <div className="form-group">
+            <label className="form-label">Video Preview</label>
+            <div className="youtube-preview">
+              <div className="youtube-thumbnail">
+                <img 
+                  src={youtubePreview.thumbnailUrl} 
+                  alt="YouTube video thumbnail"
+                  className="youtube-thumbnail-img"
+                />
+                <div className="youtube-play-button">▶️</div>
+              </div>
+              <div className="youtube-info">
+                <p className="youtube-video-id">Video ID: {youtubePreview.videoId}</p>
+                <p className="youtube-help">
+                  ✅ Valid YouTube video detected. This will be embedded in the resource.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Description Field */}
         <div className="form-group">
@@ -237,9 +338,10 @@ const ResourceForm: React.FC<ResourceFormProps> = ({
 
       {/* Info Box */}
       <div className="info-box">
-        <h4>📝 Text-Only Resources</h4>
+        <h4>📝 Text & YouTube Resources</h4>
         <ul>
-          <li>Perfect for quotes, verses, study guides, or announcements</li>
+          <li>Perfect for quotes, verses, study guides, announcements, or YouTube videos</li>
+          <li>YouTube videos will be embedded directly in the resource</li>
           <li>Resources require approval before appearing publicly</li>
           <li>Admin and moderator uploads are automatically approved</li>
           <li>You can upload files later using the file upload form</li>

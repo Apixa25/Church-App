@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { resourceAPI } from '../services/resourceApi';
-import { Resource, getResourceCategoryLabel, formatFileSize, getFileIconByType } from '../types/Resource';
+import { 
+  Resource, 
+  getResourceCategoryLabel, 
+  formatFileSize, 
+  getFileIconByType,
+  isYouTubeResource,
+  generateYouTubeEmbedUrl
+} from '../types/Resource';
 import './ResourceDetail.css';
 
 interface ResourceDetailProps {
@@ -154,6 +161,48 @@ const ResourceDetail: React.FC<ResourceDetailProps> = ({
               {resource.description.split('\n').map((paragraph, index) => (
                 <p key={index}>{paragraph}</p>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* YouTube Video Section */}
+        {isYouTubeResource(resource) && resource.youtubeVideoId && (
+          <div className="resource-youtube">
+            <h3>🎥 Video</h3>
+            <div className="youtube-container">
+              <iframe
+                src={generateYouTubeEmbedUrl(resource.youtubeVideoId)}
+                title={resource.youtubeTitle || resource.title}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="youtube-iframe"
+              ></iframe>
+            </div>
+            {resource.youtubeTitle && resource.youtubeTitle !== resource.title && (
+              <div className="youtube-video-title">
+                <strong>Video Title:</strong> {resource.youtubeTitle}
+              </div>
+            )}
+            {resource.youtubeChannel && (
+              <div className="youtube-channel">
+                <strong>Channel:</strong> {resource.youtubeChannel}
+              </div>
+            )}
+            {resource.youtubeDuration && (
+              <div className="youtube-duration">
+                <strong>Duration:</strong> {resource.youtubeDuration}
+              </div>
+            )}
+            <div className="youtube-links">
+              <a
+                href={resource.youtubeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-outline-primary btn-sm"
+              >
+                🔗 Open on YouTube
+              </a>
             </div>
           </div>
         )}

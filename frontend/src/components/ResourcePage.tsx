@@ -24,6 +24,7 @@ const ResourcePage: React.FC = () => {
   const isModerator = user?.role === 'MODERATOR';
   const canManageResources = isAdmin || isModerator;
 
+
   useEffect(() => {
     // Handle URL parameters
     const resourceId = searchParams.get('id');
@@ -224,12 +225,14 @@ const ResourcePage: React.FC = () => {
             <button
               className="btn btn-secondary"
               onClick={handleCreateNew}
+              title="Add text resource or YouTube video"
             >
-              📝 Add Text
+              📝 Add Text/YouTube
             </button>
             <button
               className="btn btn-primary"
               onClick={handleCreateWithFile}
+              title="Upload a file"
             >
               📁 Upload File
             </button>

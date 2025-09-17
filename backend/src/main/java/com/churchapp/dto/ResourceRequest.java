@@ -26,4 +26,12 @@ public class ResourceRequest {
     private String fileUrl;
     private Long fileSize;
     private String fileType;
+    
+    // YouTube video fields (will be null for non-YouTube resources)
+    private String youtubeUrl;
+    private String youtubeVideoId;
+    private String youtubeTitle;
+    private String youtubeThumbnailUrl;
+    private String youtubeDuration;
+    private String youtubeChannel;
 }

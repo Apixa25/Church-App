@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { resourceAPI } from '../services/resourceApi';
-import { Resource, ResourceCategory, getResourceCategoryLabel, formatFileSize, getFileIconByType } from '../types/Resource';
+import { 
+  Resource, 
+  ResourceCategory, 
+  getResourceCategoryLabel, 
+  formatFileSize, 
+  getFileIconByType,
+  isYouTubeResource
+} from '../types/Resource';
 import './ResourceList.css';
 
 interface ResourceListProps {
@@ -37,6 +44,7 @@ const ResourceList: React.FC<ResourceListProps> = ({
   const pageSize = 12;
   const isAdmin = user?.role === 'ADMIN';
   const isModerator = user?.role === 'MODERATOR';
+
 
   const loadResources = useCallback(async () => {
     try {
@@ -127,6 +135,21 @@ const ResourceList: React.FC<ResourceListProps> = ({
 
   const renderResourceCard = (resource: Resource) => (
     <div key={resource.id} className="resource-card" onClick={() => onViewResource(resource)}>
+      {/* YouTube Thumbnail */}
+      {isYouTubeResource(resource) && resource.youtubeThumbnailUrl && (
+        <div className="resource-youtube-thumbnail">
+          <img 
+            src={resource.youtubeThumbnailUrl} 
+            alt="YouTube video thumbnail"
+            className="youtube-thumbnail-img"
+          />
+          <div className="youtube-play-overlay">
+            <div className="youtube-play-button">▶️</div>
+          </div>
+          <div className="youtube-video-badge">🎥 VIDEO</div>
+        </div>
+      )}
+      
       <div className="resource-card-header">
         <div className="resource-icon">
           {getFileIconByType(resource.fileType)}

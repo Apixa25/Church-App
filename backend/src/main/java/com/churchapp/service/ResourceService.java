@@ -4,6 +4,7 @@ import com.churchapp.entity.Resource;
 import com.churchapp.entity.User;
 import com.churchapp.repository.ResourceRepository;
 import com.churchapp.repository.UserRepository;
+import com.churchapp.util.YouTubeUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -31,8 +32,16 @@ public class ResourceService {
         User uploader = userRepository.findById(uploaderId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + uploaderId));
         
-        log.info("Creating resource - Title: '{}', Category: '{}', File: '{}'", 
-                resourceRequest.getTitle(), resourceRequest.getCategory(), resourceRequest.getFileName());
+        log.info("Creating resource - Title: '{}', Category: '{}', File: '{}', YouTube: '{}'", 
+                resourceRequest.getTitle(), resourceRequest.getCategory(), 
+                resourceRequest.getFileName(), resourceRequest.getYoutubeUrl());
+        
+        // Validate YouTube URL if provided
+        if (resourceRequest.getYoutubeUrl() != null && !resourceRequest.getYoutubeUrl().trim().isEmpty()) {
+            if (!YouTubeUtil.isValidYouTubeUrl(resourceRequest.getYoutubeUrl())) {
+                throw new RuntimeException("Invalid YouTube URL provided");
+            }
+        }
         
         Resource resource = new Resource();
         resource.setTitle(resourceRequest.getTitle().trim());
@@ -45,14 +54,33 @@ public class ResourceService {
         resource.setFileType(resourceRequest.getFileType());
         resource.setDownloadCount(0);
         
+        // Handle YouTube video fields
+        if (resourceRequest.getYoutubeUrl() != null && !resourceRequest.getYoutubeUrl().trim().isEmpty()) {
+            String videoId = YouTubeUtil.extractVideoId(resourceRequest.getYoutubeUrl());
+            if (videoId != null) {
+                resource.setYoutubeUrl(YouTubeUtil.generateWatchUrl(videoId));
+                resource.setYoutubeVideoId(videoId);
+                resource.setYoutubeThumbnailUrl(YouTubeUtil.generateThumbnailUrl(videoId));
+                
+                // Set YouTube metadata if provided
+                resource.setYoutubeTitle(resourceRequest.getYoutubeTitle());
+                resource.setYoutubeDuration(resourceRequest.getYoutubeDuration());
+                resource.setYoutubeChannel(resourceRequest.getYoutubeChannel());
+                
+                // Set file type to indicate this is a YouTube video
+                resource.setFileType("video/youtube");
+            }
+        }
+        
         // Auto-approve if uploaded by admin/moderator, otherwise require approval
         boolean autoApprove = (uploader.getRole() == User.UserRole.ADMIN || 
                               uploader.getRole() == User.UserRole.MODERATOR);
         resource.setIsApproved(autoApprove);
         
         Resource savedResource = resourceRepository.save(resource);
-        log.info("Resource created with id: {} by user: {} (auto-approved: {})", 
-                savedResource.getId(), uploaderId, autoApprove);
+        log.info("Resource created with id: {} by user: {} (auto-approved: {}, YouTube: {})", 
+                savedResource.getId(), uploaderId, autoApprove, 
+                savedResource.getYoutubeVideoId() != null ? "Yes" : "No");
         
         return savedResource;
     }
