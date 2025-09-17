@@ -56,7 +56,9 @@ public class ResourceService {
         
         // Handle YouTube video fields
         if (resourceRequest.getYoutubeUrl() != null && !resourceRequest.getYoutubeUrl().trim().isEmpty()) {
+            log.info("Processing YouTube URL: {}", resourceRequest.getYoutubeUrl());
             String videoId = YouTubeUtil.extractVideoId(resourceRequest.getYoutubeUrl());
+            log.info("Extracted video ID: {}", videoId);
             if (videoId != null) {
                 resource.setYoutubeUrl(YouTubeUtil.generateWatchUrl(videoId));
                 resource.setYoutubeVideoId(videoId);
@@ -69,7 +71,11 @@ public class ResourceService {
                 
                 // Set file type to indicate this is a YouTube video
                 resource.setFileType("video/youtube");
+                log.info("Set YouTube fields - URL: {}, VideoId: {}, Title: {}", 
+                        resource.getYoutubeUrl(), resource.getYoutubeVideoId(), resource.getYoutubeTitle());
             }
+        } else {
+            log.info("No YouTube URL provided in request");
         }
         
         // Auto-approve if uploaded by admin/moderator, otherwise require approval
