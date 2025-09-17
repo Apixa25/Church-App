@@ -5,8 +5,10 @@ import {
   PrayerRequestUpdateRequest, 
   PrayerRequest,
   PrayerCategory,
+  PrayerStatus,
   PRAYER_CATEGORY_LABELS,
-  PRAYER_CATEGORY_COLORS
+  PRAYER_CATEGORY_COLORS,
+  PRAYER_STATUS_LABELS,
 } from '../types/Prayer';
 import { prayerAPI, handleApiError } from '../services/prayerApi';
 
@@ -22,6 +24,7 @@ interface PrayerFormData {
   description: string;
   isAnonymous: boolean;
   category: PrayerCategory;
+  status?: PrayerStatus;
 }
 
 const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
@@ -41,7 +44,8 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
       title: existingPrayer?.title || '',
       description: existingPrayer?.description || '',
       isAnonymous: existingPrayer?.isAnonymous || false,
-      category: existingPrayer?.category || 'GENERAL'
+      category: existingPrayer?.category || 'GENERAL',
+      status: existingPrayer?.status || 'ACTIVE'
     }
   });
 
@@ -57,7 +61,8 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
         title: existingPrayer.title,
         description: existingPrayer.description || '',
         isAnonymous: existingPrayer.isAnonymous,
-        category: existingPrayer.category
+        category: existingPrayer.category,
+        status: existingPrayer.status
       });
     }
   }, [existingPrayer, reset]);
@@ -75,7 +80,8 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
           title: data.title,
           description: data.description || undefined,
           isAnonymous: data.isAnonymous,
-          category: data.category
+          category: data.category,
+          status: data.status
         };
         response = await prayerAPI.updatePrayerRequest(existingPrayer.id, updateRequest);
       } else {
@@ -194,6 +200,28 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
             ))}
           </select>
         </div>
+
+        {mode === 'edit' && (
+          <div className="form-group">
+            <label htmlFor="status" className="form-label">
+              Status
+            </label>
+            <select
+              id="status"
+              className="form-select"
+              {...register('status')}
+            >
+              {Object.entries(PRAYER_STATUS_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <small className="form-help">
+              Mark your prayer as "Answered" when God has answered it, or "Resolved" when the situation is resolved.
+            </small>
+          </div>
+        )}
 
         <div className="form-group checkbox-group">
           <label className="checkbox-label">
@@ -332,6 +360,13 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
         .form-textarea {
           resize: vertical;
           min-height: 100px;
+        }
+
+        .form-help {
+          font-size: 0.85rem;
+          color: #7f8c8d;
+          margin-top: 0.25rem;
+          font-style: italic;
         }
 
         .checkbox-group {
