@@ -182,7 +182,7 @@
 .event-dot.social { background: #f687b3; }
 .event-dot.education { background: #90cdf4; }
 .event-dot.music { background: #fbb6ce; }
-.event-dot.general { background: #cbd5e0; }
+.event-dot.general { background: #d2b48c; }
 .event-dot.other { background: #cbd5e0; }
 
 /* Selected Date Events */
@@ -302,6 +302,238 @@
 .btn-sm {
   padding: 6px 12px;
   font-size: 13px;
+}
+
+/* Week View Styles */
+.week-view {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.week-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.week-header h3 {
+  color: #2d3748;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.nav-btn {
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  color: #4a5568;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.nav-btn:hover {
+  background: #edf2f7;
+  border-color: #cbd5e0;
+}
+
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.week-day {
+  background: white;
+  padding: 15px;
+  min-height: 120px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-right: 1px solid #e2e8f0;
+}
+
+.week-day:last-child {
+  border-right: none;
+}
+
+.week-day:hover {
+  background: #f7fafc;
+}
+
+.week-day.today {
+  background: #ebf8ff;
+  border-left: 3px solid #4299e1;
+}
+
+.week-day.selected {
+  background: #e6fffa;
+  border-left: 3px solid #38b2ac;
+}
+
+.day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.day-name {
+  font-size: 0.8rem;
+  color: #718096;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.day-number {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-top: 2px;
+}
+
+.day-events {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.event-item {
+  background: #f7fafc;
+  border-radius: 4px;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-left: 3px solid #cbd5e0;
+}
+
+.event-item:hover {
+  background: #edf2f7;
+  transform: translateX(2px);
+}
+
+.event-item.worship { border-left-color: #9f7aea; }
+.event-item.bible_study { border-left-color: #48bb78; }
+.event-item.prayer { border-left-color: #ed8936; }
+.event-item.fellowship { border-left-color: #4299e1; }
+.event-item.outreach { border-left-color: #38b2ac; }
+.event-item.youth { border-left-color: #ed64a6; }
+.event-item.children { border-left-color: #f6e05e; }
+.event-item.general { border-left-color: #d2b48c; }
+.event-item.other { border-left-color: #cbd5e0; }
+
+.event-time {
+  font-size: 0.7rem;
+  color: #718096;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.event-title {
+  font-size: 0.8rem;
+  color: #2d3748;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.more-events {
+  font-size: 0.7rem;
+  color: #a0aec0;
+  text-align: center;
+  padding: 4px;
+  font-style: italic;
+}
+
+/* Day View Styles */
+.day-view {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.day-header h3 {
+  color: #2d3748;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.day-timeline {
+  min-height: 400px;
+}
+
+.events-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.timeline-event {
+  background: #f7fafc;
+  border-radius: 8px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-left: 4px solid #cbd5e0;
+}
+
+.timeline-event:hover {
+  background: #edf2f7;
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.timeline-event .event-time {
+  font-size: 0.9rem;
+  color: #4299e1;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.timeline-event .end-time {
+  color: #718096;
+  font-weight: 400;
+}
+
+.timeline-event .event-title {
+  font-size: 1.1rem;
+  color: #2d3748;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.timeline-event .event-description {
+  color: #4a5568;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0 0 8px 0;
+}
+
+.timeline-event .event-location {
+  color: #718096;
+  font-size: 0.85rem;
+  margin: 0;
 }
 
 /* Responsive Design */
