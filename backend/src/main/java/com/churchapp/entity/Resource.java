@@ -63,6 +63,25 @@ public class Resource {
     @Column(name = "download_count", nullable = false)
     private Integer downloadCount = 0;
     
+    // YouTube video support fields
+    @Column(name = "youtube_url", length = 500)
+    private String youtubeUrl;
+    
+    @Column(name = "youtube_video_id", length = 50)
+    private String youtubeVideoId;
+    
+    @Column(name = "youtube_title", length = 200)
+    private String youtubeTitle;
+    
+    @Column(name = "youtube_thumbnail_url", length = 1000)
+    private String youtubeThumbnailUrl;
+    
+    @Column(name = "youtube_duration", length = 20)
+    private String youtubeDuration;
+    
+    @Column(name = "youtube_channel", length = 200)
+    private String youtubeChannel;
+    
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

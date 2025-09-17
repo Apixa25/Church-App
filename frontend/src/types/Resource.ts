@@ -13,6 +13,13 @@ export interface Resource {
   isApproved?: boolean;
   downloadCount: number;
   createdAt: string;
+  // YouTube video fields
+  youtubeUrl?: string;
+  youtubeVideoId?: string;
+  youtubeTitle?: string;
+  youtubeThumbnailUrl?: string;
+  youtubeDuration?: string;
+  youtubeChannel?: string;
 }
 
 export enum ResourceCategory {
@@ -48,6 +55,13 @@ export interface ResourceRequest {
   fileUrl?: string;
   fileSize?: number;
   fileType?: string;
+  // YouTube video fields
+  youtubeUrl?: string;
+  youtubeVideoId?: string;
+  youtubeTitle?: string;
+  youtubeThumbnailUrl?: string;
+  youtubeDuration?: string;
+  youtubeChannel?: string;
 }
 
 export interface ResourceResponse {
@@ -112,6 +126,7 @@ export const formatFileSize = (bytes: number): string => {
 export const getFileIconByType = (fileType?: string): string => {
   if (!fileType) return '📄';
   
+  if (fileType === 'video/youtube') return '🎥';
   if (fileType.startsWith('image/')) return '🖼️';
   if (fileType.startsWith('video/')) return '🎥';
   if (fileType.startsWith('audio/')) return '🎵';
@@ -120,4 +135,51 @@ export const getFileIconByType = (fileType?: string): string => {
   if (fileType === 'text/plain') return '📝';
   
   return '📄';
+};
+
+// YouTube utility functions
+export const isValidYouTubeUrl = (url: string): boolean => {
+  if (!url || url.trim().length === 0) return false;
+  
+  const youtubePatterns = [
+    /^https?:\/\/(www\.)?youtube\.com\/watch\?v=[a-zA-Z0-9_-]{11}/,
+    /^https?:\/\/youtu\.be\/[a-zA-Z0-9_-]{11}/,
+    /^https?:\/\/(www\.)?youtube\.com\/embed\/[a-zA-Z0-9_-]{11}/,
+    /^https?:\/\/(www\.)?youtube\.com\/shorts\/[a-zA-Z0-9_-]{11}/
+  ];
+  
+  return youtubePatterns.some(pattern => pattern.test(url.trim()));
+};
+
+export const extractYouTubeVideoId = (url: string): string | null => {
+  if (!url || url.trim().length === 0) return null;
+  
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.trim().match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  
+  return null;
+};
+
+export const generateYouTubeEmbedUrl = (videoId: string): string => {
+  return `https://www.youtube.com/embed/${videoId}`;
+};
+
+export const generateYouTubeThumbnailUrl = (videoId: string): string => {
+  return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+};
+
+export const generateYouTubeWatchUrl = (videoId: string): string => {
+  return `https://www.youtube.com/watch?v=${videoId}`;
+};
+
+export const isYouTubeResource = (resource: Resource): boolean => {
+  return !!(resource.youtubeVideoId || resource.fileType === 'video/youtube');
 };

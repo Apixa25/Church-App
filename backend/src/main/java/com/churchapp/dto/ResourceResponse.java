@@ -29,6 +29,14 @@ public class ResourceResponse {
     private String uploaderName;
     private String uploaderProfilePicUrl;
     
+    // YouTube video fields
+    private String youtubeUrl;
+    private String youtubeVideoId;
+    private String youtubeTitle;
+    private String youtubeThumbnailUrl;
+    private String youtubeDuration;
+    private String youtubeChannel;
+    
     // Metadata
     private Boolean isApproved;
     private Integer downloadCount;
@@ -47,6 +55,12 @@ public class ResourceResponse {
             resource.getUploadedBy().getId(),
             resource.getUploadedBy().getName(),
             resource.getUploadedBy().getProfilePicUrl(),
+            resource.getYoutubeUrl(),
+            resource.getYoutubeVideoId(),
+            resource.getYoutubeTitle(),
+            resource.getYoutubeThumbnailUrl(),
+            resource.getYoutubeDuration(),
+            resource.getYoutubeChannel(),
             resource.getIsApproved(),
             resource.getDownloadCount(),
             resource.getCreatedAt()

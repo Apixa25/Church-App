@@ -212,6 +212,75 @@
   border-color: #667eea;
 }
 
+/* YouTube Thumbnail Styles */
+.resource-youtube-thumbnail {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background: #000;
+}
+
+.youtube-thumbnail-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.resource-card:hover .youtube-thumbnail-img {
+  transform: scale(1.05);
+}
+
+.youtube-play-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  transition: background-color 0.3s ease;
+}
+
+.resource-card:hover .youtube-play-overlay {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.youtube-play-button {
+  font-size: 3rem;
+  background: rgba(255, 0, 0, 0.9);
+  border-radius: 50%;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.resource-card:hover .youtube-play-button {
+  transform: scale(1.1);
+  background: rgba(255, 0, 0, 1);
+}
+
+.youtube-video-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(255, 0, 0, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .resource-card-header {
   display: flex;
   justify-content: space-between;
