@@ -13,6 +13,7 @@ import {
 } from '../types/Prayer';
 import { prayerAPI, prayerInteractionAPI, handleApiError } from '../services/prayerApi';
 import { useAuth } from '../contexts/AuthContext';
+import { formatFullDate, formatRelativeDate } from '../utils/dateUtils';
 import { usePrayerNotifications } from '../hooks/usePrayerNotifications';
 
 interface PrayerRequestDetailProps {
@@ -44,6 +45,30 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
   const [submittingComment, setSubmittingComment] = useState(false);
 
   const isOwner = user && prayer && (user.email === prayer.userId || user.userId === prayer.userId);
+
+  const loadUserInteractions = async () => {
+    if (!user || !prayerId) return;
+
+    try {
+      const interactions: Record<InteractionType, boolean> = {} as Record<InteractionType, boolean>;
+      const interactionTypes: InteractionType[] = ['PRAY', 'ENCOURAGE', 'AMEN', 'HEART', 'PRAISE'];
+      
+      await Promise.all(
+        interactionTypes.map(async (type) => {
+          try {
+            const response = await prayerInteractionAPI.checkUserInteraction(prayerId, type);
+            interactions[type] = response.data.hasInteracted;
+          } catch (err) {
+            interactions[type] = false;
+          }
+        })
+      );
+
+      setUserInteractions(interactions);
+    } catch (err) {
+      console.error('Error loading user interactions:', err);
+    }
+  };
 
   const loadPrayerDetail = useCallback(async () => {
     if (!prayerId) return;
@@ -78,7 +103,7 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [prayerId, user]);
+  }, [prayerId, user, loadUserInteractions]);
 
   useEffect(() => {
     if (prayerId) {
@@ -98,30 +123,6 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
       }
     };
   }, [prayerId, user, subscribeToSpecificPrayer]);
-
-  const loadUserInteractions = async () => {
-    if (!user || !prayerId) return;
-
-    try {
-      const interactions: Record<InteractionType, boolean> = {} as Record<InteractionType, boolean>;
-      const interactionTypes: InteractionType[] = ['PRAY', 'ENCOURAGE', 'AMEN', 'HEART', 'PRAISE'];
-      
-      await Promise.all(
-        interactionTypes.map(async (type) => {
-          try {
-            const response = await prayerInteractionAPI.checkUserInteraction(prayerId, type);
-            interactions[type] = response.data.hasInteracted;
-          } catch (err) {
-            interactions[type] = false;
-          }
-        })
-      );
-
-      setUserInteractions(interactions);
-    } catch (err) {
-      console.error('Error loading user interactions:', err);
-    }
-  };
 
   const handleInteraction = async (type: InteractionType) => {
     if (!user || !prayerId || !prayer) return;
@@ -196,13 +197,13 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleString();
-    } catch (error) {
-      return 'Invalid date';
-    }
+  // Use the robust date utility functions
+  const formatDate = (dateString: string | number[]) => {
+    return formatFullDate(dateString);
+  };
+  
+  const formatRelativeTime = (dateString: string | number[]) => {
+    return formatRelativeDate(dateString);
   };
 
   const getInteractionCount = (type: InteractionType): number => {
@@ -397,7 +398,7 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
                     
                     <div className="comment-info">
                       <span className="comment-author-name">{comment.userName}</span>
-                      <span className="comment-date">{formatDate(comment.timestamp)}</span>
+                      <span className="comment-date">{formatRelativeTime(comment.timestamp)}</span>
                     </div>
                   </div>
 

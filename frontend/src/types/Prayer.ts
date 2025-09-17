@@ -37,8 +37,8 @@ export interface PrayerRequest {
   isAnonymous: boolean;
   category: PrayerCategory;
   status: PrayerStatus;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string | number[];
+  updatedAt: string | number[];
   interactionSummary?: PrayerInteractionSummary;
 }
 
@@ -65,7 +65,7 @@ export interface PrayerInteraction {
   userProfilePicUrl?: string;
   type: InteractionType;
   content?: string;
-  timestamp: string;
+  timestamp: string | number[];
 }
 
 export interface PrayerInteractionCreateRequest {
