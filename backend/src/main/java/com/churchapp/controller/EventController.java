@@ -212,6 +212,37 @@ public class EventController {
         }
     }
     
+    @GetMapping("/recent")
+    public ResponseEntity<?> getRecentEvents(@RequestParam(defaultValue = "0") int page,
+                                           @RequestParam(defaultValue = "10") int size,
+                                           @AuthenticationPrincipal User user) {
+        try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            Page<Event> eventsPage = eventService.getRecentEvents(page, size);
+            
+            List<EventResponse> eventResponses = eventsPage.getContent().stream()
+                .map(event -> {
+                    EventResponse response = EventResponse.fromEvent(event);
+                    EventRsvpSummary rsvpSummary = eventRsvpService.getEventRsvpSummary(
+                        event.getId(), currentProfile.getUserId());
+                    response.setRsvpSummary(rsvpSummary);
+                    return response;
+                })
+                .collect(Collectors.toList());
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("events", eventResponses);
+            response.put("totalPages", eventsPage.getTotalPages());
+            response.put("totalElements", eventsPage.getTotalElements());
+            
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
     @GetMapping("/search")
     public ResponseEntity<?> searchEvents(@RequestParam String query,
                                         @RequestParam(defaultValue = "0") int page,

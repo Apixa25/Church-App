@@ -22,7 +22,7 @@ const Dashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-  const [feedView, setFeedView] = useState<'activity' | 'social'>('social'); // Default to social feed
+  const [feedView, setFeedView] = useState<'activity' | 'social'>('activity'); // Default to activity feed
   const [feedType, setFeedType] = useState<FeedType>(FeedType.CHRONOLOGICAL); // Make feedType dynamic
   const [showComposer, setShowComposer] = useState(false);
   const [showSearch, setShowSearch] = useState(false);

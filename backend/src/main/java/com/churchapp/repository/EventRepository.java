@@ -92,4 +92,8 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
     // Find events requiring approval
     @Query("SELECT e FROM Event e WHERE e.requiresApproval = true AND e.status = 'SCHEDULED' ORDER BY e.createdAt DESC")
     List<Event> findEventsRequiringApproval();
+    
+    // Find recent events ordered by creation date (for activity feed)
+    @Query("SELECT e FROM Event e WHERE e.status = 'SCHEDULED' ORDER BY e.createdAt DESC")
+    Page<Event> findRecentEventsOrderByCreatedAt(Pageable pageable);
 }

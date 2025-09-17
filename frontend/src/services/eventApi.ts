@@ -41,6 +41,12 @@ export const eventAPI = {
   }): Promise<{ data: EventsResponse }> =>
     api.get('/events/upcoming', { params }),
   
+  getRecentEvents: (params?: {
+    page?: number;
+    size?: number;
+  }): Promise<{ data: EventsResponse }> =>
+    api.get('/events/recent', { params }),
+  
   searchEvents: (params: {
     query: string;
     page?: number;

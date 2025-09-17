@@ -179,6 +179,11 @@ public class EventService {
         return eventRepository.findAll(pageable);
     }
     
+    public Page<Event> getRecentEvents(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return eventRepository.findRecentEventsOrderByCreatedAt(pageable);
+    }
+    
     public Page<Event> getUpcomingEvents(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return eventRepository.findUpcomingEvents(LocalDateTime.now(), pageable);

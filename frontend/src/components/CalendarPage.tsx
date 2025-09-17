@@ -89,7 +89,7 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
         }
 
         // Subscribe to event updates
-        const eventUnsubscribe = webSocketService.subscribeToEventUpdates((update: EventUpdate) => {
+        const eventUnsubscribe = await webSocketService.subscribeToEventUpdates((update: EventUpdate) => {
           console.log('Received event update:', update);
           
           // Refresh events when there's an update
