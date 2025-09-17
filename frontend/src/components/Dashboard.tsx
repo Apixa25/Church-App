@@ -138,8 +138,8 @@ const Dashboard: React.FC = () => {
             <div className="user-details">
               <div 
                 className="profile-pic-container clickable" 
-                onClick={() => navigate('/profile/edit')}
-                title="Click to edit your profile and upload a profile picture"
+                onClick={() => navigate('/profile')}
+                title="Click to view your profile"
               >
                 {user?.profilePicUrl ? (
                   <img 
