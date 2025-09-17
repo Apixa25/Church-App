@@ -5,6 +5,8 @@ import {
   PrayerInteraction,
   InteractionType,
   PrayerInteractionCreateRequest,
+  PrayerStatus,
+  PrayerRequestUpdateRequest,
   PRAYER_CATEGORY_LABELS,
   PRAYER_CATEGORY_COLORS,
   PRAYER_STATUS_LABELS,
@@ -40,13 +42,14 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
   const [userInteractions, setUserInteractions] = useState<Record<InteractionType, boolean>>({} as Record<InteractionType, boolean>);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [commenting, setCommenting] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
 
   const isOwner = user && prayer && (user.email === prayer.userId || user.userId === prayer.userId);
 
-  const loadUserInteractions = async () => {
+  const loadUserInteractions = useCallback(async () => {
     if (!user || !prayerId) return;
 
     try {
@@ -68,7 +71,7 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
     } catch (err) {
       console.error('Error loading user interactions:', err);
     }
-  };
+  }, [user, prayerId]);
 
   const loadPrayerDetail = useCallback(async () => {
     if (!prayerId) return;
@@ -197,6 +200,28 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
     }
   };
 
+  const handleStatusChange = async (newStatus: PrayerStatus) => {
+    if (!prayer || !prayerId) return;
+    
+    try {
+      const updateRequest: PrayerRequestUpdateRequest = {
+        status: newStatus
+      };
+      
+      const response = await prayerAPI.updatePrayerRequest(prayerId, updateRequest);
+      setPrayer(response.data);
+      
+      // Show success message
+      const statusLabel = PRAYER_STATUS_LABELS[newStatus];
+      setSuccess(`Prayer status updated to "${statusLabel}"!`);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(handleApiError(err));
+    }
+  };
+
   // Use the robust date utility functions
   const formatDate = (dateString: string | number[]) => {
     return formatFullDate(dateString);
@@ -246,12 +271,35 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
           ← Back
         </button>
         
-        {isOwner && onEdit && (
-          <button onClick={() => onEdit(prayer)} className="edit-btn">
-            ✏️ Edit Prayer
-          </button>
+        {isOwner && (
+          <div className="owner-actions">
+            {onEdit && (
+              <button onClick={() => onEdit(prayer)} className="edit-btn">
+                ✏️ Edit Prayer
+              </button>
+            )}
+            <select 
+              value={prayer.status} 
+              onChange={(e) => handleStatusChange(e.target.value as PrayerStatus)}
+              className="status-change-select"
+              title="Change prayer status"
+            >
+              {Object.entries(PRAYER_STATUS_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
       </div>
+
+      {success && (
+        <div className="success-message">
+          <span className="success-icon">✅</span>
+          {success}
+        </div>
+      )}
 
       <div className="prayer-content">
         <div className="prayer-meta">
@@ -473,6 +521,34 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
         .edit-btn:hover {
           background: #2980b9;
           border-color: #2980b9;
+        }
+
+        .owner-actions {
+          display: flex;
+          gap: 0.75rem;
+          align-items: center;
+        }
+
+        .status-change-select {
+          background: #f8f9fa;
+          border: 2px solid #e9ecef;
+          border-radius: 8px;
+          padding: 0.5rem 0.75rem;
+          font-size: 0.9rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          min-width: 120px;
+        }
+
+        .status-change-select:hover {
+          background: #e9ecef;
+          border-color: #dee2e6;
+        }
+
+        .status-change-select:focus {
+          outline: none;
+          border-color: #3498db;
         }
 
         .prayer-content {
@@ -808,6 +884,23 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
           text-align: center;
           padding: 3rem 1rem;
           color: #7f8c8d;
+        }
+
+        .success-message {
+          background: #d4edda;
+          border: 1px solid #c3e6cb;
+          color: #155724;
+          padding: 0.75rem 1rem;
+          border-radius: 8px;
+          margin-bottom: 1rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-weight: 500;
+        }
+
+        .success-icon {
+          font-size: 1.1rem;
         }
 
         .loading-spinner {

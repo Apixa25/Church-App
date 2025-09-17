@@ -1,6 +1,7 @@
 package com.churchapp.service;
 
 import com.churchapp.dto.PrayerRequestRequest;
+import com.churchapp.dto.PrayerRequestUpdateRequest;
 import com.churchapp.dto.PrayerRequestResponse;
 import com.churchapp.entity.PrayerRequest;
 import com.churchapp.entity.User;
@@ -59,7 +60,7 @@ public class PrayerRequestService {
         return PrayerRequestResponse.fromPrayerRequest(prayerRequest);
     }
     
-    public PrayerRequestResponse updatePrayerRequest(UUID prayerRequestId, UUID userId, PrayerRequestRequest request) {
+    public PrayerRequestResponse updatePrayerRequest(UUID prayerRequestId, UUID userId, PrayerRequestUpdateRequest request) {
         PrayerRequest prayerRequest = prayerRequestRepository.findById(prayerRequestId)
             .orElseThrow(() -> new RuntimeException("Prayer request not found with id: " + prayerRequestId));
         

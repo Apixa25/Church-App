@@ -1,6 +1,7 @@
 package com.churchapp.controller;
 
 import com.churchapp.dto.PrayerRequestRequest;
+import com.churchapp.dto.PrayerRequestUpdateRequest;
 import com.churchapp.dto.PrayerRequestResponse;
 import com.churchapp.dto.UserProfileResponse;
 import com.churchapp.entity.PrayerRequest;
@@ -66,7 +67,7 @@ public class PrayerRequestController {
     @PutMapping("/{prayerRequestId}")
     public ResponseEntity<?> updatePrayerRequest(@AuthenticationPrincipal User user,
                                                @PathVariable UUID prayerRequestId,
-                                               @Valid @RequestBody PrayerRequestRequest request) {
+                                               @Valid @RequestBody PrayerRequestUpdateRequest request) {
         try {
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
             PrayerRequestResponse updatedPrayerRequest = prayerRequestService.updatePrayerRequest(
