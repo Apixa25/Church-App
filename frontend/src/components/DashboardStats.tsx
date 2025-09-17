@@ -70,16 +70,6 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, isLoading }) => 
             <p>New Announcements</p>
           </div>
         </div>
-        
-        {stats.additionalStats.profileCompletionRate && (
-          <div className="stat-card">
-            <div className="stat-icon">✅</div>
-            <div className="stat-content">
-              <h4>{stats.additionalStats.profileCompletionRate}</h4>
-              <p>Profile Completion</p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

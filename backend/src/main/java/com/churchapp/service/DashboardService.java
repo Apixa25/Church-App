@@ -119,7 +119,6 @@ public class DashboardService {
         
         Map<String, Object> additionalStats = new HashMap<>();
         additionalStats.put("activeUsersToday", totalMembers); // Placeholder
-        additionalStats.put("profileCompletionRate", "85%"); // Placeholder
         additionalStats.put("totalAnnouncements", totalAnnouncements);
         additionalStats.put("pinnedAnnouncements", pinnedAnnouncements);
         
