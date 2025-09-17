@@ -25,27 +25,33 @@ const ResourcePage: React.FC = () => {
   const canManageResources = isAdmin || isModerator;
 
 
+  // Initialize view mode from URL on first load only
   useEffect(() => {
-    // Handle URL parameters
     const resourceId = searchParams.get('id');
     const mode = searchParams.get('mode') as ViewMode;
     
-    if (resourceId && mode === 'detail') {
-      setViewMode('detail');
-      // The detail component will load the resource
-    } else if (mode === 'create' && user) {
-      setViewMode('create');
-    } else if (mode === 'create-file' && user) {
-      setViewMode('create-file');
-    } else if (mode === 'admin' && canManageResources) {
-      setViewMode('admin');
-    } else if (mode === 'edit' && selectedResource) {
-      setViewMode('edit');
-    } else {
-      setViewMode('list');
-      setSearchParams({}); // Clear any invalid params
+    console.log('🔄 Initial useEffect - URL params:', { resourceId, mode, currentViewMode: viewMode });
+    
+    // Only set initial state if we're starting fresh (viewMode is 'list')
+    if (viewMode === 'list') {
+      if (resourceId && mode === 'detail') {
+        console.log('✅ Initial load: Setting viewMode to detail from URL');
+        setViewMode('detail');
+      } else if (mode === 'create' && user) {
+        console.log('✅ Initial load: Setting viewMode to create from URL');
+        setViewMode('create');
+      } else if (mode === 'create-file' && user) {
+        console.log('✅ Initial load: Setting viewMode to create-file from URL');
+        setViewMode('create-file');
+      } else if (mode === 'admin' && canManageResources) {
+        console.log('✅ Initial load: Setting viewMode to admin from URL');
+        setViewMode('admin');
+      } else if (mode === 'edit' && selectedResource) {
+        console.log('✅ Initial load: Setting viewMode to edit from URL');
+        setViewMode('edit');
+      }
     }
-  }, [searchParams, user, selectedResource, setSearchParams, canManageResources]);
+  }, []); // Only run on initial mount
 
   const handleCreateNew = () => {
     if (!user) {
@@ -100,10 +106,19 @@ const ResourcePage: React.FC = () => {
   };
 
   const handleViewResource = (resource: Resource) => {
+    console.log('🖱️ handleViewResource called with:', {
+      resourceId: resource.id,
+      resourceTitle: resource.title,
+      resourceType: resource.fileType,
+      isYouTube: !!(resource.youtubeVideoId || resource.fileType === 'video/youtube')
+    });
+    
     setSelectedResource(resource);
     setViewMode('detail');
     setSearchParams({ mode: 'detail', id: resource.id });
     setError(null);
+    
+    console.log('✅ View mode changed to detail, URL updated');
   };
 
   const handleBackToList = () => {
@@ -133,6 +148,8 @@ const ResourcePage: React.FC = () => {
   };
 
   const renderViewMode = () => {
+    console.log('🎨 renderViewMode called with viewMode:', viewMode);
+    
     switch (viewMode) {
       case 'create':
         return (
@@ -166,10 +183,14 @@ const ResourcePage: React.FC = () => {
         );
 
       case 'detail':
-        const resourceId = searchParams.get('id');
+        // Use selectedResource instead of searchParams for reliability
+        const resourceId = selectedResource?.id || searchParams.get('id');
+        console.log('🔍 Detail case - resourceId:', resourceId, 'selectedResource:', !!selectedResource);
         if (!resourceId) {
+          console.log('❌ No resource ID available');
           return <div>No resource ID provided</div>;
         }
+        console.log('✅ Rendering ResourceDetail with resourceId:', resourceId);
         return (
           <ResourceDetail
             resourceId={resourceId}

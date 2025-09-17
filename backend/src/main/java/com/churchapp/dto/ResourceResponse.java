@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
 public class ResourceResponse {
     
@@ -41,6 +40,34 @@ public class ResourceResponse {
     private Boolean isApproved;
     private Integer downloadCount;
     private LocalDateTime createdAt;
+    
+    public ResourceResponse(UUID id, String title, String description, Resource.ResourceCategory category,
+                           String fileName, String fileUrl, Long fileSize, String fileType,
+                           UUID uploadedById, String uploaderName, String uploaderProfilePicUrl,
+                           String youtubeUrl, String youtubeVideoId, String youtubeTitle, 
+                           String youtubeThumbnailUrl, String youtubeDuration, String youtubeChannel,
+                           Boolean isApproved, Integer downloadCount, LocalDateTime createdAt) {
+        this.id = id;
+        this.title = title;
+        this.description = description;
+        this.category = category;
+        this.fileName = fileName;
+        this.fileUrl = fileUrl;
+        this.fileSize = fileSize;
+        this.fileType = fileType;
+        this.uploadedById = uploadedById;
+        this.uploaderName = uploaderName;
+        this.uploaderProfilePicUrl = uploaderProfilePicUrl;
+        this.youtubeUrl = youtubeUrl;
+        this.youtubeVideoId = youtubeVideoId;
+        this.youtubeTitle = youtubeTitle;
+        this.youtubeThumbnailUrl = youtubeThumbnailUrl;
+        this.youtubeDuration = youtubeDuration;
+        this.youtubeChannel = youtubeChannel;
+        this.isApproved = isApproved;
+        this.downloadCount = downloadCount;
+        this.createdAt = createdAt;
+    }
     
     public static ResourceResponse fromResource(Resource resource) {
         return new ResourceResponse(

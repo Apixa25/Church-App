@@ -134,7 +134,18 @@ const ResourceList: React.FC<ResourceListProps> = ({
   };
 
   const renderResourceCard = (resource: Resource) => (
-    <div key={resource.id} className="resource-card" onClick={() => onViewResource(resource)}>
+    <div 
+      key={resource.id} 
+      className="resource-card" 
+      onClick={() => {
+        console.log('🖱️ Resource card clicked:', {
+          resourceId: resource.id,
+          resourceTitle: resource.title,
+          hasOnViewResource: !!onViewResource
+        });
+        onViewResource(resource);
+      }}
+    >
       {/* YouTube Thumbnail */}
       {isYouTubeResource(resource) && resource.youtubeThumbnailUrl && (
         <div className="resource-youtube-thumbnail">

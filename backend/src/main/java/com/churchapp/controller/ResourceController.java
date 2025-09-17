@@ -11,8 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -82,10 +81,32 @@ public class ResourceController {
     }
     
     @GetMapping("/{resourceId}")
-    public ResponseEntity<?> getResource(@PathVariable UUID resourceId) {
+    public ResponseEntity<?> getResource(@PathVariable UUID resourceId, Authentication authentication) {
         try {
-            Resource resource = resourceService.getApprovedResource(resourceId);
+            Resource resource = resourceService.getResource(resourceId);
+            
+            // Check if user can view this resource
+            boolean canView = resource.getIsApproved(); // Always show approved resources
+            
+            if (!canView && authentication != null) {
+                // Allow users to view their own resources even if not approved
+                String currentUserEmail = authentication.getName();
+                UserProfileResponse currentUser = userProfileService.getUserProfileByEmail(currentUserEmail);
+                canView = resource.getUploadedBy().getId().toString().equals(currentUser.getUserId()) ||
+                         "ADMIN".equals(currentUser.getRole()) ||
+                         "MODERATOR".equals(currentUser.getRole());
+            }
+            
+            if (!canView) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Resource not found or not approved");
+                return ResponseEntity.badRequest().body(error);
+            }
+            
             ResourceResponse response = ResourceResponse.publicFromResource(resource);
+            log.info("Returning resource response: ID={}, Title={}, FileType={}, YouTubeUrl={}, YouTubeVideoId={}", 
+                    response.getId(), response.getTitle(), response.getFileType(), 
+                    response.getYoutubeUrl(), response.getYoutubeVideoId());
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -110,12 +131,15 @@ public class ResourceController {
     
     // Authenticated endpoints
     @PostMapping
-    public ResponseEntity<?> createResource(@AuthenticationPrincipal User user,
+    public ResponseEntity<?> createResource(Authentication authentication,
                                           @Valid @RequestBody ResourceRequest request) {
         try {
             log.info("Creating resource with title: {}", request.getTitle());
+            log.info("YouTube URL in request: {}", request.getYoutubeUrl());
             
-            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            String email = authentication.getName();
+            log.info("Authenticated user email: {}", email);
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(email);
             
             Resource resourceEntity = convertToEntity(request);
             Resource createdResource = resourceService.createResource(currentProfile.getUserId(), resourceEntity);
@@ -124,18 +148,26 @@ public class ResourceController {
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             log.error("Error creating resource: {}", e.getMessage(), e);
+            log.error("Stack trace:", e);
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(error);
+        } catch (Exception e) {
+            log.error("Unexpected error creating resource: {}", e.getMessage(), e);
+            log.error("Stack trace:", e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Unexpected error: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
         }
     }
     
     @PutMapping("/{resourceId}")
     public ResponseEntity<?> updateResource(@PathVariable UUID resourceId,
-                                          @AuthenticationPrincipal User user,
+                                          Authentication authentication,
                                           @Valid @RequestBody ResourceRequest request) {
         try {
-            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            String email = authentication.getName();
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(email);
             
             Resource resourceUpdate = convertToEntity(request);
             Resource updatedResource = resourceService.updateResource(resourceId, currentProfile.getUserId(), resourceUpdate);
@@ -152,9 +184,9 @@ public class ResourceController {
     
     @DeleteMapping("/{resourceId}")
     public ResponseEntity<?> deleteResource(@PathVariable UUID resourceId,
-                                          @AuthenticationPrincipal User user) {
+                                          Authentication authentication) {
         try {
-            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(authentication.getName());
             resourceService.deleteResource(resourceId, currentProfile.getUserId());
             
             Map<String, String> response = new HashMap<>();
@@ -170,12 +202,12 @@ public class ResourceController {
     
     // User's own resources
     @GetMapping("/my-resources")
-    public ResponseEntity<?> getUserResources(@AuthenticationPrincipal User user,
+    public ResponseEntity<?> getUserResources(Authentication authentication,
                                             @RequestParam(defaultValue = "0") int page,
                                             @RequestParam(defaultValue = "20") int size,
                                             @RequestParam(required = false) Boolean approved) {
         try {
-            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(authentication.getName());
             
             Page<Resource> resourcePage;
             if (approved != null) {
@@ -206,12 +238,12 @@ public class ResourceController {
     
     // Admin endpoints
     @GetMapping("/admin/all")
-    public ResponseEntity<?> getAllResources(@AuthenticationPrincipal User user,
+    public ResponseEntity<?> getAllResources(Authentication authentication,
                                            @RequestParam(defaultValue = "0") int page,
                                            @RequestParam(defaultValue = "20") int size,
                                            @RequestParam(required = false) String search) {
         try {
-            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(authentication.getName());
             
             Page<Resource> resourcePage;
             if (search != null && !search.trim().isEmpty()) {
@@ -241,11 +273,11 @@ public class ResourceController {
     }
     
     @GetMapping("/admin/pending")
-    public ResponseEntity<?> getPendingResources(@AuthenticationPrincipal User user,
+    public ResponseEntity<?> getPendingResources(Authentication authentication,
                                                @RequestParam(defaultValue = "0") int page,
                                                @RequestParam(defaultValue = "20") int size) {
         try {
-            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(authentication.getName());
             
             Page<Resource> resourcePage = resourceService.getResourcesPendingApproval(currentProfile.getUserId(), page, size);
             
@@ -271,9 +303,9 @@ public class ResourceController {
     
     @PostMapping("/admin/{resourceId}/approve")
     public ResponseEntity<?> approveResource(@PathVariable UUID resourceId,
-                                           @AuthenticationPrincipal User user) {
+                                           Authentication authentication) {
         try {
-            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(authentication.getName());
             Resource approvedResource = resourceService.approveResource(resourceId, currentProfile.getUserId());
             
             ResourceResponse response = ResourceResponse.fromResource(approvedResource);
@@ -288,9 +320,9 @@ public class ResourceController {
     
     @PostMapping("/admin/{resourceId}/reject")
     public ResponseEntity<?> rejectResource(@PathVariable UUID resourceId,
-                                          @AuthenticationPrincipal User user) {
+                                          Authentication authentication) {
         try {
-            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(authentication.getName());
             Resource rejectedResource = resourceService.rejectResource(resourceId, currentProfile.getUserId());
             
             ResourceResponse response = ResourceResponse.fromResource(rejectedResource);
@@ -365,7 +397,7 @@ public class ResourceController {
     // File upload endpoints
     @PostMapping("/upload")
     public ResponseEntity<?> createResourceWithFile(
-        @AuthenticationPrincipal User user,
+        Authentication authentication,
         @RequestParam("file") MultipartFile file,
         @RequestParam("title") String title,
         @RequestParam(value = "description", required = false) String description,
@@ -374,7 +406,7 @@ public class ResourceController {
         try {
             log.info("Creating resource with file - Title: '{}', File: '{}'", title, file.getOriginalFilename());
             
-            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(authentication.getName());
             
             // Parse category
             Resource.ResourceCategory category = Resource.ResourceCategory.GENERAL;
@@ -414,13 +446,13 @@ public class ResourceController {
     @PutMapping("/{resourceId}/file")
     public ResponseEntity<?> updateResourceFile(
         @PathVariable UUID resourceId,
-        @AuthenticationPrincipal User user,
+        Authentication authentication,
         @RequestParam("file") MultipartFile file
     ) {
         try {
             log.info("Updating resource file for resource: {}", resourceId);
             
-            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(authentication.getName());
             
             Resource updatedResource = resourceService.updateResourceFile(resourceId, currentProfile.getUserId(), file);
             
@@ -438,12 +470,12 @@ public class ResourceController {
     @DeleteMapping("/{resourceId}/file")
     public ResponseEntity<?> removeResourceFile(
         @PathVariable UUID resourceId,
-        @AuthenticationPrincipal User user
+        Authentication authentication
     ) {
         try {
             log.info("Removing file from resource: {}", resourceId);
             
-            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(authentication.getName());
             
             // Get the resource
             Resource resource = resourceService.getResource(resourceId);
@@ -528,6 +560,15 @@ public class ResourceController {
         resource.setFileUrl(request.getFileUrl());
         resource.setFileSize(request.getFileSize());
         resource.setFileType(request.getFileType());
+        
+        // Set YouTube fields
+        resource.setYoutubeUrl(request.getYoutubeUrl());
+        resource.setYoutubeVideoId(request.getYoutubeVideoId());
+        resource.setYoutubeTitle(request.getYoutubeTitle());
+        resource.setYoutubeThumbnailUrl(request.getYoutubeThumbnailUrl());
+        resource.setYoutubeDuration(request.getYoutubeDuration());
+        resource.setYoutubeChannel(request.getYoutubeChannel());
+        
         return resource;
     }
 }

@@ -37,10 +37,19 @@ const ResourceDetail: React.FC<ResourceDetailProps> = ({
   const loadResource = useCallback(async () => {
     try {
       setLoading(true);
+      console.log('🔄 ResourceDetail: Loading resource with ID:', resourceId);
       const response = await resourceAPI.getResource(resourceId);
+      console.log('✅ ResourceDetail: Full API response:', response.data);
+      console.log('🔍 YouTube fields:', {
+        youtubeUrl: response.data.youtubeUrl,
+        youtubeVideoId: response.data.youtubeVideoId,
+        youtubeThumbnailUrl: response.data.youtubeThumbnailUrl,
+        youtubeTitle: response.data.youtubeTitle,
+        fileType: response.data.fileType
+      });
       setResource(response.data);
     } catch (error: any) {
-      console.error('Error loading resource:', error);
+      console.error('❌ ResourceDetail: Error loading resource:', error);
       onError(error.response?.data?.error || 'Failed to load resource');
     } finally {
       setLoading(false);
