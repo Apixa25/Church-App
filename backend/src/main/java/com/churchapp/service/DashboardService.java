@@ -174,14 +174,6 @@ public class DashboardService {
             "View Profile"
         ));
         
-        actions.add(QuickAction.create(
-            "edit_profile",
-            "Edit Profile", 
-            "Update your profile information and photo",
-            "/profile/edit",
-            "edit",
-            "Edit Profile"
-        ));
         
         // Coming soon sections        
         actions.add(QuickAction.create(
