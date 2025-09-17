@@ -16,7 +16,7 @@ import { FeedType } from '../types/Post';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,6 +37,40 @@ const Dashboard: React.FC = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Refresh user data when component mounts to ensure profile picture is current
+  useEffect(() => {
+    const refreshUserData = async () => {
+      if (user && !user.profilePicUrl && updateUser) {
+        try {
+          // Import profileAPI dynamically to avoid circular dependency
+          const { profileAPI } = await import('../services/api');
+          const response = await profileAPI.getMyProfile();
+          const freshUserData = response.data;
+          
+          // Update user data if profilePicUrl is now available
+          if (freshUserData.profilePicUrl && user.userId === freshUserData.userId) {
+            // Update the user context with fresh data
+            updateUser({
+              profilePicUrl: freshUserData.profilePicUrl,
+              bio: freshUserData.bio,
+              location: freshUserData.location,
+              website: freshUserData.website,
+              interests: freshUserData.interests,
+              phoneNumber: freshUserData.phoneNumber,
+              address: freshUserData.address,
+              birthday: freshUserData.birthday,
+              spiritualGift: freshUserData.spiritualGift
+            });
+          }
+        } catch (error) {
+          console.error('Failed to refresh user data in Dashboard:', error);
+        }
+      }
+    };
+
+    refreshUserData();
+  }, [user, updateUser]);
 
   const fetchDashboardData = async () => {
     try {

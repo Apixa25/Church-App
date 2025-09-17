@@ -73,10 +73,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Update WebSocket service with existing token
       webSocketService.updateToken(savedToken);
+      
+      // Fetch fresh user data from backend to ensure profilePicUrl is current
+      fetchFreshUserData(savedToken);
     }
     
     setLoading(false);
   }, []);
+
+  // Function to fetch fresh user data from backend
+  const fetchFreshUserData = async (token: string) => {
+    try {
+      // Import profileAPI dynamically to avoid circular dependency
+      const { profileAPI } = await import('../services/api');
+      const response = await profileAPI.getMyProfile();
+      const freshUserData = response.data;
+      
+      // Update user state with fresh data
+      setUser(prevUser => {
+        if (prevUser) {
+          const updatedUser = { ...prevUser, ...freshUserData };
+          // Update localStorage with fresh user data
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          return updatedUser;
+        }
+        return null;
+      });
+    } catch (error) {
+      console.error('Failed to fetch fresh user data:', error);
+      // Don't throw error - user can still use the app with cached data
+    }
+  };
 
   const login = async (email: string, password: string): Promise<void> => {
     try {
