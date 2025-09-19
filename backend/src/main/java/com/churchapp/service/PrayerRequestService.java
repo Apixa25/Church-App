@@ -1,5 +1,7 @@
 package com.churchapp.service;
 
+import com.churchapp.dto.PrayerNotificationEvent;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.churchapp.dto.PrayerRequestRequest;
 import com.churchapp.dto.PrayerRequestUpdateRequest;
 import com.churchapp.dto.PrayerRequestResponse;
@@ -9,6 +11,7 @@ import com.churchapp.repository.PrayerRequestRepository;
 import com.churchapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,6 +32,9 @@ public class PrayerRequestService {
     private final PrayerRequestRepository prayerRequestRepository;
     private final UserRepository userRepository;
     
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+    
     public PrayerRequestResponse createPrayerRequest(UUID userId, PrayerRequestRequest request) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
@@ -43,6 +49,9 @@ public class PrayerRequestService {
         
         PrayerRequest savedPrayerRequest = prayerRequestRepository.save(prayerRequest);
         log.info("Prayer request created with id: {} by user: {}", savedPrayerRequest.getId(), userId);
+        
+        // Send WebSocket notification for new prayer request
+        notifyNewPrayerRequest(savedPrayerRequest);
         
         return PrayerRequestResponse.fromPrayerRequestForOwner(savedPrayerRequest);
     }
@@ -92,6 +101,9 @@ public class PrayerRequestService {
         
         PrayerRequest updatedPrayerRequest = prayerRequestRepository.save(prayerRequest);
         log.info("Prayer request updated: {} by user: {}", prayerRequestId, userId);
+        
+        // Send WebSocket notification for prayer update
+        notifyPrayerRequestUpdate(updatedPrayerRequest);
         
         return PrayerRequestResponse.fromPrayerRequestForOwner(updatedPrayerRequest);
     }
@@ -198,5 +210,52 @@ public class PrayerRequestService {
     
     public long getAnsweredPrayerCount() {
         return prayerRequestRepository.countByStatus(PrayerRequest.PrayerStatus.ANSWERED);
+    }
+    
+    /**
+     * Send WebSocket notification for new prayer request
+     */
+    private void notifyNewPrayerRequest(PrayerRequest prayerRequest) {
+        try {
+            User user = prayerRequest.getUser();
+            PrayerNotificationEvent event = PrayerNotificationEvent.newPrayerRequest(
+                prayerRequest.getId(),
+                user.getId(),
+                user.getEmail(),
+                user.getName(),
+                prayerRequest.getTitle(),
+                prayerRequest.getDescription()
+            );
+            
+            // Broadcast to all connected users
+            messagingTemplate.convertAndSend("/topic/prayers", event);
+            log.info("Broadcasted new prayer request notification for prayer: {}", prayerRequest.getId());
+            
+        } catch (Exception e) {
+            log.error("Error sending new prayer request notification: {}", e.getMessage());
+        }
+    }
+    
+    /**
+     * Send WebSocket notification for prayer request update
+     */
+    private void notifyPrayerRequestUpdate(PrayerRequest prayerRequest) {
+        try {
+            User user = prayerRequest.getUser();
+            PrayerNotificationEvent event = PrayerNotificationEvent.prayerAnswered(
+                prayerRequest.getId(),
+                user.getId(),
+                user.getEmail(),
+                user.getName(),
+                prayerRequest.getTitle()
+            );
+            
+            // Broadcast to all connected users
+            messagingTemplate.convertAndSend("/topic/prayers", event);
+            log.info("Broadcasted prayer update notification for prayer: {}", prayerRequest.getId());
+            
+        } catch (Exception e) {
+            log.error("Error sending prayer update notification: {}", e.getMessage());
+        }
     }
 }

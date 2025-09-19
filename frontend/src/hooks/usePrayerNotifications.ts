@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import webSocketService, { PrayerRequestUpdate, PrayerInteractionUpdate, WebSocketMessage } from '../services/websocketService';
 
@@ -72,54 +72,87 @@ export const usePrayerNotifications = () => {
     setUnreadCount(0);
   }, []);
 
-  // Handle prayer request updates
-  const handlePrayerRequestUpdate = useCallback((update: PrayerRequestUpdate) => {
-    if (!user) return;
+  // Use refs to store current values to avoid stale closures
+  const userRef = useRef(user);
+  const addNotificationRef = useRef(addNotification);
+  
+  // Update refs when values change
+  useEffect(() => {
+    userRef.current = user;
+    addNotificationRef.current = addNotification;
+  }, [user, addNotification]);
+
+  // Handle prayer request updates - using useCallback with empty dependency array
+  const handlePrayerRequestUpdate = useCallback((data: any) => {
+    console.log('🔥 handlePrayerRequestUpdate called with data:', data);
+    console.log('🔥 Current user:', userRef.current);
+
+    if (!userRef.current) {
+      console.log('🔥 No user, returning early');
+      return;
+    }
 
     let notification: PrayerNotification | null = null;
 
-    switch (update.type) {
-      case 'prayer_request':
-        // Don't notify users of their own prayer requests
-        if (update.userId === user.userId) return;
-        
-        notification = {
-          id: `prayer-${update.prayerRequestId}-${Date.now()}`,
-          type: 'new_prayer',
-          title: 'New Prayer Request',
-          message: 'A community member has submitted a new prayer request',
-          prayerRequestId: update.prayerRequestId,
-          timestamp: update.timestamp,
-          read: false,
-          actionUrl: `/prayers/${update.prayerRequestId}`
-        };
-        break;
-
-      case 'prayer_update':
-        notification = {
-          id: `prayer-update-${update.prayerRequestId}-${Date.now()}`,
-          type: 'prayer_answered',
-          title: 'Prayer Update',
-          message: 'A prayer request has been updated',
-          prayerRequestId: update.prayerRequestId,
-          timestamp: update.timestamp,
-          read: false,
-          actionUrl: `/prayers/${update.prayerRequestId}`
-        };
-        break;
+    // Handle the new PrayerNotificationEvent format from backend
+    if (data.type === 'NEW_PRAYER_REQUEST') {
+      // Don't notify users of their own prayer requests
+      if (data.userId === userRef.current.userId) return;
+      
+      notification = {
+        id: `prayer-${data.prayerRequestId}-${Date.now()}`,
+        type: 'new_prayer',
+        title: 'New Prayer Request',
+        message: `${data.userName || 'A community member'} submitted a new prayer request: "${data.title}"`,
+        prayerRequestId: data.prayerRequestId,
+        timestamp: data.timestamp,
+        read: false,
+        actionUrl: `/prayers/${data.prayerRequestId}`
+      };
+    }
+    // Handle the old format for backward compatibility
+    else if (data.type === 'prayer_request') {
+      // Don't notify users of their own prayer requests
+      if (data.userId === userRef.current.userId) return;
+      
+      notification = {
+        id: `prayer-${data.prayerRequestId}-${Date.now()}`,
+        type: 'new_prayer',
+        title: 'New Prayer Request',
+        message: 'A community member has submitted a new prayer request',
+        prayerRequestId: data.prayerRequestId,
+        timestamp: data.timestamp,
+        read: false,
+        actionUrl: `/prayers/${data.prayerRequestId}`
+      };
+    }
+    else if (data.type === 'prayer_update') {
+      notification = {
+        id: `prayer-update-${data.prayerRequestId}-${Date.now()}`,
+        type: 'prayer_answered',
+        title: 'Prayer Update',
+        message: 'A prayer request has been updated',
+        prayerRequestId: data.prayerRequestId,
+        timestamp: data.timestamp,
+        read: false,
+        actionUrl: `/prayers/${data.prayerRequestId}`
+      };
     }
 
     if (notification) {
-      addNotification(notification);
+      console.log('🔥 Adding prayer notification:', notification);
+      addNotificationRef.current(notification);
+    } else {
+      console.log('🔥 No notification created from data:', data);
     }
-  }, [user, addNotification]);
+  }, []); // Empty dependency array to prevent re-creation
 
-  // Handle prayer interaction updates
+  // Handle prayer interaction updates - using useCallback with empty dependency array
   const handlePrayerInteractionUpdate = useCallback((update: PrayerInteractionUpdate) => {
-    if (!user) return;
+    if (!userRef.current) return;
 
     // Don't notify users of their own interactions
-    if (update.userId === user.userId) return;
+    if (update.userId === userRef.current.userId) return;
 
     const notification: PrayerNotification = {
       id: `interaction-${update.prayerRequestId}-${update.userId}-${Date.now()}`,
@@ -134,12 +167,12 @@ export const usePrayerNotifications = () => {
       actionUrl: `/prayers/${update.prayerRequestId}`
     };
 
-    addNotification(notification);
-  }, [user, addNotification]);
+    addNotificationRef.current(notification);
+  }, []); // Empty dependency array to prevent re-creation
 
-  // Handle user-specific prayer notifications
+  // Handle user-specific prayer notifications - using useCallback with empty dependency array
   const handleUserPrayerNotification = useCallback((message: WebSocketMessage) => {
-    if (!user) return;
+    if (!userRef.current) return;
 
     const notification: PrayerNotification = {
       id: `user-prayer-${Date.now()}`,
@@ -152,8 +185,8 @@ export const usePrayerNotifications = () => {
       actionUrl: message.content?.prayerRequestId ? `/prayers/${message.content.prayerRequestId}` : '/prayers'
     };
 
-    addNotification(notification);
-  }, [user, addNotification]);
+    addNotificationRef.current(notification);
+  }, []); // Empty dependency array to prevent re-creation
 
   // Set up WebSocket subscriptions
   useEffect(() => {
@@ -201,7 +234,7 @@ export const usePrayerNotifications = () => {
       }
       setIsConnected(false);
     };
-  }, [user, handlePrayerRequestUpdate, handleUserPrayerNotification]);
+  }, [user]); // Only depend on user to prevent re-subscriptions
 
   // Subscribe to specific prayer interactions when viewing a prayer
   const subscribeToSpecificPrayer = useCallback((prayerRequestId: string) => {
