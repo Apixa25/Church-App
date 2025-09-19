@@ -547,7 +547,9 @@ class WebSocketService {
     const destination = '/topic/prayers';
     const subscription = this.client.subscribe(destination, (message: IMessage) => {
       try {
+        console.log('🔥 WebSocket received message on /topic/prayers:', message.body);
         const data = JSON.parse(message.body);
+        console.log('🔥 Parsed prayer data:', data);
         callback(data);
       } catch (error) {
         console.error('Error parsing prayer request update:', error);
@@ -616,7 +618,9 @@ class WebSocketService {
     const destination = '/user/queue/prayers';
     const subscription = this.client.subscribe(destination, (message: IMessage) => {
       try {
+        console.log('🔥 WebSocket received message on /user/queue/prayers:', message.body);
         const data = JSON.parse(message.body);
+        console.log('🔥 Parsed user prayer notification:', data);
         callback(data);
       } catch (error) {
         console.error('Error parsing prayer notification:', error);

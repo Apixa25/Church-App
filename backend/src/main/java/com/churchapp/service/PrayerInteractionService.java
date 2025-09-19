@@ -3,6 +3,8 @@ package com.churchapp.service;
 import com.churchapp.dto.PrayerInteractionRequest;
 import com.churchapp.dto.PrayerInteractionResponse;
 import com.churchapp.dto.PrayerInteractionSummary;
+import com.churchapp.dto.PrayerNotificationEvent;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.churchapp.entity.PrayerInteraction;
 import com.churchapp.entity.PrayerRequest;
 import com.churchapp.entity.User;
@@ -11,6 +13,7 @@ import com.churchapp.repository.PrayerRequestRepository;
 import com.churchapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +35,9 @@ public class PrayerInteractionService {
     private final PrayerInteractionRepository prayerInteractionRepository;
     private final PrayerRequestRepository prayerRequestRepository;
     private final UserRepository userRepository;
+    
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
     
     public PrayerInteractionResponse createInteraction(UUID userId, PrayerInteractionRequest request) {
         User user = userRepository.findById(userId)
@@ -73,6 +79,9 @@ public class PrayerInteractionService {
         PrayerInteraction savedInteraction = prayerInteractionRepository.save(interaction);
         log.info("Created {} interaction for prayer {} by user {}", 
             request.getType(), request.getPrayerRequestId(), userId);
+        
+        // Send WebSocket notification for prayer interaction
+        notifyPrayerInteraction(savedInteraction);
         
         return PrayerInteractionResponse.fromPrayerInteraction(savedInteraction);
     }
@@ -222,5 +231,42 @@ public class PrayerInteractionService {
         return recentActivity.stream()
             .map(PrayerInteractionResponse::fromPrayerInteraction)
             .collect(Collectors.toList());
+    }
+    
+    /**
+     * Send WebSocket notification for prayer interaction
+     */
+    private void notifyPrayerInteraction(PrayerInteraction interaction) {
+        try {
+            User user = interaction.getUser();
+            PrayerRequest prayerRequest = interaction.getPrayerRequest();
+            
+            PrayerNotificationEvent event = PrayerNotificationEvent.prayerInteraction(
+                prayerRequest.getId(),
+                user.getId(),
+                user.getEmail(),
+                user.getName(),
+                interaction.getType(),
+                interaction.getContent()
+            );
+            
+            // Broadcast to specific prayer subscribers
+            messagingTemplate.convertAndSend("/topic/prayer-interactions/" + prayerRequest.getId(), event);
+            
+            // Also send to prayer request owner if different from interaction user
+            if (!prayerRequest.getUser().getId().equals(user.getId())) {
+                messagingTemplate.convertAndSendToUser(
+                    prayerRequest.getUser().getEmail(),
+                    "/queue/prayers",
+                    event
+                );
+            }
+            
+            log.info("Broadcasted prayer interaction notification for prayer: {} by user: {}", 
+                prayerRequest.getId(), user.getId());
+            
+        } catch (Exception e) {
+            log.error("Error sending prayer interaction notification: {}", e.getMessage());
+        }
     }
 }
