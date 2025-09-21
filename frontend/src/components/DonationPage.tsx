@@ -7,6 +7,8 @@ import CategorySelector from './CategorySelector';
 import RecurringSelector from './RecurringSelector';
 import StripeCheckout from './StripeCheckout';
 import DonationSummary from './DonationSummary';
+import DonationHistory from './DonationHistory';
+import SubscriptionManager from './SubscriptionManager';
 import './DonationPage.css';
 
 // Initialize Stripe
@@ -22,7 +24,10 @@ interface DonationFormData {
   notes: string;
 }
 
+type DonationTab = 'donate' | 'history' | 'subscriptions';
+
 const DonationPage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<DonationTab>('donate');
   const [step, setStep] = useState<'form' | 'payment' | 'success'>('form');
   const [formData, setFormData] = useState<DonationFormData>({
     amount: 0,
@@ -46,6 +51,15 @@ const DonationPage: React.FC = () => {
     setStep('success');
     // You might want to redirect or show a success message
     console.log('Donation successful:', donationId);
+  };
+
+  const handleTabChange = (tab: DonationTab) => {
+    setActiveTab(tab);
+    // Reset form state when switching tabs
+    if (tab !== 'donate') {
+      setStep('form');
+      setError(null);
+    }
   };
 
   const handlePaymentError = (error: string) => {
@@ -75,55 +89,98 @@ const DonationPage: React.FC = () => {
     <div className="donation-page">
       <div className="donation-container">
         <header className="donation-header">
-          <h1>Make a Donation</h1>
+          <h1>Giving & Donations</h1>
           <p>Your generosity makes a difference in our community</p>
         </header>
 
-        {error && (
-          <div className="error-message">
-            <span className="error-icon">⚠️</span>
-            <span>{error}</span>
-            <button onClick={() => setError(null)} className="error-close">×</button>
-          </div>
-        )}
+        {/* Tab Navigation */}
+        <div className="tab-navigation">
+          <button
+            className={`tab-button ${activeTab === 'donate' ? 'active' : ''}`}
+            onClick={() => handleTabChange('donate')}
+          >
+            💝 Make Donation
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'history' ? 'active' : ''}`}
+            onClick={() => handleTabChange('history')}
+          >
+            📋 Donation History
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'subscriptions' ? 'active' : ''}`}
+            onClick={() => handleTabChange('subscriptions')}
+          >
+            🔄 Recurring Donations
+          </button>
+        </div>
 
-        {step === 'form' && (
-          <DonationForm
-            initialData={formData}
-            onSubmit={handleFormSubmit}
-            isLoading={isLoading}
-          />
-        )}
+        {/* Tab Content */}
+        <div className="tab-content">
+          {activeTab === 'donate' && (
+            <div className="donate-tab">
+              {error && (
+                <div className="error-message">
+                  <span className="error-icon">⚠️</span>
+                  <span>{error}</span>
+                  <button onClick={() => setError(null)} className="error-close">×</button>
+                </div>
+              )}
 
-        {step === 'payment' && (
-          <Elements stripe={stripePromise} options={STRIPE_CONFIG.options}>
-            <div className="payment-section">
-              <DonationSummary
-                amount={formData.amount}
-                category={formData.category}
-                purpose={formData.purpose}
-                isRecurring={formData.isRecurring}
-                frequency={formData.frequency}
-              />
+              {step === 'form' && (
+                <DonationForm
+                  initialData={formData}
+                  onSubmit={handleFormSubmit}
+                  isLoading={isLoading}
+                />
+              )}
 
-              <StripeCheckout
-                formData={formData}
-                onSuccess={handlePaymentSuccess}
-                onError={handlePaymentError}
-                onBack={handleBackToForm}
-              />
+              {step === 'payment' && (
+                <Elements stripe={stripePromise} options={STRIPE_CONFIG.options}>
+                  <div className="payment-section">
+                    <DonationSummary
+                      amount={formData.amount}
+                      category={formData.category}
+                      purpose={formData.purpose}
+                      isRecurring={formData.isRecurring}
+                      frequency={formData.frequency}
+                    />
+
+                    <StripeCheckout
+                      formData={formData}
+                      onSuccess={handlePaymentSuccess}
+                      onError={handlePaymentError}
+                      onBack={handleBackToForm}
+                    />
+                  </div>
+                </Elements>
+              )}
+
+              {step === 'success' && (
+                <DonationSuccess
+                  amount={formData.amount}
+                  category={formData.category}
+                  isRecurring={formData.isRecurring}
+                  onStartOver={handleStartOver}
+                  onViewHistory={() => handleTabChange('history')}
+                  onViewSubscriptions={() => handleTabChange('subscriptions')}
+                />
+              )}
             </div>
-          </Elements>
-        )}
+          )}
 
-        {step === 'success' && (
-          <DonationSuccess
-            amount={formData.amount}
-            category={formData.category}
-            isRecurring={formData.isRecurring}
-            onStartOver={handleStartOver}
-          />
-        )}
+          {activeTab === 'history' && (
+            <div className="history-tab">
+              <DonationHistory showFilters={true} />
+            </div>
+          )}
+
+          {activeTab === 'subscriptions' && (
+            <div className="subscriptions-tab">
+              <SubscriptionManager />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -263,6 +320,8 @@ interface DonationSuccessProps {
   category: DonationCategory;
   isRecurring: boolean;
   onStartOver: () => void;
+  onViewHistory: () => void;
+  onViewSubscriptions: () => void;
 }
 
 const DonationSuccess: React.FC<DonationSuccessProps> = ({
@@ -270,6 +329,8 @@ const DonationSuccess: React.FC<DonationSuccessProps> = ({
   category,
   isRecurring,
   onStartOver,
+  onViewHistory,
+  onViewSubscriptions,
 }) => {
   return (
     <div className="donation-success">
@@ -301,9 +362,20 @@ const DonationSuccess: React.FC<DonationSuccessProps> = ({
         <button onClick={onStartOver} className="btn btn-secondary">
           Make Another Donation
         </button>
+
+        {isRecurring ? (
+          <button onClick={onViewSubscriptions} className="btn btn-primary">
+            View Recurring Donations
+          </button>
+        ) : (
+          <button onClick={onViewHistory} className="btn btn-primary">
+            View Donation History
+          </button>
+        )}
+
         <button
           onClick={() => window.location.href = '/dashboard'}
-          className="btn btn-primary"
+          className="btn btn-outline"
         >
           Return to Dashboard
         </button>

@@ -35,6 +35,69 @@
   opacity: 0.9;
 }
 
+/* Tab Navigation */
+.tab-navigation {
+  display: flex;
+  background: #f8f9fa;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 1rem 1.5rem;
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.tab-button:hover {
+  background: rgba(70, 130, 180, 0.1);
+  color: #4682b4;
+}
+
+.tab-button.active {
+  background: white;
+  color: #4682b4;
+  border-bottom: 3px solid #4682b4;
+}
+
+.tab-button.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #4682b4;
+}
+
+/* Tab Content */
+.tab-content {
+  min-height: 400px;
+}
+
+.donate-tab,
+.history-tab,
+.subscriptions-tab {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Error Message */
 .error-message {
   display: flex;
