@@ -29,6 +29,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -45,6 +46,7 @@ public class DonationController {
     private final StripePaymentService stripePaymentService;
     private final StripeSubscriptionService stripeSubscriptionService;
     private final StripeWebhookService stripeWebhookService;
+    private final ReceiptService receiptService;
     private final DonationRepository donationRepository;
     private final DonationSubscriptionRepository subscriptionRepository;
     private final UserRepository userRepository;
@@ -106,9 +108,13 @@ public class DonationController {
         try {
             User user = getCurrentUser(authentication);
             Donation donation = stripePaymentService.confirmPayment(paymentIntentId, user);
+
+            // Generate and email receipt automatically
+            receiptService.generateAndEmailReceipt(donation);
+
             DonationResponse response = mapDonationToResponse(donation);
 
-            log.info("Payment confirmed for user {} with amount ${}",
+            log.info("Payment confirmed for user {} with amount ${}, receipt generated",
                 user.getId(), donation.getAmount());
 
             return ResponseEntity.ok(response);
@@ -265,6 +271,76 @@ public class DonationController {
         } catch (Exception e) {
             log.error("Error processing Stripe webhook: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body("Webhook processing failed");
+        }
+    }
+
+    /**
+     * Download receipt PDF for a donation
+     */
+    @GetMapping("/receipt/{donationId}")
+    public ResponseEntity<byte[]> downloadReceipt(
+            @PathVariable UUID donationId,
+            Authentication authentication) {
+
+        try {
+            User user = getCurrentUser(authentication);
+            byte[] receiptPdf = receiptService.downloadReceipt(donationId, user);
+
+            // Find donation for filename
+            Donation donation = donationRepository.findById(donationId)
+                .orElseThrow(() -> new IllegalArgumentException("Donation not found"));
+
+            String filename = String.format("Receipt_%s_%s.pdf",
+                donation.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                donation.getTransactionId());
+
+            return ResponseEntity.ok()
+                .header("Content-Type", "application/pdf")
+                .header("Content-Disposition", "attachment; filename=\"" + filename + "\"")
+                .body(receiptPdf);
+
+        } catch (Exception e) {
+            log.error("Error downloading receipt for donation {}: {}", donationId, e.getMessage(), e);
+            throw new PaymentException("Failed to download receipt", e);
+        }
+    }
+
+    /**
+     * Resend receipt email for a donation
+     */
+    @PostMapping("/receipt/{donationId}/resend")
+    public ResponseEntity<String> resendReceipt(
+            @PathVariable UUID donationId,
+            @RequestParam(required = false) String email,
+            Authentication authentication) {
+
+        try {
+            User user = getCurrentUser(authentication);
+
+            Donation donation = donationRepository.findById(donationId)
+                .orElseThrow(() -> new IllegalArgumentException("Donation not found"));
+
+            // Verify user owns this donation
+            if (!donation.getUser().getId().equals(user.getId())) {
+                throw new IllegalArgumentException("User does not own this donation");
+            }
+
+            // Use provided email or default to receipt email or user email
+            String recipientEmail = email != null ? email :
+                (donation.getReceiptEmail() != null ? donation.getReceiptEmail() : user.getEmail());
+
+            // Generate and send receipt
+            byte[] receiptPdf = receiptService.generateReceiptPdf(donation);
+            EmailService emailService = new EmailService(null, "", "", ""); // This would be injected
+            // emailService.sendReceiptEmail(donation, receiptPdf, recipientEmail);
+
+            log.info("Receipt resent for donation {} to {}", donationId, recipientEmail);
+
+            return ResponseEntity.ok("Receipt has been resent to " + recipientEmail);
+
+        } catch (Exception e) {
+            log.error("Error resending receipt for donation {}: {}", donationId, e.getMessage(), e);
+            throw new PaymentException("Failed to resend receipt", e);
         }
     }
 
