@@ -12,6 +12,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -89,7 +91,14 @@ public class User {
     
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
-    
+
+    // Donation relationships
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Donation> donations = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<DonationSubscription> donationSubscriptions = new ArrayList<>();
+
     public enum UserRole {
         MEMBER, MODERATOR, ADMIN
     }
