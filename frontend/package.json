@@ -19,6 +19,8 @@
     "@types/react-datepicker": "^6.2.0",
     "@types/react-dom": "^19.1.9",
     "@types/sockjs-client": "^1.5.4",
+    "@stripe/react-stripe-js": "^2.8.0",
+    "@stripe/stripe-js": "^4.6.0",
     "axios": "^1.11.0",
     "react": "^19.1.1",
     "react-datepicker": "^8.7.0",
