@@ -23,6 +23,38 @@
   padding: 3rem 2rem;
 }
 
+.donation-header-top {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.back-home-btn {
+  background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(116, 185, 255, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.back-home-btn:hover {
+  background: linear-gradient(135deg, #0984e3 0%, #74b9ff 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(116, 185, 255, 0.4);
+}
+
+.back-home-btn:active {
+  transform: translateY(0);
+}
+
 .donation-header h1 {
   margin: 0 0 1rem 0;
   font-size: 2.5rem;

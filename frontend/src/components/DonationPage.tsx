@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { STRIPE_CONFIG, DonationCategory, RecurringFrequency } from '../config/stripe';
 import AmountSelector from './AmountSelector';
 import CategorySelector from './CategorySelector';
@@ -29,6 +29,7 @@ type DonationTab = 'donate' | 'history' | 'subscriptions';
 
 const DonationPage: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const locationState = location.state as any;
 
   const [activeTab, setActiveTab] = useState<DonationTab>(
@@ -114,6 +115,15 @@ const DonationPage: React.FC = () => {
     <div className="donation-page">
       <div className="donation-container">
         <header className="donation-header">
+          <div className="donation-header-top">
+            <button
+              className="back-home-btn"
+              onClick={() => navigate('/')}
+              title="Back to Dashboard"
+            >
+              🏠 Back Home
+            </button>
+          </div>
           <h1>Giving & Donations</h1>
           <p>Your generosity makes a difference in our community</p>
         </header>
