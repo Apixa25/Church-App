@@ -86,6 +86,67 @@ export interface SubscriptionResponse {
   donorName: string;
 }
 
+// Analytics Types
+export interface DonationAnalytics {
+  totalDonations: number;
+  totalAmount: number;
+  averageDonation: number;
+  donorCount: number;
+  recurringDonations: number;
+  recurringAmount: number;
+  categoryBreakdown: CategoryBreakdown[];
+  monthlyTrends: MonthlyTrend[];
+  topDonors: TopDonor[];
+  recentDonations: DonationResponse[];
+  periodComparison: PeriodComparison;
+}
+
+export interface CategoryBreakdown {
+  category: DonationCategory;
+  categoryDisplayName: string;
+  count: number;
+  amount: number;
+  percentage: number;
+}
+
+export interface MonthlyTrend {
+  month: string;
+  year: number;
+  totalAmount: number;
+  donationCount: number;
+  newDonors: number;
+  recurringAmount: number;
+}
+
+export interface TopDonor {
+  userId: string;
+  donorName: string;
+  totalAmount: number;
+  donationCount: number;
+  averageDonation: number;
+  lastDonationDate: string;
+  isRecurringDonor: boolean;
+}
+
+export interface PeriodComparison {
+  currentPeriod: PeriodStats;
+  previousPeriod: PeriodStats;
+  growth: GrowthMetrics;
+}
+
+export interface PeriodStats {
+  totalAmount: number;
+  donationCount: number;
+  donorCount: number;
+  averageDonation: number;
+}
+
+export interface GrowthMetrics {
+  amountGrowth: number;
+  countGrowth: number;
+  donorGrowth: number;
+}
+
 // Get JWT token from localStorage
 const getAuthToken = (): string | null => {
   return localStorage.getItem('authToken');
@@ -228,6 +289,77 @@ export const donationApi = {
       {
         ...createAuthenticatedRequest(),
         params: email ? { email } : {},
+      }
+    );
+    return response.data;
+  },
+
+  /**
+   * Get donation analytics for admin dashboard
+   */
+  getAnalytics: async (
+    dateRange: '7d' | '30d' | '90d' | '1y' = '30d',
+    startDate?: string,
+    endDate?: string
+  ): Promise<DonationAnalytics> => {
+    const params: any = { dateRange };
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
+
+    const response = await axios.get(
+      `${API_BASE_URL}/admin/donations/analytics`,
+      {
+        ...createAuthenticatedRequest(),
+        params,
+      }
+    );
+    return response.data;
+  },
+
+  /**
+   * Get all donors for management
+   */
+  getDonors: async (
+    page: number = 0,
+    size: number = 20,
+    sortBy: string = 'totalAmount',
+    sortDirection: 'asc' | 'desc' = 'desc'
+  ): Promise<{
+    content: TopDonor[];
+    totalPages: number;
+    totalElements: number;
+    size: number;
+    number: number;
+  }> => {
+    const response = await axios.get(
+      `${API_BASE_URL}/admin/donations/donors`,
+      {
+        ...createAuthenticatedRequest(),
+        params: { page, size, sortBy, sortDirection },
+      }
+    );
+    return response.data;
+  },
+
+  /**
+   * Export donation data
+   */
+  exportDonations: async (
+    format: 'csv' | 'xlsx' = 'csv',
+    dateRange: '7d' | '30d' | '90d' | '1y' = '30d',
+    startDate?: string,
+    endDate?: string
+  ): Promise<Blob> => {
+    const params: any = { format, dateRange };
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
+
+    const response = await axios.get(
+      `${API_BASE_URL}/admin/donations/export`,
+      {
+        ...createAuthenticatedRequest(),
+        params,
+        responseType: 'blob',
       }
     );
     return response.data;

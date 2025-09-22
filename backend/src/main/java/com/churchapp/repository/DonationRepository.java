@@ -100,4 +100,14 @@ public interface DonationRepository extends JpaRepository<Donation, UUID> {
     @Query("SELECT COUNT(d), SUM(d.amount), MIN(d.timestamp), MAX(d.timestamp) " +
            "FROM Donation d WHERE d.user = :user")
     Object[] getUserDonationStats(@Param("user") User user);
+
+    // Additional analytics methods
+    List<Donation> findByTimestampBetween(LocalDateTime startDate, LocalDateTime endDate);
+
+    List<Donation> findByTimestampBetweenAndCategory(LocalDateTime startDate, LocalDateTime endDate, DonationCategory category);
+
+    @Query("SELECT d.user.id, d.user.name, SUM(d.amount), COUNT(d), MAX(d.timestamp), " +
+           "CASE WHEN COUNT(CASE WHEN d.isRecurring = true THEN 1 END) > 0 THEN true ELSE false END " +
+           "FROM Donation d GROUP BY d.user.id, d.user.name ORDER BY SUM(d.amount) DESC")
+    List<Object[]> findDonorStatistics();
 }
