@@ -143,7 +143,13 @@ public class ReceiptService {
         receiptData.setCategory(donation.getCategory());
         receiptData.setCategoryDisplayName(donation.getCategoryDisplayName());
         receiptData.setPurpose(donation.getPurpose());
-        receiptData.setPaymentMethod(donation.getPaymentMethodDisplay());
+        String paymentMethod = "";
+        if (donation.getPaymentMethodBrand() != null && donation.getPaymentMethodLast4() != null) {
+            paymentMethod = donation.getPaymentMethodBrand() + " ending in " + donation.getPaymentMethodLast4();
+        } else {
+            paymentMethod = "Card payment";
+        }
+        receiptData.setPaymentMethod(paymentMethod);
         receiptData.setDonationDate(donation.getTimestamp());
         receiptData.setCurrency(donation.getCurrency());
 

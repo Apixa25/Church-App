@@ -14,7 +14,9 @@
       "Bash(cmd /c:*)",
       "Bash(tasklist:*)",
       "WebSearch",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(mvn test:*)",
+      "Bash(./gradlew test:*)"
     ],
     "deny": [],
     "ask": []
