@@ -4,6 +4,7 @@ import { announcementAPI } from './announcementApi';
 import { eventAPI } from './eventApi';
 import { resourceAPI } from './resourceApi';
 import { Resource } from '../types/Resource';
+import { donationApi } from './donationApi';
 
 export interface DashboardActivityItem {
   id: string;
@@ -337,6 +338,77 @@ const dashboardApi = {
     ];
   },
 
+  // Donation specific dashboard functions
+  getDonationActivityItems: async (limit: number = 10): Promise<DashboardActivityItem[]> => {
+    try {
+      // Get recent donations for dashboard
+      const response = await donationApi.getDonationHistory(0, limit);
+      const donations = response.content || [];
+
+      return donations.map(donation => ({
+        id: donation.id,
+        type: 'donation',
+        title: '💝 Donation Made',
+        description: `$${donation.amount} donation for ${donation.categoryDisplayName}`,
+        userDisplayName: donation.donorName,
+        userProfilePicUrl: undefined, // Keep donation details private
+        userId: donation.userId,
+        timestamp: donation.timestamp,
+        actionUrl: '/donations',
+        iconType: 'donation',
+        metadata: {
+          amount: donation.amount,
+          category: donation.category,
+          purpose: donation.purpose,
+          isRecurring: donation.isRecurring,
+          transactionId: donation.transactionId
+        }
+      }));
+    } catch (error) {
+      console.error('Error fetching donation activity items:', error);
+      return [];
+    }
+  },
+
+  getDonationQuickActions: (userRole?: string): QuickAction[] => {
+    const actions: QuickAction[] = [
+      {
+        id: 'make-donation',
+        title: 'Make Donation',
+        description: 'Support your church through generous giving',
+        actionUrl: '/donations',
+        iconType: 'donation',
+        buttonText: 'Give Now',
+        requiresAuth: true
+      },
+      {
+        id: 'donation-history',
+        title: 'My Donations',
+        description: 'View your donation history and receipts',
+        actionUrl: '/donations',
+        iconType: 'history',
+        buttonText: 'View History',
+        requiresAuth: true
+      }
+    ];
+
+    // Add admin analytics for admins
+    if (userRole === 'ADMIN') {
+      actions.push({
+        id: 'donation-analytics',
+        title: 'Donation Analytics',
+        description: 'View donation trends and financial reports',
+        actionUrl: '/admin/donations/analytics',
+        iconType: 'chart',
+        buttonText: 'View Analytics',
+        requiresAuth: true,
+        requiredRole: 'ADMIN'
+      });
+    }
+
+    return actions;
+  },
+
   getDashboardWithAll: async (): Promise<DashboardResponse> => {
     try {
       // Get the main dashboard data
@@ -344,12 +416,13 @@ const dashboardApi = {
       const dashboardData = dashboardResponse.data;
 
       // Get all activity items in parallel
-      const [prayerActivityItems, announcementActivityItems, eventActivityItems, rsvpActivityItems, resourceActivityItems] = await Promise.all([
+      const [prayerActivityItems, announcementActivityItems, eventActivityItems, rsvpActivityItems, resourceActivityItems, donationActivityItems] = await Promise.all([
         dashboardApi.getPrayerActivityItems(5),
         dashboardApi.getAnnouncementActivityItems(5),
         dashboardApi.getEventActivityItems(5),
         dashboardApi.getRsvpActivityItems(3),
-        dashboardApi.getResourceActivityItems(3)
+        dashboardApi.getResourceActivityItems(3),
+        dashboardApi.getDonationActivityItems(3)
       ]);
 
       // Merge all activities with existing activities
@@ -359,6 +432,7 @@ const dashboardApi = {
         ...eventActivityItems,
         ...rsvpActivityItems,
         ...resourceActivityItems,
+        ...donationActivityItems,
         ...(dashboardData.recentActivity || [])
       ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
        .slice(0, 25); // Keep the 25 most recent items
@@ -370,14 +444,18 @@ const dashboardApi = {
       );
       const eventQuickActions = dashboardApi.getEventQuickActions();
       const resourceQuickActions = dashboardApi.getResourceQuickActions();
+      const donationQuickActions = dashboardApi.getDonationQuickActions(
+        dashboardData.userRole || localStorage.getItem('userRole')
+      );
       
       const existingActionUrls = (dashboardData.quickActions || []).map((action: QuickAction) => action.actionUrl);
       const newActions = [
-        ...prayerQuickActions, 
-        ...announcementQuickActions, 
+        ...prayerQuickActions,
+        ...announcementQuickActions,
         ...eventQuickActions,
-        ...resourceQuickActions
-      ].filter(action => 
+        ...resourceQuickActions,
+        ...donationQuickActions
+      ].filter(action =>
         !existingActionUrls.includes(action.actionUrl)
       );
 

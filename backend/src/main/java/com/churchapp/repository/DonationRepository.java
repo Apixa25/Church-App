@@ -22,6 +22,7 @@ public interface DonationRepository extends JpaRepository<Donation, UUID> {
     // Find by user
     List<Donation> findByUserOrderByTimestampDesc(User user);
     Page<Donation> findByUserOrderByTimestampDesc(User user, Pageable pageable);
+    List<Donation> findByUserAndTimestampAfter(User user, LocalDateTime timestamp);
 
     // Find by user and category
     List<Donation> findByUserAndCategoryOrderByTimestampDesc(User user, DonationCategory category);

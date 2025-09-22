@@ -23,7 +23,10 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, isLoading }) =>
       system: '⚙️',
       create: '➕',
       resource: '📚',
-      upload: '📁'
+      upload: '📁',
+      donation: '💝',
+      history: '📋',
+      chart: '📊'
     };
     return iconMap[iconType] || '📝';
   };
