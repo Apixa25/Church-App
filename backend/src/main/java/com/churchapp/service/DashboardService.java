@@ -122,8 +122,7 @@ public class DashboardService {
             null
         ));
 
-        // Get recent donations (last 7 days)
-        LocalDateTime sevenDaysAgo = LocalDateTime.now().minus(7, ChronoUnit.DAYS);
+        // Get recent donations (last 7 days) - reuse existing sevenDaysAgo
         Pageable recentDonationsPageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "timestamp"));
 
         try {
