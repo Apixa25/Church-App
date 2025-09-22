@@ -12,6 +12,7 @@ import PrayerNotifications from './PrayerNotifications';
 import EventNotifications from './EventNotifications';
 import NotificationSystem from './NotificationSystem';
 import SearchComponent from './SearchComponent';
+import QuickDonationWidget from './QuickDonationWidget';
 import { FeedType } from '../types/Post';
 import './Dashboard.css';
 
@@ -292,7 +293,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             <div className="dashboard-card">
-              <NotificationCenter 
+              <NotificationCenter
                 notifications={dashboardData?.notifications || {
                   totalUnread: 0,
                   prayerRequests: 0,
@@ -300,9 +301,13 @@ const Dashboard: React.FC = () => {
                   chatMessages: 0,
                   events: 0,
                   previews: []
-                }} 
-                isLoading={isLoading} 
+                }}
+                isLoading={isLoading}
               />
+            </div>
+
+            <div className="dashboard-card">
+              <QuickDonationWidget />
             </div>
           </div>
         </div>

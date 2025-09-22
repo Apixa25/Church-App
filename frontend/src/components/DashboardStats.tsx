@@ -70,6 +70,37 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, isLoading }) => 
             <p>New Announcements</p>
           </div>
         </div>
+
+        {/* Donation Stats */}
+        {stats.additionalStats?.totalDonationsThisMonth && (
+          <div className="stat-card">
+            <div className="stat-icon">💝</div>
+            <div className="stat-content">
+              <h4>${Number(stats.additionalStats.totalDonationsThisMonth).toLocaleString()}</h4>
+              <p>Donations This Month</p>
+            </div>
+          </div>
+        )}
+
+        {stats.additionalStats?.donationCountThisMonth && (
+          <div className="stat-card">
+            <div className="stat-icon">🎁</div>
+            <div className="stat-content">
+              <h4>{stats.additionalStats.donationCountThisMonth}</h4>
+              <p>Donations Count</p>
+            </div>
+          </div>
+        )}
+
+        {stats.additionalStats?.uniqueDonorsThisMonth && (
+          <div className="stat-card">
+            <div className="stat-icon">🤝</div>
+            <div className="stat-content">
+              <h4>{stats.additionalStats.uniqueDonorsThisMonth}</h4>
+              <p>Generous Donors</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

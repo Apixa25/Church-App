@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
+import { useLocation } from 'react-router-dom';
 import { STRIPE_CONFIG, DonationCategory, RecurringFrequency } from '../config/stripe';
 import AmountSelector from './AmountSelector';
 import CategorySelector from './CategorySelector';
@@ -27,11 +28,16 @@ interface DonationFormData {
 type DonationTab = 'donate' | 'history' | 'subscriptions';
 
 const DonationPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<DonationTab>('donate');
+  const location = useLocation();
+  const locationState = location.state as any;
+
+  const [activeTab, setActiveTab] = useState<DonationTab>(
+    locationState?.activeTab || 'donate'
+  );
   const [step, setStep] = useState<'form' | 'payment' | 'success'>('form');
   const [formData, setFormData] = useState<DonationFormData>({
-    amount: 0,
-    category: DonationCategory.TITHES,
+    amount: locationState?.presetAmount || 0,
+    category: locationState?.presetCategory || DonationCategory.TITHES,
     purpose: '',
     receiptEmail: '',
     isRecurring: false,
@@ -40,6 +46,25 @@ const DonationPage: React.FC = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Update form data when location state changes
+  useEffect(() => {
+    if (locationState?.presetAmount) {
+      setFormData(prev => ({
+        ...prev,
+        amount: locationState.presetAmount
+      }));
+    }
+    if (locationState?.presetCategory) {
+      setFormData(prev => ({
+        ...prev,
+        category: locationState.presetCategory
+      }));
+    }
+    if (locationState?.activeTab) {
+      setActiveTab(locationState.activeTab);
+    }
+  }, [locationState]);
 
   const handleFormSubmit = (data: DonationFormData) => {
     setFormData(data);

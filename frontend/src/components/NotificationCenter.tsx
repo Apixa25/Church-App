@@ -20,7 +20,11 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ notifications, 
       prayer_answered: '✨',
       announcement: '📢',
       chat: '💬',
-      event: '📅'
+      event: '📅',
+      donation: '💝',
+      donation_receipt: '🧾',
+      donation_recurring: '🔄',
+      donation_failed: '⚠️'
     };
     return iconMap[type] || '🔔';
   };

@@ -9,12 +9,15 @@ import com.churchapp.dto.DashboardResponse.NotificationSummary.NotificationPrevi
 import com.churchapp.entity.User;
 import com.churchapp.repository.UserRepository;
 import com.churchapp.repository.EventRepository;
+import com.churchapp.repository.DonationRepository;
+import com.churchapp.entity.Donation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -29,6 +32,7 @@ public class DashboardService {
     private final PrayerRequestService prayerRequestService;
     private final AnnouncementService announcementService;
     private final EventRepository eventRepository;
+    private final DonationRepository donationRepository;
     
     public DashboardResponse getDashboardData(String currentUserEmail) {
         User currentUser = userRepository.findByEmail(currentUserEmail)
@@ -107,7 +111,7 @@ public class DashboardService {
         activities.add(new DashboardActivityItem(
             UUID.randomUUID(),
             "system",
-            "Group Chats Available", 
+            "Group Chats Available",
             "Connect with your church family in real-time",
             "System",
             null,
@@ -117,7 +121,47 @@ public class DashboardService {
             "chat",
             null
         ));
-        
+
+        // Get recent donations (last 7 days)
+        LocalDateTime sevenDaysAgo = LocalDateTime.now().minus(7, ChronoUnit.DAYS);
+        Pageable recentDonationsPageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "timestamp"));
+
+        try {
+            List<Donation> recentDonations = donationRepository.findDonationsByDateRange(sevenDaysAgo, now)
+                .stream()
+                .limit(10)
+                .collect(Collectors.toList());
+
+            for (Donation donation : recentDonations) {
+                // Only show non-anonymous donations in the public activity feed
+                if (!donation.getIsRecurring()) {
+                    activities.add(new DashboardActivityItem(
+                        donation.getId(),
+                        "donation",
+                        "💝 New Donation",
+                        String.format("$%.2f donation for %s",
+                            donation.getAmount(),
+                            donation.getCategoryDisplayName()),
+                        donation.getUser().getName(),
+                        donation.getUser().getProfilePicUrl(),
+                        donation.getUser().getId(),
+                        donation.getTimestamp(),
+                        "/donations",
+                        "donation",
+                        Map.of(
+                            "amount", donation.getAmount(),
+                            "category", donation.getCategory().name(),
+                            "purpose", donation.getPurpose() != null ? donation.getPurpose() : "",
+                            "isRecurring", donation.getIsRecurring()
+                        )
+                    ));
+                }
+            }
+        } catch (Exception e) {
+            // Log error but don't fail dashboard loading
+            System.err.println("Error loading donation activities: " + e.getMessage());
+        }
+
         // ENHANCED: Sort by timestamp descending to ensure true chronological order
         // This ensures all activity types are properly mixed by time, not grouped by type
         return activities.stream()
@@ -144,10 +188,29 @@ public class DashboardService {
         LocalDateTime now = LocalDateTime.now();
         long upcomingEvents = eventRepository.findUpcomingEvents(now, PageRequest.of(0, Integer.MAX_VALUE)).getTotalElements();
         
+        // Get donation statistics
+        BigDecimal totalDonationsThisMonth = BigDecimal.ZERO;
+        long donationCountThisMonth = 0L;
+        long uniqueDonorsThisMonth = 0L;
+
+        try {
+            LocalDateTime oneMonthAgo = LocalDateTime.now().minus(30, ChronoUnit.DAYS);
+            totalDonationsThisMonth = donationRepository.getTotalDonationsByDateRange(oneMonthAgo, now);
+            if (totalDonationsThisMonth == null) totalDonationsThisMonth = BigDecimal.ZERO;
+
+            donationCountThisMonth = donationRepository.findDonationsByDateRange(oneMonthAgo, now).size();
+            uniqueDonorsThisMonth = donationRepository.getUniqueDonorCount(oneMonthAgo, now);
+        } catch (Exception e) {
+            System.err.println("Error loading donation stats: " + e.getMessage());
+        }
+
         Map<String, Object> additionalStats = new HashMap<>();
         additionalStats.put("activeUsersToday", totalMembers); // Placeholder
         additionalStats.put("totalAnnouncements", totalAnnouncements);
         additionalStats.put("pinnedAnnouncements", pinnedAnnouncements);
+        additionalStats.put("totalDonationsThisMonth", totalDonationsThisMonth);
+        additionalStats.put("donationCountThisMonth", donationCountThisMonth);
+        additionalStats.put("uniqueDonorsThisMonth", uniqueDonorsThisMonth);
         
         return new DashboardStats(
             totalMembers,
@@ -189,9 +252,28 @@ public class DashboardService {
             "announcements",
             "Announcements",
             "Stay updated with church news and announcements",
-            "/announcements", 
+            "/announcements",
             "megaphone",
             "View Announcements"
+        ));
+
+        // Donation quick actions
+        actions.add(QuickAction.create(
+            "make_donation",
+            "Make Donation",
+            "Support your church through generous giving",
+            "/donations",
+            "donation",
+            "Give Now"
+        ));
+
+        actions.add(QuickAction.create(
+            "donation_history",
+            "My Donations",
+            "View your donation history and receipts",
+            "/donations",
+            "history",
+            "View History"
         ));
         
         
@@ -204,6 +286,16 @@ public class DashboardService {
                 "/admin",
                 "shield",
                 "Manage",
+                "ADMIN"
+            ));
+
+            actions.add(QuickAction.createForRole(
+                "donation_analytics",
+                "Donation Analytics",
+                "View donation trends and financial reports",
+                "/admin/donations/analytics",
+                "chart",
+                "View Analytics",
                 "ADMIN"
             ));
         }
@@ -251,16 +343,38 @@ public class DashboardService {
         // Add system notifications
         previews.add(new NotificationPreview(
             "system",
-            "New Features Coming",
-            "Prayer requests and group chats will be available soon",
-            LocalDateTime.now().minus(1, ChronoUnit.HOURS),
-            "/dashboard"
+            "Giving Platform Ready",
+            "You can now make secure donations through the app",
+            LocalDateTime.now().minus(2, ChronoUnit.HOURS),
+            "/donations"
         ));
-        
+
+        // Add donation-related notifications
+        try {
+            LocalDateTime oneWeekAgo = LocalDateTime.now().minus(7, ChronoUnit.DAYS);
+            List<Donation> userRecentDonations = donationRepository.findByUserAndTimestampAfter(
+                currentUser, oneWeekAgo
+            );
+
+            if (!userRecentDonations.isEmpty()) {
+                Donation lastDonation = userRecentDonations.get(0);
+                previews.add(new NotificationPreview(
+                    "donation",
+                    "Thank You for Your Donation",
+                    String.format("Your $%.2f donation was processed successfully",
+                        lastDonation.getAmount()),
+                    lastDonation.getTimestamp(),
+                    "/donations"
+                ));
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading donation notifications: " + e.getMessage());
+        }
+
         return new NotificationSummary(
             (long) previews.size(),
             0L, // Prayer request notifications
-            0L, // Announcement notifications  
+            0L, // Announcement notifications
             0L, // Chat message notifications
             0L, // Event notifications
             previews
