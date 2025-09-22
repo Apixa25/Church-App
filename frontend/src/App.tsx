@@ -17,6 +17,8 @@ import AnnouncementPage from './components/AnnouncementPage';
 import CalendarPage from './components/CalendarPage';
 import ResourcePage from './components/ResourcePage';
 import MyRSVPsPage from './components/MyRSVPsPage';
+import DonationPage from './components/DonationPage';
+import DonationAnalytics from './components/DonationAnalytics';
 import './App.css';
 
 const App: React.FC = () => {
@@ -208,15 +210,44 @@ const App: React.FC = () => {
               } 
             />
 
-            <Route 
-              path="/library" 
+            <Route
+              path="/library"
               element={
                 <ProtectedRoute>
                   <ResourcePage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            
+
+            {/* Donation routes */}
+            <Route
+              path="/donations"
+              element={
+                <ProtectedRoute>
+                  <DonationPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/giving"
+              element={
+                <ProtectedRoute>
+                  <DonationPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Admin donation analytics */}
+            <Route
+              path="/admin/donations/analytics"
+              element={
+                <ProtectedRoute>
+                  <DonationAnalytics />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Default redirect */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
