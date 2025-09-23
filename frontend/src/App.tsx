@@ -19,6 +19,7 @@ import ResourcePage from './components/ResourcePage';
 import MyRSVPsPage from './components/MyRSVPsPage';
 import DonationPage from './components/DonationPage';
 import DonationAnalytics from './components/DonationAnalytics';
+import AdminDashboard from './components/AdminDashboard';
 import './App.css';
 
 const App: React.FC = () => {
@@ -244,6 +245,25 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <DonationAnalytics />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Admin Dashboard routes */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/admin/:tab"
+              element={
+                <ProtectedRoute>
+                  <AdminDashboard />
                 </ProtectedRoute>
               }
             />

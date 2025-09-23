@@ -70,7 +70,7 @@ public class User {
     
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
-    private UserRole role = UserRole.MEMBER;
+    private Role role = Role.MEMBER;
     
     @Column(name = "google_id", length = 255)
     private String googleId;
@@ -92,6 +92,22 @@ public class User {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
+    // Admin/Moderation fields
+    @Column(name = "is_banned", nullable = false)
+    private boolean isBanned = false;
+
+    @Column(name = "ban_reason", columnDefinition = "TEXT")
+    private String banReason;
+
+    @Column(name = "banned_at")
+    private LocalDateTime bannedAt;
+
+    @Column(name = "warning_count", nullable = false)
+    private int warningCount = 0;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     // Donation relationships
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Donation> donations = new ArrayList<>();
@@ -99,7 +115,7 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<DonationSubscription> donationSubscriptions = new ArrayList<>();
 
-    public enum UserRole {
+    public enum Role {
         MEMBER, MODERATOR, ADMIN
     }
 }

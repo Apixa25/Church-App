@@ -36,7 +36,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         );
     }
     
-    private Collection<? extends GrantedAuthority> getAuthorities(User.UserRole role) {
+    private Collection<? extends GrantedAuthority> getAuthorities(User.Role role) {
         List<GrantedAuthority> authorities = new ArrayList<>();
         authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name()));
         return authorities;

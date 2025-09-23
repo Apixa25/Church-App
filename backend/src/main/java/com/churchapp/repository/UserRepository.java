@@ -2,6 +2,7 @@ package com.churchapp.repository;
 
 import com.churchapp.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,7 +16,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, UUID> {
+public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificationExecutor<User> {
     
     Optional<User> findByEmail(String email);
     
@@ -42,4 +43,14 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     List<User> findByUpdatedAtAfterAndUpdatedAtNotEqualToCreatedAtOrderByUpdatedAtDesc(@Param("updatedAfter") LocalDateTime updatedAfter);
     
     long countByCreatedAtAfter(LocalDateTime createdAfter);
+
+    // Admin-specific queries
+    long countByIsActiveAndDeletedAtIsNull(boolean isActive);
+
+    long countByIsBannedTrue();
+
+    long countByRole(User.Role role);
+
+    @Query("SELECT SUM(u.warningCount) FROM User u WHERE u.deletedAt IS NULL")
+    Long sumWarningCounts();
 }
