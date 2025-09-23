@@ -175,6 +175,13 @@ const Dashboard: React.FC = () => {
               >
                 🔍 Search
               </button>
+              <button
+                onClick={() => navigate('/settings')}
+                className="settings-button"
+                title="App Settings"
+              >
+                ⚙️ Settings
+              </button>
               <PrayerNotifications />
               <EventNotifications />
               <button onClick={handleLogout} className="logout-button">
