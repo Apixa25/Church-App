@@ -20,6 +20,7 @@ import MyRSVPsPage from './components/MyRSVPsPage';
 import DonationPage from './components/DonationPage';
 import DonationAnalytics from './components/DonationAnalytics';
 import AdminDashboard from './components/AdminDashboard';
+import SettingsPage from './components/SettingsPage';
 import './App.css';
 
 const App: React.FC = () => {
@@ -264,6 +265,25 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Settings routes */}
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/settings/:tab"
+              element={
+                <ProtectedRoute>
+                  <SettingsPage />
                 </ProtectedRoute>
               }
             />

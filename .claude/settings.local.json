@@ -18,7 +18,11 @@
       "Bash(mvn test:*)",
       "Bash(./gradlew test:*)",
       "Bash(find:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(mvn compile:*)",
+      "Bash(where mvn)",
+      "Bash(.mvnw.cmd compile:*)",
+      "Bash(.mvnw compile -q)"
     ],
     "deny": [],
     "ask": []
