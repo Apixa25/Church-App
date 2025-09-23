@@ -4,6 +4,17 @@ import axios from 'axios';
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 const API_URL = `${API_BASE_URL}/settings`;
 
+// Local axios instance to attach Authorization automatically (aligns with other services)
+const settingsClient = axios.create();
+settingsClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // Types
 export interface UserSettings {
   userId: string;
@@ -95,50 +106,50 @@ export interface FeedbackRequest {
 
 // Settings Management
 export const getUserSettings = async (): Promise<UserSettings> => {
-  const response = await axios.get(API_URL);
+  const response = await settingsClient.get(API_URL);
   return response.data;
 };
 
 export const updateUserSettings = async (updates: Partial<UserSettings>): Promise<UserSettings> => {
-  const response = await axios.put(API_URL, updates);
+  const response = await settingsClient.put(API_URL, updates);
   return response.data;
 };
 
 export const updateNotificationSettings = async (
   notificationSettings: Partial<UserSettings>
 ): Promise<{ message: string }> => {
-  const response = await axios.put(`${API_URL}/notifications`, notificationSettings);
+  const response = await settingsClient.put(`${API_URL}/notifications`, notificationSettings);
   return response.data;
 };
 
 export const updatePrivacySettings = async (
   privacySettings: Partial<UserSettings>
 ): Promise<{ message: string }> => {
-  const response = await axios.put(`${API_URL}/privacy`, privacySettings);
+  const response = await settingsClient.put(`${API_URL}/privacy`, privacySettings);
   return response.data;
 };
 
 export const updateAppearanceSettings = async (
   appearanceSettings: Partial<UserSettings>
 ): Promise<{ message: string }> => {
-  const response = await axios.put(`${API_URL}/appearance`, appearanceSettings);
+  const response = await settingsClient.put(`${API_URL}/appearance`, appearanceSettings);
   return response.data;
 };
 
 // FCM and Notifications
 export const registerFcmToken = async (token: string): Promise<{ message: string }> => {
-  const response = await axios.post(`${API_URL}/fcm-token`, { token });
+  const response = await settingsClient.post(`${API_URL}/fcm-token`, { token });
   return response.data;
 };
 
 export const testNotification = async (): Promise<{ message: string }> => {
-  const response = await axios.post(`${API_URL}/test-notification`);
+  const response = await settingsClient.post(`${API_URL}/test-notification`);
   return response.data;
 };
 
 // Data Management
 export const exportUserData = async (format: string = 'json'): Promise<ArrayBuffer> => {
-  const response = await axios.get(`${API_URL}/export-data`, {
+  const response = await settingsClient.get(`${API_URL}/export-data`, {
     params: { format },
     responseType: 'arraybuffer'
   });
@@ -149,7 +160,7 @@ export const requestAccountDeletion = async (
   reason: string,
   password: string
 ): Promise<{ message: string; info: string }> => {
-  const response = await axios.post(`${API_URL}/delete-account`, {
+  const response = await settingsClient.post(`${API_URL}/delete-account`, {
     reason,
     password
   });
@@ -157,13 +168,13 @@ export const requestAccountDeletion = async (
 };
 
 export const createBackup = async (): Promise<{ message: string; backupId: string }> => {
-  const response = await axios.post(`${API_URL}/backup`);
+  const response = await settingsClient.post(`${API_URL}/backup`);
   return response.data;
 };
 
 // System and Help
 export const getSystemInfo = async (): Promise<SystemInfo> => {
-  const response = await axios.get(`${API_URL}/system-info`);
+  const response = await settingsClient.get(`${API_URL}/system-info`);
   return response.data;
 };
 
@@ -171,7 +182,7 @@ export const getHelpContent = async (
   category?: string,
   search?: string
 ): Promise<HelpContent> => {
-  const response = await axios.get(`${API_URL}/help`, {
+  const response = await settingsClient.get(`${API_URL}/help`, {
     params: { category, search }
   });
   return response.data;
@@ -180,12 +191,12 @@ export const getHelpContent = async (
 export const submitFeedback = async (
   feedback: FeedbackRequest
 ): Promise<{ message: string; ticketId: string }> => {
-  const response = await axios.post(`${API_URL}/feedback`, feedback);
+  const response = await settingsClient.post(`${API_URL}/feedback`, feedback);
   return response.data;
 };
 
 export const resetToDefaults = async (): Promise<UserSettings> => {
-  const response = await axios.post(`${API_URL}/reset`);
+  const response = await settingsClient.post(`${API_URL}/reset`);
   return response.data;
 };
 

@@ -58,7 +58,7 @@ public class AdminAnalyticsService {
             .commentsToday(0L) // TODO: Implement
             .prayersToday(prayerRequestRepository.countByCreatedAtAfter(now.truncatedTo(ChronoUnit.DAYS)))
             .activeChats(chatGroupRepository.count())
-            .messagesThisWeek(messageRepository.countByTimestampAfter(now.minusWeeks(1)))
+            .messagesThisWeek(messageRepository.countAllMessagesSince(now.minusWeeks(1)))
 
             // Moderation metrics
             .totalReports(0L) // TODO: Implement reports table

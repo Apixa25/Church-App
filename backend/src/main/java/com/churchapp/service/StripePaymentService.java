@@ -6,8 +6,6 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.model.PaymentIntent;
 import com.stripe.model.PaymentMethod;
-import com.stripe.param.CustomerCreateParams;
-import com.stripe.param.PaymentIntentConfirmParams;
 import com.stripe.param.PaymentIntentCreateParams;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -111,13 +109,18 @@ public class StripePaymentService {
         String last4 = null;
         String brand = null;
 
-        if (paymentIntent.getCharges() != null && !paymentIntent.getCharges().getData().isEmpty()) {
-            var charge = paymentIntent.getCharges().getData().get(0);
-            paymentMethodId = charge.getPaymentMethod();
-            if (charge.getPaymentMethodDetails() != null &&
-                charge.getPaymentMethodDetails().getCard() != null) {
-                last4 = charge.getPaymentMethodDetails().getCard().getLast4();
-                brand = charge.getPaymentMethodDetails().getCard().getBrand();
+        // Stripe 24.x: charges are not expanded by default; rely on PaymentMethod if needed
+        String pmIdFromIntent = paymentIntent.getPaymentMethod();
+        if (pmIdFromIntent != null) {
+            paymentMethodId = pmIdFromIntent;
+            try {
+                PaymentMethod pm = PaymentMethod.retrieve(pmIdFromIntent);
+                if (pm.getCard() != null) {
+                    last4 = pm.getCard().getLast4();
+                    brand = pm.getCard().getBrand();
+                }
+            } catch (Exception ignore) {
+                // If retrieval fails, proceed without card details
             }
         }
 

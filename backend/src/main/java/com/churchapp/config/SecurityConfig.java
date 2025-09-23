@@ -100,6 +100,7 @@ public class SecurityConfig {
                         requestURI.startsWith("/dashboard") ||
                         requestURI.startsWith("/announcements") ||  // Add announcements to API endpoints
                         requestURI.startsWith("/prayers") ||        // Add prayers to API endpoints
+                        requestURI.startsWith("/settings") ||       // Ensure settings returns JSON 401 instead of redirect
                         requestURI.startsWith("/ws")) {
                         response.setStatus(401);
                         response.setContentType("application/json");
