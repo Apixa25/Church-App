@@ -70,7 +70,7 @@ public class UserManagementService {
         user.setBanned(true);
         user.setBanReason(reason);
         user.setBannedAt(LocalDateTime.now());
-        user.setActive(false);
+        user.setIsActive(false);
 
         // TODO: Implement duration-based bans if needed
         // For now, all bans are permanent until unbanned
@@ -88,7 +88,7 @@ public class UserManagementService {
         user.setBanned(false);
         user.setBanReason(null);
         user.setBannedAt(null);
-        user.setActive(true);
+        user.setIsActive(true);
 
         userRepository.save(user);
 
@@ -118,7 +118,7 @@ public class UserManagementService {
             .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
 
         // Soft delete - mark as deleted but keep record for audit purposes
-        user.setActive(false);
+        user.setIsActive(false);
         user.setDeletedAt(LocalDateTime.now());
 
         userRepository.save(user);

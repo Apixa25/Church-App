@@ -10,7 +10,6 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -56,6 +55,9 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     List<Post> findThreadByPostId(@Param("postId") UUID postId);
 
     // Statistics queries
+    @Query("SELECT COUNT(p) FROM Post p WHERE p.createdAt >= :since")
+    long countByCreatedAtAfter(@Param("since") LocalDateTime since);
+
     @Query("SELECT COUNT(p) FROM Post p WHERE p.user.id = :userId")
     long countByUserId(@Param("userId") UUID userId);
 

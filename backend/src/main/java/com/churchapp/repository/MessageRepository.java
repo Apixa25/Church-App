@@ -96,6 +96,10 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
     
     @Query("SELECT COUNT(m) FROM Message m WHERE m.timestamp > :since")
     long countAllMessagesSince(@Param("since") LocalDateTime since);
+
+    // Count by user id (for export service convenience)
+    @Query("SELECT COUNT(m) FROM Message m WHERE m.user.id = :userId")
+    long countByUserId(@Param("userId") UUID userId);
     
     // Find most active users in a group
     @Query("SELECT m.user, COUNT(m) as messageCount FROM Message m WHERE m.chatGroup = :chatGroup AND " +

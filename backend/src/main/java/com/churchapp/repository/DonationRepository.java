@@ -39,6 +39,11 @@ public interface DonationRepository extends JpaRepository<Donation, UUID> {
     List<Donation> findDonationsByDateRange(@Param("startDate") LocalDateTime startDate,
                                            @Param("endDate") LocalDateTime endDate);
 
+    // Test convenience: find by date range ordered desc
+    @Query("SELECT d FROM Donation d WHERE d.timestamp BETWEEN :start AND :end ORDER BY d.timestamp DESC")
+    List<Donation> findByTimestampBetweenOrderByTimestampDesc(@Param("start") LocalDateTime start,
+                                                              @Param("end") LocalDateTime end);
+
     @Query("SELECT d FROM Donation d WHERE d.user = :user AND d.timestamp BETWEEN :startDate AND :endDate ORDER BY d.timestamp DESC")
     List<Donation> findDonationsByUserAndDateRange(@Param("user") User user,
                                                    @Param("startDate") LocalDateTime startDate,
@@ -66,6 +71,19 @@ public interface DonationRepository extends JpaRepository<Donation, UUID> {
     Long getUniqueDonorCount(@Param("startDate") LocalDateTime startDate,
                            @Param("endDate") LocalDateTime endDate);
 
+    // Aggregates used by AdminAnalyticsService
+    @Query("SELECT SUM(d.amount) FROM Donation d")
+    Double sumAllAmounts();
+
+    @Query("SELECT SUM(d.amount) FROM Donation d WHERE d.timestamp >= :since")
+    Double sumAmountsByTimestampAfter(@Param("since") LocalDateTime since);
+
+    @Query("SELECT COUNT(DISTINCT d.user.id) FROM Donation d")
+    Long countDistinctDonors();
+
+    @Query("SELECT AVG(d.amount) FROM Donation d")
+    Double averageDonationAmount();
+
     // Monthly analytics
     @Query("SELECT FUNCTION('YEAR', d.timestamp), FUNCTION('MONTH', d.timestamp), SUM(d.amount) " +
            "FROM Donation d WHERE d.timestamp BETWEEN :startDate AND :endDate " +
@@ -84,6 +102,10 @@ public interface DonationRepository extends JpaRepository<Donation, UUID> {
 
     // Find donations without sent receipts
     List<Donation> findByReceiptSentFalseOrderByTimestampDesc();
+
+    // Convenience finder by user id (for export service)
+    @Query("SELECT d FROM Donation d WHERE d.user.id = :userId ORDER BY d.timestamp DESC")
+    List<Donation> findByUserIdOrderByTimestampDesc(@Param("userId") UUID userId);
 
     // Large donations (for admin review)
     @Query("SELECT d FROM Donation d WHERE d.amount >= :minimumAmount ORDER BY d.timestamp DESC")

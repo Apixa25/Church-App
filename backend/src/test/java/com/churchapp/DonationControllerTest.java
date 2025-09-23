@@ -9,6 +9,7 @@ import com.churchapp.repository.DonationRepository;
 import com.churchapp.repository.UserRepository;
 import com.churchapp.service.StripePaymentService;
 import com.churchapp.service.StripeSubscriptionService;
+import com.churchapp.service.StripeWebhookService;
 import com.churchapp.service.ReceiptService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +44,9 @@ public class DonationControllerTest {
 
     @Mock
     private ReceiptService receiptService;
+
+    @Mock
+    private StripeWebhookService stripeWebhookService;
 
     @Mock
     private DonationRepository donationRepository;

@@ -40,4 +40,18 @@ public class NotificationService {
             throw new RuntimeException("Failed to send bulk notification", e);
         }
     }
+
+    // Lightweight placeholders to satisfy controller calls; wire to real logic later
+    public void notifyPostLike(java.util.UUID postId, java.util.UUID actorUserId) {
+        log.debug("notifyPostLike: postId={} actorUserId={}", postId, actorUserId);
+    }
+
+    public void notifyPostComment(java.util.UUID postId, java.util.UUID actorUserId, String content) {
+        log.debug("notifyPostComment: postId={} actorUserId={} contentLen={}", postId, actorUserId,
+            content == null ? 0 : content.length());
+    }
+
+    public void notifyPostShare(java.util.UUID postId, java.util.UUID actorUserId) {
+        log.debug("notifyPostShare: postId={} actorUserId={}", postId, actorUserId);
+    }
 }

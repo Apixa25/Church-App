@@ -50,7 +50,7 @@ public class UserManagementResponse {
             .role(user.getRole().name())
             .profilePicUrl(user.getProfilePicUrl())
             .bio(user.getBio())
-            .isActive(user.isActive())
+            .isActive(Boolean.TRUE.equals(user.getIsActive()))
             .isBanned(user.isBanned())
             .warningCount(user.getWarningCount())
             .createdAt(user.getCreatedAt())

@@ -93,7 +93,7 @@ public class User {
     private Boolean isActive = true;
 
     // Admin/Moderation fields
-    @Column(name = "is_banned", nullable = false)
+    @Column(name = "is_banned", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE NOT NULL")
     private boolean isBanned = false;
 
     @Column(name = "ban_reason", columnDefinition = "TEXT")
@@ -102,7 +102,7 @@ public class User {
     @Column(name = "banned_at")
     private LocalDateTime bannedAt;
 
-    @Column(name = "warning_count", nullable = false)
+    @Column(name = "warning_count", nullable = false, columnDefinition = "INT DEFAULT 0 NOT NULL")
     private int warningCount = 0;
 
     @Column(name = "deleted_at")
