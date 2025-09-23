@@ -79,8 +79,8 @@ public class ResourceService {
         }
         
         // Auto-approve if uploaded by admin/moderator, otherwise require approval
-        boolean autoApprove = (uploader.getRole() == User.UserRole.ADMIN || 
-                              uploader.getRole() == User.UserRole.MODERATOR);
+        boolean autoApprove = (uploader.getRole() == User.Role.ADMIN || 
+                              uploader.getRole() == User.Role.MODERATOR);
         resource.setIsApproved(autoApprove);
         
         Resource savedResource = resourceRepository.save(resource);
@@ -116,8 +116,8 @@ public class ResourceService {
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         
         if (!existingResource.getUploadedBy().getId().equals(userId) && 
-            user.getRole() != User.UserRole.ADMIN && 
-            user.getRole() != User.UserRole.MODERATOR) {
+            user.getRole() != User.Role.ADMIN && 
+            user.getRole() != User.Role.MODERATOR) {
             throw new RuntimeException("Not authorized to update this resource");
         }
         
@@ -134,8 +134,8 @@ public class ResourceService {
         
         // If content is updated, require re-approval unless done by admin/moderator
         if (resourceUpdate.getTitle() != null || resourceUpdate.getDescription() != null) {
-            boolean isAdminOrMod = (user.getRole() == User.UserRole.ADMIN || 
-                                   user.getRole() == User.UserRole.MODERATOR);
+            boolean isAdminOrMod = (user.getRole() == User.Role.ADMIN || 
+                                   user.getRole() == User.Role.MODERATOR);
             if (!isAdminOrMod) {
                 existingResource.setIsApproved(false);
                 log.info("Resource {} requires re-approval after update by non-admin user", resourceId);
@@ -160,7 +160,7 @@ public class ResourceService {
                 resourceId, resource.getUploadedBy().getId(), userId, user.getRole());
         
         boolean isUploader = resource.getUploadedBy().getId().equals(userId);
-        boolean isAdmin = user.getRole() == User.UserRole.ADMIN;
+        boolean isAdmin = user.getRole() == User.Role.ADMIN;
         
         log.info("Authorization result - Is Uploader: {} | Is Admin: {} | Can Delete: {}", 
                 isUploader, isAdmin, (isUploader || isAdmin));
@@ -196,7 +196,7 @@ public class ResourceService {
         User admin = userRepository.findById(adminId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + adminId));
         
-        if (admin.getRole() != User.UserRole.ADMIN && admin.getRole() != User.UserRole.MODERATOR) {
+        if (admin.getRole() != User.Role.ADMIN && admin.getRole() != User.Role.MODERATOR) {
             throw new RuntimeException("Not authorized to moderate resources. Admin or moderator role required.");
         }
         
@@ -278,7 +278,7 @@ public class ResourceService {
         User admin = userRepository.findById(adminId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + adminId));
         
-        if (admin.getRole() != User.UserRole.ADMIN && admin.getRole() != User.UserRole.MODERATOR) {
+        if (admin.getRole() != User.Role.ADMIN && admin.getRole() != User.Role.MODERATOR) {
             throw new RuntimeException("Not authorized to view all resources. Admin or moderator role required.");
         }
         
@@ -290,7 +290,7 @@ public class ResourceService {
         User admin = userRepository.findById(adminId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + adminId));
         
-        if (admin.getRole() != User.UserRole.ADMIN && admin.getRole() != User.UserRole.MODERATOR) {
+        if (admin.getRole() != User.Role.ADMIN && admin.getRole() != User.Role.MODERATOR) {
             throw new RuntimeException("Not authorized to search all resources. Admin or moderator role required.");
         }
         
@@ -302,7 +302,7 @@ public class ResourceService {
         User admin = userRepository.findById(adminId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + adminId));
         
-        if (admin.getRole() != User.UserRole.ADMIN && admin.getRole() != User.UserRole.MODERATOR) {
+        if (admin.getRole() != User.Role.ADMIN && admin.getRole() != User.Role.MODERATOR) {
             throw new RuntimeException("Not authorized to view pending resources. Admin or moderator role required.");
         }
         
@@ -369,8 +369,8 @@ public class ResourceService {
             resource.setDownloadCount(0);
             
             // Auto-approve if uploaded by admin/moderator, otherwise require approval
-            boolean autoApprove = (uploader.getRole() == User.UserRole.ADMIN || 
-                                  uploader.getRole() == User.UserRole.MODERATOR);
+            boolean autoApprove = (uploader.getRole() == User.Role.ADMIN || 
+                                  uploader.getRole() == User.Role.MODERATOR);
             resource.setIsApproved(autoApprove);
             
             Resource savedResource = resourceRepository.save(resource);
@@ -394,8 +394,8 @@ public class ResourceService {
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         
         if (!existingResource.getUploadedBy().getId().equals(userId) && 
-            user.getRole() != User.UserRole.ADMIN && 
-            user.getRole() != User.UserRole.MODERATOR) {
+            user.getRole() != User.Role.ADMIN && 
+            user.getRole() != User.Role.MODERATOR) {
             throw new RuntimeException("Not authorized to update this resource file");
         }
         
@@ -425,8 +425,8 @@ public class ResourceService {
             existingResource.setDownloadCount(0);
             
             // If file is updated, require re-approval unless done by admin/moderator
-            boolean isAdminOrMod = (user.getRole() == User.UserRole.ADMIN || 
-                                   user.getRole() == User.UserRole.MODERATOR);
+            boolean isAdminOrMod = (user.getRole() == User.Role.ADMIN || 
+                                   user.getRole() == User.Role.MODERATOR);
             if (!isAdminOrMod) {
                 existingResource.setIsApproved(false);
                 log.info("Resource {} requires re-approval after file update by non-admin user", resourceId);

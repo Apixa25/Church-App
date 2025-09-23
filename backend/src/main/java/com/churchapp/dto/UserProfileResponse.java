@@ -25,7 +25,7 @@ public class UserProfileResponse {
     private String address;
     private LocalDate birthday;
     private String spiritualGift;
-    private User.UserRole role;
+    private User.Role role;
     private String profilePicUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

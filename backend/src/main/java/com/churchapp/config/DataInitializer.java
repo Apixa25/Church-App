@@ -47,7 +47,7 @@ public class DataInitializer implements CommandLineRunner {
         // Check if admin user already exists
         List<User> allUsers = userRepository.findAllActiveUsers();
         boolean adminExists = allUsers.stream()
-            .anyMatch(user -> user.getRole() == User.UserRole.ADMIN);
+            .anyMatch(user -> user.getRole() == User.Role.ADMIN);
         
         if (adminExists) {
             log.info("Admin user already exists, skipping admin user initialization");
@@ -68,7 +68,7 @@ public class DataInitializer implements CommandLineRunner {
         User adminUser = new User();
         adminUser.setEmail("admin@church.local");
         adminUser.setName("Church Administrator");
-        adminUser.setRole(User.UserRole.ADMIN);
+        adminUser.setRole(User.Role.ADMIN);
         adminUser.setIsActive(true);
         adminUser.setBio("Default church administrator account");
         adminUser.setCreatedAt(LocalDateTime.now());
@@ -83,7 +83,7 @@ public class DataInitializer implements CommandLineRunner {
         User memberUser = new User();
         memberUser.setEmail("member@church.local");
         memberUser.setName("John Doe");
-        memberUser.setRole(User.UserRole.MEMBER);
+        memberUser.setRole(User.Role.MEMBER);
         memberUser.setIsActive(true);
         memberUser.setBio("Sample church member account");
         memberUser.setCreatedAt(LocalDateTime.now());
@@ -105,7 +105,7 @@ public class DataInitializer implements CommandLineRunner {
         // Get any active user as the creator (preferably admin if available)
         List<User> allUsers = userRepository.findAllActiveUsers();
         User creator = allUsers.stream()
-            .filter(user -> user.getRole() == User.UserRole.ADMIN)
+            .filter(user -> user.getRole() == User.Role.ADMIN)
             .findFirst()
             .orElse(allUsers.stream().findFirst().orElse(null));
         
@@ -172,7 +172,7 @@ public class DataInitializer implements CommandLineRunner {
         // Get admin user to create announcements
         List<User> allUsers = userRepository.findAllActiveUsers();
         User admin = allUsers.stream()
-            .filter(user -> user.getRole() == User.UserRole.ADMIN)
+            .filter(user -> user.getRole() == User.Role.ADMIN)
             .findFirst()
             .orElse(null);
             

@@ -40,7 +40,7 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setName(request.getName());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setRole(User.UserRole.MEMBER);
+        user.setRole(User.Role.MEMBER);
         user.setIsActive(true);
         
         User savedUser = userRepository.save(user);
@@ -123,7 +123,7 @@ public class AuthService {
             user.setName(name);
             user.setGoogleId(googleId);
             user.setProfilePicUrl(pictureUrl);
-            user.setRole(User.UserRole.MEMBER);
+            user.setRole(User.Role.MEMBER);
             user.setIsActive(true);
             isNewUser = true;
         }

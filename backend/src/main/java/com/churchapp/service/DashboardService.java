@@ -277,7 +277,7 @@ public class DashboardService {
         
         
         // Admin-only actions
-        if (currentUser.getRole() == User.UserRole.ADMIN) {
+        if (currentUser.getRole() == User.Role.ADMIN) {
             actions.add(QuickAction.createForRole(
                 "admin_tools",
                 "Admin Tools",
@@ -300,7 +300,7 @@ public class DashboardService {
         }
         
         // Moderator and Admin actions
-        if (currentUser.getRole() == User.UserRole.ADMIN || currentUser.getRole() == User.UserRole.MODERATOR) {
+        if (currentUser.getRole() == User.Role.ADMIN || currentUser.getRole() == User.Role.MODERATOR) {
             actions.add(QuickAction.createForRole(
                 "create_announcement",
                 "New Announcement",

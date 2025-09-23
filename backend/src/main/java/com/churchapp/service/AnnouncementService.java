@@ -115,7 +115,7 @@ public class AnnouncementService {
         announcement.setCategory(request.getCategory() != null ? request.getCategory() : announcement.getCategory());
         
         // Only admins can pin/unpin announcements
-        if (request.getIsPinned() != null && user.getRole() == User.UserRole.ADMIN) {
+        if (request.getIsPinned() != null && user.getRole() == User.Role.ADMIN) {
             announcement.setIsPinned(request.getIsPinned());
         }
         
@@ -152,7 +152,7 @@ public class AnnouncementService {
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         
         // Only admins can pin announcements
-        if (user.getRole() != User.UserRole.ADMIN) {
+        if (user.getRole() != User.Role.ADMIN) {
             throw new AccessDeniedException("Only admins can pin announcements");
         }
         
@@ -175,7 +175,7 @@ public class AnnouncementService {
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         
         // Only admins can unpin announcements
-        if (user.getRole() != User.UserRole.ADMIN) {
+        if (user.getRole() != User.Role.ADMIN) {
             throw new AccessDeniedException("Only admins can unpin announcements");
         }
         
@@ -210,11 +210,11 @@ public class AnnouncementService {
     
     // Helper methods
     private boolean isAuthorizedToManageAnnouncements(User user) {
-        return user.getRole() == User.UserRole.ADMIN || user.getRole() == User.UserRole.MODERATOR;
+        return user.getRole() == User.Role.ADMIN || user.getRole() == User.Role.MODERATOR;
     }
     
     private boolean canModifyAnnouncement(User user, Announcement announcement) {
-        return user.getRole() == User.UserRole.ADMIN || 
+        return user.getRole() == User.Role.ADMIN || 
                announcement.getUser().getId().equals(user.getId());
     }
 }

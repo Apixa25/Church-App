@@ -16,7 +16,9 @@
       "WebSearch",
       "Bash(npm run build:*)",
       "Bash(mvn test:*)",
-      "Bash(./gradlew test:*)"
+      "Bash(./gradlew test:*)",
+      "Bash(find:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

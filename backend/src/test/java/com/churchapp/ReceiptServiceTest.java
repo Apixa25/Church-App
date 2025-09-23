@@ -53,7 +53,7 @@ public class ReceiptServiceTest {
         testUser.setId(UUID.randomUUID());
         testUser.setEmail("test@church.com");
         testUser.setName("Test User");
-        testUser.setRole(User.UserRole.MEMBER);
+        testUser.setRole(User.Role.MEMBER);
 
         // Create test donation
         testDonation = new Donation();
