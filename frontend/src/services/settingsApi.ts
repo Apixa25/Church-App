@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Using the same API configuration as other services
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
 const API_URL = `${API_BASE_URL}/settings`;
 
 // Local axios instance to attach Authorization automatically (aligns with other services)
