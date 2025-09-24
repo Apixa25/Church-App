@@ -22,7 +22,11 @@
       "Bash(mvn compile:*)",
       "Bash(where mvn)",
       "Bash(.mvnw.cmd compile:*)",
-      "Bash(.mvnw compile -q)"
+      "Bash(.mvnw compile -q)",
+      "Bash(findstr:*)",
+      "Bash(netstat:*)",
+      "Bash(dir)",
+      "Bash(mvn spring-boot:run:*)"
     ],
     "deny": [],
     "ask": []
