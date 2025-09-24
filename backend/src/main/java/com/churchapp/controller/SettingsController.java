@@ -1,7 +1,8 @@
 package com.churchapp.controller;
 
 import com.churchapp.dto.UserSettingsResponse;
-import com.churchapp.entity.UserSettings;
+import com.churchapp.entity.User;
+import com.churchapp.repository.UserRepository;
 import com.churchapp.service.SettingsService;
 import com.churchapp.service.UserDataExportService;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,17 @@ public class SettingsController {
 
     private final SettingsService settingsService;
     private final UserDataExportService userDataExportService;
+    private final UserRepository userRepository;
+
+    /**
+     * Helper method to get user ID from authentication
+     */
+    private UUID getUserIdFromAuth(Authentication auth) {
+        String email = auth.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+        return user.getId();
+    }
 
     /**
      * Get user settings
@@ -32,7 +44,7 @@ public class SettingsController {
     @GetMapping
     public ResponseEntity<UserSettingsResponse> getUserSettings(Authentication auth) {
         try {
-            UUID userId = UUID.fromString(auth.getName());
+            UUID userId = getUserIdFromAuth(auth);
             UserSettingsResponse settings = settingsService.getUserSettings(userId);
             return ResponseEntity.ok(settings);
         } catch (Exception e) {
@@ -49,7 +61,7 @@ public class SettingsController {
             @RequestBody Map<String, Object> updates,
             Authentication auth) {
         try {
-            UUID userId = UUID.fromString(auth.getName());
+            UUID userId = getUserIdFromAuth(auth);
             UserSettingsResponse settings = settingsService.updateUserSettings(userId, updates);
             return ResponseEntity.ok(settings);
         } catch (Exception e) {
@@ -66,7 +78,7 @@ public class SettingsController {
             @RequestBody Map<String, Object> notificationSettings,
             Authentication auth) {
         try {
-            UUID userId = UUID.fromString(auth.getName());
+            UUID userId = getUserIdFromAuth(auth);
             settingsService.updateNotificationSettings(userId, notificationSettings);
 
             Map<String, String> response = new HashMap<>();
@@ -86,7 +98,7 @@ public class SettingsController {
             @RequestBody Map<String, Object> privacySettings,
             Authentication auth) {
         try {
-            UUID userId = UUID.fromString(auth.getName());
+            UUID userId = getUserIdFromAuth(auth);
             settingsService.updatePrivacySettings(userId, privacySettings);
 
             Map<String, String> response = new HashMap<>();
@@ -106,7 +118,7 @@ public class SettingsController {
             @RequestBody Map<String, Object> appearanceSettings,
             Authentication auth) {
         try {
-            UUID userId = UUID.fromString(auth.getName());
+            UUID userId = getUserIdFromAuth(auth);
             settingsService.updateAppearanceSettings(userId, appearanceSettings);
 
             Map<String, String> response = new HashMap<>();
@@ -126,7 +138,7 @@ public class SettingsController {
             @RequestBody Map<String, String> request,
             Authentication auth) {
         try {
-            UUID userId = UUID.fromString(auth.getName());
+            UUID userId = getUserIdFromAuth(auth);
             String fcmToken = request.get("token");
 
             settingsService.updateFcmToken(userId, fcmToken);
@@ -146,7 +158,7 @@ public class SettingsController {
     @PostMapping("/test-notification")
     public ResponseEntity<Map<String, String>> testNotification(Authentication auth) {
         try {
-            UUID userId = UUID.fromString(auth.getName());
+            UUID userId = getUserIdFromAuth(auth);
             settingsService.sendTestNotification(userId);
 
             Map<String, String> response = new HashMap<>();
@@ -166,7 +178,7 @@ public class SettingsController {
             @RequestParam(defaultValue = "json") String format,
             Authentication auth) {
         try {
-            UUID userId = UUID.fromString(auth.getName());
+            UUID userId = getUserIdFromAuth(auth);
 
             byte[] exportData = userDataExportService.exportUserData(userId, format);
             String filename = String.format("user_data_%s.%s", userId, format);
@@ -194,7 +206,7 @@ public class SettingsController {
             @RequestBody Map<String, String> request,
             Authentication auth) {
         try {
-            UUID userId = UUID.fromString(auth.getName());
+            UUID userId = getUserIdFromAuth(auth);
             String reason = request.get("reason");
             String password = request.get("password");
 
@@ -217,7 +229,7 @@ public class SettingsController {
     @PostMapping("/backup")
     public ResponseEntity<Map<String, String>> createBackup(Authentication auth) {
         try {
-            UUID userId = UUID.fromString(auth.getName());
+            UUID userId = getUserIdFromAuth(auth);
             String backupId = settingsService.createUserBackup(userId);
 
             Map<String, String> response = new HashMap<>();
@@ -269,7 +281,7 @@ public class SettingsController {
             @RequestBody Map<String, String> feedback,
             Authentication auth) {
         try {
-            UUID userId = UUID.fromString(auth.getName());
+            UUID userId = getUserIdFromAuth(auth);
             String ticketId = settingsService.submitFeedback(userId, feedback);
 
             Map<String, String> response = new HashMap<>();
@@ -289,7 +301,7 @@ public class SettingsController {
     @PostMapping("/reset")
     public ResponseEntity<UserSettingsResponse> resetToDefaults(Authentication auth) {
         try {
-            UUID userId = UUID.fromString(auth.getName());
+            UUID userId = getUserIdFromAuth(auth);
             UserSettingsResponse settings = settingsService.resetToDefaults(userId);
             return ResponseEntity.ok(settings);
         } catch (Exception e) {
