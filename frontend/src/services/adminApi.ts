@@ -4,6 +4,43 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8083/api
 
 const API_URL = `${API_BASE_URL}/admin`;
 
+// Create axios instance with authentication interceptors
+const adminApi = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add auth token
+adminApi.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor to handle auth errors
+adminApi.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Clear token and redirect to login
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Types
 export interface User {
   id: string;
@@ -142,12 +179,12 @@ export const getUsers = async (params: {
   role?: string;
   banned?: boolean | null;
 }): Promise<PageResponse<User>> => {
-  const response = await axios.get(`${API_URL}/users`, { params });
+  const response = await adminApi.get(`${API_URL}/users`, { params });
   return response.data;
 };
 
 export const getUserDetails = async (userId: string): Promise<User> => {
-  const response = await axios.get(`${API_URL}/users/${userId}`);
+  const response = await adminApi.get(`${API_URL}/users/${userId}`);
   return response.data;
 };
 
@@ -156,7 +193,7 @@ export const updateUserRole = async (
   role: string,
   reason?: string
 ): Promise<{ message: string; newRole: string }> => {
-  const response = await axios.put(`${API_URL}/users/${userId}/role`, {
+  const response = await adminApi.put(`${API_URL}/users/${userId}/role`, {
     role,
     reason
   });
@@ -168,7 +205,7 @@ export const banUser = async (
   reason: string,
   duration?: string
 ): Promise<{ message: string; reason: string }> => {
-  const response = await axios.post(`${API_URL}/users/${userId}/ban`, {
+  const response = await adminApi.post(`${API_URL}/users/${userId}/ban`, {
     reason,
     duration
   });
@@ -179,7 +216,7 @@ export const unbanUser = async (
   userId: string,
   reason?: string
 ): Promise<{ message: string }> => {
-  const response = await axios.post(`${API_URL}/users/${userId}/unban`, {
+  const response = await adminApi.post(`${API_URL}/users/${userId}/unban`, {
     reason
   });
   return response.data;
@@ -190,7 +227,7 @@ export const warnUser = async (
   reason: string,
   message?: string
 ): Promise<{ message: string }> => {
-  const response = await axios.post(`${API_URL}/users/${userId}/warn`, {
+  const response = await adminApi.post(`${API_URL}/users/${userId}/warn`, {
     reason,
     message
   });
@@ -201,7 +238,7 @@ export const deleteUser = async (
   userId: string,
   reason: string
 ): Promise<{ message: string }> => {
-  const response = await axios.delete(`${API_URL}/users/${userId}`, {
+  const response = await adminApi.delete(`${API_URL}/users/${userId}`, {
     data: { reason }
   });
   return response.data;
@@ -209,21 +246,21 @@ export const deleteUser = async (
 
 // Analytics
 export const getAdminAnalytics = async (timeRange: string = '30d'): Promise<AdminAnalytics> => {
-  const response = await axios.get(`${API_URL}/analytics`, {
+  const response = await adminApi.get(`${API_URL}/analytics`, {
     params: { timeRange }
   });
   return response.data;
 };
 
 export const getUserAnalytics = async (timeRange: string = '30d'): Promise<Record<string, any>> => {
-  const response = await axios.get(`${API_URL}/analytics/users`, {
+  const response = await adminApi.get(`${API_URL}/analytics/users`, {
     params: { timeRange }
   });
   return response.data;
 };
 
 export const getContentAnalytics = async (timeRange: string = '30d'): Promise<Record<string, any>> => {
-  const response = await axios.get(`${API_URL}/analytics/content`, {
+  const response = await adminApi.get(`${API_URL}/analytics/content`, {
     params: { timeRange }
   });
   return response.data;
@@ -238,7 +275,7 @@ export const getAuditLogs = async (params: {
   startDate?: string;
   endDate?: string;
 }): Promise<PageResponse<AuditLog>> => {
-  const response = await axios.get(`${API_URL}/audit-logs`, { params });
+  const response = await adminApi.get(`${API_URL}/audit-logs`, { params });
   return response.data;
 };
 
@@ -247,7 +284,7 @@ export const getAuditStats = async (timeRange: string = '30d'): Promise<{
   availableActions: string[];
   timeRange: string;
 }> => {
-  const response = await axios.get(`${API_URL}/audit-logs/stats`, {
+  const response = await adminApi.get(`${API_URL}/audit-logs/stats`, {
     params: { timeRange }
   });
   return response.data;
@@ -255,7 +292,7 @@ export const getAuditStats = async (timeRange: string = '30d'): Promise<{
 
 // System Health
 export const getSystemHealth = async (): Promise<SystemHealth> => {
-  const response = await axios.get(`${API_URL}/health`);
+  const response = await adminApi.get(`${API_URL}/health`);
   return response.data;
 };
 
@@ -267,7 +304,7 @@ export const getReportedContent = async (params: {
   status?: string;
   priority?: string;
 }): Promise<PageResponse<any>> => {
-  const response = await axios.get(`${API_URL}/moderation/reports`, { params });
+  const response = await adminApi.get(`${API_URL}/moderation/reports`, { params });
   return response.data;
 };
 
@@ -277,7 +314,7 @@ export const moderateContent = async (
   action: string,
   reason?: string
 ): Promise<{ message: string; action: string; contentType: string }> => {
-  const response = await axios.post(`${API_URL}/moderation/content/${contentType}/${contentId}/moderate`, {
+  const response = await adminApi.post(`${API_URL}/moderation/content/${contentType}/${contentId}/moderate`, {
     action,
     reason
   });
@@ -290,7 +327,7 @@ export const reportContent = async (
   reason: string,
   description?: string
 ): Promise<{ message: string }> => {
-  const response = await axios.post(`${API_URL}/moderation/content/${contentType}/${contentId}/report`, {
+  const response = await adminApi.post(`${API_URL}/moderation/content/${contentType}/${contentId}/report`, {
     reason,
     description
   });
@@ -298,7 +335,7 @@ export const reportContent = async (
 };
 
 export const getModerationStats = async (timeRange: string = '30d'): Promise<Record<string, any>> => {
-  const response = await axios.get(`${API_URL}/moderation/stats`, {
+  const response = await adminApi.get(`${API_URL}/moderation/stats`, {
     params: { timeRange }
   });
   return response.data;
@@ -309,7 +346,7 @@ export const getFlaggedContent = async (params: {
   size?: number;
   contentType?: string;
 }): Promise<PageResponse<any>> => {
-  const response = await axios.get(`${API_URL}/moderation/flagged`, { params });
+  const response = await adminApi.get(`${API_URL}/moderation/flagged`, { params });
   return response.data;
 };
 
@@ -323,7 +360,7 @@ export const bulkModerate = async (
   failed: number;
   errors: string[];
 }> => {
-  const response = await axios.post(`${API_URL}/moderation/bulk-moderate`, {
+  const response = await adminApi.post(`${API_URL}/moderation/bulk-moderate`, {
     contentIds,
     action,
     reason
@@ -334,7 +371,7 @@ export const bulkModerate = async (
 export const updateModerationSettings = async (
   settings: Record<string, any>
 ): Promise<{ message: string }> => {
-  const response = await axios.put(`${API_URL}/moderation/settings`, settings);
+  const response = await adminApi.put(`${API_URL}/moderation/settings`, settings);
   return response.data;
 };
 
@@ -342,7 +379,7 @@ export const getModerationHistory = async (
   contentType: string,
   contentId: string
 ): Promise<Array<Record<string, any>>> => {
-  const response = await axios.get(`${API_URL}/moderation/content/${contentType}/${contentId}/history`);
+  const response = await adminApi.get(`${API_URL}/moderation/content/${contentType}/${contentId}/history`);
   return response.data;
 };
 
