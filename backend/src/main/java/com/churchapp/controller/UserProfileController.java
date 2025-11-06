@@ -7,6 +7,7 @@ import com.churchapp.security.JwtUtil;
 import com.churchapp.service.UserProfileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.User;
@@ -20,6 +21,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/profile")
 @RequiredArgsConstructor
+@Slf4j
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8100", "capacitor://localhost"})
 public class UserProfileController {
     
@@ -96,7 +98,8 @@ public class UserProfileController {
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
             String fileUrl = userProfileService.uploadBannerImage(currentProfile.getUserId(), file);
             return ResponseEntity.ok(FileUploadResponse.success(fileUrl));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
+            log.error("Error uploading banner image for user: {}", user.getUsername(), e);
             return ResponseEntity.badRequest().body(FileUploadResponse.error(e.getMessage()));
         }
     }
