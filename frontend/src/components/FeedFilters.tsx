@@ -18,7 +18,7 @@ const FeedFilters: React.FC<FeedFiltersProps> = ({
       type: FeedType.CHRONOLOGICAL,
       label: 'Community',
       description: 'All Posts',
-      icon: '🏛️',
+      icon: '🌾',
       color: '#2196f3'
     },
     {

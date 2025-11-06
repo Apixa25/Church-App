@@ -142,7 +142,7 @@ const Dashboard: React.FC = () => {
         
         <div className="header-content">
           <div className="header-left">
-            <h1>🏛️ The Gathering</h1>
+            <h1>🌾 The Gathering</h1>
             <div className="refresh-info">
               <span>Last updated: {formatLastRefresh()}</span>
               <button onClick={handleRefresh} className="refresh-btn" disabled={isLoading}>
