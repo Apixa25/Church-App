@@ -38,7 +38,6 @@ const FeedFilters: React.FC<FeedFiltersProps> = ({
   return (
     <div className="feed-filters">
       <div className="filters-header">
-        <h3>View Feed</h3>
         <span className="filters-subtitle">Choose how you want to see posts</span>
       </div>
 
@@ -74,15 +73,6 @@ const FeedFilters: React.FC<FeedFiltersProps> = ({
             )}
           </button>
         ))}
-      </div>
-
-      {/* Church Community Note */}
-      <div className="community-note">
-        <div className="note-icon">💝</div>
-        <div className="note-content">
-          <strong>Church Community:</strong> Unlike other platforms, everyone in your church can see everyone's posts.
-          This creates a more connected and transparent community experience.
-        </div>
       </div>
 
       {/* Loading overlay */}
