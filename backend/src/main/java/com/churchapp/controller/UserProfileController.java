@@ -89,6 +89,18 @@ public class UserProfileController {
         }
     }
     
+    @PostMapping("/me/upload-banner")
+    public ResponseEntity<?> uploadBannerImage(@AuthenticationPrincipal User user,
+                                              @RequestParam("file") MultipartFile file) {
+        try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            String fileUrl = userProfileService.uploadBannerImage(currentProfile.getUserId(), file);
+            return ResponseEntity.ok(FileUploadResponse.success(fileUrl));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(FileUploadResponse.error(e.getMessage()));
+        }
+    }
+    
     @GetMapping("/me/complete-status")
     public ResponseEntity<?> getProfileCompletionStatus(@AuthenticationPrincipal User user) {
         try {

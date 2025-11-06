@@ -9,6 +9,7 @@ export interface User {
   name: string;
   role: string;
   profilePicUrl?: string;
+  bannerImageUrl?: string;
   bio?: string;
   location?: string;
   website?: string;

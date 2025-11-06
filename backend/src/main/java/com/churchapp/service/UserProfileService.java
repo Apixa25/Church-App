@@ -85,6 +85,10 @@ public class UserProfileService {
             user.setProfilePicUrl(request.getProfilePicUrl());
         }
         
+        if (request.getBannerImageUrl() != null) {
+            user.setBannerImageUrl(request.getBannerImageUrl());
+        }
+        
         User updatedUser = userRepository.save(user);
         log.info("User profile updated for user: {}", userId);
         
@@ -132,6 +136,32 @@ public class UserProfileService {
                 throw new RuntimeException("Failed to delete profile picture", e);
             }
         }
+    }
+    
+    public String uploadBannerImage(UUID userId, MultipartFile file) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        
+        // Delete old banner image if exists
+        if (user.getBannerImageUrl() != null && !user.getBannerImageUrl().isEmpty()) {
+            try {
+                fileUploadService.deleteFile(user.getBannerImageUrl());
+                log.info("Deleted old banner image for user: {}", userId);
+            } catch (Exception e) {
+                log.warn("Could not delete old banner image for user: {}", userId, e);
+                // Continue with upload even if deletion fails
+            }
+        }
+        
+        // Upload new banner image
+        String fileUrl = fileUploadService.uploadFile(file, "banner-images");
+        
+        // Update user's banner image URL
+        user.setBannerImageUrl(fileUrl);
+        userRepository.save(user);
+        
+        log.info("Banner image updated for user: {}", userId);
+        return fileUrl;
     }
     
     public boolean isProfileComplete(UUID userId) {

@@ -37,4 +37,6 @@ public class UserProfileRequest {
     private User.Role role;
     
     private String profilePicUrl;
+    
+    private String bannerImageUrl;
 }
