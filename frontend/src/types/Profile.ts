@@ -12,6 +12,7 @@ export interface UserProfile {
   spiritualGift?: string;
   role: 'MEMBER' | 'MODERATOR' | 'ADMIN';
   profilePicUrl?: string;
+  bannerImageUrl?: string;
   createdAt: string;
   updatedAt: string;
   lastLogin?: string;
@@ -29,6 +30,7 @@ export interface ProfileUpdateRequest {
   spiritualGift?: string;
   role?: 'MEMBER' | 'MODERATOR' | 'ADMIN';
   profilePicUrl?: string;
+  bannerImageUrl?: string;
 }
 
 export interface ProfileCompletionStatus {

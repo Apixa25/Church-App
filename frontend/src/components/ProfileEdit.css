@@ -90,6 +90,97 @@
   line-height: 1.5;
 }
 
+/* Banner Image Section */
+.banner-section {
+  margin-bottom: 16px;
+}
+
+.banner-preview-container {
+  width: 100%;
+  height: 200px;
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  margin-bottom: 16px;
+  border: 2px solid var(--border-primary);
+  background: var(--bg-secondary);
+  position: relative;
+}
+
+.banner-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.banner-placeholder-edit {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.banner-placeholder-icon {
+  font-size: 48px;
+  opacity: 0.5;
+}
+
+.banner-placeholder-text {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.banner-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.banner-btn {
+  padding: 10px 20px;
+  border-radius: var(--border-radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.banner-btn.upload {
+  background: var(--accent-primary);
+  color: white;
+  box-shadow: 0 2px 8px var(--button-primary-glow);
+}
+
+.banner-btn.upload:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--glow-blue);
+}
+
+.banner-btn.remove {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+}
+
+.banner-btn.remove:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-secondary);
+}
+
+.banner-help {
+  margin-top: 12px;
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
 /* Profile Picture Section */
 .profile-pic-section {
   display: flex;

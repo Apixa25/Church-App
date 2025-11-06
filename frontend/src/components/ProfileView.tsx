@@ -215,9 +215,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
 
         {/* Profile Banner */}
         <div className="profile-banner">
-          {(profile as any).bannerImageUrl ? (
+          {profile.bannerImageUrl ? (
             <img 
-              src={(profile as any).bannerImageUrl} 
+              src={profile.bannerImageUrl} 
               alt="Profile banner"
               className="banner-image"
             />
