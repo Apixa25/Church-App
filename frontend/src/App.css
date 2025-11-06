@@ -1267,11 +1267,12 @@
 /* Dashboard Stats Styles */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 4px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
   padding: 0;
-  margin-left: -4px;
+  margin: 0;
   width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
 }
 
@@ -1286,7 +1287,9 @@
   transition: all var(--transition-base);
   min-height: 50px;
   width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .stat-card:hover {
@@ -1328,12 +1331,14 @@
 
 .dashboard-stats {
   width: 100%;
-  padding: 4px 8px 8px 2px;
+  padding: 0;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .dashboard-stats h3 {
-  margin: 0 0 8px 0;
+  margin: 0 0 12px 0;
+  padding: 0;
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
