@@ -217,6 +217,77 @@
   text-decoration: underline;
 }
 
+.meta-item-x a[href^="tel:"] {
+  color: var(--text-primary);
+}
+
+.meta-item-x a[href^="tel:"]:hover {
+  color: rgb(29, 155, 240);
+  text-decoration: underline;
+}
+
+/* Spiritual Gift */
+.profile-spiritual-gift-x {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+  border: 1px solid var(--border-primary);
+}
+
+.spiritual-gift-icon {
+  font-size: 20px;
+}
+
+.spiritual-gift-label {
+  font-size: 15px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.spiritual-gift-value {
+  font-size: 15px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Interests */
+.profile-interests-x {
+  margin-top: 12px;
+}
+
+.interests-label-x {
+  font-size: 15px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.interests-tags-x {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.interest-tag-x {
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.interest-tag-x:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border-secondary);
+}
+
 .profile-stats-x {
   display: flex;
   gap: 20px;
@@ -462,6 +533,21 @@
   .profile-meta-x {
     flex-direction: column;
     gap: 12px;
+  }
+
+  .profile-spiritual-gift-x {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .interests-tags-x {
+    gap: 6px;
+  }
+
+  .interest-tag-x {
+    font-size: 13px;
+    padding: 5px 10px;
   }
 
   .profile-stats-x {
