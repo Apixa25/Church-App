@@ -3,24 +3,22 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   getReportedContent,
   moderateContent,
-  getCommunityStats,
+  getModerationStats,
   banUser,
   unbanUser,
   warnUser,
-  getModerationLog,
-  CommunityStats,
-  ReportedContent,
-  ModerationAction,
-  ModerationActionType
-} from '../services/postApi';
+  getAuditLogs,
+  PageResponse,
+  AuditLog
+} from '../services/adminApi';
 import './AdminModeration.css';
 
 const AdminModeration: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'reports' | 'users' | 'content' | 'stats'>('reports');
-  const [reportedContent, setReportedContent] = useState<ReportedContent[]>([]);
-  const [communityStats, setCommunityStats] = useState<CommunityStats | null>(null);
-  const [moderationLog, setModerationLog] = useState<any[]>([]);
+  const [reportedContent, setReportedContent] = useState<any[]>([]);
+  const [moderationStats, setModerationStats] = useState<any | null>(null);
+  const [moderationLog, setModerationLog] = useState<AuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string>('');
@@ -35,13 +33,13 @@ const AdminModeration: React.FC = () => {
       setError('');
 
       if (activeTab === 'reports') {
-        const reports = await getReportedContent();
-        setReportedContent(reports);
+        const reportsResponse = await getReportedContent({ page: 0, size: 50 });
+        setReportedContent(reportsResponse.content || []);
       } else if (activeTab === 'stats') {
-        const stats = await getCommunityStats();
-        setCommunityStats(stats);
-        const log = await getModerationLog();
-        setModerationLog(log);
+        const stats = await getModerationStats('30d');
+        setModerationStats(stats);
+        const logResponse = await getAuditLogs({ page: 0, size: 50 });
+        setModerationLog(logResponse.content || []);
       }
     } catch (err: any) {
       console.error('Error loading moderation data:', err);
@@ -51,17 +49,25 @@ const AdminModeration: React.FC = () => {
     }
   };
 
-  const handleModerateContent = async (reportId: string, action: ModerationActionType, reason?: string) => {
+  const handleModerateContent = async (report: any, action: string, reason?: string) => {
     try {
-      setActionLoading(reportId);
-      await moderateContent(reportId, action, reason || '');
+      setActionLoading(report.id);
+      
+      // Extract contentType and contentId from the report
+      const contentType = report.contentType || 'POST';
+      const contentId = report.contentId || report.id;
+      
+      await moderateContent(contentType, contentId, action, reason || '');
 
       // Refresh the reports list
-      const updatedReports = await getReportedContent();
-      setReportedContent(updatedReports);
+      const updatedReportsResponse = await getReportedContent({ page: 0, size: 50 });
+      setReportedContent(updatedReportsResponse.content || []);
 
-      // Add to moderation log
-      loadData();
+      // Refresh stats if on stats tab
+      if (activeTab === 'stats') {
+        const stats = await getModerationStats('30d');
+        setModerationStats(stats);
+      }
     } catch (err: any) {
       console.error('Error moderating content:', err);
       setError('Failed to moderate content');
@@ -75,11 +81,11 @@ const AdminModeration: React.FC = () => {
       setActionLoading(userId);
 
       if (action === 'ban') {
-        await banUser(userId, reason || 'No reason provided');
+        await banUser(userId, reason || 'No reason provided', 'permanent');
       } else if (action === 'unban') {
-        await unbanUser(userId);
+        await unbanUser(userId, reason);
       } else if (action === 'warn') {
-        await warnUser(userId, reason || 'No reason provided');
+        await warnUser(userId, reason || 'No reason provided', reason);
       }
 
       // Refresh data
@@ -92,8 +98,8 @@ const AdminModeration: React.FC = () => {
     }
   };
 
-  const getActionColor = (action: ModerationActionType) => {
-    switch (action) {
+  const getActionColor = (action: string) => {
+    switch (action?.toLowerCase()) {
       case 'approve': return '#4caf50';
       case 'remove': return '#f44336';
       case 'hide': return '#ff9800';
@@ -102,8 +108,8 @@ const AdminModeration: React.FC = () => {
     }
   };
 
-  const getActionIcon = (action: ModerationActionType) => {
-    switch (action) {
+  const getActionIcon = (action: string) => {
+    switch (action?.toLowerCase()) {
       case 'approve': return '✅';
       case 'remove': return '🗑️';
       case 'hide': return '🙈';
@@ -134,15 +140,15 @@ const AdminModeration: React.FC = () => {
 
         <div className="moderation-stats">
           <div className="stat-item">
-            <span className="stat-number">{communityStats?.activeReports || 0}</span>
+            <span className="stat-number">{moderationStats?.activeReports || reportedContent.length || 0}</span>
             <span className="stat-label">Active Reports</span>
           </div>
           <div className="stat-item">
-            <span className="stat-number">{communityStats?.moderatedToday || 0}</span>
+            <span className="stat-number">{moderationStats?.moderatedToday || 0}</span>
             <span className="stat-label">Moderated Today</span>
           </div>
           <div className="stat-item">
-            <span className="stat-number">{communityStats?.bannedUsers || 0}</span>
+            <span className="stat-number">{moderationStats?.bannedUsers || 0}</span>
             <span className="stat-label">Banned Users</span>
           </div>
         </div>
@@ -254,7 +260,7 @@ const AdminModeration: React.FC = () => {
                     <div className="report-actions">
                       <button
                         className="action-btn approve"
-                        onClick={() => handleModerateContent(report.id, 'approve')}
+                        onClick={() => handleModerateContent(report, 'approve')}
                         disabled={actionLoading === report.id}
                       >
                         {actionLoading === report.id ? (
@@ -266,7 +272,7 @@ const AdminModeration: React.FC = () => {
 
                       <button
                         className="action-btn hide"
-                        onClick={() => handleModerateContent(report.id, 'hide', 'Content hidden for review')}
+                        onClick={() => handleModerateContent(report, 'hide', 'Content hidden for review')}
                         disabled={actionLoading === report.id}
                       >
                         {actionLoading === report.id ? (
@@ -278,7 +284,7 @@ const AdminModeration: React.FC = () => {
 
                       <button
                         className="action-btn warn"
-                        onClick={() => handleModerateContent(report.id, 'warn', 'Content violates community guidelines')}
+                        onClick={() => handleModerateContent(report, 'warn', 'Content violates community guidelines')}
                         disabled={actionLoading === report.id}
                       >
                         {actionLoading === report.id ? (
@@ -290,7 +296,7 @@ const AdminModeration: React.FC = () => {
 
                       <button
                         className="action-btn remove"
-                        onClick={() => handleModerateContent(report.id, 'remove', 'Content removed for violating guidelines')}
+                        onClick={() => handleModerateContent(report, 'remove', 'Content removed for violating guidelines')}
                         disabled={actionLoading === report.id}
                       >
                         {actionLoading === report.id ? (
@@ -428,7 +434,7 @@ const AdminModeration: React.FC = () => {
         )}
 
         {/* Statistics Tab */}
-        {activeTab === 'stats' && communityStats && (
+        {activeTab === 'stats' && moderationStats && (
           <div className="stats-section">
             <div className="section-header">
               <h2>Moderation Statistics</h2>
@@ -441,9 +447,9 @@ const AdminModeration: React.FC = () => {
                   <span className="stat-icon">📋</span>
                   <span className="stat-title">Reports Handled</span>
                 </div>
-                <div className="stat-value">{communityStats.totalReportsHandled}</div>
+                <div className="stat-value">{moderationStats.totalReports || moderationStats.totalReportsHandled || 0}</div>
                 <div className="stat-change positive">
-                  +{communityStats.reportsThisWeek} this week
+                  +{moderationStats.reportsThisWeek || 0} this week
                 </div>
               </div>
 
@@ -452,9 +458,9 @@ const AdminModeration: React.FC = () => {
                   <span className="stat-icon">🚫</span>
                   <span className="stat-title">Content Removed</span>
                 </div>
-                <div className="stat-value">{communityStats.contentRemoved}</div>
+                <div className="stat-value">{moderationStats.contentRemoved || 0}</div>
                 <div className="stat-change neutral">
-                  {communityStats.removalRate}% of reports
+                  {moderationStats.removalRate || 0}% of reports
                 </div>
               </div>
 
@@ -463,9 +469,9 @@ const AdminModeration: React.FC = () => {
                   <span className="stat-icon">⚠️</span>
                   <span className="stat-title">Warnings Issued</span>
                 </div>
-                <div className="stat-value">{communityStats.warningsIssued}</div>
+                <div className="stat-value">{moderationStats.warningsIssued || 0}</div>
                 <div className="stat-change positive">
-                  +{communityStats.warningsThisWeek} this week
+                  +{moderationStats.warningsThisWeek || 0} this week
                 </div>
               </div>
 
@@ -474,9 +480,9 @@ const AdminModeration: React.FC = () => {
                   <span className="stat-icon">👤</span>
                   <span className="stat-title">Banned Users</span>
                 </div>
-                <div className="stat-value">{communityStats.bannedUsers}</div>
+                <div className="stat-value">{moderationStats.bannedUsers || 0}</div>
                 <div className="stat-change negative">
-                  {communityStats.banRate}% of active users
+                  {moderationStats.banRate || 0}% of active users
                 </div>
               </div>
             </div>
@@ -484,19 +490,24 @@ const AdminModeration: React.FC = () => {
             <div className="moderation-log">
               <h3>Recent Moderation Actions</h3>
               <div className="log-entries">
-                {moderationLog.slice(0, 10).map((entry, index) => (
-                  <div key={index} className="log-entry">
+                {moderationLog.slice(0, 10).map((entry) => (
+                  <div key={entry.id} className="log-entry">
                     <div className="log-icon">{getActionIcon(entry.action)}</div>
                     <div className="log-content">
                       <div className="log-action">
-                        {entry.action} - {entry.targetType}
+                        {entry.action} - {entry.targetType || 'N/A'}
                       </div>
                       <div className="log-details">
-                        {entry.reason} • {new Date(entry.timestamp).toLocaleString()}
+                        {Object.entries(entry.details || {}).map(([key, value]) => `${key}: ${value}`).join(' • ') || 'No details'} • {new Date(entry.timestamp).toLocaleString()}
                       </div>
                     </div>
                   </div>
                 ))}
+                {moderationLog.length === 0 && (
+                  <div className="empty-state">
+                    <p>No moderation actions logged yet.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
