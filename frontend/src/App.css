@@ -1433,14 +1433,33 @@
 }
 
 /* Notification Center Styles */
-.notification-header {
+.notification-center .notification-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  padding: 5px 0;
-  border-bottom: 1px solid var(--border-primary);
+  padding: 12px 16px;
+  background: var(--bg-tertiary) !important;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
   margin-bottom: 15px;
+  transition: all var(--transition-base);
+}
+
+.notification-center .notification-header:hover {
+  background: var(--bg-elevated) !important;
+  border-color: var(--border-glow);
+  box-shadow: 0 2px 8px rgba(91, 127, 255, 0.2);
+}
+
+.notification-center .notification-header h3 {
+  margin: 0;
+  color: var(--text-primary) !important;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .notification-badge {
@@ -1456,15 +1475,21 @@
 .expand-btn {
   background: none;
   border: none;
-  font-size: 16px;
+  font-size: 18px;
   cursor: pointer;
-  padding: 4px;
-  color: var(--text-secondary);
-  transition: color var(--transition-fast);
+  padding: 4px 8px;
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+  border-radius: var(--border-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .expand-btn:hover {
-  color: var(--text-primary);
+  background: var(--bg-elevated);
+  color: var(--accent-primary);
+  transform: scale(1.1);
 }
 
 .summary-grid {
