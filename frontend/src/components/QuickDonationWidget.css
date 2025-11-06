@@ -1,14 +1,17 @@
+/* QuickDonationWidget Component Styles - Dark Modern Theme */
+
 .quick-donation-widget {
-  background: #ffffff;
-  border-radius: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
-  transition: all 0.3s ease;
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-base);
 }
 
 .quick-donation-widget:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: var(--border-glow);
+  box-shadow: var(--shadow-lg), var(--glow-blue);
 }
 
 .widget-header {
@@ -20,13 +23,13 @@
   margin: 0 0 8px 0;
   font-size: 1.3rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .widget-header p {
   margin: 0;
   font-size: 0.9rem;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .widget-content {
@@ -45,7 +48,7 @@
 .section-label {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
@@ -57,26 +60,28 @@
 
 .category-btn {
   padding: 8px 12px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  background: #ffffff;
+  border: 2px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  background: var(--bg-secondary);
   font-size: 0.8rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-base);
   text-align: center;
 }
 
 .category-btn:hover {
-  border-color: #d1d5db;
-  background: #f9fafb;
+  border-color: var(--border-glow);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .category-btn.active {
-  border-color: #3b82f6;
-  background: #eff6ff;
-  color: #1d4ed8;
+  border-color: var(--accent-primary);
+  background: rgba(91, 127, 255, 0.2);
+  color: var(--accent-primary);
+  box-shadow: 0 0 12px var(--button-primary-glow);
 }
 
 /* Quick Amount Section */
@@ -94,26 +99,28 @@
 
 .amount-btn {
   padding: 8px 4px;
-  border: 2px solid #e5e7eb;
-  border-radius: 6px;
-  background: #ffffff;
+  border: 2px solid var(--border-primary);
+  border-radius: var(--border-radius-sm);
+  background: var(--bg-secondary);
   font-size: 0.85rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-base);
   text-align: center;
 }
 
 .amount-btn:hover {
-  border-color: #d1d5db;
-  background: #f9fafb;
+  border-color: var(--border-glow);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .amount-btn.active {
-  border-color: #059669;
-  background: #ecfdf5;
-  color: #047857;
+  border-color: var(--success);
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--success);
+  box-shadow: 0 0 12px var(--success-glow);
 }
 
 /* Custom Amount */
@@ -126,7 +133,7 @@
 .custom-amount label {
   font-size: 0.85rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-primary);
 }
 
 .custom-amount-input {
@@ -140,23 +147,27 @@
   left: 12px;
   font-size: 0.9rem;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--text-tertiary);
   z-index: 1;
 }
 
 .custom-amount-input input {
   width: 100%;
   padding: 8px 12px 8px 24px;
-  border: 2px solid #e5e7eb;
-  border-radius: 6px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-primary);
+  border-radius: var(--border-radius-sm);
   font-size: 0.9rem;
-  transition: border-color 0.2s ease;
+  color: var(--text-primary);
+  transition: all var(--transition-base);
 }
 
 .custom-amount-input input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.2),
+              0 0 20px var(--button-primary-glow);
+  background: var(--bg-tertiary);
 }
 
 /* Widget Actions */
@@ -170,11 +181,11 @@
 .btn {
   padding: 10px 16px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--border-radius-md);
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-base);
   text-align: center;
   text-decoration: none;
   display: inline-flex;
@@ -184,31 +195,33 @@
 }
 
 .btn-primary {
-  background: #059669;
+  background: var(--success);
   color: #ffffff;
+  box-shadow: 0 2px 8px var(--success-glow);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #047857;
+  background: #059669;
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(5, 150, 105, 0.3);
+  box-shadow: var(--glow-teal);
 }
 
 .btn-primary:disabled {
-  background: #d1d5db;
-  color: #9ca3af;
+  background: var(--bg-secondary);
+  color: var(--text-disabled);
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .btn-secondary {
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
 }
 
 .btn-secondary:hover {
-  background: #e5e7eb;
-  border-color: #d1d5db;
+  background: var(--bg-elevated);
+  border-color: var(--border-glow);
 }
 
 .btn-large {
@@ -232,7 +245,7 @@
 .security-info {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border-primary);
 }
 
 .security-badge {
@@ -245,17 +258,18 @@
 
 .security-icon {
   font-size: 0.9rem;
+  color: var(--success);
 }
 
 .security-text {
   font-size: 0.8rem;
   font-weight: 500;
-  color: #059669;
+  color: var(--success);
 }
 
 .privacy-note {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-tertiary);
   text-align: center;
   line-height: 1.4;
   margin: 0;
@@ -278,61 +292,5 @@
 
   .secondary-actions {
     grid-template-columns: 1fr;
-  }
-}
-
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  .quick-donation-widget {
-    background: #1f2937;
-    border-color: #374151;
-  }
-
-  .widget-header h3 {
-    color: #f9fafb;
-  }
-
-  .widget-header p,
-  .section-label,
-  .custom-amount label {
-    color: #d1d5db;
-  }
-
-  .category-btn,
-  .amount-btn {
-    background: #374151;
-    border-color: #4b5563;
-    color: #d1d5db;
-  }
-
-  .category-btn:hover,
-  .amount-btn:hover {
-    background: #4b5563;
-    border-color: #6b7280;
-  }
-
-  .custom-amount-input input {
-    background: #374151;
-    border-color: #4b5563;
-    color: #f9fafb;
-  }
-
-  .btn-secondary {
-    background: #374151;
-    border-color: #4b5563;
-    color: #d1d5db;
-  }
-
-  .btn-secondary:hover {
-    background: #4b5563;
-    border-color: #6b7280;
-  }
-
-  .security-info {
-    border-color: #4b5563;
-  }
-
-  .privacy-note {
-    color: #9ca3af;
   }
 }
