@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getAnalyticsData, AnalyticsData } from '../services/postApi';
+import { getAdminAnalytics, AdminAnalytics } from '../services/adminApi';
 import './AnalyticsDashboard.css';
 
 interface AnalyticsDashboardProps {
@@ -11,7 +11,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   timeRange = '30d'
 }) => {
   const { user } = useAuth();
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [selectedTimeRange, setSelectedTimeRange] = useState(timeRange);
@@ -25,7 +25,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       setIsLoading(true);
       setError('');
 
-      const data = await getAnalyticsData();
+      const data = await getAdminAnalytics(selectedTimeRange);
       setAnalytics(data);
     } catch (err: any) {
       console.error('Error loading analytics:', err);
@@ -118,10 +118,10 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             <span className="metric-title">Total Members</span>
           </div>
           <div className="metric-value">
-            {formatNumber(analytics.totalMembers)}
+            {formatNumber(analytics.totalUsers)}
           </div>
-          <div className={`metric-change ${(analytics.memberGrowth ?? 0) >= 0 ? 'positive' : 'negative'}`}>
-            {formatPercentage(analytics.memberGrowth)}
+          <div className={`metric-change ${(analytics.newUsersThisWeek ?? 0) >= 0 ? 'positive' : 'negative'}`}>
+            +{formatNumber(analytics.newUsersThisWeek)} this week
           </div>
         </div>
 
@@ -133,8 +133,8 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           <div className="metric-value">
             {formatNumber(analytics.totalPosts)}
           </div>
-          <div className={`metric-change ${(analytics.postGrowth ?? 0) >= 0 ? 'positive' : 'negative'}`}>
-            {formatPercentage(analytics.postGrowth)}
+          <div className={`metric-change ${(analytics.postsToday ?? 0) >= 0 ? 'positive' : 'negative'}`}>
+            {formatNumber(analytics.postsToday)} today
           </div>
         </div>
 
@@ -144,10 +144,10 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             <span className="metric-title">Total Interactions</span>
           </div>
           <div className="metric-value">
-            {formatNumber(analytics.totalInteractions)}
+            {formatNumber(analytics.totalComments)}
           </div>
-          <div className={`metric-change ${(analytics.interactionGrowth ?? 0) >= 0 ? 'positive' : 'negative'}`}>
-            {formatPercentage(analytics.interactionGrowth)}
+          <div className={`metric-change ${(analytics.commentsToday ?? 0) >= 0 ? 'positive' : 'negative'}`}>
+            {formatNumber(analytics.commentsToday)} today
           </div>
         </div>
 
@@ -157,10 +157,10 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             <span className="metric-title">Engagement Rate</span>
           </div>
           <div className="metric-value">
-            {(analytics.engagementRate ?? 0).toFixed(1)}%
+            {(analytics.prayerEngagementRate ?? 0).toFixed(1)}%
           </div>
-          <div className={`metric-change ${(analytics.engagementChange ?? 0) >= 0 ? 'positive' : 'negative'}`}>
-            {formatPercentage(analytics.engagementChange)}
+          <div className={`metric-change ${(analytics.eventAttendanceRate ?? 0) >= 0 ? 'positive' : 'negative'}`}>
+            {formatNumber(analytics.eventAttendanceRate)}% attendance
           </div>
         </div>
       </div>
@@ -177,15 +177,19 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
               <p>Daily post and interaction counts over time</p>
               <div className="chart-mock">
                 <div className="chart-bars">
-                  {analytics.activityData?.slice(-7).map((day, index) => (
-                    <div key={index} className="chart-bar">
-                      <div
-                        className="bar-fill"
-                        style={{ height: `${(day.posts / Math.max(...analytics.activityData.map(d => d.posts))) * 100}%` }}
-                      ></div>
-                      <span className="bar-label">{new Date(day.date).getDate()}</span>
-                    </div>
-                  ))}
+                  {analytics.activityChart && analytics.activityChart.length > 0 ? (
+                    analytics.activityChart.slice(-7).map((day, index) => (
+                      <div key={index} className="chart-bar">
+                        <div
+                          className="bar-fill"
+                          style={{ height: `${(day.value / Math.max(...analytics.activityChart.map(d => d.value), 1)) * 100}%` }}
+                        ></div>
+                        <span className="bar-label">{day.label || new Date(day.timestamp).getDate()}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="no-data">No activity data available</div>
+                  )}
                 </div>
               </div>
             </div>
@@ -196,21 +200,29 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         <div className="analytics-section">
           <h2>📝 Content by Category</h2>
           <div className="category-breakdown">
-            {analytics.contentCategories.map((category, index) => (
-              <div key={index} className="category-item">
-                <div className="category-info">
-                  <span className="category-name">{category.name}</span>
-                  <span className="category-count">{formatNumber(category.count)}</span>
-                </div>
-                <div className="category-bar">
-                  <div
-                    className="category-fill"
-                    style={{ width: `${(category.count / Math.max(...analytics.contentCategories.map(c => c.count))) * 100}%` }}
-                  ></div>
-                </div>
-                <span className="category-percentage">{category.percentage.toFixed(1)}%</span>
-              </div>
-            ))}
+            {analytics.topCategories && Object.keys(analytics.topCategories).length > 0 ? (
+              Object.entries(analytics.topCategories).map(([name, count], index) => {
+                const maxCount = Math.max(...Object.values(analytics.topCategories));
+                const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
+                return (
+                  <div key={index} className="category-item">
+                    <div className="category-info">
+                      <span className="category-name">{name}</span>
+                      <span className="category-count">{formatNumber(count as number)}</span>
+                    </div>
+                    <div className="category-bar">
+                      <div
+                        className="category-fill"
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                    <span className="category-percentage">{percentage.toFixed(1)}%</span>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="no-data">No category data available</div>
+            )}
           </div>
         </div>
 
@@ -218,59 +230,63 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         <div className="analytics-section">
           <h2>⭐ Top Contributors</h2>
           <div className="contributors-list">
-            {analytics.topContributors.map((contributor, index) => (
-              <div key={contributor.userId} className="contributor-item">
-                <div className="contributor-rank">#{index + 1}</div>
-                <div className="contributor-avatar">
-                  {contributor.profilePicUrl ? (
-                    <img src={contributor.profilePicUrl} alt={contributor.userName} />
-                  ) : (
+            {analytics.topContributors && analytics.topContributors.length > 0 ? (
+              analytics.topContributors.map((contributor, index) => (
+                <div key={contributor.userEmail || index} className="contributor-item">
+                  <div className="contributor-rank">#{index + 1}</div>
+                  <div className="contributor-avatar">
                     <div className="avatar-placeholder">
-                      {contributor.userName.charAt(0).toUpperCase()}
+                      {contributor.userName?.charAt(0).toUpperCase() || 'U'}
                     </div>
-                  )}
+                  </div>
+                  <div className="contributor-info">
+                    <span className="contributor-name">{contributor.userName || 'Unknown User'}</span>
+                    <span className="contributor-stats">
+                      {formatNumber(contributor.totalContributions)} contributions • {contributor.primaryActivity || 'Active'}
+                    </span>
+                  </div>
+                  <div className="contributor-score">
+                    {formatNumber(contributor.totalContributions)}
+                  </div>
                 </div>
-                <div className="contributor-info">
-                  <span className="contributor-name">{contributor.userName}</span>
-                  <span className="contributor-stats">
-                    {formatNumber(contributor.postsCount)} posts • {formatNumber(contributor.interactions || contributor.commentsCount)} interactions
-                  </span>
-                </div>
-                <div className="contributor-score">
-                  {formatNumber(contributor.engagementScore || contributor.likesReceived)}
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <div className="no-data">No contributor data available</div>
+            )}
           </div>
         </div>
 
-        {/* Popular Topics */}
+        {/* Popular Content */}
         <div className="analytics-section">
-          <h2>🔥 Popular Topics</h2>
+          <h2>🔥 Popular Content</h2>
           <div className="topics-grid">
-            {analytics.popularTopics.map((topic, index) => (
-              <div key={topic.hashtag} className="topic-card">
-                <div className="topic-header">
-                  <span className="topic-rank">#{index + 1}</span>
-                  <span className="topic-hashtag">#{topic.hashtag}</span>
-                </div>
-                <div className="topic-stats">
-                  <div className="topic-stat">
-                    <span className="stat-label">Posts</span>
-                    <span className="stat-value">{formatNumber(topic.postsCount || topic.count)}</span>
+            {analytics.popularContent && analytics.popularContent.length > 0 ? (
+              analytics.popularContent.slice(0, 6).map((content, index) => (
+                <div key={content.title || index} className="topic-card">
+                  <div className="topic-header">
+                    <span className="topic-rank">#{index + 1}</span>
+                    <span className="topic-hashtag">{content.type}</span>
                   </div>
-                  <div className="topic-stat">
-                    <span className="stat-label">Interactions</span>
-                    <span className="stat-value">{formatNumber(topic.interactions || topic.count)}</span>
+                  <div className="topic-stats">
+                    <div className="topic-stat">
+                      <span className="stat-label">Title</span>
+                      <span className="stat-value">{content.title?.substring(0, 20) || 'N/A'}</span>
+                    </div>
+                    <div className="topic-stat">
+                      <span className="stat-label">Interactions</span>
+                      <span className="stat-value">{formatNumber(content.interactions)}</span>
+                    </div>
+                  </div>
+                  <div className="topic-trend">
+                    <span className="trend-indicator">
+                      By {content.author || 'Unknown'}
+                    </span>
                   </div>
                 </div>
-                <div className="topic-trend">
-                  <span className={`trend-indicator ${topic.trend === 'up' ? 'up' : 'down'}`}>
-                    {topic.trend === 'up' ? '📈' : topic.trend === 'down' ? '📉' : '➡️'} {topic.trend}
-                  </span>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <div className="no-data">No popular content data available</div>
+            )}
           </div>
         </div>
 
@@ -284,23 +300,10 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                 <span>Prayer Requests</span>
               </div>
               <div className="metric-value">
-                {formatNumber(analytics.prayerRequests)}
+                {formatNumber(analytics.totalPrayers)}
               </div>
               <div className="metric-description">
                 Active prayer requests in community
-              </div>
-            </div>
-
-            <div className="health-metric">
-              <div className="metric-label">
-                <span className="metric-icon">✨</span>
-                <span>Testimonies</span>
-              </div>
-              <div className="metric-value">
-                {formatNumber(analytics.testimonies)}
-              </div>
-              <div className="metric-description">
-                Faith stories shared this period
               </div>
             </div>
 
@@ -310,7 +313,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                 <span>Announcements</span>
               </div>
               <div className="metric-value">
-                {formatNumber(analytics.announcements)}
+                {formatNumber(analytics.totalAnnouncements)}
               </div>
               <div className="metric-description">
                 Important updates and events
@@ -319,14 +322,27 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
             <div className="health-metric">
               <div className="metric-label">
-                <span className="metric-icon">❤️</span>
-                <span>Answered Prayers</span>
+                <span className="metric-icon">📅</span>
+                <span>Events</span>
               </div>
               <div className="metric-value">
-                {formatNumber(analytics.answeredPrayers)}
+                {formatNumber(analytics.totalEvents)}
               </div>
               <div className="metric-description">
-                Prayers marked as answered
+                Community events scheduled
+              </div>
+            </div>
+
+            <div className="health-metric">
+              <div className="metric-label">
+                <span className="metric-icon">💰</span>
+                <span>Donations</span>
+              </div>
+              <div className="metric-value">
+                ${formatNumber(analytics.totalDonations)}
+              </div>
+              <div className="metric-description">
+                Total donations this period
               </div>
             </div>
           </div>
@@ -352,10 +368,10 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
         <div className="analytics-info">
           <p>
-            <strong>Last updated:</strong> {analytics.lastUpdated ? new Date(analytics.lastUpdated).toLocaleString() : 'Never'}
+            <strong>Time period:</strong> {getTimeRangeLabel(selectedTimeRange)}
           </p>
           <p>
-            <strong>Time period:</strong> {getTimeRangeLabel(selectedTimeRange)}
+            <strong>Active Users:</strong> {formatNumber(analytics.activeUsers)} • <strong>Total Users:</strong> {formatNumber(analytics.totalUsers)}
           </p>
         </div>
       </div>
