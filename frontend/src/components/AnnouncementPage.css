@@ -1,50 +1,49 @@
+/* AnnouncementPage Component Styles - Dark Modern Theme */
+
 .announcement-page {
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background: var(--bg-primary);
 }
 
 .error-banner {
-  background-color: #fee;
-  border: 1px solid #fcc;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid var(--error);
   padding: 16px 20px;
   display: flex;
   align-items: center;
   gap: 12px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
   margin-bottom: 20px;
 }
 
 .error-icon {
   font-size: 18px;
-  color: #c33;
+  color: var(--error);
 }
 
 .error-banner span:nth-child(2) {
   flex: 1;
-  color: #c33;
+  color: var(--error);
   font-weight: 500;
 }
 
 .error-close {
   background: none;
   border: none;
-  color: #c33;
+  color: var(--error);
   font-size: 18px;
   cursor: pointer;
   padding: 4px;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  border-radius: var(--border-radius-sm);
+  transition: background-color var(--transition-fast);
 }
 
 .error-close:hover {
-  background-color: rgba(204, 51, 51, 0.1);
+  background: rgba(239, 68, 68, 0.2);
 }
 
 .page-header {
-  background-color: white;
-  border-bottom: 1px solid #e9ecef;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
   padding: 24px 20px;
 }
 
@@ -59,7 +58,7 @@
 
 .page-title {
   margin: 0;
-  color: #212529;
+  color: var(--text-primary);
   font-size: 32px;
   font-weight: 700;
   flex: 1;
@@ -67,28 +66,27 @@
 }
 
 .back-home-btn {
-  background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+  background: var(--gradient-primary);
   color: white;
   border: none;
   padding: 0.8rem 1.2rem;
-  border-radius: 12px;
+  border-radius: var(--border-radius-md);
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  transition: all 0.3s ease;
+  transition: all var(--transition-base);
   display: flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 4px 15px rgba(116, 185, 255, 0.3);
+  box-shadow: 0 2px 8px var(--button-primary-glow);
   text-decoration: none;
   min-width: 120px;
   justify-content: center;
 }
 
 .back-home-btn:hover {
-  background: linear-gradient(135deg, #0984e3 0%, #74b9ff 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(116, 185, 255, 0.4);
+  box-shadow: var(--glow-blue);
 }
 
 .back-home-btn:active {
@@ -97,49 +95,53 @@
 
 .header-content p {
   margin: 0;
-  color: #6c757d;
+  color: var(--text-secondary);
   font-size: 16px;
   text-align: center;
 }
 
 .back-button {
-  background: none;
-  border: 2px solid #e9ecef;
-  color: #495057;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-primary);
+  color: var(--text-primary);
   padding: 12px 20px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-md);
   cursor: pointer;
   font-size: 16px;
   font-weight: 500;
-  transition: all 0.2s;
+  transition: all var(--transition-base);
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .back-button:hover {
-  border-color: #007bff;
-  background-color: #f8f9ff;
-  color: #007bff;
+  border-color: var(--accent-primary);
+  background: var(--bg-elevated);
+  color: var(--accent-primary);
+  box-shadow: 0 0 12px var(--button-primary-glow);
 }
 
 .create-button {
-  background-color: #007bff;
+  background: var(--accent-primary);
   color: white;
   border: none;
   padding: 14px 24px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-md);
   cursor: pointer;
   font-size: 16px;
   font-weight: 600;
-  transition: background-color 0.2s;
+  transition: all var(--transition-base);
   display: flex;
   align-items: center;
   gap: 8px;
+  box-shadow: 0 2px 8px var(--button-primary-glow);
 }
 
 .create-button:hover {
-  background-color: #0056b3;
+  background: var(--button-primary-hover);
+  box-shadow: var(--glow-blue);
+  transform: translateY(-2px);
 }
 
 .page-content {
@@ -149,35 +151,37 @@
 }
 
 .error-state {
-  background-color: white;
-  border: 1px solid #e9ecef;
-  border-radius: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
   padding: 40px;
   text-align: center;
   max-width: 500px;
   margin: 40px auto;
+  box-shadow: var(--shadow-md);
 }
 
 .error-state p {
-  color: #6c757d;
+  color: var(--text-secondary);
   font-size: 16px;
   margin-bottom: 24px;
 }
 
 .btn-secondary {
-  background-color: #6c757d;
-  color: white;
-  border: none;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
   padding: 12px 24px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-md);
   cursor: pointer;
   font-size: 16px;
   font-weight: 500;
-  transition: background-color 0.2s;
+  transition: all var(--transition-base);
 }
 
 .btn-secondary:hover {
-  background-color: #545b62;
+  background: var(--bg-elevated);
+  border-color: var(--border-glow);
 }
 
 /* Mobile responsiveness */
