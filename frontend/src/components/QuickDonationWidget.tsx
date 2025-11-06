@@ -62,7 +62,7 @@ const QuickDonationWidget: React.FC<QuickDonationWidgetProps> = ({
               className={`category-btn ${selectedCategory === DonationCategory.TITHES ? 'active' : ''}`}
               onClick={() => setSelectedCategory(DonationCategory.TITHES)}
             >
-              🏛️ Tithes
+              🌾 Tithes
             </button>
             <button
               className={`category-btn ${selectedCategory === DonationCategory.OFFERINGS ? 'active' : ''}`}

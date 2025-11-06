@@ -44,13 +44,13 @@ const FeedHeader: React.FC<FeedHeaderProps> = ({
   const getFeedIcon = (type: FeedType): string => {
     switch (type) {
       case FeedType.CHRONOLOGICAL:
-        return '🏛️';
+        return '🌾';
       case FeedType.TRENDING:
         return '🔥';
       case FeedType.FOR_YOU:
         return '✨';
       default:
-        return '🏛️';
+        return '🌾';
     }
   };
 

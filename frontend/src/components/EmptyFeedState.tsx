@@ -17,7 +17,7 @@ const EmptyFeedState: React.FC<EmptyFeedStateProps> = ({
     switch (type) {
       case FeedType.CHRONOLOGICAL:
         return {
-          icon: '🏛️',
+          icon: '🌾',
           title: 'Welcome to Your Church Community!',
           subtitle: 'Your community feed is ready',
           message: 'Be the first to share something with your church family. Post a prayer request, share a testimony, or announce an upcoming event.',
