@@ -4,7 +4,10 @@ import { profileAPI } from '../services/api';
 import { UserProfile, ProfileCompletionStatus } from '../types/Profile';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileEdit from './ProfileEdit';
-import { formatFullDate } from '../utils/dateUtils';
+import { Post } from '../types/Post';
+import { getUserPosts } from '../services/postApi';
+import PostCard from './PostCard';
+import './ProfileView.css';
 
 interface ProfileViewProps {
   userId?: string;
@@ -21,8 +24,18 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  
+  // Posts state
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [postsLoading, setPostsLoading] = useState(false);
+  const [postsError, setPostsError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'posts' | 'replies' | 'highlights' | 'articles' | 'media' | 'likes'>('posts');
+  const [page, setPage] = useState(0);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [postsCount, setPostsCount] = useState(0);
 
   const isOwnProfile = !userId || userId === user?.userId;
+  const targetUserId = userId || user?.userId || '';
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -44,12 +57,47 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
     }
   }, [userId, user?.userId]);
 
+  const loadUserPosts = useCallback(async (reset: boolean = false) => {
+    if (!targetUserId) return;
+
+    try {
+      setPostsLoading(true);
+      setPostsError(null);
+      const pageToLoad = reset ? 0 : page;
+
+      const response = await getUserPosts(targetUserId, pageToLoad, 20);
+
+      if (reset) {
+        setPosts(response.content);
+        setPage(1);
+        setPostsCount(response.totalElements);
+      } else {
+        setPosts(prev => [...prev, ...response.content]);
+        setPage(prev => prev + 1);
+      }
+
+      setHasMorePosts(!response.last);
+    } catch (err: any) {
+      console.error('Error loading user posts:', err);
+      setPostsError('Failed to load user posts');
+    } finally {
+      setPostsLoading(false);
+    }
+  }, [targetUserId, page]);
+
   useEffect(() => {
     fetchProfile();
     if (isOwnProfile) {
       fetchCompletionStatus();
     }
   }, [userId, isOwnProfile, fetchProfile]);
+
+  // Load posts when tab changes to posts
+  useEffect(() => {
+    if (activeTab === 'posts' && targetUserId && profile) {
+      loadUserPosts(true);
+    }
+  }, [activeTab, targetUserId, profile, loadUserPosts]);
 
   const fetchCompletionStatus = async () => {
     try {
@@ -66,6 +114,32 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
     if (isOwnProfile) {
       fetchCompletionStatus();
     }
+  };
+
+  const handlePostUpdate = useCallback((updatedPost: Post) => {
+    setPosts(prevPosts =>
+      prevPosts.map(post =>
+        post.id === updatedPost.id ? updatedPost : post
+      )
+    );
+  }, []);
+
+  const loadMorePosts = () => {
+    if (!postsLoading && hasMorePosts) {
+      loadUserPosts(false);
+    }
+  };
+
+  // Format date for "Joined" display
+  const formatJoinedDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
+
+  // Format date for "Born" display
+  const formatBirthday = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   };
 
   // Removed local formatDate function - now using robust dateUtils.formatFullDate
@@ -120,200 +194,221 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   }
 
   return (
-    <div className="profile-view-container">
+    <div className="profile-view-container x-style">
       <div className="profile-view">
-        {/* Navigation */}
-        <div className="profile-navigation">
+        {/* Top Navigation Bar */}
+        <div className="profile-top-nav">
           <button 
             onClick={() => navigate('/dashboard')} 
-            className="back-home-button"
+            className="back-button"
           >
-            🏠 Back Home
+            ←
           </button>
+          <div className="profile-top-nav-info">
+            <h2>{profile.name}</h2>
+            <span className="posts-count">{postsCount} posts</span>
+          </div>
+          <div className="profile-top-nav-actions">
+            {/* Search, notifications, and more options can go here */}
+          </div>
         </div>
-        
-        {/* Profile Header */}
-        <div className="profile-header">
-          <div className="profile-avatar">
-            {profile.profilePicUrl ? (
-              <img 
-                src={profile.profilePicUrl} 
-                alt={profile.name}
-                className="profile-picture-display"
-                key={profile.profilePicUrl} // Force re-render when URL changes
-              />
-            ) : (
-              <div className="profile-picture-placeholder-large">
-                <span>👤</span>
-              </div>
-            )}
-          </div>
-          <div className="profile-info">
-            <h1>{profile.name}</h1>
-            <p className="profile-role">{getRoleDisplay(profile.role)}</p>
-            <p className="profile-email">{profile.email}</p>
-          </div>
-          {showEditButton && isOwnProfile && (
-            <div className="profile-actions">
-              <button
-                onClick={() => setIsEditing(true)}
-                className="edit-profile-button"
-              >
-                ✏️ Edit Profile
-              </button>
-            </div>
+
+        {/* Profile Banner */}
+        <div className="profile-banner">
+          {(profile as any).bannerImageUrl ? (
+            <img 
+              src={(profile as any).bannerImageUrl} 
+              alt="Profile banner"
+              className="banner-image"
+            />
+          ) : (
+            <div className="banner-placeholder"></div>
           )}
         </div>
 
-        {/* Profile Completion Status */}
-        {isOwnProfile && completionStatus && (
-          <div className="completion-status">
-            <h3>📊 Profile Completion</h3>
-            <div className="completion-bar">
-              <div
-                className="completion-fill"
-                style={{ width: `${completionStatus.profileCompletionPercentage}%` }}
-              />
+        {/* Profile Header Content */}
+        <div className="profile-header-content">
+          <div className="profile-avatar-section">
+            <div className="profile-avatar">
+              {profile.profilePicUrl ? (
+                <img 
+                  src={profile.profilePicUrl} 
+                  alt={profile.name}
+                  className="profile-picture-display"
+                  key={profile.profilePicUrl}
+                />
+              ) : (
+                <div className="profile-picture-placeholder-large">
+                  <span>{profile.name.charAt(0).toUpperCase()}</span>
+                </div>
+              )}
             </div>
-            <p className="completion-text">
-              {completionStatus.profileCompletionPercentage}% Complete
-            </p>
-            {!completionStatus.isComplete && (
-              <p className="completion-hint">
-                💡 Complete your profile to help others get to know you better!
-              </p>
+            {showEditButton && isOwnProfile && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="edit-profile-button-x"
+              >
+                Edit profile
+              </button>
+            )}
+          </div>
+
+          <div className="profile-info-x">
+            <div className="profile-name-section">
+              <h1 className="profile-name-x">
+                {profile.name}
+                {profile.role === 'ADMIN' && <span className="verified-badge-x">✓</span>}
+              </h1>
+              <p className="profile-username-x">@{profile.email.split('@')[0]}</p>
+            </div>
+
+            {profile.bio && (
+              <p className="profile-bio-x">{profile.bio}</p>
+            )}
+
+            <div className="profile-meta-x">
+              {profile.location && (
+                <span className="meta-item-x">
+                  <span className="meta-icon-x">📍</span>
+                  {profile.location}
+                </span>
+              )}
+              {profile.website && (
+                <span className="meta-item-x">
+                  <span className="meta-icon-x">🔗</span>
+                  <a href={profile.website} target="_blank" rel="noopener noreferrer">
+                    {profile.website.replace(/^https?:\/\//, '')}
+                  </a>
+                </span>
+              )}
+              <span className="meta-item-x">
+                <span className="meta-icon-x">📅</span>
+                Joined {formatJoinedDate(profile.createdAt)}
+              </span>
+              {profile.birthday && (
+                <span className="meta-item-x">
+                  <span className="meta-icon-x">🎂</span>
+                  Born {formatBirthday(profile.birthday)}
+                </span>
+              )}
+            </div>
+
+            <div className="profile-stats-x">
+              <div className="stat-item-x">
+                <span className="stat-number-x">{(profile as any).followingCount || 0}</span>
+                <span className="stat-label-x">Following</span>
+              </div>
+              <div className="stat-item-x">
+                <span className="stat-number-x">{(profile as any).followerCount || 0}</span>
+                <span className="stat-label-x">Followers</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="profile-navigation-tabs">
+          <button
+            className={`nav-tab-x ${activeTab === 'posts' ? 'active' : ''}`}
+            onClick={() => setActiveTab('posts')}
+          >
+            Posts
+          </button>
+          <button
+            className={`nav-tab-x ${activeTab === 'replies' ? 'active' : ''}`}
+            onClick={() => setActiveTab('replies')}
+          >
+            Replies
+          </button>
+          <button
+            className={`nav-tab-x ${activeTab === 'highlights' ? 'active' : ''}`}
+            onClick={() => setActiveTab('highlights')}
+          >
+            Highlights
+          </button>
+          <button
+            className={`nav-tab-x ${activeTab === 'articles' ? 'active' : ''}`}
+            onClick={() => setActiveTab('articles')}
+          >
+            Articles
+          </button>
+          <button
+            className={`nav-tab-x ${activeTab === 'media' ? 'active' : ''}`}
+            onClick={() => setActiveTab('media')}
+          >
+            Media
+          </button>
+          <button
+            className={`nav-tab-x ${activeTab === 'likes' ? 'active' : ''}`}
+            onClick={() => setActiveTab('likes')}
+          >
+            Likes
+          </button>
+        </div>
+
+        {/* Posts Feed */}
+        {activeTab === 'posts' && (
+          <div className="profile-posts-feed">
+            {postsLoading && posts.length === 0 ? (
+              <div className="posts-loading">
+                <div className="loading-spinner"></div>
+                <span>Loading posts...</span>
+              </div>
+            ) : postsError ? (
+              <div className="posts-error">
+                <p>{postsError}</p>
+                <button onClick={() => loadUserPosts(true)} className="retry-button">
+                  Try Again
+                </button>
+              </div>
+            ) : posts.length === 0 ? (
+              <div className="empty-posts-x">
+                <div className="empty-icon-x">📝</div>
+                <h3>No posts yet</h3>
+                <p>{isOwnProfile ? 'Share your first post with the community!' : `${profile.name} hasn't posted anything yet.`}</p>
+              </div>
+            ) : (
+              <>
+                <div className="posts-list-x">
+                  {posts.map(post => (
+                    <div key={post.id} className="post-item-x">
+                      <PostCard
+                        post={post}
+                        onPostUpdate={handlePostUpdate}
+                        showComments={false}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {hasMorePosts && (
+                  <div className="load-more-section-x">
+                    <button
+                      onClick={loadMorePosts}
+                      disabled={postsLoading}
+                      className="load-more-btn-x"
+                    >
+                      {postsLoading ? (
+                        <>
+                          <div className="load-spinner"></div>
+                          Loading...
+                        </>
+                      ) : (
+                        'Load More Posts'
+                      )}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
 
-        {/* Profile Details */}
-        <div className="profile-details">
-          <div className="profile-section">
-            <h3>📝 About</h3>
-            {profile.bio ? (
-              <p className="profile-bio">{profile.bio}</p>
-            ) : (
-              <p className="profile-bio-empty">
-                {isOwnProfile 
-                  ? "📝 Add a bio to tell others about yourself"
-                  : "This user hasn't added a bio yet."
-                }
-              </p>
-            )}
-          </div>
-
-          {/* Location */}
-          {(profile as any).location && (
-            <div className="profile-section">
-              <h3>📍 Location</h3>
-              <p>{(profile as any).location}</p>
-            </div>
-          )}
-
-          {/* Website */}
-          {(profile as any).website && (
-            <div className="profile-section">
-              <h3>🌐 Website</h3>
-              <a href={(profile as any).website} target="_blank" rel="noopener noreferrer" className="profile-website">
-                {(profile as any).website}
-              </a>
-            </div>
-          )}
-
-          {/* Interests */}
-          {(profile as any).interests && (
-            <div className="profile-section">
-              <h3>🎯 Interests</h3>
-              <div className="interests-tags">
-                {(() => {
-                  try {
-                    const interests = typeof (profile as any).interests === 'string' 
-                      ? JSON.parse((profile as any).interests) 
-                      : (profile as any).interests;
-                    return Array.isArray(interests) && interests.length > 0 
-                      ? interests.map((interest: string, index: number) => (
-                          <span key={index} className="interest-tag">
-                            {interest}
-                          </span>
-                        ))
-                      : null;
-                  } catch (e) {
-                    return <span className="interest-tag">{(profile as any).interests}</span>;
-                  }
-                })()}
-              </div>
-            </div>
-          )}
-
-          {/* Phone Number */}
-          {profile.phoneNumber && (
-            <div className="profile-section">
-              <h3>📞 Phone Number</h3>
-              <p>{profile.phoneNumber}</p>
-            </div>
-          )}
-
-          {/* Address */}
-          {profile.address && (
-            <div className="profile-section">
-              <h3>🏠 Address</h3>
-              <p className="profile-address">{profile.address}</p>
-            </div>
-          )}
-
-          {/* Birthday */}
-          {profile.birthday && (
-            <div className="profile-section">
-              <h3>🎂 Birthday</h3>
-              <p>{formatFullDate(profile.birthday)}</p>
-            </div>
-          )}
-
-          {/* Spiritual Gift */}
-          {profile.spiritualGift && (
-            <div className="profile-section">
-              <h3>✨ Spiritual Gift</h3>
-              <p className="spiritual-gift">{profile.spiritualGift}</p>
-            </div>
-          )}
-
-          <div className="profile-section">
-            <h3>📅 Member Since</h3>
-            <p>{formatFullDate(profile.createdAt)}</p>
-          </div>
-
-          {profile.lastLogin && (
-            <div className="profile-section">
-              <h3>🕒 Last Active</h3>
-              <p>{formatFullDate(profile.lastLogin)}</p>
-            </div>
-          )}
-
-          {profile.updatedAt && profile.updatedAt !== profile.createdAt && (
-            <div className="profile-section">
-              <h3>✏️ Profile Updated</h3>
-              <p>{formatFullDate(profile.updatedAt)}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Quick Actions for Own Profile */}
-        {isOwnProfile && (
-          <div className="profile-quick-actions">
-            <h3>⚡ Quick Actions</h3>
-            <div className="action-buttons">
-              <button
-                onClick={() => setIsEditing(true)}
-                className="action-button"
-              >
-                ✏️ Edit Profile
-              </button>
-              <button
-                onClick={fetchProfile}
-                className="action-button"
-              >
-                🔄 Refresh
-              </button>
+        {/* Other tabs content (placeholder for now) */}
+        {activeTab !== 'posts' && (
+          <div className="profile-tab-content">
+            <div className="tab-placeholder">
+              <p>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} tab coming soon!</p>
             </div>
           </div>
         )}
