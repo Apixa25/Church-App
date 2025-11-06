@@ -281,6 +281,18 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
                   </a>
                 </span>
               )}
+              {profile.phoneNumber && (
+                <span className="meta-item-x">
+                  <span className="meta-icon-x">📞</span>
+                  <a href={`tel:${profile.phoneNumber}`}>{profile.phoneNumber}</a>
+                </span>
+              )}
+              {profile.address && (
+                <span className="meta-item-x">
+                  <span className="meta-icon-x">🏠</span>
+                  {profile.address}
+                </span>
+              )}
               <span className="meta-item-x">
                 <span className="meta-icon-x">📅</span>
                 Joined {formatJoinedDate(profile.createdAt)}
@@ -292,6 +304,46 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
                 </span>
               )}
             </div>
+
+            {/* Spiritual Gift */}
+            {profile.spiritualGift && (
+              <div className="profile-spiritual-gift-x">
+                <span className="spiritual-gift-icon">✨</span>
+                <span className="spiritual-gift-label">Spiritual Gift:</span>
+                <span className="spiritual-gift-value">{profile.spiritualGift}</span>
+              </div>
+            )}
+
+            {/* Interests */}
+            {profile.interests && (() => {
+              try {
+                const interests = typeof profile.interests === 'string' 
+                  ? JSON.parse(profile.interests) 
+                  : profile.interests;
+                return Array.isArray(interests) && interests.length > 0 ? (
+                  <div className="profile-interests-x">
+                    <div className="interests-label-x">Interests</div>
+                    <div className="interests-tags-x">
+                      {interests.map((interest: string, index: number) => (
+                        <span key={index} className="interest-tag-x">
+                          {interest}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              } catch (e) {
+                // If parsing fails, try to display as string
+                return profile.interests ? (
+                  <div className="profile-interests-x">
+                    <div className="interests-label-x">Interests</div>
+                    <div className="interests-tags-x">
+                      <span className="interest-tag-x">{profile.interests}</span>
+                    </div>
+                  </div>
+                ) : null;
+              }
+            })()}
 
             <div className="profile-stats-x">
               <div className="stat-item-x">
