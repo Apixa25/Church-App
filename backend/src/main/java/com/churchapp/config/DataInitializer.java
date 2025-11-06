@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,11 +33,14 @@ public class DataInitializer implements CommandLineRunner {
     private final ChatGroupMemberRepository chatGroupMemberRepository;
     private final UserRepository userRepository;
     private final AnnouncementRepository announcementRepository;
+    private final PasswordEncoder passwordEncoder;
     
     @Override
     @Transactional
     public void run(String... args) throws Exception {
         initializeDefaultUsers();
+        ensureAdminPassword();
+        promoteStevenSillsToAdmin();
         initializeDefaultChatGroups();
         initializeSampleAnnouncements();
     }
@@ -71,11 +75,41 @@ public class DataInitializer implements CommandLineRunner {
         adminUser.setRole(User.Role.ADMIN);
         adminUser.setIsActive(true);
         adminUser.setBio("Default church administrator account");
+        // Set default password: admin123
+        adminUser.setPasswordHash(passwordEncoder.encode("admin123"));
         adminUser.setCreatedAt(LocalDateTime.now());
         adminUser.setUpdatedAt(LocalDateTime.now());
         
         User savedAdmin = userRepository.save(adminUser);
-        log.info("Created default admin user: {}", savedAdmin.getEmail());
+        log.info("Created default admin user: {} with password: admin123", savedAdmin.getEmail());
+    }
+    
+    /**
+     * Ensure admin@church.local has a password set (for existing installations)
+     */
+    private void ensureAdminPassword() {
+        userRepository.findByEmail("admin@church.local").ifPresent(admin -> {
+            if (admin.getPasswordHash() == null || admin.getPasswordHash().isEmpty()) {
+                admin.setPasswordHash(passwordEncoder.encode("admin123"));
+                userRepository.save(admin);
+                log.info("Set default password for existing admin user: admin@church.local (password: admin123)");
+            }
+        });
+    }
+    
+    /**
+     * Promote Steven Sills II to ADMIN role if they exist
+     */
+    private void promoteStevenSillsToAdmin() {
+        userRepository.findAllActiveUsers().stream()
+            .filter(user -> "Steven Sills II".equals(user.getName()))
+            .forEach(steven -> {
+                if (steven.getRole() != User.Role.ADMIN) {
+                    steven.setRole(User.Role.ADMIN);
+                    userRepository.save(steven);
+                    log.info("Promoted Steven Sills II to ADMIN role");
+                }
+            });
     }
     
     private void createDefaultMemberUser() {
