@@ -1,4 +1,4 @@
-/* PostFeed Component Styles */
+/* PostFeed Component Styles - Dark Modern Theme */
 
 .post-feed {
   max-width: 600px;
@@ -17,6 +17,11 @@
 .error-content {
   text-align: center;
   max-width: 400px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  padding: 30px;
+  box-shadow: var(--shadow-md);
 }
 
 .error-content .error-icon {
@@ -25,31 +30,33 @@
 }
 
 .error-content h3 {
-  color: #dc3545;
+  color: var(--error);
   margin: 0 0 8px 0;
   font-size: 20px;
 }
 
 .error-content p {
-  color: #6c757d;
+  color: var(--text-secondary);
   margin: 0 0 20px 0;
   line-height: 1.5;
 }
 
 .retry-button {
-  background: #dc3545;
+  background: var(--error);
   color: white;
   border: none;
   padding: 10px 20px;
-  border-radius: 25px;
+  border-radius: var(--border-radius-pill);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-base);
+  box-shadow: 0 2px 8px var(--error-glow);
 }
 
 .retry-button:hover {
-  background: #c82333;
+  background: #dc2626;
+  box-shadow: var(--glow-purple);
   transform: translateY(-1px);
 }
 
@@ -65,10 +72,11 @@
 }
 
 .skeleton-post {
-  background: white;
-  border-radius: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-sm);
   animation: pulse 1.5s ease-in-out infinite;
 }
 
@@ -83,7 +91,7 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-elevated) 50%, var(--bg-secondary) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
@@ -91,10 +99,10 @@
 .skeleton-text {
   flex: 1;
   height: 16px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-elevated) 50%, var(--bg-secondary) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: 8px;
+  border-radius: var(--border-radius-sm);
 }
 
 .skeleton-content {
@@ -103,10 +111,10 @@
 
 .skeleton-line {
   height: 16px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-elevated) 50%, var(--bg-secondary) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: 8px;
+  border-radius: var(--border-radius-sm);
   margin-bottom: 8px;
 }
 
@@ -122,10 +130,10 @@
 .skeleton-button {
   height: 32px;
   width: 60px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-elevated) 50%, var(--bg-secondary) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: 16px;
+  border-radius: var(--border-radius-pill);
 }
 
 @keyframes pulse {
@@ -164,17 +172,23 @@
   justify-content: center;
   gap: 12px;
   padding: 20px;
-  color: #6c757d;
+  color: var(--text-tertiary);
   font-size: 14px;
 }
 
 .loading-more .loading-spinner {
   width: 20px;
   height: 20px;
-  border: 2px solid #f3f3f3;
-  border-top: 2px solid #2196f3;
+  border: 2px solid var(--bg-secondary);
+  border-top: 2px solid var(--accent-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  box-shadow: 0 0 8px var(--button-primary-glow);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* End of Feed */
@@ -188,6 +202,11 @@
 .end-message {
   text-align: center;
   max-width: 300px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  padding: 30px;
+  box-shadow: var(--shadow-md);
 }
 
 .end-message .end-icon {
@@ -196,32 +215,34 @@
 }
 
 .end-message h4 {
-  color: #495057;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
   font-size: 18px;
   font-weight: 600;
 }
 
 .end-message p {
-  color: #6c757d;
+  color: var(--text-secondary);
   margin: 0 0 20px 0;
   line-height: 1.5;
 }
 
 .refresh-button {
-  background: #2196f3;
+  background: var(--accent-primary);
   color: white;
   border: none;
   padding: 10px 20px;
-  border-radius: 25px;
+  border-radius: var(--border-radius-pill);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-base);
+  box-shadow: 0 2px 8px var(--button-primary-glow);
 }
 
 .refresh-button:hover {
-  background: #1976d2;
+  background: var(--button-primary-hover);
+  box-shadow: var(--glow-blue);
   transform: translateY(-1px);
 }
 
@@ -229,9 +250,9 @@
 .max-posts-reached {
   text-align: center;
   padding: 16px;
-  color: #6c757d;
+  color: var(--text-tertiary);
   font-size: 14px;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--border-primary);
   margin-top: 16px;
 }
 
@@ -287,14 +308,14 @@
 /* Accessibility */
 .feed-error:focus-within,
 .end-of-feed:focus-within {
-  outline: 2px solid #2196f3;
+  outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-md);
 }
 
 .retry-button:focus,
 .refresh-button:focus {
-  outline: 2px solid #2196f3;
+  outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
 }
 
@@ -305,8 +326,8 @@
   .skeleton-text,
   .skeleton-line,
   .skeleton-button {
-    background: #000;
-    border: 1px solid #fff;
+    background: var(--bg-secondary);
+    border: 1px solid var(--text-primary);
   }
 }
 
