@@ -297,6 +297,15 @@ export const uploadProfilePicture = async (file: File): Promise<string> => {
   return response.data.fileUrl;
 };
 
+export const uploadBannerImage = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post('/profile/me/upload-banner', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+  return response.data.fileUrl;
+};
+
 export const followUser = async (userId: string): Promise<void> => {
   await api.post(`/users/${userId}/follow`);
 };

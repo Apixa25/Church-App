@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { User } from '../types/Post';
 import { UserProfile } from '../types/Profile';
-import { updateUserProfile, uploadProfilePicture } from '../services/postApi';
+import { updateUserProfile, uploadProfilePicture, uploadBannerImage } from '../services/postApi';
 import './ProfileEdit.css';
 
 interface ProfileFormData {
@@ -50,9 +50,12 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
   const [success, setSuccess] = useState<string>('');
   const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
   const [profilePicPreview, setProfilePicPreview] = useState<string>('');
+  const [bannerImageFile, setBannerImageFile] = useState<File | null>(null);
+  const [bannerImagePreview, setBannerImagePreview] = useState<string>('');
   const [newInterest, setNewInterest] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   // Load current user data or external profile
   useEffect(() => {
@@ -83,6 +86,9 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
       if (profileToUse.profilePicUrl) {
         setProfilePicPreview(profileToUse.profilePicUrl);
       }
+      if ((profileToUse as any).bannerImageUrl) {
+        setBannerImagePreview((profileToUse as any).bannerImageUrl);
+      }
     }
   }, [user, externalProfile]);
 
@@ -112,6 +118,27 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
 
       setProfilePicFile(file);
       setProfilePicPreview(URL.createObjectURL(file));
+      setError('');
+    }
+  };
+
+  const handleBannerImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select a valid image file');
+        return;
+      }
+
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Banner image file size must be less than 5MB');
+        return;
+      }
+
+      setBannerImageFile(file);
+      setBannerImagePreview(URL.createObjectURL(file));
       setError('');
     }
   };
@@ -188,10 +215,25 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
         profilePicUrl = uploadResult;
       }
 
+      // Upload banner image if changed
+      let bannerImageUrl = (user as any).bannerImageUrl || (externalProfile as any)?.bannerImageUrl;
+      if (bannerImageFile) {
+        try {
+          const uploadResult = await uploadBannerImage(bannerImageFile);
+          bannerImageUrl = uploadResult;
+        } catch (bannerErr: any) {
+          // If banner upload endpoint doesn't exist yet, use profile picture endpoint as fallback
+          console.warn('Banner upload endpoint not available, using profile picture endpoint:', bannerErr);
+          const uploadResult = await uploadProfilePicture(bannerImageFile);
+          bannerImageUrl = uploadResult;
+        }
+      }
+
       // Update profile data - create API request object with correct types
       const updatedProfile = {
         ...formData,
         profilePicUrl,
+        bannerImageUrl,
         interests: JSON.stringify(formData.interests) // Convert array to JSON string for backend
       };
 
@@ -218,6 +260,7 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
           spiritualGift: result.spiritualGift,
           role: externalProfile.role,
           profilePicUrl: result.profilePicUrl,
+          bannerImageUrl: (result as any).bannerImageUrl || bannerImageUrl,
           createdAt: externalProfile.createdAt,
           updatedAt: new Date().toISOString(),
           lastLogin: externalProfile.lastLogin
@@ -255,6 +298,11 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
     setProfilePicPreview('');
   };
 
+  const removeBannerImage = () => {
+    setBannerImageFile(null);
+    setBannerImagePreview('');
+  };
+
   if (isLoading) {
     return (
       <div className="profile-edit loading">
@@ -273,6 +321,62 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
         <div className="edit-header">
           <h1>Edit Profile</h1>
           <p>Update your church community profile</p>
+        </div>
+
+        {/* Banner Image Section */}
+        <div className="edit-section">
+          <h2>Banner Image</h2>
+          <p className="section-desc">
+            Upload a banner image that appears at the top of your profile (like X.com)
+          </p>
+          <div className="banner-section">
+            <div className="banner-preview-container">
+              {bannerImagePreview ? (
+                <img
+                  src={bannerImagePreview}
+                  alt="Banner preview"
+                  className="banner-preview"
+                />
+              ) : (
+                <div className="banner-placeholder-edit">
+                  <span className="banner-placeholder-icon">🖼️</span>
+                  <span className="banner-placeholder-text">No banner image</span>
+                </div>
+              )}
+            </div>
+
+            <div className="banner-actions">
+              <input
+                ref={bannerInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleBannerImageChange}
+                style={{ display: 'none' }}
+              />
+
+              <button
+                type="button"
+                onClick={() => bannerInputRef.current?.click()}
+                className="banner-btn upload"
+              >
+                📷 {bannerImagePreview ? 'Change Banner' : 'Upload Banner'}
+              </button>
+
+              {bannerImagePreview && (
+                <button
+                  type="button"
+                  onClick={removeBannerImage}
+                  className="banner-btn remove"
+                >
+                  🗑️ Remove
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="banner-help">
+            <small>Upload a wide image (JPG, PNG) up to 5MB. Recommended size: 1500x500px</small>
+          </div>
         </div>
 
         {/* Profile Picture Section */}
