@@ -1,11 +1,11 @@
 /* Feed Filters Styles */
 .feed-filters {
-  background: white;
+  background: var(--bg-tertiary);
   border-radius: 12px;
   padding: 8px 16px 12px 16px;
   margin-bottom: 1rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-primary);
 }
 
 /* Feed Filter Options - Side by Side Layout */
@@ -18,8 +18,8 @@
 .filter-option {
   flex: 1;
   padding: 12px 16px;
-  border: 2px solid #e9ecef;
-  background: white;
+  border: 2px solid var(--border-primary);
+  background: var(--bg-secondary);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -32,16 +32,21 @@
 
 .filter-option:hover {
   border-color: var(--filter-color, #2196f3);
-  background: #f8f9ff;
+  background: var(--bg-elevated);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .filter-option.active {
-  border-color: var(--filter-color, #2196f3);
-  background: linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(33, 150, 243, 0.05) 100%);
-  color: var(--filter-color, #2196f3);
-  box-shadow: 0 4px 16px rgba(33, 150, 243, 0.2);
+  border-color: var(--filter-color, #5b7fff);
+  background: linear-gradient(135deg, rgba(91, 127, 255, 0.2) 0%, rgba(91, 127, 255, 0.1) 100%);
+  color: inherit;
+  box-shadow: 0 4px 16px rgba(91, 127, 255, 0.3);
+}
+
+.filter-option.active .filter-label,
+.filter-option.active .filter-description {
+  color: #ffffff;
 }
 
 .filter-option.disabled {
@@ -51,8 +56,8 @@
 }
 
 .filter-option.disabled:hover {
-  border-color: #e9ecef;
-  background: white;
+  border-color: var(--border-primary);
+  background: var(--bg-secondary);
   transform: none;
   box-shadow: none;
 }
@@ -76,13 +81,13 @@
 .filter-label {
   font-size: 16px;
   font-weight: 600;
-  color: inherit;
+  color: #f5f5f5;
   margin: 0;
 }
 
 .filter-description {
   font-size: 13px;
-  color: #6c757d;
+  color: #e8e8e8;
   line-height: 1.4;
   margin: 0;
 }
@@ -131,7 +136,7 @@
 
 .filters-subtitle {
   font-size: 14px;
-  color: #6c757d;
+  color: #f0f0f0;
   display: block;
   margin: 0;
 }
