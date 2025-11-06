@@ -129,7 +129,7 @@
 .author-name {
   font-weight: 600;
   font-size: 14px;
-  color: #333;
+  color: #ffffff !important;
 }
 
 .post-type-badge {
