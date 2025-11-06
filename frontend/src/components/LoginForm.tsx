@@ -36,7 +36,7 @@ const LoginForm: React.FC = () => {
   return (
     <div className="login-form-container">
       <div className="login-form">
-        <h2>🏛️ Welcome to Church App</h2>
+        <h2>🏛️ Welcome to The Gathering</h2>
         <p>Sign in to connect with your church community</p>
         
         {error && (
