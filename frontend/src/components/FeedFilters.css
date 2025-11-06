@@ -2,7 +2,7 @@
 .feed-filters {
   background: white;
   border-radius: 12px;
-  padding: 1rem;
+  padding: 8px 16px 12px 16px;
   margin-bottom: 1rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: 1px solid #e9ecef;
@@ -12,12 +12,12 @@
 .filters-options {
   display: flex;
   gap: 12px;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
 }
 
 .filter-option {
   flex: 1;
-  padding: 16px 20px;
+  padding: 12px 16px;
   border: 2px solid #e9ecef;
   background: white;
   border-radius: 12px;
@@ -58,8 +58,12 @@
 }
 
 .filter-icon {
-  font-size: 24px;
+  font-size: 48px;
   flex-shrink: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .filter-content {
@@ -114,7 +118,8 @@
 
 /* Filters Header */
 .filters-header {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  margin-top: 0;
 }
 
 .filters-header h3 {
@@ -127,6 +132,8 @@
 .filters-subtitle {
   font-size: 14px;
   color: #6c757d;
+  display: block;
+  margin: 0;
 }
 
 /* Community Note */
@@ -206,7 +213,7 @@
   }
   
   .filter-icon {
-    font-size: 20px;
+    font-size: 40px;
   }
   
   .filter-label {
@@ -239,7 +246,7 @@
   }
   
   .filter-icon {
-    font-size: 18px;
+    font-size: 36px;
   }
   
   .filter-label {
