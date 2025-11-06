@@ -87,7 +87,7 @@
 .author-name {
   font-weight: 600;
   font-size: 16px;
-  color: var(--text-primary);
+  color: #ffffff !important;
   margin-bottom: 4px;
   display: flex;
   align-items: center;
@@ -108,7 +108,7 @@
   align-items: center;
   gap: 12px;
   font-size: 14px;
-  color: var(--text-secondary);
+  color: #e0e0f0 !important;
 }
 
 .location {
@@ -116,7 +116,7 @@
 }
 
 .timestamp {
-  color: var(--text-tertiary);
+  color: #e0e0f0;
 }
 
 /* Post Content */

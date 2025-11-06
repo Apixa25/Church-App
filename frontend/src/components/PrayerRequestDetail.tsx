@@ -841,7 +841,7 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
 
         .comment-author-name {
           font-weight: 600;
-          color: #2c3e50;
+          color: #ffffff !important;
           font-size: 0.9rem;
         }
 
