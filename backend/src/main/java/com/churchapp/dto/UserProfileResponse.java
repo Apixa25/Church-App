@@ -27,6 +27,7 @@ public class UserProfileResponse {
     private String spiritualGift;
     private User.Role role;
     private String profilePicUrl;
+    private String bannerImageUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime lastLogin;
@@ -46,6 +47,7 @@ public class UserProfileResponse {
             user.getSpiritualGift(),
             user.getRole(),
             user.getProfilePicUrl(),
+            user.getBannerImageUrl(),
             user.getCreatedAt(),
             user.getUpdatedAt(),
             user.getLastLogin()

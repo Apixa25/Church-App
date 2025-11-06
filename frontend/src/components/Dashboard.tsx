@@ -125,6 +125,21 @@ const Dashboard: React.FC = () => {
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
+        {/* Banner Image Background */}
+        <div className="dashboard-banner-background">
+          <img 
+            src="/dashboard-banner.jpg" 
+            alt="Church banner" 
+            className="banner-bg-image"
+            onError={(e) => {
+              // Hide image if it fails to load, show gradient fallback
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+            }}
+          />
+          <div className="banner-overlay"></div>
+        </div>
+        
         <div className="header-content">
           <div className="header-left">
             <h1>🏛️ The Gathering</h1>

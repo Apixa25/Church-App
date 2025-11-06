@@ -44,6 +44,9 @@ public class User {
     @Column(name = "profile_pic_url", length = 500)
     private String profilePicUrl;
     
+    @Column(name = "banner_image_url", length = 500)
+    private String bannerImageUrl;
+    
     @Column(name = "bio", columnDefinition = "TEXT")
     private String bio;
     

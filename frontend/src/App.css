@@ -262,12 +262,52 @@
 }
 
 .dashboard-header {
+  position: relative;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-primary);
   color: var(--text-primary);
   padding: 20px;
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+}
+
+/* Dashboard Banner Background */
+.dashboard-banner-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.banner-bg-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.banner-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.6) 0%,
+    rgba(0, 0, 0, 0.4) 50%,
+    rgba(0, 0, 0, 0.6) 100%
+  );
+  z-index: 1;
 }
 
 .dashboard-header::after {
@@ -286,8 +326,11 @@
 }
 
 .header-content {
+  position: relative;
+  z-index: 2;
   max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -295,10 +338,18 @@
   gap: 20px;
 }
 
+.header-content > * {
+  position: relative;
+  z-index: 3;
+}
+
 .dashboard-header h1 {
   font-size: 32px;
   margin: 0;
   color: var(--text-primary);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  position: relative;
+  z-index: 3;
 }
 
 .user-info {
@@ -359,13 +410,19 @@
   font-weight: 600;
   margin: 0;
   color: var(--text-primary) !important;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+  position: relative;
+  z-index: 3;
 }
 
 .dashboard-header .user-role {
   font-size: 14px;
-  opacity: 0.9;
+  opacity: 0.95;
   margin: 0;
   color: var(--text-secondary) !important;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  position: relative;
+  z-index: 3;
 }
 
 .profile-website {
