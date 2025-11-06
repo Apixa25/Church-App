@@ -43,6 +43,18 @@ public class UserManagementResponse {
     private long totalDonations;
 
     public static UserManagementResponse fromUser(User user) {
+        // A user is active if:
+        // 1. They are not banned
+        // 2. They are not soft-deleted
+        // 3. Their isActive field is not explicitly false
+        // Note: By default, all non-banned, non-deleted users are considered active
+        // This handles existing users that may have is_active = false in the database
+        // The ensureUsersAreActive() method in DataInitializer will update the database on next startup
+        // to ensure isActive = true for all non-banned, non-deleted users
+        // For now, we treat users as active if they're not banned/deleted, even if isActive = false
+        // This is because existing users may have is_active = false due to database initialization issues
+        boolean isActive = !user.isBanned() && user.getDeletedAt() == null;
+        
         return UserManagementResponse.builder()
             .id(user.getId())
             .name(user.getName())
@@ -50,7 +62,7 @@ public class UserManagementResponse {
             .role(user.getRole().name())
             .profilePicUrl(user.getProfilePicUrl())
             .bio(user.getBio())
-            .isActive(Boolean.TRUE.equals(user.getIsActive()))
+            .isActive(isActive)
             .isBanned(user.isBanned())
             .warningCount(user.getWarningCount())
             .createdAt(user.getCreatedAt())

@@ -40,6 +40,7 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
         initializeDefaultUsers();
         ensureAdminPassword();
+        ensureUsersAreActive();
         promoteStevenSillsToAdmin();
         initializeDefaultChatGroups();
         initializeSampleAnnouncements();
@@ -95,6 +96,30 @@ public class DataInitializer implements CommandLineRunner {
                 log.info("Set default password for existing admin user: admin@church.local (password: admin123)");
             }
         });
+    }
+    
+    /**
+     * Ensure all non-banned, non-deleted users are marked as active
+     * This fixes existing users that may have isActive = false or null
+     */
+    private void ensureUsersAreActive() {
+        List<User> allUsers = userRepository.findAll();
+        int updatedCount = 0;
+        
+        for (User user : allUsers) {
+            // If user is not banned, not deleted, and isActive is false or null, set it to true
+            if (!user.isBanned() 
+                && user.getDeletedAt() == null 
+                && (user.getIsActive() == null || !user.getIsActive())) {
+                user.setIsActive(true);
+                userRepository.save(user);
+                updatedCount++;
+            }
+        }
+        
+        if (updatedCount > 0) {
+            log.info("Updated {} users to active status", updatedCount);
+        }
     }
     
     /**
