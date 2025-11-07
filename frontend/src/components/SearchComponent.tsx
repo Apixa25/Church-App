@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { searchPosts, getFeed } from '../services/postApi';
+import { profileAPI } from '../services/api';
 import { Post, PostSearchFilters } from '../types/Post';
+import { UserProfile } from '../types/Profile';
 import PostCard from './PostCard';
 import './SearchComponent.css';
 
@@ -17,8 +20,10 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
   initialQuery = '',
   onPostSelect
 }) => {
+  const navigate = useNavigate();
   const [query, setQuery] = useState(initialQuery);
   const [searchResults, setSearchResults] = useState<Post[]>([]);
+  const [profileResults, setProfileResults] = useState<UserProfile[]>([]);
   const [trendingPosts, setTrendingPosts] = useState<Post[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -59,17 +64,32 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
 
     setIsSearching(true);
     try {
+      // Search both posts and profiles in parallel
       const filters: PostSearchFilters = {
         ...searchFilters,
         query: query.trim()
       };
 
-      const response = await searchPosts(query, 0, 20, filters);
-      setSearchResults(response.content);
+      const [postsResponse, profilesResponse] = await Promise.all([
+        searchPosts(query, 0, 20, filters).catch(err => {
+          console.error('Post search error:', err);
+          return { content: [] };
+        }),
+        profileAPI.searchUsers(query, 0, 20).catch(err => {
+          console.error('Profile search error:', err);
+          return { data: { content: [] } };
+        })
+      ]);
+
+      setSearchResults(postsResponse.content || []);
+      // Handle both Page response and direct array response
+      const profileData = profilesResponse.data?.content || profilesResponse.data || [];
+      setProfileResults(Array.isArray(profileData) ? profileData : []);
       setHasSearched(true);
     } catch (error) {
       console.error('Search error:', error);
       setSearchResults([]);
+      setProfileResults([]);
     } finally {
       setIsSearching(false);
     }
@@ -87,6 +107,7 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
       }, 300);
     } else {
       setSearchResults([]);
+      setProfileResults([]);
       setHasSearched(false);
     }
 
@@ -122,9 +143,15 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
   const clearSearch = () => {
     setQuery('');
     setSearchResults([]);
+    setProfileResults([]);
     setHasSearched(false);
     setSearchFilters({});
     setShowFilters(false);
+  };
+
+  const handleProfileClick = (userId: string) => {
+    navigate(`/profile/${userId}`);
+    onClose();
   };
 
   const handleOverlayClick = (e: React.MouseEvent) => {
@@ -287,7 +314,7 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
                 </div>
               )}
 
-              {!isSearching && hasSearched && searchResults.length === 0 && query && (
+              {!isSearching && hasSearched && searchResults.length === 0 && profileResults.length === 0 && query && (
                 <div className="no-results">
                   <div className="no-results-icon">🔍</div>
                   <h3>No results found</h3>
@@ -303,25 +330,61 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
                 </div>
               )}
 
-              {!isSearching && searchResults.length > 0 && (
+              {!isSearching && (searchResults.length > 0 || profileResults.length > 0) && (
                 <div className="search-results">
-                  <div className="results-header">
-                    <span className="results-count">
-                      Found {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-
-                  <div className="results-list">
-                    {searchResults.map(post => (
-                      <div key={post.id} className="search-result-item">
-                        <PostCard
-                          post={post}
-                          onPostUpdate={() => {}} // Could be enhanced
-                          compact={true}
-                        />
+                  {/* Profile Results */}
+                  {profileResults.length > 0 && (
+                    <div className="results-section">
+                      <div className="results-header">
+                        <span className="results-section-title">👤 People ({profileResults.length})</span>
                       </div>
-                    ))}
-                  </div>
+                      <div className="results-list">
+                        {profileResults.map(profile => (
+                          <div 
+                            key={profile.userId} 
+                            className="search-result-item profile-result"
+                            onClick={() => handleProfileClick(profile.userId)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <div className="profile-result-content">
+                              <img 
+                                src={profile.profilePicUrl || '/logo192.png'} 
+                                alt={profile.name}
+                                className="profile-result-avatar"
+                              />
+                              <div className="profile-result-info">
+                                <div className="profile-result-name">{profile.name}</div>
+                                {profile.bio && (
+                                  <div className="profile-result-bio">{profile.bio}</div>
+                                )}
+                                <div className="profile-result-role">{profile.role}</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Post Results */}
+                  {searchResults.length > 0 && (
+                    <div className="results-section">
+                      <div className="results-header">
+                        <span className="results-section-title">📝 Posts ({searchResults.length})</span>
+                      </div>
+                      <div className="results-list">
+                        {searchResults.map(post => (
+                          <div key={post.id} className="search-result-item">
+                            <PostCard
+                              post={post}
+                              onPostUpdate={() => {}} // Could be enhanced
+                              compact={true}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </>

@@ -8,6 +8,9 @@ import com.churchapp.service.UserProfileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.User;
@@ -120,6 +123,25 @@ public class UserProfileController {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @GetMapping("/search")
+    public ResponseEntity<Page<UserProfileResponse>> searchUsers(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        try {
+            if (query == null || query.trim().isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+            
+            Pageable pageable = PageRequest.of(page, size);
+            Page<UserProfileResponse> users = userProfileService.searchUsers(query, pageable);
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            log.error("Error searching users: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().build();
         }
     }
     
