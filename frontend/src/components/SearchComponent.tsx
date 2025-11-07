@@ -98,8 +98,15 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
       const profileData = profilesResponse.data?.content || profilesResponse.data || [];
       setProfileResults(Array.isArray(profileData) ? profileData : []);
       
+      // Only show prayer requests if:
+      // 1. No filter is set (show all)
+      // 2. Filter is set to PRAYER
       const prayerData = prayersResponse.data?.content || prayersResponse.data || [];
-      setPrayerResults(Array.isArray(prayerData) ? prayerData : []);
+      if (!searchFilters.postType || searchFilters.postType === PostType.PRAYER) {
+        setPrayerResults(Array.isArray(prayerData) ? prayerData : []);
+      } else {
+        setPrayerResults([]);
+      }
       
       console.log('✅ Final search results - Posts:', postsResponse.content?.length || 0, 
                   'Profiles:', Array.isArray(profileData) ? profileData.length : 0,

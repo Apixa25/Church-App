@@ -149,16 +149,17 @@ public class FeedService {
 
     /**
      * Search posts by content, author name, category, location, and hashtags
+     * Optionally filter by post type
      */
-    public Page<Post> searchPosts(String query, Pageable pageable) {
-        log.info("🔍 FeedService.searchPosts called with query: '{}', pageable: {}", query, pageable);
+    public Page<Post> searchPosts(String query, Post.PostType postType, Pageable pageable) {
+        log.info("🔍 FeedService.searchPosts called with query: '{}', postType: '{}', pageable: {}", query, postType, pageable);
         
         // Search by content, author name, category, and location
-        Page<Post> contentResults = postRepository.findByContentContaining(query, pageable);
+        Page<Post> contentResults = postRepository.findByContentContaining(query, postType, pageable);
         log.info("📝 Content search found {} posts (total: {})", contentResults.getContent().size(), contentResults.getTotalElements());
         
         // Search by hashtags
-        Page<Post> hashtagResults = postRepository.findByHashtagContaining(query, pageable);
+        Page<Post> hashtagResults = postRepository.findByHashtagContaining(query, postType, pageable);
         log.info("🏷️ Hashtag search found {} posts (total: {})", hashtagResults.getContent().size(), hashtagResults.getTotalElements());
         
         // Combine results (avoid duplicates)

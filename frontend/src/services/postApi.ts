@@ -111,7 +111,12 @@ export const searchPosts = async (
     Object.entries(filters).forEach(([key, value]) => {
       // Skip 'query' from filters since it's already passed as a separate parameter
       if (key !== 'query' && value !== undefined && value !== null) {
-        params.append(key, value.toString());
+        // For postType, send the enum value directly
+        if (key === 'postType') {
+          params.append('postType', value.toString());
+        } else {
+          params.append(key, value.toString());
+        }
       }
     });
   }
