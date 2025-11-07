@@ -209,6 +209,11 @@ const PostFeed: React.FC<PostFeedProps> = ({
     }
   };
 
+  const handlePostDelete = (postId: string) => {
+    // Remove deleted post from feed
+    setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+  };
+
   // Load initial posts
   useEffect(() => {
     loadPosts(true);
@@ -350,6 +355,7 @@ const PostFeed: React.FC<PostFeedProps> = ({
               <PostCard
                 post={post}
                 onPostUpdate={handlePostUpdate}
+                onPostDelete={handlePostDelete}
               />
             </div>
           ))}

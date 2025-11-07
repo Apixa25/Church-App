@@ -125,6 +125,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
     );
   }, []);
 
+  const handlePostDelete = useCallback((postId: string) => {
+    // Remove deleted post from list
+    setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+    setPostsCount(prev => Math.max(0, prev - 1));
+  }, []);
+
   const loadMorePosts = () => {
     if (!postsLoading && hasMorePosts) {
       loadUserPosts(false);
@@ -448,6 +454,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
                       <PostCard
                         post={post}
                         onPostUpdate={handlePostUpdate}
+                        onPostDelete={handlePostDelete}
                         showComments={false}
                       />
                     </div>

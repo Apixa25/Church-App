@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Post, PostType, Comment } from '../types/Post';
-import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost } from '../services/postApi';
+import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost, deletePost } from '../services/postApi';
 import CommentThread from './CommentThread';
 import { formatRelativeDate } from '../utils/dateUtils';
+import { useAuth } from '../contexts/AuthContext';
 import './PostCard.css';
 
 interface PostCardProps {
   post: Post;
   onPostUpdate?: (updatedPost: Post) => void;
+  onPostDelete?: (postId: string) => void;
   showComments?: boolean;
   maxComments?: number;
   compact?: boolean;
@@ -16,10 +18,12 @@ interface PostCardProps {
 const PostCard: React.FC<PostCardProps> = ({
   post,
   onPostUpdate,
+  onPostDelete,
   showComments = false,
   maxComments = 3,
   compact = false
 }) => {
+  const { user } = useAuth();
   const [isLiked, setIsLiked] = useState(post.isLikedByCurrentUser || false);
   const [isBookmarked, setIsBookmarked] = useState(post.isBookmarkedByCurrentUser || false);
   const [likesCount, setLikesCount] = useState(post.likesCount);
@@ -29,6 +33,14 @@ const PostCard: React.FC<PostCardProps> = ({
   const [showCommentThread, setShowCommentThread] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<Comment[]>([]);
+  
+  // Check if current user can delete this post (owner, admin, or moderator)
+  const canDelete = user && (
+    user.userId === post.userId || 
+    user.id === post.userId || 
+    user.role === 'ADMIN' || 
+    user.role === 'MODERATOR'
+  );
 
   const handleLike = async () => {
     if (isLoading) return;
@@ -92,6 +104,33 @@ const PostCard: React.FC<PostCardProps> = ({
       // Revert optimistic update on error
       setIsBookmarked(wasBookmarked);
       console.error('Error toggling bookmark:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!canDelete) return;
+    
+    const confirmed = window.confirm(
+      user?.role === 'ADMIN' || user?.role === 'MODERATOR'
+        ? 'Are you sure you want to delete this post as an administrator?'
+        : 'Are you sure you want to delete this post?'
+    );
+    
+    if (!confirmed) return;
+
+    setIsLoading(true);
+    try {
+      await deletePost(post.id);
+      
+      // Notify parent component
+      if (onPostDelete) {
+        onPostDelete(post.id);
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      alert('Failed to delete post. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -222,6 +261,16 @@ const PostCard: React.FC<PostCardProps> = ({
             </div>
           </div>
         </div>
+        {canDelete && (
+          <button
+            className="post-delete-button"
+            onClick={handleDelete}
+            disabled={isLoading}
+            title={user?.role === 'ADMIN' || user?.role === 'MODERATOR' ? 'Delete post (Admin)' : 'Delete post'}
+          >
+            🗑️
+          </button>
+        )}
       </div>
 
       {/* Post Content */}

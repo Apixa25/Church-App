@@ -192,9 +192,16 @@ public class PostService {
         Post post = postRepository.findById(postId)
             .orElseThrow(() -> new RuntimeException("Post not found"));
 
-        // Check if user owns the post
-        if (!post.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("You can only delete your own posts");
+        // Check if user owns the post or is an admin/moderator
+        boolean isOwner = post.getUser().getId().equals(user.getId());
+        boolean isAdmin = user.getRole() == User.Role.ADMIN;
+        boolean isModerator = user.getRole() == User.Role.MODERATOR;
+
+        log.info("Delete authorization check - Post: {} | Owner: {} | Current User: {} | User Role: {} | Is Owner: {} | Is Admin: {} | Is Moderator: {}", 
+                postId, post.getUser().getId(), user.getId(), user.getRole(), isOwner, isAdmin, isModerator);
+
+        if (!isOwner && !isAdmin && !isModerator) {
+            throw new RuntimeException("Not authorized to delete this post. Only the post owner, administrators, or moderators can delete posts.");
         }
 
         // Clean up related data
@@ -203,7 +210,7 @@ public class PostService {
         // Delete the post
         postRepository.delete(post);
 
-        log.info("Deleted post with ID: {} by user: {}", postId, userEmail);
+        log.info("Deleted post with ID: {} by user: {} (Role: {})", postId, userEmail, user.getRole());
     }
 
     @Transactional

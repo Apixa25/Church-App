@@ -130,6 +130,11 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
     );
   }, []);
 
+  const handlePostDelete = useCallback((postId: string) => {
+    // Remove deleted post from list
+    setUserPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+  }, []);
+
   const loadMorePosts = () => {
     if (!postsLoading && hasMorePosts) {
       loadUserPosts(false);
@@ -329,6 +334,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
                       <PostCard
                         post={post}
                         onPostUpdate={handlePostUpdate}
+                        onPostDelete={handlePostDelete}
                         compact={true}
                       />
                     </div>
