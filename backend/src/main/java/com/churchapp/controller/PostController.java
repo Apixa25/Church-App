@@ -250,8 +250,10 @@ public class PostController {
             return ResponseEntity.badRequest().build();
         }
 
+        log.info("🔍 Searching posts for query: '{}', page: {}, size: {}", query, page, size);
         Pageable pageable = PageRequest.of(page, size);
         Page<Post> posts = feedService.searchPosts(query, pageable);
+        log.info("📝 Found {} posts (total: {}) for query: '{}'", posts.getContent().size(), posts.getTotalElements(), query);
         Page<PostResponse> responses = posts.map(PostResponse::fromEntity);
 
         return ResponseEntity.ok(responses);
