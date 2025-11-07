@@ -4,6 +4,7 @@ import { Post } from '../types/Post';
 import { getUserProfile, getUserPosts, followUser, unfollowUser } from '../services/postApi';
 import { useAuth, User } from '../contexts/AuthContext';
 import PostCard from './PostCard';
+import { parseEventDate } from '../utils/dateUtils';
 import './UserProfile.css';
 
 interface UserProfileProps {
@@ -162,11 +163,27 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
   }
 
   const isOwnProfile = currentUser?.id === profileUser.id;
-  const joinDate = new Date(profileUser.createdAt || Date.now());
-  const memberSince = joinDate.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long'
-  });
+  
+  // Format joined date using robust date parsing
+  const formatJoinedDate = (dateString: string | undefined): string => {
+    if (!dateString) {
+      return 'Unknown';
+    }
+    
+    const date = parseEventDate(dateString);
+    
+    if (!date || isNaN(date.getTime())) {
+      console.warn('Invalid date format in formatJoinedDate:', dateString);
+      return 'Unknown';
+    }
+    
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long'
+    });
+  };
+  
+  const memberSince = formatJoinedDate(profileUser.createdAt);
 
   return (
     <div className="user-profile">
