@@ -26,7 +26,7 @@ interface AdminDashboardProps {
 const AdminDashboard: React.FC<AdminDashboardProps> = ({
   initialTab = 'overview'
 }) => {
-  const { user } = useAuth();
+  const { user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [users, setUsers] = useState<User[]>([]);
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
@@ -163,7 +163,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  if (!user || (user.role !== 'ADMIN' && user.role !== 'MODERATOR')) {
+  if (!currentUser || (currentUser.role !== 'ADMIN' && currentUser.role !== 'MODERATOR')) {
     return (
       <div className="admin-dashboard unauthorized">
         <div className="unauthorized-content">
@@ -186,8 +186,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           <div className="admin-meta">
             <div className="admin-role">
-              <span className={`role-badge ${user.role.toLowerCase()}`}>
-                {user.role}
+              <span className={`role-badge ${currentUser.role.toLowerCase()}`}>
+                {currentUser.role}
               </span>
             </div>
             {systemHealth && (
@@ -228,7 +228,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           >
             📈 Analytics
           </button>
-          {user.role === 'ADMIN' && (
+          {currentUser.role === 'ADMIN' && (
             <button
               className={`tab-btn ${activeTab === 'audit' ? 'active' : ''}`}
               onClick={() => setActiveTab('audit')}
@@ -537,6 +537,29 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <option value="ADMIN">Admin</option>
                         </select>
                       )}
+
+                      {currentUser.role === 'ADMIN' && user.id !== currentUser.id && (
+                        <button
+                          className="action-btn delete"
+                          onClick={() => {
+                            const confirmed = window.confirm(
+                              `⚠️ WARNING: This will permanently delete user "${user.name}" (${user.email}).\n\n` +
+                              `This action cannot be undone. All user data, posts, comments, and history will be permanently removed.\n\n` +
+                              `Are you absolutely sure you want to delete this user?`
+                            );
+                            if (confirmed) {
+                              const reason = prompt('Please provide a reason for deleting this user:');
+                              if (reason) {
+                                handleUserAction(user.id, 'delete', { reason });
+                              }
+                            }
+                          }}
+                          disabled={actionLoading === user.id}
+                          title="Delete user permanently"
+                        >
+                          {actionLoading === user.id ? '⏳' : '🗑️'} Delete
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -556,7 +579,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         )}
 
         {/* Audit Logs Tab */}
-        {activeTab === 'audit' && user.role === 'ADMIN' && (
+        {activeTab === 'audit' && currentUser.role === 'ADMIN' && (
           <div className="audit-section">
             <div className="section-header">
               <h2>📋 Audit Logs</h2>
