@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { searchPosts, getFeed } from '../services/postApi';
 import { profileAPI } from '../services/api';
-import { Post, PostSearchFilters } from '../types/Post';
+import { prayerAPI } from '../services/prayerApi';
+import { Post, PostSearchFilters, PostType } from '../types/Post';
 import { UserProfile } from '../types/Profile';
+import { PrayerRequest } from '../types/Prayer';
 import PostCard from './PostCard';
 import './SearchComponent.css';
 
@@ -24,6 +26,7 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
   const [query, setQuery] = useState(initialQuery);
   const [searchResults, setSearchResults] = useState<Post[]>([]);
   const [profileResults, setProfileResults] = useState<UserProfile[]>([]);
+  const [prayerResults, setPrayerResults] = useState<PrayerRequest[]>([]);
   const [trendingPosts, setTrendingPosts] = useState<Post[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -41,10 +44,10 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
   ];
 
   const quickFilters = [
-    { label: 'Posts', value: 'posts', icon: '📝' },
-    { label: 'Prayers', value: 'prayers', icon: '🙏' },
-    { label: 'Testimonies', value: 'testimonies', icon: '✨' },
-    { label: 'Announcements', value: 'announcements', icon: '📢' }
+    { label: 'Posts', value: PostType.GENERAL, icon: '📝' },
+    { label: 'Prayers', value: PostType.PRAYER, icon: '🙏' },
+    { label: 'Testimonies', value: PostType.TESTIMONY, icon: '✨' },
+    { label: 'Announcements', value: PostType.ANNOUNCEMENT, icon: '📢' }
   ];
 
   useEffect(() => {
@@ -64,14 +67,14 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
 
     setIsSearching(true);
     try {
-      // Search both posts and profiles in parallel
+      // Search posts, profiles, and prayer requests in parallel
       const filters: PostSearchFilters = {
         ...searchFilters,
         query: query.trim()
       };
 
       console.log('🔍 Starting search for:', query);
-      const [postsResponse, profilesResponse] = await Promise.all([
+      const [postsResponse, profilesResponse, prayersResponse] = await Promise.all([
         searchPosts(query, 0, 20, filters).catch(err => {
           console.error('Post search error:', err);
           return { content: [] };
@@ -79,24 +82,34 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
         profileAPI.searchUsers(query, 0, 20).catch(err => {
           console.error('Profile search error:', err);
           return { data: { content: [] } };
+        }),
+        prayerAPI.searchPrayerRequests(query, 0, 20).catch(err => {
+          console.error('Prayer search error:', err);
+          return { data: { content: [] } };
         })
       ]);
 
       console.log('📝 Posts response:', postsResponse);
       console.log('👤 Profiles response:', profilesResponse);
-      console.log('📝 Posts content:', postsResponse.content);
-      console.log('👤 Profiles data:', profilesResponse.data);
+      console.log('🙏 Prayers response:', prayersResponse);
 
       setSearchResults(postsResponse.content || []);
       // Handle both Page response and direct array response
       const profileData = profilesResponse.data?.content || profilesResponse.data || [];
       setProfileResults(Array.isArray(profileData) ? profileData : []);
-      console.log('✅ Final search results - Posts:', postsResponse.content?.length || 0, 'Profiles:', Array.isArray(profileData) ? profileData.length : 0);
+      
+      const prayerData = prayersResponse.data?.content || prayersResponse.data || [];
+      setPrayerResults(Array.isArray(prayerData) ? prayerData : []);
+      
+      console.log('✅ Final search results - Posts:', postsResponse.content?.length || 0, 
+                  'Profiles:', Array.isArray(profileData) ? profileData.length : 0,
+                  'Prayers:', Array.isArray(prayerData) ? prayerData.length : 0);
       setHasSearched(true);
     } catch (error) {
       console.error('Search error:', error);
       setSearchResults([]);
       setProfileResults([]);
+      setPrayerResults([]);
     } finally {
       setIsSearching(false);
     }
@@ -115,6 +128,7 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
     } else {
       setSearchResults([]);
       setProfileResults([]);
+      setPrayerResults([]);
       setHasSearched(false);
     }
 
@@ -139,6 +153,15 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
     setActiveTab('search');
   };
 
+  const handleQuickFilter = (postType: PostType) => {
+    setSearchFilters(prev => ({
+      ...prev,
+      postType: postType
+    }));
+    setShowFilters(true);
+    setActiveTab('search');
+  };
+
   const handleFilterChange = (filterType: keyof PostSearchFilters, value: any) => {
     setSearchFilters(prev => ({
       ...prev,
@@ -151,6 +174,7 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
     setQuery('');
     setSearchResults([]);
     setProfileResults([]);
+    setPrayerResults([]);
     setHasSearched(false);
     setSearchFilters({});
     setShowFilters(false);
@@ -213,7 +237,7 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
               onClick={() => setShowFilters(!showFilters)}
               aria-label="Toggle filters"
             >
-              ⚙️ Filters
+              ⚙️
             </button>
 
             <button
@@ -302,8 +326,8 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
                     {quickFilters.map(filter => (
                       <button
                         key={filter.value}
-                        className="quick-filter-btn"
-                        onClick={() => handleQuickSearch(filter.value)}
+                        className={`quick-filter-btn ${searchFilters.postType === filter.value ? 'active' : ''}`}
+                        onClick={() => handleQuickFilter(filter.value)}
                       >
                         <span className="filter-icon">{filter.icon}</span>
                         {filter.label}
@@ -321,7 +345,7 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
                 </div>
               )}
 
-              {!isSearching && hasSearched && searchResults.length === 0 && profileResults.length === 0 && query && (
+              {!isSearching && hasSearched && searchResults.length === 0 && profileResults.length === 0 && prayerResults.length === 0 && query && (
                 <div className="no-results">
                   <div className="no-results-icon">🔍</div>
                   <h3>No results found</h3>
@@ -337,7 +361,7 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
                 </div>
               )}
 
-              {!isSearching && (searchResults.length > 0 || profileResults.length > 0) && (
+              {!isSearching && (searchResults.length > 0 || profileResults.length > 0 || prayerResults.length > 0) && (
                 <div className="search-results">
                   {/* Profile Results */}
                   {profileResults.length > 0 && (
@@ -365,6 +389,45 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
                                   <div className="profile-result-bio">{profile.bio}</div>
                                 )}
                                 <div className="profile-result-role">{profile.role}</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Prayer Request Results */}
+                  {prayerResults.length > 0 && (
+                    <div className="results-section">
+                      <div className="results-header">
+                        <span className="results-section-title">🙏 Prayer Requests ({prayerResults.length})</span>
+                      </div>
+                      <div className="results-list">
+                        {prayerResults.map(prayer => (
+                          <div 
+                            key={prayer.id} 
+                            className="search-result-item prayer-result"
+                            onClick={() => navigate(`/prayers/${prayer.id}`)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <div className="prayer-result-content">
+                              <div className="prayer-result-icon">🙏</div>
+                              <div className="prayer-result-info">
+                                <div className="prayer-result-title">{prayer.title}</div>
+                                {prayer.description && (
+                                  <div className="prayer-result-description">
+                                    {prayer.description.length > 150 
+                                      ? `${prayer.description.substring(0, 150)}...` 
+                                      : prayer.description}
+                                  </div>
+                                )}
+                                <div className="prayer-result-meta">
+                                  <span className="prayer-result-author">
+                                    {prayer.isAnonymous ? 'Anonymous' : prayer.userName}
+                                  </span>
+                                  <span className="prayer-result-category">{prayer.category}</span>
+                                </div>
                               </div>
                             </div>
                           </div>
