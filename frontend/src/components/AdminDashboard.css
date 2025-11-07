@@ -408,7 +408,14 @@
 }
 
 .search-input {
-  flex: 1;
+  flex: 2;
+  min-width: 300px;
+}
+
+.role-filter, .banned-filter {
+  flex: 0 0 auto;
+  max-width: 180px;
+  min-width: 150px;
 }
 
 .search-input:focus, .role-filter:focus, .banned-filter:focus {
