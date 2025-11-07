@@ -546,6 +546,10 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
                             <PostCard
                               post={post}
                               onPostUpdate={() => {}} // Could be enhanced
+                              onPostDelete={(postId) => {
+                                setAllSearchResults(prev => prev.filter(p => p.id !== postId));
+                                setSearchResults(prev => prev.filter(p => p.id !== postId));
+                              }}
                               compact={true}
                             />
                           </div>
@@ -577,6 +581,9 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
                       <PostCard
                         post={post}
                         onPostUpdate={() => {}}
+                        onPostDelete={(postId) => {
+                          setTrendingPosts(prev => prev.filter(p => p.id !== postId));
+                        }}
                         compact={true}
                       />
                     </div>
