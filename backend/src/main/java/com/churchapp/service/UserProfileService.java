@@ -6,10 +6,16 @@ import com.churchapp.entity.User;
 import com.churchapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -171,5 +177,34 @@ public class UserProfileService {
         return user.getName() != null && !user.getName().trim().isEmpty() &&
                user.getBio() != null && !user.getBio().trim().isEmpty() &&
                user.getProfilePicUrl() != null && !user.getProfilePicUrl().trim().isEmpty();
+    }
+    
+    public Page<UserProfileResponse> searchUsers(String query, Pageable pageable) {
+        Specification<User> spec = createUserSearchSpecification(query);
+        Page<User> users = userRepository.findAll(spec, pageable);
+        return users.map(UserProfileResponse::fromUser);
+    }
+    
+    private Specification<User> createUserSearchSpecification(String query) {
+        return (root, criteriaQuery, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            
+            // Only show non-deleted, non-banned users
+            predicates.add(criteriaBuilder.isNull(root.get("deletedAt")));
+            predicates.add(criteriaBuilder.equal(root.get("isBanned"), false));
+            
+            if (query != null && !query.trim().isEmpty()) {
+                String searchPattern = "%" + query.toLowerCase() + "%";
+                Predicate namePredicate = criteriaBuilder.like(
+                    criteriaBuilder.lower(root.get("name")), searchPattern);
+                Predicate emailPredicate = criteriaBuilder.like(
+                    criteriaBuilder.lower(root.get("email")), searchPattern);
+                Predicate bioPredicate = criteriaBuilder.like(
+                    criteriaBuilder.lower(root.get("bio")), searchPattern);
+                predicates.add(criteriaBuilder.or(namePredicate, emailPredicate, bioPredicate));
+            }
+            
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
     }
 }

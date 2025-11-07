@@ -87,6 +87,11 @@ export const profileAPI = {
   
   getProfileCompletionStatus: () =>
     api.get('/profile/me/complete-status'),
+  
+  searchUsers: (query: string, page: number = 0, size: number = 20) =>
+    api.get('/profile/search', {
+      params: { query, page, size },
+    }),
 };
 
 export default api;
