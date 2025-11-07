@@ -338,6 +338,12 @@
   box-shadow: var(--glow-teal);
 }
 
+.quick-filter-btn.active {
+  background: var(--accent-primary);
+  box-shadow: 0 0 12px var(--button-primary-glow);
+  border: 2px solid var(--accent-primary);
+}
+
 /* Loading State */
 .search-loading {
   display: flex;
@@ -523,6 +529,83 @@
 .profile-result-role {
   font-size: 12px;
   color: var(--text-tertiary);
+  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* Prayer Request Results */
+.prayer-result {
+  padding: 16px 24px;
+  transition: all var(--transition-base);
+}
+
+.prayer-result:hover {
+  background: var(--bg-elevated);
+  transform: translateX(4px);
+}
+
+.prayer-result-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.prayer-result-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(91, 127, 255, 0.1);
+  border-radius: 50%;
+  border: 2px solid var(--border-primary);
+  transition: all var(--transition-base);
+}
+
+.prayer-result:hover .prayer-result-icon {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 12px var(--button-primary-glow);
+  background: rgba(91, 127, 255, 0.2);
+}
+
+.prayer-result-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.prayer-result-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.prayer-result-description {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.prayer-result-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.prayer-result-author {
+  font-weight: 500;
+}
+
+.prayer-result-category {
+  padding: 4px 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-sm);
   text-transform: uppercase;
   font-weight: 500;
   letter-spacing: 0.5px;
