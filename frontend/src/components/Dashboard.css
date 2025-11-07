@@ -225,18 +225,60 @@
 
 @media (max-width: 768px) {
   .dashboard-layout {
+    display: flex;
     flex-direction: column;
+    gap: 30px;
   }
 
+  /* Use display: contents to make container children participate in parent flex layout */
   .dashboard-left {
     margin-right: 0;
-    margin-bottom: 20px;
+    margin-bottom: 0;
     max-width: none;
+    display: contents; /* Makes children of dashboard-left participate in dashboard-layout flex */
   }
 
   .dashboard-right {
     width: 100%;
-    order: -1; /* Move stats above feed on mobile */
+    display: contents; /* Makes children of dashboard-right participate in dashboard-layout flex */
+  }
+
+  /* Now all cards and feed elements are direct flex children of dashboard-layout, so we can order them properly */
+  /* Desired order: 1) Dashboard (header) 2) Social Feed (with toggle and create button) 3) Quick Actions 4) Quick Giving 5) Community Stats 6) Notifications */
+  
+  /* Feed View Toggle - part of Social Feed section, appears first in that section */
+  .dashboard-left > .feed-view-toggle {
+    order: 2;
+  }
+
+  /* Create Post Section - part of Social Feed section */
+  .dashboard-left > .create-post-section {
+    order: 2;
+  }
+
+  /* Social Feed card - the main feed content */
+  .dashboard-left > .dashboard-card {
+    order: 2;
+  }
+
+  /* Quick Actions - 3rd position overall */
+  .dashboard-right > .dashboard-card:nth-child(2) {
+    order: 3;
+  }
+
+  /* Quick Giving (QuickDonationWidget) - 4th position overall */
+  .dashboard-right > .dashboard-card:nth-child(4) {
+    order: 4;
+  }
+
+  /* Community Stats (DashboardStats) - 5th position overall */
+  .dashboard-right > .dashboard-card:nth-child(1) {
+    order: 5;
+  }
+
+  /* Notifications - 6th position overall */
+  .dashboard-right > .dashboard-card:nth-child(3) {
+    order: 6;
   }
 
   .feed-view-toggle {
