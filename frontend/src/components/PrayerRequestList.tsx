@@ -284,7 +284,7 @@ const PrayerRequestList: React.FC<PrayerRequestListProps> = ({
           align-items: center;
           margin-bottom: 1.5rem;
           padding-bottom: 1rem;
-          border-bottom: 2px solid #e1e8ed;
+          border-bottom: 2px solid var(--border-primary);
         }
 
         .list-info {
@@ -295,35 +295,38 @@ const PrayerRequestList: React.FC<PrayerRequestListProps> = ({
 
         .list-title {
           margin: 0;
-          color: #2c3e50;
+          color: var(--text-primary);
           font-size: 1.5rem;
           font-weight: 600;
         }
 
         .prayer-count {
-          color: #7f8c8d;
+          color: var(--text-tertiary);
           font-size: 0.9rem;
           font-weight: 500;
         }
 
         .refresh-btn {
-          background: #f8f9fa;
-          border: 2px solid #e9ecef;
+          background: var(--bg-secondary);
+          border: 2px solid var(--border-primary);
           border-radius: 50%;
           width: 40px;
           height: 40px;
           cursor: pointer;
           font-size: 1.2rem;
-          transition: all 0.2s ease;
+          transition: all var(--transition-base);
           display: flex;
           align-items: center;
           justify-content: center;
+          color: var(--text-secondary);
         }
 
         .refresh-btn:hover:not(:disabled) {
-          background: #e9ecef;
-          border-color: #dee2e6;
+          background: var(--bg-tertiary);
+          border-color: var(--border-glow);
+          color: var(--text-primary);
           transform: rotate(180deg);
+          box-shadow: 0 0 12px var(--button-primary-glow);
         }
 
         .refresh-btn:disabled {
@@ -332,11 +335,11 @@ const PrayerRequestList: React.FC<PrayerRequestListProps> = ({
         }
 
         .error-message {
-          background-color: #fee;
-          border: 1px solid #fcc;
-          color: #c33;
+          background-color: rgba(239, 68, 68, 0.2);
+          border: 1px solid var(--error);
+          color: var(--error);
           padding: 1rem;
-          border-radius: 8px;
+          border-radius: var(--border-radius-md);
           margin-bottom: 1.5rem;
           display: flex;
           align-items: center;
@@ -347,7 +350,7 @@ const PrayerRequestList: React.FC<PrayerRequestListProps> = ({
         .dismiss-error {
           background: none;
           border: none;
-          color: #c33;
+          color: var(--error);
           cursor: pointer;
           padding: 0 0.5rem;
           margin-left: auto;
@@ -362,13 +365,13 @@ const PrayerRequestList: React.FC<PrayerRequestListProps> = ({
         .prayer-list-loading {
           text-align: center;
           padding: 3rem 1rem;
-          color: #7f8c8d;
+          color: var(--text-tertiary);
         }
 
         .empty-state {
           text-align: center;
           padding: 3rem 1rem;
-          color: #7f8c8d;
+          color: var(--text-tertiary);
         }
 
         .empty-icon {
@@ -377,7 +380,7 @@ const PrayerRequestList: React.FC<PrayerRequestListProps> = ({
         }
 
         .empty-state h3 {
-          color: #34495e;
+          color: var(--text-primary);
           margin: 0 0 0.5rem 0;
           font-size: 1.25rem;
         }
@@ -387,6 +390,7 @@ const PrayerRequestList: React.FC<PrayerRequestListProps> = ({
           max-width: 400px;
           margin: 0 auto;
           line-height: 1.5;
+          color: var(--text-secondary);
         }
 
         .prayer-cards {
@@ -401,23 +405,25 @@ const PrayerRequestList: React.FC<PrayerRequestListProps> = ({
         }
 
         .load-more-btn {
-          background: #3498db;
+          background: var(--accent-primary);
           color: white;
           border: none;
           padding: 0.75rem 2rem;
-          border-radius: 25px;
+          border-radius: var(--border-radius-pill);
           font-size: 1rem;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all var(--transition-base);
           display: inline-flex;
           align-items: center;
           gap: 0.5rem;
+          box-shadow: 0 2px 8px var(--button-primary-glow);
         }
 
         .load-more-btn:hover:not(:disabled) {
-          background: #2980b9;
+          background: var(--accent-primary-dark);
           transform: translateY(-1px);
+          box-shadow: var(--glow-blue);
         }
 
         .load-more-btn:disabled {
@@ -428,7 +434,7 @@ const PrayerRequestList: React.FC<PrayerRequestListProps> = ({
         .loading-more {
           text-align: center;
           padding: 1rem;
-          color: #7f8c8d;
+          color: var(--text-tertiary);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -438,11 +444,12 @@ const PrayerRequestList: React.FC<PrayerRequestListProps> = ({
         .loading-spinner {
           width: 2rem;
           height: 2rem;
-          border: 3px solid #e1e8ed;
-          border-top: 3px solid #3498db;
+          border: 3px solid var(--bg-tertiary);
+          border-top: 3px solid var(--accent-primary);
           border-radius: 50%;
           animation: spin 1s linear infinite;
           margin: 0 auto 1rem;
+          box-shadow: 0 0 12px var(--button-primary-glow);
         }
 
         .loading-spinner.small {

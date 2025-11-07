@@ -272,9 +272,10 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
           max-width: 600px;
           margin: 0 auto;
           padding: 2rem;
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border-primary);
+          border-radius: var(--border-radius-md);
+          box-shadow: var(--shadow-md);
         }
 
         .form-header {
@@ -283,21 +284,21 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
         }
 
         .form-header h2 {
-          color: #2c3e50;
+          color: var(--text-primary);
           margin: 0 0 0.5rem 0;
           font-size: 1.75rem;
           font-weight: 600;
         }
 
         .form-description {
-          color: #7f8c8d;
+          color: var(--text-secondary);
           margin: 0;
           line-height: 1.5;
         }
 
         .error-message, .success-message {
           padding: 1rem;
-          border-radius: 8px;
+          border-radius: var(--border-radius-md);
           margin-bottom: 1.5rem;
           display: flex;
           align-items: center;
@@ -305,15 +306,15 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
         }
 
         .error-message {
-          background-color: #fee;
-          border: 1px solid #fcc;
-          color: #c33;
+          background-color: rgba(239, 68, 68, 0.2);
+          border: 1px solid var(--error);
+          color: var(--error);
         }
 
         .success-message {
-          background-color: #efe;
-          border: 1px solid #cfc;
-          color: #363;
+          background-color: rgba(16, 185, 129, 0.2);
+          border: 1px solid var(--success);
+          color: var(--success);
         }
 
         .prayer-form {
@@ -330,31 +331,34 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
 
         .form-label {
           font-weight: 600;
-          color: #2c3e50;
+          color: var(--text-primary);
           font-size: 0.95rem;
         }
 
         .form-label.required::after {
           content: ' *';
-          color: #e74c3c;
+          color: var(--error);
         }
 
         .form-input, .form-textarea, .form-select {
           padding: 0.75rem;
-          border: 2px solid #e1e8ed;
-          border-radius: 8px;
+          background: var(--bg-secondary);
+          border: 2px solid var(--border-primary);
+          border-radius: var(--border-radius-md);
           font-size: 1rem;
-          transition: border-color 0.2s ease;
-          background: white;
+          color: var(--text-primary);
+          transition: all var(--transition-base);
         }
 
         .form-input:focus, .form-textarea:focus, .form-select:focus {
           outline: none;
-          border-color: #3498db;
+          border-color: var(--accent-primary);
+          box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.2);
+          background: var(--bg-tertiary);
         }
 
         .form-input.error, .form-textarea.error {
-          border-color: #e74c3c;
+          border-color: var(--error);
         }
 
         .form-textarea {
@@ -364,16 +368,16 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
 
         .form-help {
           font-size: 0.85rem;
-          color: #7f8c8d;
+          color: var(--text-tertiary);
           margin-top: 0.25rem;
           font-style: italic;
         }
 
         .checkbox-group {
-          background: #f8f9fa;
+          background: var(--bg-secondary);
           padding: 1rem;
-          border-radius: 8px;
-          border: 2px solid #e9ecef;
+          border-radius: var(--border-radius-md);
+          border: 2px solid var(--border-primary);
         }
 
         .checkbox-label {
@@ -393,15 +397,16 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
         .checkbox-text {
           flex: 1;
           line-height: 1.4;
+          color: var(--text-secondary);
         }
 
         .checkbox-text small {
-          color: #6c757d;
+          color: var(--text-tertiary);
           font-size: 0.85rem;
         }
 
         .error-text {
-          color: #e74c3c;
+          color: var(--error);
           font-size: 0.85rem;
           margin-top: -0.25rem;
         }
@@ -412,39 +417,44 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
           justify-content: flex-end;
           margin-top: 1rem;
           padding-top: 1rem;
-          border-top: 1px solid #e1e8ed;
+          border-top: 1px solid var(--border-primary);
         }
 
         .btn {
           padding: 0.75rem 1.5rem;
           border: none;
-          border-radius: 8px;
+          border-radius: var(--border-radius-md);
           font-size: 1rem;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all var(--transition-base);
           display: flex;
           align-items: center;
           gap: 0.5rem;
         }
 
         .btn-primary {
-          background-color: #3498db;
+          background: var(--accent-primary);
           color: white;
+          box-shadow: 0 2px 8px var(--button-primary-glow);
         }
 
         .btn-primary:hover:not(:disabled) {
-          background-color: #2980b9;
+          background: var(--accent-primary-dark);
           transform: translateY(-1px);
+          box-shadow: var(--glow-blue);
         }
 
         .btn-secondary {
-          background-color: #95a5a6;
-          color: white;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-primary);
+          color: var(--text-secondary);
         }
 
         .btn-secondary:hover:not(:disabled) {
-          background-color: #7f8c8d;
+          background: var(--bg-tertiary);
+          border-color: var(--border-glow);
+          color: var(--text-primary);
         }
 
         .btn:disabled {

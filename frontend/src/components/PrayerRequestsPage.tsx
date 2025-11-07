@@ -332,15 +332,16 @@ const PrayerRequestsPage: React.FC = () => {
           margin: 0 auto;
           padding: 1.5rem;
           min-height: 100vh;
-          background: #f8f9fa;
+          background: var(--bg-primary);
         }
 
         .page-header {
-          background: white;
-          border-radius: 12px;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border-primary);
+          border-radius: var(--border-radius-md);
           padding: 2rem;
           margin-bottom: 2rem;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          box-shadow: var(--shadow-md);
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -356,25 +357,24 @@ const PrayerRequestsPage: React.FC = () => {
         }
 
         .back-home-btn {
-          background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+          background: var(--gradient-primary);
           color: white;
           border: none;
           padding: 0.75rem 1.25rem;
-          border-radius: 8px;
+          border-radius: var(--border-radius-md);
           font-size: 0.9rem;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 0 2px 8px rgba(116, 185, 255, 0.3);
+          transition: all var(--transition-base);
+          box-shadow: 0 2px 8px var(--button-primary-glow);
           display: flex;
           align-items: center;
           gap: 0.5rem;
         }
 
         .back-home-btn:hover {
-          background: linear-gradient(135deg, #0984e3 0%, #74b9ff 100%);
           transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(116, 185, 255, 0.4);
+          box-shadow: var(--glow-blue);
         }
 
         .back-home-btn:active {
@@ -383,14 +383,14 @@ const PrayerRequestsPage: React.FC = () => {
 
         .header-content h1 {
           margin: 0;
-          color: #2c3e50;
+          color: var(--text-primary);
           font-size: 2rem;
           font-weight: 700;
         }
 
         .page-description {
           margin: 0;
-          color: #7f8c8d;
+          color: var(--text-secondary);
           font-size: 1.1rem;
           line-height: 1.4;
         }
@@ -402,38 +402,34 @@ const PrayerRequestsPage: React.FC = () => {
 
         .stat-card {
           text-align: center;
-          color: white;
+          color: #ffffff;
           padding: 1.25rem;
-          border-radius: 12px;
+          border-radius: var(--border-radius-md);
           min-width: 120px;
           font-weight: 600;
         }
 
         .stat-card.active-prayers {
-          background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
-          box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+          background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+          box-shadow: 0 4px 12px var(--button-primary-glow);
         }
 
         .stat-card.answered-prayers {
-          background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
-          box-shadow: 0 4px 12px rgba(81, 207, 102, 0.3);
+          background: linear-gradient(135deg, var(--success) 0%, var(--accent-tertiary) 100%);
+          box-shadow: 0 4px 12px var(--success-glow);
         }
 
         .stat-card:hover {
           transform: translateY(-2px);
-          transition: all 0.3s ease;
+          transition: all var(--transition-base);
         }
 
         .stat-card.active-prayers:hover {
-          background: linear-gradient(135deg, #ffe0e0 0%, #ffcccc 100%);
-          color: #d63031;
-          box-shadow: 0 6px 16px rgba(255, 107, 107, 0.2);
+          box-shadow: var(--glow-blue);
         }
 
         .stat-card.answered-prayers:hover {
-          background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%);
-          color: #2d5a2d;
-          box-shadow: 0 6px 16px rgba(81, 207, 102, 0.2);
+          box-shadow: var(--glow-teal);
         }
 
         .stat-number {
@@ -441,20 +437,23 @@ const PrayerRequestsPage: React.FC = () => {
           font-size: 2rem;
           font-weight: 700;
           margin-bottom: 0.25rem;
+          color: #ffffff;
+          text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
         }
 
         .stat-label {
           font-size: 0.9rem;
-          opacity: 0.9;
           font-weight: 500;
+          color: #ffffff;
+          text-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
         }
 
         .error-message {
-          background-color: #fee;
-          border: 1px solid #fcc;
-          color: #c33;
+          background-color: rgba(239, 68, 68, 0.2);
+          border: 1px solid var(--error);
+          color: var(--error);
           padding: 1rem;
-          border-radius: 8px;
+          border-radius: var(--border-radius-md);
           margin-bottom: 1.5rem;
           display: flex;
           align-items: center;
@@ -465,7 +464,7 @@ const PrayerRequestsPage: React.FC = () => {
         .dismiss-error {
           background: none;
           border: none;
-          color: #c33;
+          color: var(--error);
           cursor: pointer;
           padding: 0 0.5rem;
           margin-left: auto;
@@ -483,7 +482,7 @@ const PrayerRequestsPage: React.FC = () => {
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
+          background: var(--bg-overlay);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -493,11 +492,12 @@ const PrayerRequestsPage: React.FC = () => {
         }
 
         .controls-section {
-          background: white;
-          border-radius: 12px;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border-primary);
+          border-radius: var(--border-radius-md);
           padding: 1.5rem;
           margin-bottom: 1.5rem;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          box-shadow: var(--shadow-md);
         }
 
         .primary-actions {
@@ -506,21 +506,21 @@ const PrayerRequestsPage: React.FC = () => {
         }
 
         .create-btn {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: var(--gradient-primary);
           color: white;
           border: none;
           padding: 1rem 2rem;
-          border-radius: 25px;
+          border-radius: var(--border-radius-pill);
           font-size: 1.1rem;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.2s ease;
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+          transition: all var(--transition-base);
+          box-shadow: 0 4px 12px var(--button-primary-glow);
         }
 
         .create-btn:hover {
           transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+          box-shadow: var(--glow-blue);
         }
 
         .filter-controls {
@@ -543,29 +543,36 @@ const PrayerRequestsPage: React.FC = () => {
         .search-input {
           flex: 1;
           padding: 0.75rem 1rem;
-          border: 2px solid #e1e8ed;
+          background: var(--bg-secondary);
+          border: 2px solid var(--border-primary);
           border-right: none;
-          border-radius: 25px 0 0 25px;
+          border-radius: var(--border-radius-pill) 0 0 var(--border-radius-pill);
           font-size: 1rem;
+          color: var(--text-primary);
           outline: none;
+          transition: all var(--transition-base);
         }
 
         .search-input:focus {
-          border-color: #3498db;
+          border-color: var(--accent-primary);
+          box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.2);
+          background: var(--bg-tertiary);
         }
 
         .search-btn {
-          background: #3498db;
+          background: var(--accent-primary);
           color: white;
-          border: 2px solid #3498db;
-          border-radius: 0 25px 25px 0;
+          border: 2px solid var(--accent-primary);
+          border-radius: 0 var(--border-radius-pill) var(--border-radius-pill) 0;
           padding: 0.75rem 1rem;
           cursor: pointer;
-          transition: background 0.2s ease;
+          transition: all var(--transition-base);
+          box-shadow: 0 2px 8px var(--button-primary-glow);
         }
 
         .search-btn:hover:not(:disabled) {
-          background: #2980b9;
+          background: var(--accent-primary-dark);
+          box-shadow: var(--glow-blue);
         }
 
         .search-btn:disabled {
@@ -580,23 +587,27 @@ const PrayerRequestsPage: React.FC = () => {
         }
 
         .filter-tab {
-          background: #f8f9fa;
-          border: 2px solid #e9ecef;
+          background: var(--bg-secondary);
+          border: 2px solid var(--border-primary);
           padding: 0.75rem 1.5rem;
-          border-radius: 25px;
+          border-radius: var(--border-radius-pill);
           cursor: pointer;
           font-weight: 600;
-          transition: all 0.2s ease;
+          color: var(--text-secondary);
+          transition: all var(--transition-base);
         }
 
         .filter-tab:hover {
-          background: #e9ecef;
+          background: var(--bg-tertiary);
+          border-color: var(--border-glow);
+          color: var(--text-primary);
         }
 
         .filter-tab.active {
-          background: #3498db;
-          border-color: #3498db;
+          background: var(--accent-primary);
+          border-color: var(--accent-primary);
           color: white;
+          box-shadow: 0 0 12px var(--button-primary-glow);
         }
 
         .filter-dropdowns {
@@ -608,38 +619,45 @@ const PrayerRequestsPage: React.FC = () => {
 
         .filter-select {
           padding: 0.5rem 1rem;
-          border: 2px solid #e1e8ed;
-          border-radius: 8px;
-          background: white;
+          background: var(--bg-secondary);
+          border: 2px solid var(--border-primary);
+          border-radius: var(--border-radius-md);
+          color: var(--text-primary);
           cursor: pointer;
           font-size: 0.9rem;
+          transition: all var(--transition-base);
         }
 
         .filter-select:focus {
           outline: none;
-          border-color: #3498db;
+          border-color: var(--accent-primary);
+          box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.2);
+          background: var(--bg-tertiary);
         }
 
         .clear-filters-btn {
-          background: #e74c3c;
-          color: white;
-          border: none;
+          background: rgba(239, 68, 68, 0.2);
+          border: 1px solid var(--error);
+          color: var(--error);
           padding: 0.5rem 1rem;
-          border-radius: 20px;
+          border-radius: var(--border-radius-pill);
           font-size: 0.85rem;
           cursor: pointer;
           align-self: center;
-          transition: background 0.2s ease;
+          transition: all var(--transition-base);
         }
 
         .clear-filters-btn:hover {
-          background: #c0392b;
+          background: var(--error);
+          color: white;
+          box-shadow: 0 0 12px var(--error-glow);
         }
 
         .prayer-list-container {
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border-primary);
+          border-radius: var(--border-radius-md);
+          box-shadow: var(--shadow-md);
           overflow: hidden;
         }
 

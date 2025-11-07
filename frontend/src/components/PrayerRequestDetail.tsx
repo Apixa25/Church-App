@@ -483,9 +483,10 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
           max-width: 800px;
           margin: 0 auto;
           padding: 1.5rem;
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border-primary);
+          border-radius: var(--border-radius-md);
+          box-shadow: var(--shadow-md);
         }
 
         .detail-header {
@@ -494,33 +495,37 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
           align-items: center;
           margin-bottom: 2rem;
           padding-bottom: 1rem;
-          border-bottom: 2px solid #e1e8ed;
+          border-bottom: 2px solid var(--border-primary);
         }
 
         .back-btn, .edit-btn {
-          background: #f8f9fa;
-          border: 2px solid #e9ecef;
-          border-radius: 8px;
+          background: var(--bg-secondary);
+          border: 2px solid var(--border-primary);
+          border-radius: var(--border-radius-md);
           padding: 0.5rem 1rem;
           cursor: pointer;
           font-weight: 600;
-          transition: all 0.2s ease;
+          color: var(--text-secondary);
+          transition: all var(--transition-base);
         }
 
         .back-btn:hover, .edit-btn:hover {
-          background: #e9ecef;
-          border-color: #dee2e6;
+          background: var(--bg-tertiary);
+          border-color: var(--border-glow);
+          color: var(--text-primary);
         }
 
         .edit-btn {
-          background: #3498db;
-          border-color: #3498db;
+          background: var(--accent-primary);
+          border-color: var(--accent-primary);
           color: white;
+          box-shadow: 0 2px 8px var(--button-primary-glow);
         }
 
         .edit-btn:hover {
-          background: #2980b9;
-          border-color: #2980b9;
+          background: var(--accent-primary-dark);
+          border-color: var(--accent-primary-dark);
+          box-shadow: var(--glow-blue);
         }
 
         .owner-actions {
@@ -530,25 +535,27 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
         }
 
         .status-change-select {
-          background: #f8f9fa;
-          border: 2px solid #e9ecef;
-          border-radius: 8px;
+          background: var(--bg-secondary);
+          border: 2px solid var(--border-primary);
+          border-radius: var(--border-radius-md);
           padding: 0.5rem 0.75rem;
           font-size: 0.9rem;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.2s ease;
+          color: var(--text-primary);
+          transition: all var(--transition-base);
           min-width: 120px;
         }
 
         .status-change-select:hover {
-          background: #e9ecef;
-          border-color: #dee2e6;
+          background: var(--bg-tertiary);
+          border-color: var(--border-glow);
         }
 
         .status-change-select:focus {
           outline: none;
-          border-color: #3498db;
+          border-color: var(--accent-primary);
+          box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.2);
         }
 
         .prayer-content {
@@ -578,7 +585,7 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
         }
 
         .author-avatar.placeholder {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: var(--gradient-primary);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -589,13 +596,13 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
 
         .author-info h4 {
           margin: 0 0 0.25rem 0;
-          color: #2c3e50;
+          color: var(--text-primary);
           font-size: 1.1rem;
         }
 
         .prayer-date {
           margin: 0;
-          color: #7f8c8d;
+          color: var(--text-tertiary);
           font-size: 0.9rem;
         }
 
@@ -608,7 +615,7 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
         .category-tag, .status-tag {
           font-size: 0.8rem;
           padding: 0.4rem 0.8rem;
-          border-radius: 15px;
+          border-radius: var(--border-radius-pill);
           color: white;
           font-weight: 600;
           text-transform: uppercase;
@@ -621,7 +628,7 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
 
         .prayer-title {
           margin: 0 0 1rem 0;
-          color: #2c3e50;
+          color: var(--text-primary);
           font-size: 1.75rem;
           line-height: 1.3;
           font-weight: 600;
@@ -629,7 +636,7 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
 
         .prayer-description p {
           margin: 0 0 1rem 0;
-          color: #34495e;
+          color: var(--text-secondary);
           line-height: 1.6;
           font-size: 1.1rem;
         }
@@ -640,8 +647,8 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
 
         .prayer-interactions {
           padding: 1.5rem 0;
-          border-top: 1px solid #e1e8ed;
-          border-bottom: 1px solid #e1e8ed;
+          border-top: 1px solid var(--border-primary);
+          border-bottom: 1px solid var(--border-primary);
         }
 
         .interaction-buttons {
@@ -652,29 +659,32 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
         }
 
         .interaction-btn {
-          background: #f8f9fa;
-          border: 2px solid #e9ecef;
-          border-radius: 25px;
+          background: var(--bg-secondary);
+          border: 2px solid var(--border-primary);
+          border-radius: var(--border-radius-pill);
           padding: 0.75rem 1.25rem;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all var(--transition-base);
           display: flex;
           align-items: center;
           gap: 0.5rem;
           font-size: 0.9rem;
           font-weight: 600;
+          color: var(--text-secondary);
         }
 
         .interaction-btn:hover:not(:disabled) {
-          background: #e9ecef;
-          border-color: #dee2e6;
+          background: var(--bg-tertiary);
+          border-color: var(--border-glow);
+          color: var(--text-primary);
           transform: translateY(-1px);
         }
 
         .interaction-btn.active {
-          background: #3498db;
-          border-color: #3498db;
+          background: var(--accent-primary);
+          border-color: var(--accent-primary);
           color: white;
+          box-shadow: 0 0 12px var(--button-primary-glow);
         }
 
         .interaction-btn:disabled {
@@ -687,9 +697,9 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
         }
 
         .interaction-count {
-          background: rgba(0, 0, 0, 0.1);
+          background: rgba(0, 0, 0, 0.3);
           padding: 0.2rem 0.5rem;
-          border-radius: 10px;
+          border-radius: var(--border-radius-sm);
           font-size: 0.8rem;
           font-weight: 700;
         }
@@ -703,7 +713,7 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
         }
 
         .comments-title {
-          color: #2c3e50;
+          color: var(--text-primary);
           margin: 0 0 1.5rem 0;
           font-size: 1.25rem;
           font-weight: 600;
@@ -715,21 +725,21 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
 
         .start-comment-btn {
           width: 100%;
-          background: #f8f9fa;
-          border: 2px dashed #dee2e6;
-          border-radius: 8px;
+          background: var(--bg-secondary);
+          border: 2px dashed var(--border-primary);
+          border-radius: var(--border-radius-md);
           padding: 1rem;
-          color: #6c757d;
+          color: var(--text-tertiary);
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all var(--transition-base);
           text-align: left;
           font-size: 1rem;
         }
 
         .start-comment-btn:hover {
-          background: #e9ecef;
-          border-color: #ced4da;
-          color: #495057;
+          background: var(--bg-tertiary);
+          border-color: var(--border-glow);
+          color: var(--text-secondary);
         }
 
         .comment-input-section {
@@ -741,16 +751,21 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
         .comment-textarea {
           width: 100%;
           padding: 0.75rem;
-          border: 2px solid #e1e8ed;
-          border-radius: 8px;
+          background: var(--bg-secondary);
+          border: 2px solid var(--border-primary);
+          border-radius: var(--border-radius-md);
           font-size: 1rem;
+          color: var(--text-primary);
           resize: vertical;
           min-height: 80px;
+          transition: all var(--transition-base);
         }
 
         .comment-textarea:focus {
           outline: none;
-          border-color: #3498db;
+          border-color: var(--accent-primary);
+          box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.2);
+          background: var(--bg-tertiary);
         }
 
         .comment-actions {
@@ -762,28 +777,33 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
         .btn {
           padding: 0.6rem 1.2rem;
           border: none;
-          border-radius: 6px;
+          border-radius: var(--border-radius-md);
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all var(--transition-base);
         }
 
         .btn-primary {
-          background: #3498db;
+          background: var(--accent-primary);
           color: white;
+          box-shadow: 0 2px 8px var(--button-primary-glow);
         }
 
         .btn-primary:hover:not(:disabled) {
-          background: #2980b9;
+          background: var(--accent-primary-dark);
+          box-shadow: var(--glow-blue);
         }
 
         .btn-secondary {
-          background: #95a5a6;
-          color: white;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-primary);
+          color: var(--text-secondary);
         }
 
         .btn-secondary:hover {
-          background: #7f8c8d;
+          background: var(--bg-tertiary);
+          border-color: var(--border-glow);
+          color: var(--text-primary);
         }
 
         .btn:disabled {
@@ -798,8 +818,9 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
         }
 
         .comment {
-          background: #f8f9fa;
-          border-radius: 8px;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-primary);
+          border-radius: var(--border-radius-md);
           padding: 1rem;
         }
 
@@ -824,7 +845,7 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
         }
 
         .comment-avatar.placeholder {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: var(--gradient-primary);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -841,13 +862,13 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
 
         .comment-author-name {
           font-weight: 600;
-          color: #ffffff !important;
+          color: var(--text-primary) !important;
           font-size: 0.9rem;
         }
 
         .comment-date {
           font-size: 0.8rem;
-          color: #7f8c8d;
+          color: var(--text-tertiary);
         }
 
         .delete-comment-btn {
@@ -856,16 +877,18 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
           padding: 0.25rem;
           cursor: pointer;
           opacity: 0.6;
-          transition: opacity 0.2s ease;
+          transition: opacity var(--transition-base);
+          color: var(--text-secondary);
         }
 
         .delete-comment-btn:hover {
           opacity: 1;
+          color: var(--error);
         }
 
         .comment-content p {
           margin: 0 0 0.5rem 0;
-          color: #34495e;
+          color: var(--text-secondary);
           line-height: 1.5;
         }
 
@@ -875,7 +898,7 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
 
         .no-comments {
           text-align: center;
-          color: #7f8c8d;
+          color: var(--text-tertiary);
           font-style: italic;
           padding: 2rem;
         }
@@ -883,15 +906,15 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
         .prayer-detail-loading, .prayer-detail-error {
           text-align: center;
           padding: 3rem 1rem;
-          color: #7f8c8d;
+          color: var(--text-tertiary);
         }
 
         .success-message {
-          background: #d4edda;
-          border: 1px solid #c3e6cb;
-          color: #155724;
+          background: rgba(16, 185, 129, 0.2);
+          border: 1px solid var(--success);
+          color: var(--success);
           padding: 0.75rem 1rem;
-          border-radius: 8px;
+          border-radius: var(--border-radius-md);
           margin-bottom: 1rem;
           display: flex;
           align-items: center;
@@ -906,11 +929,12 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
         .loading-spinner {
           width: 2rem;
           height: 2rem;
-          border: 3px solid #e1e8ed;
-          border-top: 3px solid #3498db;
+          border: 3px solid var(--bg-tertiary);
+          border-top: 3px solid var(--accent-primary);
           border-radius: 50%;
           animation: spin 1s linear infinite;
           margin: 0 auto 1rem;
+          box-shadow: 0 0 12px var(--button-primary-glow);
         }
 
         @keyframes spin {

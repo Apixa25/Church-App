@@ -250,18 +250,19 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
 
       <style>{`
         .prayer-card {
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border-primary);
+          border-radius: var(--border-radius-md);
+          box-shadow: var(--shadow-sm);
           padding: 1.5rem;
           margin-bottom: 1rem;
-          transition: all 0.2s ease;
-          border: 1px solid #e1e8ed;
+          transition: all var(--transition-base);
         }
 
         .prayer-card:hover {
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          box-shadow: var(--shadow-md), var(--glow-blue);
           transform: translateY(-2px);
+          border-color: var(--border-glow);
         }
 
         .prayer-card.compact {
@@ -269,11 +270,11 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
         }
 
         .error-banner {
-          background-color: #fee;
-          border: 1px solid #fcc;
-          color: #c33;
+          background-color: rgba(239, 68, 68, 0.2);
+          border: 1px solid var(--error);
+          color: var(--error);
           padding: 0.5rem;
-          border-radius: 6px;
+          border-radius: var(--border-radius-sm);
           margin-bottom: 1rem;
           display: flex;
           align-items: center;
@@ -302,7 +303,7 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
         }
 
         .author-avatar.placeholder {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: var(--gradient-primary);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -319,13 +320,13 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
 
         .author-name {
           font-weight: 600;
-          color: #ffffff !important;
+          color: var(--text-primary) !important;
           font-size: 0.95rem;
         }
 
         .prayer-time {
           font-size: 0.8rem;
-          color: #7f8c8d;
+          color: var(--text-tertiary);
         }
 
         .prayer-actions {
@@ -334,18 +335,21 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
         }
 
         .action-btn {
-          background: none;
-          border: none;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-primary);
           padding: 0.5rem;
-          border-radius: 6px;
+          border-radius: var(--border-radius-sm);
           cursor: pointer;
           opacity: 0.7;
-          transition: all 0.2s ease;
+          transition: all var(--transition-base);
+          color: var(--text-secondary);
         }
 
         .action-btn:hover {
           opacity: 1;
-          background-color: #f8f9fa;
+          background: var(--bg-elevated);
+          border-color: var(--border-glow);
+          color: var(--text-primary);
         }
 
         .prayer-content {
@@ -361,7 +365,7 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
         .category-tag, .status-tag {
           font-size: 0.75rem;
           padding: 0.25rem 0.5rem;
-          border-radius: 12px;
+          border-radius: var(--border-radius-pill);
           color: white;
           font-weight: 600;
           text-transform: uppercase;
@@ -370,7 +374,7 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
 
         .prayer-title {
           margin: 0 0 0.5rem 0;
-          color: #2c3e50;
+          color: var(--text-primary);
           font-size: 1.1rem;
           line-height: 1.4;
           font-weight: 600;
@@ -378,18 +382,18 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
 
         .prayer-description {
           margin: 0;
-          color: #34495e;
+          color: var(--text-secondary);
           line-height: 1.5;
           font-size: 0.95rem;
         }
 
         .prayer-description.truncated {
-          color: #7f8c8d;
+          color: var(--text-tertiary);
           font-style: italic;
         }
 
         .prayer-interactions {
-          border-top: 1px solid #e1e8ed;
+          border-top: 1px solid var(--border-primary);
           padding-top: 1rem;
         }
 
@@ -401,28 +405,31 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
         }
 
         .interaction-btn {
-          background: #f8f9fa;
-          border: 2px solid #e9ecef;
-          border-radius: 20px;
+          background: var(--bg-secondary);
+          border: 2px solid var(--border-primary);
+          border-radius: var(--border-radius-pill);
           padding: 0.4rem 0.8rem;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all var(--transition-base);
           display: flex;
           align-items: center;
           gap: 0.3rem;
           font-size: 0.85rem;
           font-weight: 500;
+          color: var(--text-secondary);
         }
 
         .interaction-btn:hover:not(:disabled) {
-          background: #e9ecef;
-          border-color: #dee2e6;
+          background: var(--bg-tertiary);
+          border-color: var(--border-glow);
+          color: var(--text-primary);
         }
 
         .interaction-btn.active {
-          background: #3498db;
-          border-color: #3498db;
+          background: var(--accent-primary);
+          border-color: var(--accent-primary);
           color: white;
+          box-shadow: 0 0 12px var(--button-primary-glow);
         }
 
         .interaction-btn:disabled {
@@ -449,7 +456,7 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
 
         .stat {
           font-size: 0.8rem;
-          color: #7f8c8d;
+          color: var(--text-tertiary);
           display: flex;
           align-items: center;
           gap: 0.25rem;
@@ -458,15 +465,15 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
         .view-details-btn {
           background: none;
           border: none;
-          color: #3498db;
+          color: var(--accent-primary);
           font-size: 0.85rem;
           cursor: pointer;
           font-weight: 500;
-          transition: color 0.2s ease;
+          transition: all var(--transition-base);
         }
 
         .view-details-btn:hover {
-          color: #2980b9;
+          color: var(--accent-primary-light);
           text-decoration: underline;
         }
 
