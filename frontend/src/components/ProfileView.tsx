@@ -7,6 +7,7 @@ import ProfileEdit from './ProfileEdit';
 import { Post } from '../types/Post';
 import { getUserPosts } from '../services/postApi';
 import PostCard from './PostCard';
+import { parseEventDate } from '../utils/dateUtils';
 import './ProfileView.css';
 
 interface ProfileViewProps {
@@ -131,14 +132,34 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   };
 
   // Format date for "Joined" display
-  const formatJoinedDate = (dateString: string): string => {
-    const date = new Date(dateString);
+  const formatJoinedDate = (dateString: string | undefined): string => {
+    if (!dateString) {
+      return 'Unknown';
+    }
+    
+    const date = parseEventDate(dateString);
+    
+    if (!date || isNaN(date.getTime())) {
+      console.warn('Invalid date format in formatJoinedDate:', dateString);
+      return 'Unknown';
+    }
+    
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   };
 
   // Format date for "Born" display
-  const formatBirthday = (dateString: string): string => {
-    const date = new Date(dateString);
+  const formatBirthday = (dateString: string | undefined): string => {
+    if (!dateString) {
+      return 'Unknown';
+    }
+    
+    const date = parseEventDate(dateString);
+    
+    if (!date || isNaN(date.getTime())) {
+      console.warn('Invalid date format in formatBirthday:', dateString);
+      return 'Unknown';
+    }
+    
     return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   };
 
