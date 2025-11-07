@@ -24,6 +24,11 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
 }) => {
   const navigate = useNavigate();
   const [query, setQuery] = useState(initialQuery);
+  // Store all search results (unfiltered)
+  const [allSearchResults, setAllSearchResults] = useState<Post[]>([]);
+  const [allProfileResults, setAllProfileResults] = useState<UserProfile[]>([]);
+  const [allPrayerResults, setAllPrayerResults] = useState<PrayerRequest[]>([]);
+  // Filtered results for display
   const [searchResults, setSearchResults] = useState<Post[]>([]);
   const [profileResults, setProfileResults] = useState<UserProfile[]>([]);
   const [prayerResults, setPrayerResults] = useState<PrayerRequest[]>([]);
@@ -31,6 +36,7 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [activeTab, setActiveTab] = useState<'search' | 'trending'>('search');
+  const [selectedContentType, setSelectedContentType] = useState<PostType | null>(null);
   const [searchFilters, setSearchFilters] = useState<PostSearchFilters>({});
   const [showFilters, setShowFilters] = useState(false);
 
@@ -62,20 +68,41 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
     }
   }, [isOpen, initialQuery]);
 
+  // Apply content type filter to displayed results
+  const applyContentTypeFilter = useCallback((contentType: PostType | null, allPosts: Post[], allProfiles: UserProfile[], allPrayers: PrayerRequest[]) => {
+    console.log('🔍 applyContentTypeFilter called with:', contentType, 'Posts:', allPosts.length, 'Prayers:', allPrayers.length);
+    if (!contentType) {
+      // No filter - show all results
+      console.log('✅ No filter - showing all results');
+      setSearchResults(allPosts);
+      setProfileResults(allProfiles);
+      setPrayerResults(allPrayers);
+    } else if (contentType === PostType.PRAYER) {
+      // Show only prayer requests
+      console.log('🙏 Filter: PRAYER - showing only prayer requests');
+      setSearchResults([]);
+      setProfileResults([]);
+      setPrayerResults(allPrayers);
+    } else {
+      // Show only posts of the selected type
+      const filteredPosts = allPosts.filter(post => post.postType === contentType);
+      console.log(`📝 Filter: ${contentType} - showing ${filteredPosts.length} posts, hiding ${allPrayers.length} prayers`);
+      setSearchResults(filteredPosts);
+      setProfileResults([]);
+      setPrayerResults([]);
+    }
+  }, []);
+
   const performSearch = useCallback(async () => {
     if (!query.trim()) return;
 
     setIsSearching(true);
     try {
       // Search posts, profiles, and prayer requests in parallel
-      const filters: PostSearchFilters = {
-        ...searchFilters,
-        query: query.trim()
-      };
-
+      // Don't use postType filter when searching - get all results
       console.log('🔍 Starting search for:', query);
       const [postsResponse, profilesResponse, prayersResponse] = await Promise.all([
-        searchPosts(query, 0, 20, filters).catch(err => {
+        searchPosts(query, 0, 20, {}).catch(err => {
           console.error('Post search error:', err);
           return { content: [] };
         }),
@@ -93,34 +120,36 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
       console.log('👤 Profiles response:', profilesResponse);
       console.log('🙏 Prayers response:', prayersResponse);
 
-      setSearchResults(postsResponse.content || []);
-      // Handle both Page response and direct array response
+      // Store all results (unfiltered)
+      const allPosts = postsResponse.content || [];
       const profileData = profilesResponse.data?.content || profilesResponse.data || [];
-      setProfileResults(Array.isArray(profileData) ? profileData : []);
-      
-      // Only show prayer requests if:
-      // 1. No filter is set (show all)
-      // 2. Filter is set to PRAYER
+      const allProfiles = Array.isArray(profileData) ? profileData : [];
       const prayerData = prayersResponse.data?.content || prayersResponse.data || [];
-      if (!searchFilters.postType || searchFilters.postType === PostType.PRAYER) {
-        setPrayerResults(Array.isArray(prayerData) ? prayerData : []);
-      } else {
-        setPrayerResults([]);
-      }
+      const allPrayers = Array.isArray(prayerData) ? prayerData : [];
       
-      console.log('✅ Final search results - Posts:', postsResponse.content?.length || 0, 
-                  'Profiles:', Array.isArray(profileData) ? profileData.length : 0,
-                  'Prayers:', Array.isArray(prayerData) ? prayerData.length : 0);
+      setAllSearchResults(allPosts);
+      setAllProfileResults(allProfiles);
+      setAllPrayerResults(allPrayers);
+      
+      // Apply content type filter if one is selected
+      applyContentTypeFilter(selectedContentType, allPosts, allProfiles, allPrayers);
+      
+      console.log('✅ Final search results - Posts:', allPosts.length, 
+                  'Profiles:', allProfiles.length,
+                  'Prayers:', allPrayers.length);
       setHasSearched(true);
     } catch (error) {
       console.error('Search error:', error);
+      setAllSearchResults([]);
+      setAllProfileResults([]);
+      setAllPrayerResults([]);
       setSearchResults([]);
       setProfileResults([]);
       setPrayerResults([]);
     } finally {
       setIsSearching(false);
     }
-  }, [query, searchFilters]);
+  }, [query, selectedContentType, applyContentTypeFilter]);
 
   useEffect(() => {
     // Debounced search
@@ -133,10 +162,14 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
         performSearch();
       }, 300);
     } else {
+      setAllSearchResults([]);
+      setAllProfileResults([]);
+      setAllPrayerResults([]);
       setSearchResults([]);
       setProfileResults([]);
       setPrayerResults([]);
       setHasSearched(false);
+      setSelectedContentType(null);
     }
 
     return () => {
@@ -144,7 +177,15 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [query, searchFilters, performSearch]);
+  }, [query, performSearch]);
+
+  // Apply content type filter when it changes
+  useEffect(() => {
+    if (hasSearched) {
+      console.log('🔄 useEffect triggered - selectedContentType:', selectedContentType, 'hasSearched:', hasSearched);
+      applyContentTypeFilter(selectedContentType, allSearchResults, allProfileResults, allPrayerResults);
+    }
+  }, [selectedContentType, allSearchResults, allProfileResults, allPrayerResults, hasSearched, applyContentTypeFilter]);
 
   const loadTrendingPosts = async () => {
     try {
@@ -161,10 +202,15 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
   };
 
   const handleQuickFilter = (postType: PostType) => {
-    setSearchFilters(prev => ({
-      ...prev,
-      postType: postType
-    }));
+    console.log('🔘 handleQuickFilter called with:', postType, 'current selectedContentType:', selectedContentType);
+    // Toggle filter - if same type is clicked, clear filter
+    if (selectedContentType === postType) {
+      console.log('🔄 Toggling off filter');
+      setSelectedContentType(null);
+    } else {
+      console.log('✅ Setting filter to:', postType);
+      setSelectedContentType(postType);
+    }
     setShowFilters(true);
     setActiveTab('search');
   };
@@ -179,10 +225,14 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
 
   const clearSearch = () => {
     setQuery('');
+    setAllSearchResults([]);
+    setAllProfileResults([]);
+    setAllPrayerResults([]);
     setSearchResults([]);
     setProfileResults([]);
     setPrayerResults([]);
     setHasSearched(false);
+    setSelectedContentType(null);
     setSearchFilters({});
     setShowFilters(false);
   };
@@ -266,8 +316,8 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
                 {quickFilters.map(filter => (
                   <button
                     key={filter.value}
-                    className={`filter-option ${searchFilters.postType === filter.value ? 'active' : ''}`}
-                    onClick={() => handleFilterChange('postType', filter.value)}
+                    className={`filter-option ${selectedContentType === filter.value ? 'active' : ''}`}
+                    onClick={() => handleQuickFilter(filter.value)}
                   >
                     <span className="filter-icon">{filter.icon}</span>
                     {filter.label}
@@ -333,7 +383,7 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
                     {quickFilters.map(filter => (
                       <button
                         key={filter.value}
-                        className={`quick-filter-btn ${searchFilters.postType === filter.value ? 'active' : ''}`}
+                        className={`quick-filter-btn ${selectedContentType === filter.value ? 'active' : ''}`}
                         onClick={() => handleQuickFilter(filter.value)}
                       >
                         <span className="filter-icon">{filter.icon}</span>
