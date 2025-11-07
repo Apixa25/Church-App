@@ -334,50 +334,6 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Status Banner */}
-        <div className="status-banner">
-          <div className="status-item completed">
-            <span className="status-icon">✅</span>
-            <span>Section 1: Authentication</span>
-          </div>
-          <div className="status-item completed">
-            <span className="status-icon">✅</span>
-            <span>Section 2: User Profiles</span>
-          </div>
-          <div className="status-item completed">
-            <span className="status-icon">✅</span>
-            <span>Section 3: Home/Dashboard</span>
-          </div>
-          <div className="status-item completed">
-            <span className="status-icon">✅</span>
-            <span>Section 4: Chats & Social Network</span>
-          </div>
-          <div className="status-item completed">
-            <span className="status-icon">✅</span>
-            <span>Section 5: Prayer Requests</span>
-          </div>
-          <div className="status-item completed">
-            <span className="status-icon">✅</span>
-            <span>Section 6: Announcements</span>
-          </div>
-          <div className="status-item completed">
-            <span className="status-icon">✅</span>
-            <span>Section 7: Calendar/Events</span>
-          </div>
-          <div className="status-item completed">
-            <span className="status-icon">✅</span>
-            <span>Phase 3: Social Feed Integration - COMPLETE!</span>
-          </div>
-          <div className="status-item completed">
-            <span className="status-icon">✅</span>
-            <span>Phase 4: Advanced Features - COMPLETE!</span>
-          </div>
-          <div className="status-item current">
-            <span className="status-icon">🎊</span>
-            <span>🏆 CHURCH APP - PRODUCTION READY! 🏆</span>
-          </div>
-        </div>
-
         {/* Notification System */}
         <NotificationSystem
           position="top-right"
