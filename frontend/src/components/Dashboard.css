@@ -413,6 +413,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 10;
 }
 
 .search-button {
@@ -441,4 +444,17 @@
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+}
+
+/* Ensure notification buttons are visible and properly styled */
+.header-actions .prayer-notifications,
+.header-actions .event-notifications {
+  position: relative;
+  z-index: 10;
+}
+
+/* Ensure notification buttons don't get hidden behind other elements */
+.header-actions > * {
+  position: relative;
+  z-index: 10;
 }

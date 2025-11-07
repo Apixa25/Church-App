@@ -51,8 +51,12 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
         wsUnsubscribeRef.current = unsubscribe;
 
       } catch (error) {
-        console.error('Failed to setup notification WebSocket:', error);
+        console.error('❌ Failed to setup notification WebSocket:', error);
         setIsConnected(false);
+        // Retry connection after a delay
+        setTimeout(() => {
+          setupWebSocket();
+        }, 3000);
       }
     };
 
@@ -182,16 +186,20 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
   return (
     <div className={`notification-system ${position}`}>
       {/* Notification Bell/Button */}
-      <div className="notification-bell" onClick={() => setShowPanel(!showPanel)}>
+      <div 
+        className="notification-bell" 
+        onClick={() => setShowPanel(!showPanel)}
+        title="Community Notifications - Click to view likes, comments, shares, and mentions"
+      >
         <span className="bell-icon">🔔</span>
         {unreadCount > 0 && (
           <span className="notification-badge">{unreadCount}</span>
         )}
         {!isConnected && (
-          <span className="connection-indicator disconnected" title="Disconnected"></span>
+          <span className="connection-indicator disconnected" title="Disconnected - Notifications may not work"></span>
         )}
         {isConnected && (
-          <span className="connection-indicator connected" title="Connected"></span>
+          <span className="connection-indicator connected" title="Connected - Real-time notifications active"></span>
         )}
       </div>
 

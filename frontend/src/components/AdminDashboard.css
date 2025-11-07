@@ -589,6 +589,23 @@
   box-shadow: 0 0 12px var(--success-glow);
 }
 
+.action-btn.delete {
+  background: rgba(220, 38, 38, 0.2);
+  color: #dc2626;
+  border: 1px solid #dc2626;
+}
+
+.action-btn.delete:hover {
+  background: #dc2626;
+  color: white;
+  box-shadow: 0 0 12px rgba(220, 38, 38, 0.5);
+}
+
+.action-btn.delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .role-selector {
   padding: 0.5rem;
   background: var(--bg-secondary);

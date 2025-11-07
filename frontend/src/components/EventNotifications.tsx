@@ -65,13 +65,19 @@ const EventNotifications: React.FC = () => {
           addNotification(eventNotification);
         });
 
+        console.log('✅ Event notifications WebSocket connected successfully');
+
         return () => {
           eventUnsubscribe();
           rsvpUnsubscribe();
           userEventUnsubscribe();
         };
       } catch (error) {
-        console.error('Failed to connect WebSocket for event notifications:', error);
+        console.error('❌ Failed to connect WebSocket for event notifications:', error);
+        // Retry connection after a delay
+        setTimeout(() => {
+          connectWebSocket();
+        }, 3000);
       }
     };
 
@@ -169,6 +175,7 @@ const EventNotifications: React.FC = () => {
           setShowNotifications(!showNotifications);
           if (!showNotifications) markAsRead();
         }}
+        title="Event Notifications - Click to view event updates and RSVPs"
       >
         🔔
         {unreadCount > 0 && (
