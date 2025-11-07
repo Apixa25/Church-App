@@ -42,9 +42,10 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     Page<Post> findTrendingPosts(@Param("since") LocalDateTime since, Pageable pageable);
 
     // Search posts by content, author name, category, location, and hashtags
-    // Using UNION to avoid DISTINCT issues with LEFT JOINs
+    // Optionally filter by post type
     @Query("SELECT p FROM Post p " +
            "WHERE p.isAnonymous = false " +
+           "AND (:postType IS NULL OR p.postType = :postType) " +
            "AND (" +
            "     LOWER(p.content) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
            "     OR LOWER(p.user.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
@@ -52,16 +53,18 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
            "     OR (p.location IS NOT NULL AND LOWER(p.location) LIKE LOWER(CONCAT('%', :searchTerm, '%')))" +
            ") " +
            "ORDER BY p.createdAt DESC")
-    Page<Post> findByContentContaining(@Param("searchTerm") String searchTerm, Pageable pageable);
+    Page<Post> findByContentContaining(@Param("searchTerm") String searchTerm, @Param("postType") Post.PostType postType, Pageable pageable);
     
     // Separate query for hashtag search
+    // Optionally filter by post type
     @Query("SELECT DISTINCT p FROM Post p " +
            "JOIN PostHashtag ph ON ph.id.postId = p.id " +
            "JOIN Hashtag h ON h.id = ph.id.hashtagId " +
            "WHERE p.isAnonymous = false " +
+           "AND (:postType IS NULL OR p.postType = :postType) " +
            "AND LOWER(h.tag) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
            "ORDER BY p.createdAt DESC")
-    Page<Post> findByHashtagContaining(@Param("searchTerm") String searchTerm, Pageable pageable);
+    Page<Post> findByHashtagContaining(@Param("searchTerm") String searchTerm, @Param("postType") Post.PostType postType, Pageable pageable);
 
     // Posts by user with replies included
     @Query("SELECT p FROM Post p WHERE p.user.id = :userId ORDER BY p.createdAt DESC")

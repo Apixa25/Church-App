@@ -243,6 +243,7 @@ public class PostController {
     @GetMapping("/search")
     public ResponseEntity<Page<PostResponse>> searchPosts(
             @RequestParam String query,
+            @RequestParam(required = false) String postType,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
@@ -250,9 +251,19 @@ public class PostController {
             return ResponseEntity.badRequest().build();
         }
 
-        log.info("🔍 Searching posts for query: '{}', page: {}, size: {}", query, page, size);
+        log.info("🔍 Searching posts for query: '{}', postType: '{}', page: {}, size: {}", query, postType, page, size);
         Pageable pageable = PageRequest.of(page, size);
-        Page<Post> posts = feedService.searchPosts(query, pageable);
+        
+        Post.PostType type = null;
+        if (postType != null && !postType.trim().isEmpty()) {
+            try {
+                type = Post.PostType.valueOf(postType.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid postType: {}", postType);
+            }
+        }
+        
+        Page<Post> posts = feedService.searchPosts(query, type, pageable);
         log.info("📝 Found {} posts (total: {}) for query: '{}'", posts.getContent().size(), posts.getTotalElements(), query);
         Page<PostResponse> responses = posts.map(PostResponse::fromEntity);
 
