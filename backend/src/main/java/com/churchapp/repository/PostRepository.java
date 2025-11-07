@@ -41,10 +41,27 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
            "ORDER BY (p.likesCount + p.commentsCount + p.sharesCount) DESC")
     Page<Post> findTrendingPosts(@Param("since") LocalDateTime since, Pageable pageable);
 
-    // Search posts by content
-    @Query("SELECT p FROM Post p WHERE LOWER(p.content) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
-           "AND p.isAnonymous = false ORDER BY p.createdAt DESC")
+    // Search posts by content, author name, category, location, and hashtags
+    // Using UNION to avoid DISTINCT issues with LEFT JOINs
+    @Query("SELECT p FROM Post p " +
+           "WHERE p.isAnonymous = false " +
+           "AND (" +
+           "     LOWER(p.content) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
+           "     OR LOWER(p.user.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
+           "     OR (p.category IS NOT NULL AND LOWER(p.category) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
+           "     OR (p.location IS NOT NULL AND LOWER(p.location) LIKE LOWER(CONCAT('%', :searchTerm, '%')))" +
+           ") " +
+           "ORDER BY p.createdAt DESC")
     Page<Post> findByContentContaining(@Param("searchTerm") String searchTerm, Pageable pageable);
+    
+    // Separate query for hashtag search
+    @Query("SELECT DISTINCT p FROM Post p " +
+           "JOIN PostHashtag ph ON ph.id.postId = p.id " +
+           "JOIN Hashtag h ON h.id = ph.id.hashtagId " +
+           "WHERE p.isAnonymous = false " +
+           "AND LOWER(h.tag) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
+           "ORDER BY p.createdAt DESC")
+    Page<Post> findByHashtagContaining(@Param("searchTerm") String searchTerm, Pageable pageable);
 
     // Posts by user with replies included
     @Query("SELECT p FROM Post p WHERE p.user.id = :userId ORDER BY p.createdAt DESC")

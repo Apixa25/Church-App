@@ -109,7 +109,8 @@ export const searchPosts = async (
   
   if (filters) {
     Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
+      // Skip 'query' from filters since it's already passed as a separate parameter
+      if (key !== 'query' && value !== undefined && value !== null) {
         params.append(key, value.toString());
       }
     });

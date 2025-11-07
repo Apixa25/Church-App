@@ -6,12 +6,16 @@ import com.churchapp.repository.UserFollowRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -144,10 +148,51 @@ public class FeedService {
     }
 
     /**
-     * Search posts by content
+     * Search posts by content, author name, category, location, and hashtags
      */
     public Page<Post> searchPosts(String query, Pageable pageable) {
-        return postRepository.findByContentContaining(query, pageable);
+        log.info("🔍 FeedService.searchPosts called with query: '{}', pageable: {}", query, pageable);
+        
+        // Search by content, author name, category, and location
+        Page<Post> contentResults = postRepository.findByContentContaining(query, pageable);
+        log.info("📝 Content search found {} posts (total: {})", contentResults.getContent().size(), contentResults.getTotalElements());
+        
+        // Search by hashtags
+        Page<Post> hashtagResults = postRepository.findByHashtagContaining(query, pageable);
+        log.info("🏷️ Hashtag search found {} posts (total: {})", hashtagResults.getContent().size(), hashtagResults.getTotalElements());
+        
+        // Combine results (avoid duplicates)
+        Set<UUID> seenIds = new HashSet<>();
+        List<Post> combinedResults = new ArrayList<>();
+        
+        // Add content results
+        for (Post post : contentResults.getContent()) {
+            if (!seenIds.contains(post.getId())) {
+                combinedResults.add(post);
+                seenIds.add(post.getId());
+            }
+        }
+        
+        // Add hashtag results
+        for (Post post : hashtagResults.getContent()) {
+            if (!seenIds.contains(post.getId())) {
+                combinedResults.add(post);
+                seenIds.add(post.getId());
+            }
+        }
+        
+        // Sort by creation date (most recent first)
+        combinedResults.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
+        
+        // Create a new Page with combined results
+        Page<Post> finalResults = new PageImpl<>(combinedResults, pageable, seenIds.size());
+        
+        log.info("✅ Final combined search found {} posts", finalResults.getContent().size());
+        if (!finalResults.getContent().isEmpty()) {
+            log.info("📝 First post content preview: {}", finalResults.getContent().get(0).getContent().substring(0, Math.min(100, finalResults.getContent().get(0).getContent().length())));
+        }
+        
+        return finalResults;
     }
 
     /**

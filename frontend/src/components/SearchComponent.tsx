@@ -70,6 +70,7 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
         query: query.trim()
       };
 
+      console.log('🔍 Starting search for:', query);
       const [postsResponse, profilesResponse] = await Promise.all([
         searchPosts(query, 0, 20, filters).catch(err => {
           console.error('Post search error:', err);
@@ -81,10 +82,16 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
         })
       ]);
 
+      console.log('📝 Posts response:', postsResponse);
+      console.log('👤 Profiles response:', profilesResponse);
+      console.log('📝 Posts content:', postsResponse.content);
+      console.log('👤 Profiles data:', profilesResponse.data);
+
       setSearchResults(postsResponse.content || []);
       // Handle both Page response and direct array response
       const profileData = profilesResponse.data?.content || profilesResponse.data || [];
       setProfileResults(Array.isArray(profileData) ? profileData : []);
+      console.log('✅ Final search results - Posts:', postsResponse.content?.length || 0, 'Profiles:', Array.isArray(profileData) ? profileData.length : 0);
       setHasSearched(true);
     } catch (error) {
       console.error('Search error:', error);
