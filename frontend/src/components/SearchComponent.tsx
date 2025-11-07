@@ -36,7 +36,7 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [activeTab, setActiveTab] = useState<'search' | 'trending'>('search');
-  const [selectedContentType, setSelectedContentType] = useState<PostType | null>(null);
+  const [selectedContentType, setSelectedContentType] = useState<PostType | null | 'users'>(null);
   const [searchFilters, setSearchFilters] = useState<PostSearchFilters>({});
   const [showFilters, setShowFilters] = useState(false);
 
@@ -69,14 +69,20 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
   }, [isOpen, initialQuery]);
 
   // Apply content type filter to displayed results
-  const applyContentTypeFilter = useCallback((contentType: PostType | null, allPosts: Post[], allProfiles: UserProfile[], allPrayers: PrayerRequest[]) => {
-    console.log('🔍 applyContentTypeFilter called with:', contentType, 'Posts:', allPosts.length, 'Prayers:', allPrayers.length);
+  const applyContentTypeFilter = useCallback((contentType: PostType | null | 'users', allPosts: Post[], allProfiles: UserProfile[], allPrayers: PrayerRequest[]) => {
+    console.log('🔍 applyContentTypeFilter called with:', contentType, 'Posts:', allPosts.length, 'Profiles:', allProfiles.length, 'Prayers:', allPrayers.length);
     if (!contentType) {
       // No filter - show all results
       console.log('✅ No filter - showing all results');
       setSearchResults(allPosts);
       setProfileResults(allProfiles);
       setPrayerResults(allPrayers);
+    } else if (contentType === 'users') {
+      // Show only user profiles
+      console.log('👤 Filter: USERS - showing only user profiles');
+      setSearchResults([]);
+      setProfileResults(allProfiles);
+      setPrayerResults([]);
     } else if (contentType === PostType.PRAYER) {
       // Show only prayer requests
       console.log('🙏 Filter: PRAYER - showing only prayer requests');
@@ -201,16 +207,23 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
     setActiveTab('search');
   };
 
-  const handleQuickFilter = (postType: PostType) => {
-    console.log('🔘 handleQuickFilter called with:', postType, 'current selectedContentType:', selectedContentType);
+  const handleQuickFilter = (filterValue: PostType | 'users') => {
+    console.log('🔘 handleQuickFilter called with:', filterValue, 'current selectedContentType:', selectedContentType);
     // Toggle filter - if same type is clicked, clear filter
-    if (selectedContentType === postType) {
+    if (selectedContentType === filterValue) {
       console.log('🔄 Toggling off filter');
       setSelectedContentType(null);
     } else {
-      console.log('✅ Setting filter to:', postType);
-      setSelectedContentType(postType);
+      console.log('✅ Setting filter to:', filterValue);
+      setSelectedContentType(filterValue);
     }
+    setShowFilters(true);
+    setActiveTab('search');
+  };
+
+  const handleAllFilter = () => {
+    console.log('🔘 handleAllFilter called - clearing filter');
+    setSelectedContentType(null);
     setShowFilters(true);
     setActiveTab('search');
   };
@@ -313,6 +326,13 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
             <div className="filter-group">
               <label>Content Type:</label>
               <div className="filter-options">
+                <button
+                  className={`filter-option ${selectedContentType === null ? 'active' : ''}`}
+                  onClick={handleAllFilter}
+                >
+                  <span className="filter-icon">🌐</span>
+                  All
+                </button>
                 {quickFilters.map(filter => (
                   <button
                     key={filter.value}
@@ -323,6 +343,13 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
                     {filter.label}
                   </button>
                 ))}
+                <button
+                  className={`filter-option ${selectedContentType === 'users' ? 'active' : ''}`}
+                  onClick={() => handleQuickFilter('users')}
+                >
+                  <span className="filter-icon">👤</span>
+                  Users
+                </button>
               </div>
             </div>
 
@@ -380,6 +407,13 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
 
                   <h3>Quick Filters</h3>
                   <div className="quick-filters">
+                    <button
+                      className={`quick-filter-btn ${selectedContentType === null ? 'active' : ''}`}
+                      onClick={handleAllFilter}
+                    >
+                      <span className="filter-icon">🌐</span>
+                      All
+                    </button>
                     {quickFilters.map(filter => (
                       <button
                         key={filter.value}
@@ -390,6 +424,13 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
                         {filter.label}
                       </button>
                     ))}
+                    <button
+                      className={`quick-filter-btn ${selectedContentType === 'users' ? 'active' : ''}`}
+                      onClick={() => handleQuickFilter('users')}
+                    >
+                      <span className="filter-icon">👤</span>
+                      Users
+                    </button>
                   </div>
                 </div>
               )}
