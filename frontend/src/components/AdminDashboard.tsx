@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AdminModeration from './AdminModeration';
 import AnalyticsDashboard from './AnalyticsDashboard';
@@ -26,6 +27,7 @@ interface AdminDashboardProps {
 const AdminDashboard: React.FC<AdminDashboardProps> = ({
   initialTab = 'overview'
 }) => {
+  const navigate = useNavigate();
   const { user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [users, setUsers] = useState<User[]>([]);
@@ -180,8 +182,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       <div className="admin-header">
         <div className="header-content">
           <div className="header-title">
-            <h1>🛠️ Admin Dashboard</h1>
-            <p>Manage your church community platform</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <button 
+                onClick={() => navigate('/dashboard')} 
+                className="back-home-button"
+              >
+                🏠 Back Home
+              </button>
+              <div>
+                <h1>🛠️ Admin Dashboard</h1>
+                <p>Manage your church community platform</p>
+              </div>
+            </div>
           </div>
 
           <div className="admin-meta">
