@@ -34,6 +34,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const [page, setPage] = useState(0);
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [postsCount, setPostsCount] = useState(0);
+  const [imageError, setImageError] = useState(false);
 
   const isOwnProfile = !userId || userId === user?.userId;
   const targetUserId = userId || user?.userId || '';
@@ -50,6 +51,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
         : await profileAPI.getMyProfile();
       
       setProfile(response.data);
+      setImageError(false); // Reset image error when profile loads
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 'Failed to load profile';
       setError(errorMessage);
@@ -111,6 +113,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
 
   const handleProfileUpdate = (updatedProfile: UserProfile) => {
     setProfile(updatedProfile);
+    setImageError(false); // Reset image error when profile updates
     setIsEditing(false);
     if (isOwnProfile) {
       fetchCompletionStatus();
@@ -257,23 +260,29 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
         <div className="profile-header-content">
           <div className="profile-avatar-section">
             <div className="profile-avatar">
-              {profile.profilePicUrl ? (
+              {profile.profilePicUrl && !imageError ? (
                 <img 
                   src={profile.profilePicUrl} 
                   alt={profile.name}
                   className="profile-picture-display"
                   key={profile.profilePicUrl}
+                  onError={() => {
+                    console.error('Failed to load profile image:', profile.profilePicUrl);
+                    setImageError(true);
+                  }}
+                  onLoad={() => setImageError(false)}
                 />
               ) : (
                 <div className="profile-picture-placeholder-large">
-                  <span>{profile.name.charAt(0).toUpperCase()}</span>
+                  <span>{profile.name ? profile.name.charAt(0).toUpperCase() : '👤'}</span>
                 </div>
               )}
             </div>
-            {showEditButton && isOwnProfile && (
+            {isOwnProfile && (
               <button
                 onClick={() => setIsEditing(true)}
                 className="edit-profile-button-x"
+                aria-label="Edit profile"
               >
                 Edit profile
               </button>
