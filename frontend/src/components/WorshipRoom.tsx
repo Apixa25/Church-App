@@ -399,6 +399,16 @@ const WorshipRoom: React.FC = () => {
             </div>
           )}
 
+          {/* No Song Playing - Show Start Button */}
+          {!currentSong && queue.length > 0 && canControl(userRole) && (
+            <div className="no-song-playing">
+              <p className="no-song-text">No song playing yet</p>
+              <button onClick={handlePlayNext} className="start-playing-button">
+                ▶️ Start Playing
+              </button>
+            </div>
+          )}
+
           {/* Queue */}
           <WorshipQueue
             roomId={roomId || ''}
