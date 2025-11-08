@@ -191,8 +191,11 @@ const EventCard: React.FC<EventCardProps> = ({
       )}
 
       {/* RSVP Section */}
-      {event.rsvpSummary && !compact && (
-        <div className="event-rsvp" onClick={(e) => e.stopPropagation()}>
+      {event.rsvpSummary && (
+        <div
+          className={`event-rsvp ${compact ? 'compact' : ''}`}
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="rsvp-summary">
             <div className="rsvp-counts">
               <span className="rsvp-count yes">
@@ -211,10 +214,10 @@ const EventCard: React.FC<EventCardProps> = ({
           </div>
 
           {!isEventPast(event.startTime) && (
-            <div className="rsvp-actions">
+            <div className={`rsvp-actions ${compact ? 'compact' : ''}`}>
               <button
                 type="button"
-                className="btn btn-primary"
+                className={`btn btn-primary ${compact ? 'btn-xs' : ''}`}
                 onClick={() => setShowRsvpManager(!showRsvpManager)}
               >
                 {event.rsvpSummary.userRsvpResponse ? 'Manage RSVP' : 'RSVP Now'}
@@ -225,7 +228,7 @@ const EventCard: React.FC<EventCardProps> = ({
       )}
 
       {/* Full RSVP Manager (when expanded) */}
-      {showRsvpManager && !compact && (
+      {showRsvpManager && (
         <div onClick={(e) => e.stopPropagation()}>
           <EventRsvpManager
             event={event}

@@ -214,6 +214,10 @@
   padding-top: 15px;
 }
 
+.event-rsvp.compact {
+  padding-top: 10px;
+}
+
 .rsvp-summary {
   display: flex;
   justify-content: space-between;
@@ -258,6 +262,10 @@
   justify-content: center;
 }
 
+.rsvp-actions.compact {
+  justify-content: flex-start;
+}
+
 .current-rsvp {
   text-align: center;
   font-size: 0.9rem;
@@ -273,6 +281,12 @@
   display: flex;
   gap: 8px;
   width: 100%;
+}
+
+.btn.btn-primary.btn-xs {
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  min-width: auto;
 }
 
 .rsvp-btn {
