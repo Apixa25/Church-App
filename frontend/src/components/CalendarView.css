@@ -54,7 +54,7 @@
 /* Main Calendar Layout */
 .calendar-main {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: auto;
   gap: var(--spacing-xl);
   align-items: start;
 }
