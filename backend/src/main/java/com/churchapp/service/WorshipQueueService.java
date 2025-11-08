@@ -189,6 +189,7 @@ public class WorshipQueueService {
         if (existingVote.isPresent()) {
             // Remove vote (toggle)
             voteRepository.delete(existingVote.get());
+            voteRepository.flush(); // Ensure delete is committed
         } else {
             // Add vote
             WorshipSongVote vote = new WorshipSongVote();
@@ -196,7 +197,13 @@ public class WorshipQueueService {
             vote.setUser(user);
             vote.setVoteType(voteType);
             voteRepository.save(vote);
+            voteRepository.flush(); // Ensure save is committed
         }
+
+        // Refresh the entry to get updated vote counts
+        queueRepository.flush();
+        entry = queueRepository.findById(entry.getId())
+            .orElseThrow(() -> new RuntimeException("Queue entry not found"));
 
         // Check skip threshold
         if (voteType == WorshipSongVote.VoteType.SKIP &&
@@ -204,7 +211,7 @@ public class WorshipQueueService {
             checkSkipThreshold(entry, room);
         }
 
-        // Broadcast vote update
+        // Broadcast vote update with refreshed vote counts
         WorshipQueueEntryResponse response = buildQueueEntryResponse(entry, user);
         messagingTemplate.convertAndSend("/topic/worship/rooms/" + room.getId() + "/queue",
             java.util.Map.of("type", "VOTE_UPDATED", "queueEntry", response));
