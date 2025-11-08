@@ -9,6 +9,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -314,6 +315,91 @@ public class WorshipQueueService {
         } catch (RuntimeException e) {
             // Queue is empty, already handled in playNext
         }
+    }
+
+    @Transactional
+    public void updatePlaybackState(String userEmail, UUID roomId, WorshipPlaybackCommand command) {
+        User user = getUserByEmail(userEmail);
+        WorshipRoom room = getRoomByIdOrThrow(roomId);
+
+        if (!permissionService.canControlPlayback(user, room)) {
+            throw new RuntimeException("Insufficient permissions to control playback");
+        }
+
+        switch (command.getAction()) {
+            case PLAY -> {
+                double startPosition = resolveRequestedPosition(command, room, 0.0);
+                room.setCurrentLeader(user);
+                if (command.getVideoId() != null && !command.getVideoId().isBlank()) {
+                    room.setCurrentVideoId(command.getVideoId());
+                }
+                if (command.getVideoTitle() != null) {
+                    room.setCurrentVideoTitle(command.getVideoTitle());
+                }
+                if (command.getVideoThumbnail() != null) {
+                    room.setCurrentVideoThumbnail(command.getVideoThumbnail());
+                }
+                room.setPlaybackStatus("playing");
+                room.setPlaybackPosition(startPosition);
+                room.setPlaybackStartedAt(LocalDateTime.now());
+                command.setSeekPosition(startPosition);
+            }
+            case RESUME -> {
+                double resumePosition = resolveRequestedPosition(command, room, calculateCurrentPlaybackPosition(room));
+                room.setPlaybackStatus("playing");
+                room.setPlaybackPosition(resumePosition);
+                room.setPlaybackStartedAt(LocalDateTime.now());
+                command.setSeekPosition(resumePosition);
+            }
+            case PAUSE -> {
+                double pausePosition = resolveRequestedPosition(command, room, calculateCurrentPlaybackPosition(room));
+                room.setPlaybackStatus("paused");
+                room.setPlaybackPosition(pausePosition);
+                room.setPlaybackStartedAt(null);
+                command.setSeekPosition(pausePosition);
+            }
+            case STOP -> {
+                room.stop();
+                command.setSeekPosition(0.0);
+                command.setVideoId(null);
+                command.setVideoTitle(null);
+                command.setVideoThumbnail(null);
+            }
+            case SEEK -> {
+                double targetPosition = resolveRequestedPosition(command, room, calculateCurrentPlaybackPosition(room));
+                room.setPlaybackPosition(targetPosition);
+                if ("playing".equals(room.getPlaybackStatus())) {
+                    room.setPlaybackStartedAt(LocalDateTime.now());
+                }
+                command.setSeekPosition(targetPosition);
+            }
+            case SKIP -> {
+                // Skip handled separately via skipCurrentSong
+            }
+        }
+
+        roomRepository.save(room);
+    }
+
+    private double resolveRequestedPosition(WorshipPlaybackCommand command, WorshipRoom room, double fallback) {
+        if (command.getSeekPosition() != null) {
+            return Math.max(0.0, command.getSeekPosition());
+        }
+
+        return Math.max(0.0, fallback);
+    }
+
+    private double calculateCurrentPlaybackPosition(WorshipRoom room) {
+        double basePosition = Optional.ofNullable(room.getPlaybackPosition()).orElse(0.0);
+
+        if ("playing".equals(room.getPlaybackStatus()) && room.getPlaybackStartedAt() != null) {
+            Duration elapsed = Duration.between(room.getPlaybackStartedAt(), LocalDateTime.now());
+            if (!elapsed.isNegative()) {
+                basePosition += elapsed.toMillis() / 1000.0;
+            }
+        }
+
+        return Math.max(0.0, basePosition);
     }
 
     // ==================== HELPER METHODS ====================

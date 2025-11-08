@@ -135,6 +135,22 @@ export const worshipAPI = {
   // Update room settings
   updateSettings: (roomId: string, settings: Partial<WorshipRoomSettings>): Promise<{ data: WorshipRoomSettings }> =>
     api.put(`/worship/rooms/${roomId}/settings`, settings),
+
+  // ==================== FILE UPLOAD OPERATIONS ====================
+
+  // Upload room image
+  uploadRoomImage: async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await api.post('/worship/upload-room-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    return response.data;
+  },
 };
 
 export default worshipAPI;
