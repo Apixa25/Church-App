@@ -25,6 +25,7 @@ public class UserProfileResponse {
     private String address;
     private LocalDate birthday;
     private String spiritualGift;
+    private String equippingGifts;
     private User.Role role;
     private String profilePicUrl;
     private String bannerImageUrl;
@@ -45,6 +46,7 @@ public class UserProfileResponse {
             user.getAddress(),
             user.getBirthday(),
             user.getSpiritualGift(),
+            user.getEquippingGifts(),
             user.getRole(),
             user.getProfilePicUrl(),
             user.getBannerImageUrl(),

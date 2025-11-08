@@ -71,6 +71,9 @@ public class User {
     @Column(name = "spiritual_gift", length = 255)
     private String spiritualGift;
     
+    @Column(name = "equipping_gifts", length = 255)
+    private String equippingGifts;
+    
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
     private Role role = Role.MEMBER;

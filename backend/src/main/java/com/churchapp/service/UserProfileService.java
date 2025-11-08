@@ -82,6 +82,10 @@ public class UserProfileService {
             user.setSpiritualGift(request.getSpiritualGift().trim().isEmpty() ? null : request.getSpiritualGift().trim());
         }
         
+        if (request.getEquippingGifts() != null) {
+            user.setEquippingGifts(request.getEquippingGifts().trim().isEmpty() ? null : request.getEquippingGifts().trim());
+        }
+        
         // Only allow role updates for admins or specific business logic
         if (request.getRole() != null) {
             user.setRole(request.getRole());
