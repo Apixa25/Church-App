@@ -28,7 +28,9 @@
       "Bash(dir)",
       "Bash(mvn spring-boot:run:*)",
       "Bash(del:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(npm start)",
+      "Bash(timeout 30 bash:*)"
     ],
     "deny": [],
     "ask": []

@@ -50,7 +50,7 @@ const WorshipQueue: React.FC<WorshipQueueProps> = ({
         videoId,
         videoTitle,
         videoThumbnailUrl: thumbnailUrl,
-        videoDuration: null, // Will be determined by server if needed
+        videoDuration: undefined, // Will be determined by server if needed
       });
 
       setYoutubeUrl('');
@@ -93,7 +93,7 @@ const WorshipQueue: React.FC<WorshipQueueProps> = ({
 
   const filteredQueue = queue.filter((entry) =>
     entry.videoTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    entry.addedByUsername.toLowerCase().includes(searchQuery.toLowerCase())
+    entry.userName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -185,7 +185,7 @@ const WorshipQueue: React.FC<WorshipQueueProps> = ({
               <div className="queue-item-info">
                 <h4>{entry.videoTitle}</h4>
                 <div className="queue-item-meta">
-                  <span>Added by {entry.addedByUsername}</span>
+                  <span>Added by {entry.userName}</span>
                   {entry.videoDuration && (
                     <>
                       <span>•</span>
