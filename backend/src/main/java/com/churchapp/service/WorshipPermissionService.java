@@ -116,8 +116,11 @@ public class WorshipPermissionService {
             return false;
         }
 
-        // Must be an active participant
-        return room.isParticipant(user);
+        // Must be an active participant - use repository to avoid lazy loading issues
+        Optional<WorshipRoomParticipant> participantOpt =
+            participantRepository.findByWorshipRoomAndUser(room, user);
+
+        return participantOpt.isPresent() && participantOpt.get().getIsActive();
     }
 
     /**
