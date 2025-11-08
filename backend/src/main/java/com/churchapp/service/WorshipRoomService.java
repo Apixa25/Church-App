@@ -193,17 +193,38 @@ public class WorshipRoomService {
         User user = getUserByEmail(userEmail);
         WorshipRoom room = getRoomByIdOrThrow(roomId);
 
-        // Validate permissions
+        // Check if already a participant
+        Optional<WorshipRoomParticipant> existingParticipant =
+            participantRepository.findByWorshipRoomAndUser(room, user);
+
+        if (existingParticipant.isPresent()) {
+            WorshipRoomParticipant participant = existingParticipant.get();
+
+            // If participant was inactive, reactivate them
+            if (!participant.getIsActive()) {
+                participant.setIsActive(true);
+                participant.setLeftAt(null);
+                participant.setLastActiveAt(LocalDateTime.now());
+                participantRepository.save(participant);
+
+                // Broadcast rejoin
+                messagingTemplate.convertAndSend("/topic/worship/rooms/" + roomId,
+                    Map.of("type", "USER_JOINED", "participant", WorshipRoomParticipantResponse.fromEntity(participant)));
+            } else {
+                // Already an active participant - just update activity timestamp
+                participant.updateActivity();
+                participantRepository.save(participant);
+            }
+
+            return buildRoomResponse(room, user);
+        }
+
+        // Validate permissions for new participants
         if (!permissionService.canJoinRoom(user, room)) {
             throw new RuntimeException("Cannot join this room");
         }
 
-        // Check if already a participant
-        if (participantRepository.findByWorshipRoomAndUser(room, user).isPresent()) {
-            throw new RuntimeException("Already a participant in this room");
-        }
-
-        // Create participant
+        // Create new participant
         WorshipRoomParticipant participant = new WorshipRoomParticipant();
         participant.setWorshipRoom(room);
         participant.setUser(user);
