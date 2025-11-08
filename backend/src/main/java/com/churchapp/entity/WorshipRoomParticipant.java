@@ -2,12 +2,14 @@ package com.churchapp.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
@@ -22,7 +24,8 @@ import java.util.UUID;
         @Index(name = "idx_worship_participant_active", columnList = "is_active")
     }
 )
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class WorshipRoomParticipant {
@@ -139,5 +142,18 @@ public class WorshipRoomParticipant {
             return false;
         }
         return lastActiveAt.isBefore(LocalDateTime.now().minusMinutes(timeoutMinutes));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        WorshipRoomParticipant that = (WorshipRoomParticipant) o;
+        return id != null && Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
     }
 }

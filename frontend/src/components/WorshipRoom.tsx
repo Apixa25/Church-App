@@ -27,6 +27,7 @@ const WorshipRoom: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [userRole, setUserRole] = useState<ParticipantRole>(ParticipantRole.LISTENER);
 
   // Sync state for coordinated playback
@@ -283,6 +284,19 @@ const WorshipRoom: React.FC = () => {
     }
   };
 
+  const handleDeleteRoom = async () => {
+    if (!roomId) return;
+    try {
+      await worshipAPI.deleteRoom(roomId);
+      setShowDeleteConfirm(false);
+      navigate('/worship');
+    } catch (err: any) {
+      console.error('Error deleting room:', err);
+      alert(err.response?.data?.error || 'Failed to delete room. You may not have permission.');
+      setShowDeleteConfirm(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="worship-room loading">
@@ -326,9 +340,14 @@ const WorshipRoom: React.FC = () => {
             👥 {participants.length}
           </button>
           {room.isCreator && (
-            <button onClick={() => setShowSettings(!showSettings)} className="settings-button">
-              ⚙️ Settings
-            </button>
+            <>
+              <button onClick={() => setShowSettings(!showSettings)} className="settings-button">
+                ⚙️ Settings
+              </button>
+              <button onClick={() => setShowDeleteConfirm(true)} className="delete-button">
+                🗑️ Delete Room
+              </button>
+            </>
           )}
           <button onClick={handleLeaveRoom} className="leave-button">
             🚪 Leave
@@ -419,6 +438,39 @@ const WorshipRoom: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="modal-content delete-confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Delete Worship Room?</h2>
+            </div>
+            <div className="modal-body">
+              <p className="warning-text">
+                Are you sure you want to delete "{room.name}"?
+              </p>
+              <p className="warning-subtext">
+                This action cannot be undone. All participants will be removed and the room's queue will be lost.
+              </p>
+            </div>
+            <div className="modal-actions">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="cancel-button"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteRoom}
+                className="confirm-delete-button"
+              >
+                Delete Room
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
