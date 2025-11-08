@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -36,6 +37,8 @@ public class EventResponse {
     private Event.RecurrenceType recurrenceType;
     private LocalDateTime recurrenceEndDate;
     private Boolean requiresApproval;
+    private Boolean bringListEnabled;
+    private List<EventBringItemResponse> bringItems;
     
     // RSVP summary
     private EventRsvpSummary rsvpSummary;
@@ -63,6 +66,8 @@ public class EventResponse {
             event.getRecurrenceType(),
             event.getRecurrenceEndDate(),
             event.getRequiresApproval(),
+            event.getBringListEnabled(),
+            null,
             null, // rsvpSummary will be set separately if needed
             event.getCreatedAt(),
             event.getUpdatedAt()

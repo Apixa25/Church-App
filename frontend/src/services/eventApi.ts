@@ -7,7 +7,11 @@ import {
   EventRsvpRequest, 
   EventRsvpSummary, 
   EventCategory, 
-  EventStatus 
+  EventStatus,
+  EventBringItem,
+  EventBringItemInput,
+  EventBringClaim,
+  EventBringClaimInput
 } from '../types/Event';
 
 export const eventAPI = {
@@ -89,6 +93,25 @@ export const eventAPI = {
   
   getUserUpcomingRsvps: (): Promise<{ data: EventRsvp[] }> =>
     api.get('/events/my-upcoming-rsvps'),
+
+  // Bring list operations
+  getBringItems: (eventId: string): Promise<{ data: EventBringItem[] }> =>
+    api.get(`/events/${eventId}/bring-items`),
+
+  addBringItem: (eventId: string, payload: EventBringItemInput): Promise<{ data: EventBringItem }> =>
+    api.post(`/events/${eventId}/bring-items`, payload),
+
+  updateBringItem: (eventId: string, itemId: string, payload: EventBringItemInput): Promise<{ data: EventBringItem }> =>
+    api.put(`/events/${eventId}/bring-items/${itemId}`, payload),
+
+  deleteBringItem: (eventId: string, itemId: string): Promise<{ data: { message: string } }> =>
+    api.delete(`/events/${eventId}/bring-items/${itemId}`),
+
+  claimBringItem: (eventId: string, itemId: string, payload: EventBringClaimInput): Promise<{ data: EventBringClaim }> =>
+    api.post(`/events/${eventId}/bring-items/${itemId}/claim`, payload),
+
+  releaseBringItem: (eventId: string, itemId: string): Promise<{ data: { message: string } }> =>
+    api.delete(`/events/${eventId}/bring-items/${itemId}/claim`),
 };
 
 // Event category and status helpers for dropdowns

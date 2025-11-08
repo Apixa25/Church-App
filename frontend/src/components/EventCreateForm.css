@@ -166,6 +166,24 @@
   accent-color: var(--accent-primary);
 }
 
+.bring-list-toggle {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px dashed var(--accent-primary);
+  border-radius: var(--border-radius-md);
+  padding: 18px;
+}
+
+.bring-list-toggle .checkbox-label {
+  font-size: 15px;
+}
+
+.bring-list-toggle .helper-text {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
 .form-actions {
   display: flex;
   gap: 15px;

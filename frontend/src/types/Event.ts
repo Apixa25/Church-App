@@ -5,6 +5,8 @@ export interface Event {
   startTime: string;
   endTime?: string;
   location?: string;
+  bringListEnabled: boolean;
+  bringItems?: EventBringItem[];
   
   // Creator details
   creatorId: string;
@@ -44,6 +46,8 @@ export interface EventRequest {
   recurrenceType?: RecurrenceType;
   recurrenceEndDate?: string;
   requiresApproval?: boolean;
+  bringListEnabled?: boolean;
+  bringItems?: EventBringItemInput[];
 }
 
 export interface EventRsvp {
@@ -87,6 +91,48 @@ export interface EventsResponse {
   totalElements: number;
   currentPage: number;
   pageSize: number;
+}
+
+export interface EventBringItem {
+  id: string;
+  name: string;
+  description?: string;
+  quantityNeeded?: number;
+  quantityClaimed?: number;
+  quantityRemaining?: number;
+  allowMultipleClaims: boolean;
+  createdById?: string;
+  createdByName?: string;
+  createdByProfilePicUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+  canEdit?: boolean;
+  userClaim?: EventBringClaim;
+  claims: EventBringClaim[];
+}
+
+export interface EventBringClaim {
+  id: string;
+  itemId: string;
+  userId: string;
+  userName: string;
+  userProfilePicUrl?: string;
+  quantity: number;
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EventBringItemInput {
+  name: string;
+  description?: string;
+  quantityNeeded?: number;
+  allowMultipleClaims?: boolean;
+}
+
+export interface EventBringClaimInput {
+  quantity?: number;
+  note?: string;
 }
 
 export enum EventCategory {

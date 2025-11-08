@@ -1,12 +1,13 @@
 package com.churchapp.service;
 
+import com.churchapp.dto.EventBringItemRequest;
+import com.churchapp.entity.ChatGroup;
 import com.churchapp.entity.Event;
 import com.churchapp.entity.User;
-import com.churchapp.entity.ChatGroup;
+import com.churchapp.repository.ChatGroupRepository;
 import com.churchapp.repository.EventRepository;
 import com.churchapp.repository.EventRsvpRepository;
 import com.churchapp.repository.UserRepository;
-import com.churchapp.repository.ChatGroupRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -29,8 +30,9 @@ public class EventService {
     private final EventRsvpRepository eventRsvpRepository;
     private final UserRepository userRepository;
     private final ChatGroupRepository chatGroupRepository;
+    private final EventBringListService eventBringListService;
     
-    public Event createEvent(UUID creatorId, Event eventRequest) {
+    public Event createEvent(UUID creatorId, Event eventRequest, Boolean bringListEnabled, List<EventBringItemRequest> bringItems) {
         User creator = userRepository.findById(creatorId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + creatorId));
         
@@ -58,6 +60,7 @@ public class EventService {
         event.setRecurrenceType(eventRequest.getRecurrenceType());
         event.setRecurrenceEndDate(eventRequest.getRecurrenceEndDate());
         event.setRequiresApproval(eventRequest.getRequiresApproval() != null ? eventRequest.getRequiresApproval() : false);
+        event.setBringListEnabled(bringListEnabled != null ? bringListEnabled : Boolean.FALSE);
         event.setStatus(Event.EventStatus.SCHEDULED);
         
         // Fix recurring event validation - if isRecurring is true but no recurrenceType, set to false
@@ -85,6 +88,11 @@ public class EventService {
         }
         
         Event savedEvent = eventRepository.save(event);
+        
+        if (Boolean.TRUE.equals(savedEvent.getBringListEnabled()) && bringItems != null && !bringItems.isEmpty()) {
+            eventBringListService.seedBringItems(savedEvent, creator, bringItems);
+        }
+        
         log.info("Event created with id: {} by user: {}", savedEvent.getId(), creatorId);
         
         return savedEvent;
@@ -95,7 +103,7 @@ public class EventService {
             .orElseThrow(() -> new RuntimeException("Event not found with id: " + eventId));
     }
     
-    public Event updateEvent(UUID eventId, UUID userId, Event eventUpdate) {
+    public Event updateEvent(UUID eventId, UUID userId, Event eventUpdate, Boolean bringListEnabled, List<EventBringItemRequest> bringItems) {
         Event existingEvent = eventRepository.findById(eventId)
             .orElseThrow(() -> new RuntimeException("Event not found with id: " + eventId));
         
@@ -137,7 +145,19 @@ public class EventService {
             existingEvent.setMaxAttendees(eventUpdate.getMaxAttendees());
         }
         
+        if (bringListEnabled != null) {
+            existingEvent.setBringListEnabled(bringListEnabled);
+            if (!bringListEnabled) {
+                eventBringListService.deleteAllItemsForEvent(existingEvent.getId());
+            }
+        }
+        
         Event updatedEvent = eventRepository.save(existingEvent);
+        
+        if (Boolean.TRUE.equals(updatedEvent.getBringListEnabled()) && bringItems != null && !bringItems.isEmpty()) {
+            eventBringListService.seedBringItems(updatedEvent, user, bringItems);
+        }
+        
         log.info("Event updated with id: {} by user: {}", eventId, userId);
         
         return updatedEvent;

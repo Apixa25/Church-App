@@ -1,5 +1,9 @@
 package com.churchapp.controller;
 
+import com.churchapp.dto.EventBringClaimRequest;
+import com.churchapp.dto.EventBringClaimResponse;
+import com.churchapp.dto.EventBringItemRequest;
+import com.churchapp.dto.EventBringItemResponse;
 import com.churchapp.dto.EventRequest;
 import com.churchapp.dto.EventResponse;
 import com.churchapp.dto.EventRsvpRequest;
@@ -8,6 +12,7 @@ import com.churchapp.dto.EventRsvpSummary;
 import com.churchapp.dto.UserProfileResponse;
 import com.churchapp.entity.Event;
 import com.churchapp.entity.EventRsvp;
+import com.churchapp.service.EventBringListService;
 import com.churchapp.service.EventService;
 import com.churchapp.service.UserProfileService;
 import com.churchapp.service.EventRsvpService;
@@ -38,6 +43,7 @@ public class EventController {
     private final EventService eventService;
     private final UserProfileService userProfileService;
     private final EventRsvpService eventRsvpService;
+    private final EventBringListService eventBringListService;
     
     @PostMapping
     public ResponseEntity<?> createEvent(@AuthenticationPrincipal User user,
@@ -54,12 +60,18 @@ public class EventController {
             log.info("Converted event entity - Title: '{}', StartTime: '{}', Category: '{}', Status: '{}'", 
                     eventEntity.getTitle(), eventEntity.getStartTime(), eventEntity.getCategory(), eventEntity.getStatus());
             
-            Event createdEvent = eventService.createEvent(currentProfile.getUserId(), eventEntity);
+            Event createdEvent = eventService.createEvent(
+                currentProfile.getUserId(),
+                eventEntity,
+                request.getBringListEnabled(),
+                request.getBringItems()
+            );
             
             EventResponse response = EventResponse.fromEvent(createdEvent);
             EventRsvpSummary rsvpSummary = eventRsvpService.getEventRsvpSummary(
                     createdEvent.getId(), currentProfile.getUserId());
             response.setRsvpSummary(rsvpSummary);
+            response.setBringItems(eventBringListService.getBringItems(createdEvent.getId(), currentProfile.getUserId()));
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             log.error("Error creating event: {}", e.getMessage(), e);
@@ -81,6 +93,7 @@ public class EventController {
             // Add RSVP summary including user's own RSVP
             EventRsvpSummary rsvpSummary = eventRsvpService.getEventRsvpSummary(eventId, currentProfile.getUserId());
             response.setRsvpSummary(rsvpSummary);
+            response.setBringItems(eventBringListService.getBringItems(eventId, currentProfile.getUserId()));
             
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
@@ -98,12 +111,19 @@ public class EventController {
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
             
             Event eventUpdate = convertToEntity(request);
-            Event updatedEvent = eventService.updateEvent(eventId, currentProfile.getUserId(), eventUpdate);
+            Event updatedEvent = eventService.updateEvent(
+                eventId,
+                currentProfile.getUserId(),
+                eventUpdate,
+                request.getBringListEnabled(),
+                request.getBringItems()
+            );
             
             EventResponse response = EventResponse.fromEvent(updatedEvent);
             EventRsvpSummary rsvpSummary = eventRsvpService.getEventRsvpSummary(
                     updatedEvent.getId(), currentProfile.getUserId());
             response.setRsvpSummary(rsvpSummary);
+            response.setBringItems(eventBringListService.getBringItems(updatedEvent.getId(), currentProfile.getUserId()));
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -378,6 +398,7 @@ public class EventController {
         event.setRecurrenceType(request.getRecurrenceType());
         event.setRecurrenceEndDate(request.getRecurrenceEndDate());
         event.setRequiresApproval(request.getRequiresApproval());
+        event.setBringListEnabled(request.getBringListEnabled() != null ? request.getBringListEnabled() : false);
         
         // Handle group association
         if (request.getGroupId() != null) {
@@ -387,6 +408,103 @@ public class EventController {
         }
         
         return event;
+    }
+    
+    // Bring List Management
+    
+    @GetMapping("/{eventId}/bring-items")
+    public ResponseEntity<?> getBringItems(@PathVariable UUID eventId,
+                                           @AuthenticationPrincipal User user) {
+        try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            List<EventBringItemResponse> items = eventBringListService.getBringItems(eventId, currentProfile.getUserId());
+            return ResponseEntity.ok(items);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @PostMapping("/{eventId}/bring-items")
+    public ResponseEntity<?> addBringItem(@PathVariable UUID eventId,
+                                          @AuthenticationPrincipal User user,
+                                          @Valid @RequestBody EventBringItemRequest request) {
+        try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            EventBringItemResponse item = eventBringListService.addItem(eventId, currentProfile.getUserId(), request);
+            return ResponseEntity.ok(item);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @PutMapping("/{eventId}/bring-items/{itemId}")
+    public ResponseEntity<?> updateBringItem(@PathVariable UUID eventId,
+                                             @PathVariable UUID itemId,
+                                             @AuthenticationPrincipal User user,
+                                             @Valid @RequestBody EventBringItemRequest request) {
+        try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            EventBringItemResponse item = eventBringListService.updateItem(eventId, itemId, currentProfile.getUserId(), request);
+            return ResponseEntity.ok(item);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @DeleteMapping("/{eventId}/bring-items/{itemId}")
+    public ResponseEntity<?> deleteBringItem(@PathVariable UUID eventId,
+                                             @PathVariable UUID itemId,
+                                             @AuthenticationPrincipal User user) {
+        try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            eventBringListService.deleteItem(eventId, itemId, currentProfile.getUserId());
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Item removed successfully");
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @PostMapping("/{eventId}/bring-items/{itemId}/claim")
+    public ResponseEntity<?> claimBringItem(@PathVariable UUID eventId,
+                                            @PathVariable UUID itemId,
+                                            @AuthenticationPrincipal User user,
+                                            @Valid @RequestBody EventBringClaimRequest request) {
+        try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            EventBringClaimResponse claim = eventBringListService.upsertClaim(eventId, itemId, currentProfile.getUserId(), request);
+            return ResponseEntity.ok(claim);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @DeleteMapping("/{eventId}/bring-items/{itemId}/claim")
+    public ResponseEntity<?> releaseBringItem(@PathVariable UUID eventId,
+                                              @PathVariable UUID itemId,
+                                              @AuthenticationPrincipal User user) {
+        try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            eventBringListService.deleteClaim(eventId, itemId, currentProfile.getUserId());
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Claim released successfully");
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
     }
     
     // RSVP Management Endpoints

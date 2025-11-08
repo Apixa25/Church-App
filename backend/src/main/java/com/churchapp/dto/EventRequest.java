@@ -1,6 +1,7 @@
 package com.churchapp.dto;
 
 import com.churchapp.entity.Event;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -9,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -46,4 +48,9 @@ public class EventRequest {
     private LocalDateTime recurrenceEndDate;
     
     private Boolean requiresApproval = false;
+
+    private Boolean bringListEnabled = false;
+
+    @Valid
+    private List<EventBringItemRequest> bringItems;
 }
