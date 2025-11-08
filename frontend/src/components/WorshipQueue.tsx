@@ -70,6 +70,7 @@ const WorshipQueue: React.FC<WorshipQueueProps> = ({
   };
 
   const handleVote = async (queueEntryId: string, voteType: VoteType) => {
+    console.log('Voting:', { queueEntryId, voteType, userRole, canVote: canVote(userRole) });
     try {
       await worshipAPI.vote({
         queueEntryId,
@@ -100,6 +101,14 @@ const WorshipQueue: React.FC<WorshipQueueProps> = ({
     entry.videoTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
     entry.userName.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  console.log('WorshipQueue render:', {
+    userRole,
+    canVote: canVote(userRole),
+    canAddToQueue: canAddToQueue(userRole),
+    queueLength: queue.length,
+    currentSongId: currentSong?.id
+  });
 
   return (
     <div className="worship-queue">
