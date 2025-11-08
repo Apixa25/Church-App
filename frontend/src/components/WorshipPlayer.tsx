@@ -32,6 +32,7 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
 }) => {
   const playerRef = useRef<any>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
+  const playerIdRef = useRef<string>(`youtube-player-${Math.random().toString(36).substr(2, 9)}`);
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -66,27 +67,45 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
   const initializePlayer = () => {
     if (!playerContainerRef.current) return;
 
-    playerRef.current = new window.YT.Player(playerContainerRef.current, {
+    // Destroy existing player if any
+    if (playerRef.current) {
+      try {
+        playerRef.current.destroy();
+      } catch (e) {
+        console.warn('Error destroying player:', e);
+      }
+    }
+
+    playerRef.current = new window.YT.Player(playerIdRef.current, {
       height: '100%',
       width: '100%',
       videoId: videoId || '',
       playerVars: {
         autoplay: 0,
-        controls: 0, // Hide default controls, we'll use custom
-        disablekb: 1,
+        controls: 1, // Enable default controls for better compatibility
+        disablekb: 0,
         fs: 1,
         modestbranding: 1,
         rel: 0,
         showinfo: 0,
+        origin: window.location.origin,
       },
       events: {
         onReady: handlePlayerReady,
         onStateChange: handlePlayerStateChange,
+        onError: handlePlayerError,
       },
     });
   };
 
+  const handlePlayerError = (event: any) => {
+    console.error('YouTube Player Error:', event.data);
+    // Error codes: 2 = invalid parameter, 5 = HTML5 player error,
+    // 100 = video not found, 101/150 = not allowed to be played in embedded players
+  };
+
   const handlePlayerReady = (event: any) => {
+    console.log('YouTube player ready');
     setIsReady(true);
     event.target.setVolume(volume);
 
@@ -118,7 +137,15 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
   // Handle video changes
   useEffect(() => {
     if (isReady && playerRef.current && videoId) {
-      playerRef.current.loadVideoById(videoId);
+      console.log('Loading video:', videoId);
+      try {
+        playerRef.current.loadVideoById({
+          videoId: videoId,
+          startSeconds: 0,
+        });
+      } catch (e) {
+        console.error('Error loading video:', e);
+      }
     }
   }, [videoId, isReady]);
 
@@ -133,15 +160,22 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
     }
 
     const executeSync = () => {
+      console.log('Executing sync:', syncState.action, 'videoId:', syncState.videoId);
       switch (syncState.action) {
         case PlaybackAction.PLAY:
-          if (syncState.videoId && syncState.videoId !== videoId) {
-            playerRef.current.loadVideoById(syncState.videoId);
-          }
-          if (syncState.seekPosition !== undefined) {
+          if (syncState.videoId) {
+            // Always load the video to ensure it's playing the correct one
+            playerRef.current.loadVideoById({
+              videoId: syncState.videoId,
+              startSeconds: syncState.seekPosition || 0,
+            });
+            // playVideo will be called automatically after loadVideoById
+          } else if (syncState.seekPosition !== undefined) {
             playerRef.current.seekTo(syncState.seekPosition, true);
+            playerRef.current.playVideo();
+          } else {
+            playerRef.current.playVideo();
           }
-          playerRef.current.playVideo();
           break;
 
         case PlaybackAction.PAUSE:
@@ -240,7 +274,7 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
             </div>
           </div>
         ) : (
-          <div ref={playerContainerRef} className="player-iframe" />
+          <div ref={playerContainerRef} id={playerIdRef.current} className="player-iframe" />
         )}
       </div>
 

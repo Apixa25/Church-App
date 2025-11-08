@@ -212,6 +212,53 @@
   transform: translateY(-1px);
 }
 
+/* No Song Playing */
+.no-song-playing {
+  background: var(--bg-tertiary);
+  border: 2px dashed var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  padding: 40px 20px;
+  margin-bottom: 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.no-song-text {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.start-playing-button {
+  padding: 14px 32px;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: 0 4px 12px var(--button-primary-glow);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.start-playing-button:hover {
+  background: linear-gradient(135deg, var(--accent-primary-dark), var(--accent-secondary-dark));
+  box-shadow: var(--glow-blue);
+  transform: translateY(-2px) scale(1.02);
+}
+
+.start-playing-button:active {
+  transform: translateY(0) scale(0.98);
+}
+
 /* Participants Panel */
 .participants-panel {
   background: var(--bg-tertiary);
@@ -443,6 +490,15 @@
     padding: 8px 14px;
     font-size: 13px;
   }
+
+  .start-playing-button {
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+
+  .no-song-playing {
+    padding: 30px 16px;
+  }
 }
 
 /* Accessibility */
@@ -451,7 +507,8 @@
 .settings-button:focus,
 .delete-button:focus,
 .leave-button:focus,
-.control-button:focus {
+.control-button:focus,
+.start-playing-button:focus {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
   box-shadow: 0 0 0 4px rgba(91, 127, 255, 0.2);
@@ -484,6 +541,7 @@
   .delete-button,
   .leave-button,
   .control-button,
+  .start-playing-button,
   .participant-item,
   .spinner,
   .modal-overlay,
@@ -493,7 +551,8 @@
   }
 
   .back-button:hover,
-  .control-button:hover {
+  .control-button:hover,
+  .start-playing-button:hover {
     transform: none !important;
   }
 }
