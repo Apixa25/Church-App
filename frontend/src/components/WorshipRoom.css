@@ -1,0 +1,481 @@
+/* Worship Room Component - Dark Theme */
+
+.worship-room {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Header */
+.worship-room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-primary);
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.back-button {
+  padding: 10px 18px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.back-button:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-glow);
+  box-shadow: 0 0 8px var(--button-primary-glow);
+  transform: translateY(-1px);
+}
+
+.room-info h1 {
+  margin: 0 0 4px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.room-info p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.header-right {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.participants-button,
+.settings-button,
+.leave-button {
+  padding: 10px 18px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.participants-button:hover,
+.settings-button:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-glow);
+  box-shadow: 0 0 8px var(--button-primary-glow);
+}
+
+.leave-button {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.leave-button:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+}
+
+/* Main Content */
+.worship-room-content {
+  display: flex;
+  gap: 24px;
+  padding: 24px;
+  max-width: 1800px;
+  margin: 0 auto;
+}
+
+.worship-main-column {
+  flex: 1;
+  min-width: 0;
+}
+
+.worship-side-column {
+  width: 320px;
+  flex-shrink: 0;
+}
+
+/* Player Container */
+.player-container {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 20px;
+}
+
+/* Current Song Info */
+.current-song-info {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.song-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.song-details h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.song-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+
+.song-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.playback-controls {
+  display: flex;
+  gap: 12px;
+}
+
+.control-button {
+  padding: 10px 18px;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: 0 2px 8px var(--button-primary-glow);
+  white-space: nowrap;
+}
+
+.control-button:hover {
+  background: linear-gradient(135deg, var(--accent-primary-dark), var(--accent-secondary-dark));
+  box-shadow: var(--glow-blue);
+  transform: translateY(-1px);
+}
+
+/* Participants Panel */
+.participants-panel {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 100px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.participants-panel h3 {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.participants-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.participant-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  transition: all var(--transition-base);
+}
+
+.participant-item:hover {
+  border-color: var(--border-glow);
+  box-shadow: 0 0 8px var(--button-primary-glow);
+}
+
+.participant-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--gradient-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.participant-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.participant-avatar span {
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+}
+
+.participant-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.participant-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.participant-role {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}
+
+.leader-badge {
+  padding: 4px 10px;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  color: #ffd700;
+  border-radius: var(--border-radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Loading and Error States */
+.worship-room.loading,
+.worship-room.error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.loading-spinner {
+  text-align: center;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--border-primary);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-spinner p,
+.worship-room.error p {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.worship-room.error .back-button {
+  display: inline-flex;
+  padding: 12px 24px;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  box-shadow: 0 2px 8px var(--button-primary-glow);
+}
+
+.worship-room.error .back-button:hover {
+  background: linear-gradient(135deg, var(--accent-primary-dark), var(--accent-secondary-dark));
+  box-shadow: var(--glow-blue);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .worship-side-column {
+    width: 280px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .worship-room-content {
+    flex-direction: column;
+  }
+
+  .worship-side-column {
+    width: 100%;
+  }
+
+  .participants-panel {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .worship-room-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .header-left {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .worship-room-content {
+    padding: 16px;
+  }
+
+  .current-song-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .playback-controls {
+    width: 100%;
+  }
+
+  .control-button {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .room-info h1 {
+    font-size: 20px;
+  }
+
+  .participants-button,
+  .settings-button,
+  .leave-button,
+  .back-button {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .song-details h3 {
+    font-size: 16px;
+  }
+
+  .control-button {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+}
+
+/* Accessibility */
+.back-button:focus,
+.participants-button:focus,
+.settings-button:focus,
+.leave-button:focus,
+.control-button:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(91, 127, 255, 0.2);
+}
+
+/* Scrollbar Styling */
+.participants-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.participants-panel::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-sm);
+}
+
+.participants-panel::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border-radius: var(--border-radius-sm);
+}
+
+.participants-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--border-glow);
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .back-button,
+  .participants-button,
+  .settings-button,
+  .leave-button,
+  .control-button,
+  .participant-item,
+  .spinner {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .back-button:hover,
+  .control-button:hover {
+    transform: none !important;
+  }
+}

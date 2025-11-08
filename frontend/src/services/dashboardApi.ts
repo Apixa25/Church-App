@@ -409,6 +409,21 @@ const dashboardApi = {
     return actions;
   },
 
+  // Worship specific dashboard functions
+  getWorshipQuickActions: (): QuickAction[] => {
+    return [
+      {
+        id: 'worship-rooms',
+        title: 'Worship Rooms',
+        description: 'Join live worship sessions and share music with the community',
+        actionUrl: '/worship',
+        iconType: 'music',
+        buttonText: 'Join Worship',
+        requiresAuth: true
+      }
+    ];
+  },
+
   getDashboardWithAll: async (): Promise<DashboardResponse> => {
     try {
       // Get the main dashboard data
@@ -447,14 +462,16 @@ const dashboardApi = {
       const donationQuickActions = dashboardApi.getDonationQuickActions(
         dashboardData.userRole || localStorage.getItem('userRole')
       );
-      
+      const worshipQuickActions = dashboardApi.getWorshipQuickActions();
+
       const existingActionUrls = (dashboardData.quickActions || []).map((action: QuickAction) => action.actionUrl);
       const newActions = [
         ...prayerQuickActions,
         ...announcementQuickActions,
         ...eventQuickActions,
         ...resourceQuickActions,
-        ...donationQuickActions
+        ...donationQuickActions,
+        ...worshipQuickActions
       ].filter(action =>
         !existingActionUrls.includes(action.actionUrl)
       );

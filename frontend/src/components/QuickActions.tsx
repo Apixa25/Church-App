@@ -25,7 +25,8 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions, isLoading }) => {
       settings: '⚙️',
       rsvp: '🎫',
       resource: '📚',
-      upload: '📁'
+      upload: '📁',
+      music: '🎵'
     };
     return iconMap[iconType] || '📝';
   };
