@@ -226,11 +226,11 @@
   text-decoration: underline;
 }
 
-/* Spiritual Gift */
+/* Spiritual Gifts */
 .profile-spiritual-gift-x {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 12px;
   margin-top: 12px;
   padding: 12px;
   background: var(--bg-tertiary);
@@ -243,15 +243,36 @@
 }
 
 .spiritual-gift-label {
-  font-size: 15px;
+  font-size: 14px;
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.spiritual-gift-value {
-  font-size: 15px;
+.spiritual-gift-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.spiritual-gift-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.spiritual-gift-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  background: rgba(91, 127, 255, 0.15);
+  border: 1px solid rgba(91, 127, 255, 0.35);
+  border-radius: 999px;
   color: var(--text-primary);
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(91, 127, 255, 0.1);
 }
 
 /* Interests */

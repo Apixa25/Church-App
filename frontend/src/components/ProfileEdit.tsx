@@ -6,6 +6,24 @@ import { UserProfile } from '../types/Profile';
 import { updateUserProfile, uploadProfilePicture, uploadBannerImage } from '../services/postApi';
 import './ProfileEdit.css';
 
+const SPIRITUAL_GIFTS = [
+  'Prophecy',
+  'Teaching',
+  'Message of Wisdom',
+  'Message of Knowledge',
+  'Faith',
+  'Gifts of Healing',
+  'Miraculous Powers / Miracles',
+  'Discernment of Spirits',
+  'Tongues',
+  'Interpretation of Tongues',
+  'Serving / Helps',
+  'Encouragement / Exhortation',
+  'Giving',
+  'Leadership / Administration',
+  'Mercy'
+] as const;
+
 interface ProfileFormData {
   name: string;
   bio: string;
@@ -15,7 +33,7 @@ interface ProfileFormData {
   phoneNumber: string;
   address: string;
   birthday: string;
-  spiritualGift: string;
+  spiritualGifts: string[];
 }
 
 interface ProfileEditProps {
@@ -41,7 +59,7 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
     phoneNumber: '',
     address: '',
     birthday: '',
-    spiritualGift: ''
+    spiritualGifts: []
   });
 
   const [isLoading] = useState(false);
@@ -80,7 +98,12 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
         phoneNumber: profileToUse.phoneNumber || '',
         address: profileToUse.address || '',
         birthday: profileToUse.birthday || '',
-        spiritualGift: profileToUse.spiritualGift || ''
+        spiritualGifts: profileToUse.spiritualGift
+          ? profileToUse.spiritualGift
+              .split(',')
+              .map(gift => gift.trim())
+              .filter(Boolean)
+          : []
       });
 
       if (profileToUse.profilePicUrl) {
@@ -167,6 +190,25 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
     }
   };
 
+  const toggleSpiritualGift = (gift: (typeof SPIRITUAL_GIFTS)[number]) => {
+    setFormData(prev => {
+      const isSelected = prev.spiritualGifts.includes(gift);
+      const updatedGifts = isSelected
+        ? prev.spiritualGifts.filter(item => item !== gift)
+        : [...prev.spiritualGifts, gift];
+
+      return {
+        ...prev,
+        spiritualGifts: updatedGifts
+      };
+    });
+    setError('');
+    setSuccess('');
+  };
+
+  const isSpiritualGiftSelected = (gift: (typeof SPIRITUAL_GIFTS)[number]) =>
+    formData.spiritualGifts.includes(gift);
+
   const validateForm = (): boolean => {
     if (!formData.name.trim()) {
       setError('Name is required');
@@ -229,9 +271,11 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
         }
       }
 
-      // Update profile data - create API request object with correct types
+      // Prepare profile data with serialization for backend expectations
+      const { spiritualGifts, ...restFormData } = formData;
       const updatedProfile = {
-        ...formData,
+        ...restFormData,
+        spiritualGift: spiritualGifts.join(', '),
         profilePicUrl,
         bannerImageUrl,
         interests: JSON.stringify(formData.interests) // Convert array to JSON string for backend
@@ -538,18 +582,33 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
             <small className="char-count">{formData.address.length}/500</small>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="spiritualGift">Spiritual Gift</label>
-            <input
-              id="spiritualGift"
-              type="text"
-              value={formData.spiritualGift}
-              onChange={(e) => handleInputChange('spiritualGift', e.target.value)}
-              placeholder="e.g., Teaching, Hospitality, Administration, Encouragement..."
-              maxLength={255}
-              className="form-input"
-            />
-            <small className="field-help">Share your spiritual gifts to help others understand how you serve</small>
+          <div className="form-group spiritual-gifts-group" role="group" aria-label="Spiritual gifts selection">
+            <label className="spiritual-gifts-label">Spiritual Gifts</label>
+            <p className="field-help">
+              Tap the gifts that resonate with how you serve. Select as many as you’d like!
+            </p>
+            <div className="spiritual-gifts-grid">
+              {SPIRITUAL_GIFTS.map(gift => {
+                const selected = isSpiritualGiftSelected(gift);
+                return (
+                  <button
+                    type="button"
+                    key={gift}
+                    className={`spiritual-gift-option ${selected ? 'selected' : ''}`}
+                    onClick={() => toggleSpiritualGift(gift)}
+                    aria-pressed={selected}
+                  >
+                    {gift}
+                  </button>
+                );
+              })}
+            </div>
+            {formData.spiritualGifts.length > 0 && (
+              <div className="selected-gifts-summary">
+                <span className="summary-label">Selected:</span>
+                <span className="summary-values">{formData.spiritualGifts.join(', ')}</span>
+              </div>
+            )}
           </div>
         </div>
 

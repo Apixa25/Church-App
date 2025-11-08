@@ -1099,6 +1099,272 @@ class WebSocketService {
       body: JSON.stringify({ isTyping }),
     });
   }
+
+  // ==================== WORSHIP LEADER WEBSOCKET METHODS ====================
+
+  // Subscribe to worship room updates
+  subscribeToWorshipRoom(
+    roomId: string,
+    callback: (update: any) => void
+  ): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = `worship-room-${roomId}`;
+
+    // Clean up existing subscription if it exists
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      console.log('Cleaning up existing subscription for:', subscriptionKey);
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
+    const destination = `/topic/worship/rooms/${roomId}`;
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing worship room update:', error);
+      }
+    });
+
+    this.subscriptions.set(subscriptionKey, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    };
+  }
+
+  // Subscribe to worship queue updates
+  subscribeToWorshipQueue(
+    roomId: string,
+    callback: (update: any) => void
+  ): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = `worship-queue-${roomId}`;
+
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      console.log('Cleaning up existing subscription for:', subscriptionKey);
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
+    const destination = `/topic/worship/rooms/${roomId}/queue`;
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing worship queue update:', error);
+      }
+    });
+
+    this.subscriptions.set(subscriptionKey, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    };
+  }
+
+  // Subscribe to now playing updates
+  subscribeToNowPlaying(
+    roomId: string,
+    callback: (update: any) => void
+  ): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = `worship-now-playing-${roomId}`;
+
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      console.log('Cleaning up existing subscription for:', subscriptionKey);
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
+    const destination = `/topic/worship/rooms/${roomId}/nowPlaying`;
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing now playing update:', error);
+      }
+    });
+
+    this.subscriptions.set(subscriptionKey, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    };
+  }
+
+  // Subscribe to playback commands
+  subscribeToPlaybackCommands(
+    roomId: string,
+    callback: (command: any) => void
+  ): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = `worship-playback-${roomId}`;
+
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      console.log('Cleaning up existing subscription for:', subscriptionKey);
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
+    const destination = `/topic/worship/rooms/${roomId}/playback`;
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing playback command:', error);
+      }
+    });
+
+    this.subscriptions.set(subscriptionKey, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    };
+  }
+
+  // Subscribe to waitlist updates
+  subscribeToWorshipWaitlist(
+    roomId: string,
+    callback: (update: any) => void
+  ): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = `worship-waitlist-${roomId}`;
+
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      console.log('Cleaning up existing subscription for:', subscriptionKey);
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
+    const destination = `/topic/worship/rooms/${roomId}/waitlist`;
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing waitlist update:', error);
+      }
+    });
+
+    this.subscriptions.set(subscriptionKey, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    };
+  }
+
+  // Subscribe to user-specific worship sync (for reconnection)
+  subscribeToWorshipSync(
+    callback: (syncData: any) => void
+  ): () => void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    const subscriptionKey = 'worship-sync';
+
+    const existingSubscription = this.subscriptions.get(subscriptionKey);
+    if (existingSubscription) {
+      console.log('Cleaning up existing subscription for:', subscriptionKey);
+      existingSubscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    }
+
+    const destination = '/user/queue/worship/sync';
+    const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      try {
+        const data = JSON.parse(message.body);
+        callback(data);
+      } catch (error) {
+        console.error('Error parsing worship sync data:', error);
+      }
+    });
+
+    this.subscriptions.set(subscriptionKey, subscription);
+
+    return () => {
+      subscription.unsubscribe();
+      this.subscriptions.delete(subscriptionKey);
+    };
+  }
+
+  // Send playback control command
+  sendPlaybackCommand(roomId: string, command: any): void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    this.client.publish({
+      destination: `/app/worship/rooms/${roomId}/control`,
+      body: JSON.stringify(command),
+    });
+  }
+
+  // Send heartbeat to indicate user is active
+  sendWorshipHeartbeat(roomId: string): void {
+    if (!this.isConnected || !this.client) {
+      return; // Don't throw error for heartbeat
+    }
+
+    this.client.publish({
+      destination: `/app/worship/rooms/${roomId}/heartbeat`,
+      body: JSON.stringify({ timestamp: Date.now() }),
+    });
+  }
+
+  // Request sync state when reconnecting
+  requestWorshipSync(roomId: string): void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    this.client.publish({
+      destination: `/app/worship/rooms/${roomId}/sync`,
+      body: JSON.stringify({ timestamp: Date.now() }),
+    });
+  }
+
+  // Send presence update
+  sendWorshipPresence(roomId: string, status: 'online' | 'offline'): void {
+    if (!this.isConnected || !this.client) {
+      return; // Don't throw error for presence
+    }
+
+    this.client.publish({
+      destination: `/app/worship/rooms/${roomId}/presence`,
+      body: JSON.stringify({ status }),
+    });
+  }
 }
 
 // Create singleton instance
