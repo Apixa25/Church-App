@@ -22,10 +22,31 @@ const EventRsvpManager: React.FC<EventRsvpManagerProps> = ({
   const [showRsvpForm, setShowRsvpForm] = useState(false);
   const [guestCount, setGuestCount] = useState(0);
   const [notes, setNotes] = useState('');
+  const [publicRsvpNotes, setPublicRsvpNotes] = useState<EventRsvp[]>([]);
+  const [notesLoading, setNotesLoading] = useState(false);
+  const [notesError, setNotesError] = useState<string | null>(null);
+
+  const loadPublicNotes = async () => {
+    try {
+      setNotesLoading(true);
+      setNotesError(null);
+      const { data } = await eventAPI.getEventRsvps(event.id);
+      const notesWithContent = data.filter(
+        (rsvp) => rsvp.notes && rsvp.notes.trim().length > 0
+      );
+      setPublicRsvpNotes(notesWithContent);
+    } catch (err: any) {
+      setNotesError(err.response?.data?.error || 'Unable to load attendee notes.');
+      setPublicRsvpNotes([]);
+    } finally {
+      setNotesLoading(false);
+    }
+  };
 
   // Load user's current RSVP
   useEffect(() => {
     loadUserRsvp();
+    loadPublicNotes();
   }, [event.id]);
 
   const loadUserRsvp = async () => {
@@ -59,6 +80,7 @@ const EventRsvpManager: React.FC<EventRsvpManagerProps> = ({
       
       // Update local state
       await loadUserRsvp();
+      await loadPublicNotes();
       
       // Notify parent component
       if (onRsvpUpdate) {
@@ -87,6 +109,7 @@ const EventRsvpManager: React.FC<EventRsvpManagerProps> = ({
       setCurrentRsvp(null);
       setGuestCount(0);
       setNotes('');
+      await loadPublicNotes();
       
       // Notify parent component
       if (onRsvpUpdate) {
@@ -192,6 +215,40 @@ const EventRsvpManager: React.FC<EventRsvpManagerProps> = ({
               </span>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Public RSVP Notes */}
+      {(notesLoading || notesError || publicRsvpNotes.length > 0) && (
+        <div className="public-rsvp-notes">
+          <div className="notes-header">
+            <h5>📝 Attendee Notes</h5>
+            {publicRsvpNotes.length > 0 && (
+              <span className="note-count">{publicRsvpNotes.length}</span>
+            )}
+          </div>
+          {notesLoading && <p className="notes-helper">Loading notes…</p>}
+          {notesError && !notesLoading && (
+            <p className="notes-helper error">{notesError}</p>
+          )}
+          {!notesLoading && !notesError && publicRsvpNotes.length === 0 && (
+            <p className="notes-helper">No attendee notes yet.</p>
+          )}
+          {!notesLoading && !notesError && publicRsvpNotes.length > 0 && (
+            <ul className="notes-list">
+              {publicRsvpNotes.map((rsvp) => (
+                <li key={`${rsvp.userId}-${rsvp.updatedAt}`} className="note-item">
+                  <div className="note-meta">
+                    <span className="note-author">{rsvp.userName || 'Anonymous Member'}</span>
+                    <span className={`note-response ${rsvp.response.toLowerCase()}`}>
+                      {getRsvpResponseDisplay(rsvp.response)}
+                    </span>
+                  </div>
+                  <p className="note-text">{rsvp.notes}</p>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 
