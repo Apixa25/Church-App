@@ -34,6 +34,11 @@ public class WorshipPermissionService {
             return false;
         }
 
+        // Administrators can always join rooms for moderation or cleanup
+        if (user.getRole() == User.Role.ADMIN) {
+            return true;
+        }
+
         if (!room.getIsActive()) {
             return false;
         }

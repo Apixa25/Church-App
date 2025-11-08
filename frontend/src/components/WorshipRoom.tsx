@@ -351,11 +351,15 @@ const WorshipRoom: React.FC = () => {
           >
             👥 {participants.length}
           </button>
-          {room.isCreator && (
+          {room.canEdit && (
             <>
               <button onClick={() => setShowSettings(!showSettings)} className="settings-button">
                 ⚙️ Settings
               </button>
+            </>
+          )}
+          {room.canDelete && (
+            <>
               <button onClick={() => setShowDeleteConfirm(true)} className="delete-button">
                 🗑️ Delete Room
               </button>

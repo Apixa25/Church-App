@@ -369,6 +369,8 @@ public class WorshipRoomService {
         response.setIsCurrentLeader(room.isCurrentLeader(user));
         response.setCanJoin(permissionService.canJoinRoom(user, room));
         response.setUserRole(permissionService.getParticipantRole(user, room).name());
+        response.setCanEdit(permissionService.canEditRoom(user, room));
+        response.setCanDelete(permissionService.canDeleteRoom(user, room));
 
         // Check if user is in waitlist
         Optional<WorshipRoomParticipant> participantOpt =

@@ -45,6 +45,8 @@ public class WorshipRoomResponse {
     private String userRole; // LISTENER, DJ, LEADER, MODERATOR
     private Boolean isInWaitlist;
     private Integer waitlistPosition;
+    private Boolean canEdit;
+    private Boolean canDelete;
 
     // Constructor from entity
     public WorshipRoomResponse(WorshipRoom room) {
@@ -71,6 +73,8 @@ public class WorshipRoomResponse {
         this.skipThreshold = room.getSkipThreshold();
         this.createdAt = room.getCreatedAt();
         this.updatedAt = room.getUpdatedAt();
+        this.canEdit = false;
+        this.canDelete = false;
     }
 
     // Static factory methods
