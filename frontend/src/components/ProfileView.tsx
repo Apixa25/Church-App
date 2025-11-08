@@ -228,11 +228,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
       <div className="profile-view">
         {/* Top Navigation Bar */}
         <div className="profile-top-nav">
-          <button 
-            onClick={() => navigate('/dashboard')} 
-            className="back-button"
+          <button
+            onClick={() => navigate('/')}
+            className="back-home-btn"
+            title="Back to Dashboard"
           >
-            ←
+            🏠 Back Home
           </button>
           <div className="profile-top-nav-info">
             <h2>{profile.name}</h2>
