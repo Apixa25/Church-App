@@ -332,18 +332,25 @@
   box-shadow: var(--shadow-sm);
 }
 
+.rsvp-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .rsvp-status h4 {
   color: var(--text-primary);
   font-size: var(--font-size-lg);
-  margin: 0 0 12px 0;
+  margin: 0;
 }
 
 .rsvp-details {
   display: flex;
   align-items: center;
   gap: 15px;
-  margin-bottom: 10px;
+  margin-bottom: 4px;
   flex-wrap: wrap;
+  width: 100%;
 }
 
 .status {
@@ -387,22 +394,42 @@
 }
 
 .rsvp-notes {
-  margin-top: var(--spacing-md);
-  padding: var(--spacing-md);
-  background: var(--bg-tertiary);
-  border-radius: var(--border-radius-md);
-  border: 1px solid var(--border-primary);
-  color: var(--text-secondary);
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  width: 100%;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  word-break: break-word;
+  text-align: center;
+  white-space: normal;
 }
 
 .rsvp-notes strong {
-  color: var(--text-primary);
+  display: block;
+  margin: 0;
+  font-weight: 600;
+}
+
+.note-body {
+  display: block;
+  max-width: 100%;
+  color: var(--text-secondary);
+  white-space: normal;
+  word-break: break-word;
 }
 
 .rsvp-actions {
   display: flex;
   gap: var(--spacing-md);
-  margin-top: var(--spacing-md);
+  margin-top: var(--spacing-sm);
 }
 
 /* No RSVP */

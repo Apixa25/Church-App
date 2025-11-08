@@ -296,7 +296,8 @@ const EventRsvpManager: React.FC<EventRsvpManagerProps> = ({
             </div>
             {currentRsvp.notes && (
               <div className="rsvp-notes">
-                <strong>Your note:</strong> {currentRsvp.notes}
+                <strong>Your note:</strong>
+                <span className="note-body">{currentRsvp.notes}</span>
               </div>
             )}
           </div>
