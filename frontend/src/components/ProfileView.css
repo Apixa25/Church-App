@@ -275,6 +275,17 @@
   box-shadow: 0 2px 6px rgba(91, 127, 255, 0.1);
 }
 
+.equipping-gifts-card {
+  border-color: rgba(255, 196, 86, 0.45);
+  background: rgba(255, 196, 86, 0.12);
+}
+
+.equipping-gifts-card .spiritual-gift-badge {
+  background: rgba(255, 196, 86, 0.18);
+  border-color: rgba(255, 196, 86, 0.45);
+  box-shadow: 0 2px 6px rgba(255, 196, 86, 0.18);
+}
+
 /* Interests */
 .profile-interests-x {
   margin-top: 12px;

@@ -34,6 +34,9 @@ public class UserProfileRequest {
     @Size(max = 255, message = "Spiritual gift must be less than 255 characters")
     private String spiritualGift;
     
+    @Size(max = 255, message = "Equipping gifts must be less than 255 characters")
+    private String equippingGifts;
+    
     private User.Role role;
     
     private String profilePicUrl;

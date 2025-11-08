@@ -24,6 +24,14 @@ const SPIRITUAL_GIFTS = [
   'Mercy'
 ] as const;
 
+const EQUIPPING_GIFTS = [
+  'Apostle',
+  'Prophet',
+  'Evangelist',
+  'Pastor',
+  'Teacher'
+] as const;
+
 interface ProfileFormData {
   name: string;
   bio: string;
@@ -34,6 +42,7 @@ interface ProfileFormData {
   address: string;
   birthday: string;
   spiritualGifts: string[];
+  equippingGifts: string[];
 }
 
 interface ProfileEditProps {
@@ -59,7 +68,8 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
     phoneNumber: '',
     address: '',
     birthday: '',
-    spiritualGifts: []
+    spiritualGifts: [],
+    equippingGifts: []
   });
 
   const [isLoading] = useState(false);
@@ -100,6 +110,12 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
         birthday: profileToUse.birthday || '',
         spiritualGifts: profileToUse.spiritualGift
           ? profileToUse.spiritualGift
+              .split(',')
+              .map(gift => gift.trim())
+              .filter(Boolean)
+          : [],
+        equippingGifts: profileToUse.equippingGifts
+          ? profileToUse.equippingGifts
               .split(',')
               .map(gift => gift.trim())
               .filter(Boolean)
@@ -209,6 +225,25 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
   const isSpiritualGiftSelected = (gift: (typeof SPIRITUAL_GIFTS)[number]) =>
     formData.spiritualGifts.includes(gift);
 
+  const toggleEquippingGift = (gift: (typeof EQUIPPING_GIFTS)[number]) => {
+    setFormData(prev => {
+      const isSelected = prev.equippingGifts.includes(gift);
+      const updatedGifts = isSelected
+        ? prev.equippingGifts.filter(item => item !== gift)
+        : [...prev.equippingGifts, gift];
+
+      return {
+        ...prev,
+        equippingGifts: updatedGifts
+      };
+    });
+    setError('');
+    setSuccess('');
+  };
+
+  const isEquippingGiftSelected = (gift: (typeof EQUIPPING_GIFTS)[number]) =>
+    formData.equippingGifts.includes(gift);
+
   const validateForm = (): boolean => {
     if (!formData.name.trim()) {
       setError('Name is required');
@@ -272,10 +307,11 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
       }
 
       // Prepare profile data with serialization for backend expectations
-      const { spiritualGifts, ...restFormData } = formData;
+      const { spiritualGifts, equippingGifts, ...restFormData } = formData;
       const updatedProfile = {
         ...restFormData,
         spiritualGift: spiritualGifts.join(', '),
+        equippingGifts: equippingGifts.join(', '),
         profilePicUrl,
         bannerImageUrl,
         interests: JSON.stringify(formData.interests) // Convert array to JSON string for backend
@@ -302,6 +338,7 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
           address: result.address,
           birthday: result.birthday,
           spiritualGift: result.spiritualGift,
+          equippingGifts: result.equippingGifts,
           role: externalProfile.role,
           profilePicUrl: result.profilePicUrl,
           bannerImageUrl: (result as any).bannerImageUrl || bannerImageUrl,
@@ -607,6 +644,41 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
               <div className="selected-gifts-summary">
                 <span className="summary-label">Selected:</span>
                 <span className="summary-values">{formData.spiritualGifts.join(', ')}</span>
+              </div>
+            )}
+          </div>
+
+          <div
+            className="form-group spiritual-gifts-group"
+            role="group"
+            aria-label="Equipping gifts selection"
+          >
+            <label className="spiritual-gifts-label">
+              Gifts to Equip God&apos;s People for Works of Service
+            </label>
+            <p className="field-help">
+              Choose the fivefold ministry gifts that describe how you equip and develop others.
+            </p>
+            <div className="spiritual-gifts-grid">
+              {EQUIPPING_GIFTS.map(gift => {
+                const selected = isEquippingGiftSelected(gift);
+                return (
+                  <button
+                    type="button"
+                    key={gift}
+                    className={`spiritual-gift-option ${selected ? 'selected' : ''}`}
+                    onClick={() => toggleEquippingGift(gift)}
+                    aria-pressed={selected}
+                  >
+                    {gift}
+                  </button>
+                );
+              })}
+            </div>
+            {formData.equippingGifts.length > 0 && (
+              <div className="selected-gifts-summary">
+                <span className="summary-label">Selected:</span>
+                <span className="summary-values">{formData.equippingGifts.join(', ')}</span>
               </div>
             )}
           </div>

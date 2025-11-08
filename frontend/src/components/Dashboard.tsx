@@ -61,7 +61,8 @@ const Dashboard: React.FC = () => {
               phoneNumber: freshUserData.phoneNumber,
               address: freshUserData.address,
               birthday: freshUserData.birthday,
-              spiritualGift: freshUserData.spiritualGift
+              spiritualGift: freshUserData.spiritualGift,
+              equippingGifts: freshUserData.equippingGifts
             });
           }
         } catch (error) {

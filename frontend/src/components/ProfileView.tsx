@@ -367,6 +367,32 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
               );
             })()}
 
+            {/* Equipping Gifts */}
+            {profile.equippingGifts && (() => {
+              const equippingGifts = profile.equippingGifts
+                .split(',')
+                .map(gift => gift.trim())
+                .filter(Boolean);
+              if (equippingGifts.length === 0) {
+                return null;
+              }
+              return (
+                <div className="profile-spiritual-gift-x equipping-gifts-card">
+                  <span className="spiritual-gift-icon">🛠️</span>
+                  <div className="spiritual-gift-content">
+                    <span className="spiritual-gift-label">Equipping Gifts</span>
+                    <div className="spiritual-gift-badges">
+                      {equippingGifts.map(gift => (
+                        <span key={gift} className="spiritual-gift-badge">
+                          {gift}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Interests */}
             {profile.interests && (() => {
               try {

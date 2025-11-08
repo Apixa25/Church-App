@@ -10,6 +10,7 @@ export interface UserProfile {
   address?: string;
   birthday?: string;
   spiritualGift?: string;
+  equippingGifts?: string;
   role: 'MEMBER' | 'MODERATOR' | 'ADMIN';
   profilePicUrl?: string;
   bannerImageUrl?: string;
@@ -28,6 +29,7 @@ export interface ProfileUpdateRequest {
   address?: string;
   birthday?: string;
   spiritualGift?: string;
+  equippingGifts?: string;
   role?: 'MEMBER' | 'MODERATOR' | 'ADMIN';
   profilePicUrl?: string;
   bannerImageUrl?: string;

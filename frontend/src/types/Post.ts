@@ -16,6 +16,7 @@ export interface User {
   address?: string;
   birthday?: string;
   spiritualGift?: string;
+  equippingGifts?: string;
   createdAt?: string;
 }
 
