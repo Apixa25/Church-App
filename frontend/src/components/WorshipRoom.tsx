@@ -70,6 +70,9 @@ const WorshipRoom: React.FC = () => {
       setLoading(true);
       setError(null);
 
+      // First, join the room to become a participant
+      await worshipAPI.joinRoom(roomId);
+
       const [roomResponse, queueResponse, participantsResponse, currentlyPlayingResponse] = await Promise.all([
         worshipAPI.getRoomById(roomId),
         worshipAPI.getQueue(roomId),
@@ -216,8 +219,17 @@ const WorshipRoom: React.FC = () => {
   const loadQueue = async () => {
     if (!roomId) return;
     try {
-      const response = await worshipAPI.getQueue(roomId);
-      setQueue(response.data);
+      const [queueResponse, currentlyPlayingResponse] = await Promise.all([
+        worshipAPI.getQueue(roomId),
+        worshipAPI.getCurrentlyPlaying(roomId),
+      ]);
+
+      setQueue(queueResponse.data);
+
+      // Also update current song to reflect vote changes
+      if (currentlyPlayingResponse.data && 'id' in currentlyPlayingResponse.data) {
+        setCurrentSong(currentlyPlayingResponse.data as WorshipQueueEntry);
+      }
     } catch (err) {
       console.error('Error loading queue:', err);
     }
