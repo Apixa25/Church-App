@@ -305,12 +305,75 @@
   min-height: 100px;
 }
 
-.char-count {
+.spiritual-gifts-group {
+  background: var(--bg-secondary);
+  border: 2px dashed var(--border-primary);
+  border-radius: var(--border-radius-md);
+  padding: 20px;
+}
+
+.spiritual-gifts-label {
   display: block;
-  text-align: right;
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--text-tertiary);
+  margin-bottom: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.spiritual-gifts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.spiritual-gift-option {
+  padding: 10px 14px;
+  border-radius: var(--border-radius-pill);
+  border: 2px solid var(--border-primary);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.spiritual-gift-option:hover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 12px rgba(91, 127, 255, 0.35);
+}
+
+.spiritual-gift-option.selected {
+  background: rgba(91, 127, 255, 0.18);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  box-shadow: 0 0 16px rgba(91, 127, 255, 0.5);
+}
+
+.selected-gifts-summary {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-md);
+  border: 1px solid rgba(91, 127, 255, 0.35);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text-primary);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+}
+
+.selected-gifts-summary .summary-label {
+  font-weight: 600;
+  color: var(--accent-primary);
+}
+
+.selected-gifts-summary .summary-values {
+  font-weight: 500;
 }
 
 /* Interests Section */
