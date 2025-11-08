@@ -282,17 +282,6 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
             </button>
           </div>
         )}
-        {!isJoinable && room.canDelete && (
-          <div className="room-actions manage-actions">
-            <button
-              onClick={(e) => handleDeleteRoom(room.id, e)}
-              className="delete-room-button"
-              disabled={deleteLoadingId === room.id}
-            >
-              {deleteLoadingId === room.id ? 'Deleting...' : 'Delete Room'}
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
