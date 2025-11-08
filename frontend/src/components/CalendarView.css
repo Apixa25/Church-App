@@ -57,6 +57,8 @@
   grid-template-columns: auto;
   gap: var(--spacing-xl);
   align-items: start;
+  width: fit-content;
+  margin: 0 auto;
 }
 
 /* DatePicker Container */
@@ -68,6 +70,7 @@
   box-shadow: var(--shadow-lg);
   position: relative;
   overflow: hidden;
+  display: inline-flex;
 }
 
 .datepicker-container::after {
@@ -80,7 +83,7 @@
 
 /* Custom DatePicker Styles */
 .custom-calendar {
-  width: 100% !important;
+  width: auto !important;
   border: none !important;
   font-family: inherit !important;
   background: transparent !important;
