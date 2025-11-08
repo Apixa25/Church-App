@@ -142,8 +142,21 @@ const WorshipRoom: React.FC = () => {
 
   const handleQueueUpdate = (update: any) => {
     console.log('Queue update:', update);
-    if (update.type === 'SONG_ADDED' || update.type === 'SONG_REMOVED' || update.type === 'VOTE_UPDATED') {
+    if (update.type === 'SONG_ADDED' || update.type === 'SONG_REMOVED') {
       loadQueue();
+    } else if (update.type === 'VOTE_UPDATED' && update.queueEntry) {
+      const updatedEntry = update.queueEntry as WorshipQueueEntry;
+      setQueue((prevQueue) =>
+        prevQueue.map((entry) =>
+          entry.id === updatedEntry.id
+            ? {
+                ...entry,
+                upvoteCount: updatedEntry.upvoteCount ?? entry.upvoteCount,
+                skipVoteCount: updatedEntry.skipVoteCount ?? entry.skipVoteCount,
+              }
+            : entry
+        )
+      );
     }
   };
 
@@ -430,7 +443,25 @@ const WorshipRoom: React.FC = () => {
             roomId={roomId || ''}
             queue={queue}
             currentSong={currentSong}
-            onQueueUpdate={loadQueue}
+            onQueueUpdate={(updatedEntry) => {
+              if (updatedEntry) {
+                setQueue((prevQueue) =>
+                  prevQueue.map((entry) =>
+                    entry.id === updatedEntry.id
+                      ? {
+                          ...entry,
+                          upvoteCount: updatedEntry.upvoteCount ?? entry.upvoteCount,
+                          skipVoteCount: updatedEntry.skipVoteCount ?? entry.skipVoteCount,
+                          userHasUpvoted: updatedEntry.userHasUpvoted ?? entry.userHasUpvoted,
+                          userHasVotedSkip: updatedEntry.userHasVotedSkip ?? entry.userHasVotedSkip,
+                        }
+                      : entry
+                  )
+                );
+                return;
+              }
+              loadQueue();
+            }}
             userRole={userRole}
           />
         </div>
