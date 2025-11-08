@@ -133,6 +133,120 @@
   margin-top: 0;
 }
 
+/* Public RSVPs Notes */
+.public-rsvp-notes {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.notes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.notes-header h5 {
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.note-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  padding: 4px 10px;
+  background: rgba(91, 127, 255, 0.15);
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--border-radius-pill);
+  font-size: var(--font-size-sm);
+  color: var(--accent-primary-light);
+  box-shadow: var(--glow-blue);
+}
+
+.notes-helper {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
+}
+
+.notes-helper.error {
+  color: var(--error);
+}
+
+.notes-list {
+  list-style: none;
+  margin: var(--spacing-sm) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.note-item {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  box-shadow: var(--shadow-xs);
+}
+
+.note-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
+  flex-wrap: wrap;
+}
+
+.note-author {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.note-response {
+  padding: 4px 10px;
+  border-radius: var(--border-radius-pill);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.note-response.yes {
+  background: rgba(16, 185, 129, 0.18);
+  color: var(--success);
+}
+
+.note-response.maybe {
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--warning);
+}
+
+.note-response.no {
+  background: rgba(239, 68, 68, 0.18);
+  color: var(--error);
+}
+
+.note-text {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
 .capacity {
   color: var(--text-tertiary);
   font-weight: normal;
