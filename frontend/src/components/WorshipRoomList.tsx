@@ -48,6 +48,8 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
     maxParticipants: 50,
     skipThreshold: 0.5,
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
   const [createLoading, setCreateLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -108,11 +110,55 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
     }
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+
+      // Validate file size (10MB max)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('Image size must be less than 10MB');
+        return;
+      }
+
+      setImageFile(file);
+
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview('');
+    setCreateFormData({ ...createFormData, imageUrl: '' });
+  };
+
   const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateLoading(true);
     try {
-      const response = await worshipAPI.createRoom(createFormData);
+      let imageUrl = createFormData.imageUrl;
+
+      // Upload image if file is selected
+      if (imageFile) {
+        const uploadedUrl = await worshipAPI.uploadRoomImage(imageFile);
+        imageUrl = uploadedUrl;
+      }
+
+      const response = await worshipAPI.createRoom({
+        ...createFormData,
+        imageUrl,
+      });
+
       setShowCreateModal(false);
       setCreateFormData({
         name: '',
@@ -122,6 +168,8 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
         maxParticipants: 50,
         skipThreshold: 0.5,
       });
+      setImageFile(null);
+      setImagePreview('');
       loadRooms();
       // Navigate to newly created room
       navigate(`/worship/${response.data.id}`);
@@ -241,14 +289,34 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
           </div>
 
           <div className="form-group">
-            <label htmlFor="room-image">Image URL</label>
-            <input
-              id="room-image"
-              type="url"
-              value={createFormData.imageUrl}
-              onChange={(e) => setCreateFormData({ ...createFormData, imageUrl: e.target.value })}
-              placeholder="https://example.com/image.jpg"
-            />
+            <label htmlFor="room-image">Room Image</label>
+            {imagePreview ? (
+              <div className="image-preview-container">
+                <img src={imagePreview} alt="Room preview" className="room-image-preview" />
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="remove-image-button"
+                >
+                  Remove Image
+                </button>
+              </div>
+            ) : (
+              <div className="image-upload-container">
+                <input
+                  id="room-image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  style={{ display: 'none' }}
+                />
+                <label htmlFor="room-image" className="upload-label">
+                  <div className="upload-icon">📷</div>
+                  <div className="upload-text">Click to upload an image</div>
+                  <div className="upload-hint">PNG, JPG, GIF up to 10MB</div>
+                </label>
+              </div>
+            )}
           </div>
 
           <div className="form-group">

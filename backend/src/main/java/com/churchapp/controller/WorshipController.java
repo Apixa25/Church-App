@@ -1,6 +1,7 @@
 package com.churchapp.controller;
 
 import com.churchapp.dto.*;
+import com.churchapp.service.FileUploadService;
 import com.churchapp.service.WorshipQueueService;
 import com.churchapp.service.WorshipRoomService;
 import jakarta.validation.Valid;
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
@@ -25,6 +27,7 @@ public class WorshipController {
 
     private final WorshipRoomService roomService;
     private final WorshipQueueService queueService;
+    private final FileUploadService fileUploadService;
 
     // ==================== ROOM ENDPOINTS ====================
 
@@ -287,6 +290,25 @@ public class WorshipController {
         } catch (RuntimeException e) {
             log.error("Error skipping song", e);
             return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
+        }
+    }
+
+    // ==================== FILE UPLOAD ENDPOINTS ====================
+
+    @PostMapping("/upload-room-image")
+    public ResponseEntity<?> uploadRoomImage(@AuthenticationPrincipal UserDetails userDetails,
+                                            @RequestParam("file") MultipartFile file) {
+        try {
+            log.info("Uploading room image for user: {}", userDetails.getUsername());
+            String imageUrl = fileUploadService.uploadFile(file, "worship-rooms");
+            log.info("Room image uploaded successfully: {}", imageUrl);
+            return ResponseEntity.ok(imageUrl);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid file upload request", e);
+            return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
+        } catch (RuntimeException e) {
+            log.error("Error uploading room image", e);
+            return ResponseEntity.badRequest().body(errorResponse("Failed to upload image: " + e.getMessage()));
         }
     }
 

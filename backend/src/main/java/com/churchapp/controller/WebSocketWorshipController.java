@@ -12,6 +12,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -45,17 +46,25 @@ public class WebSocketWorshipController {
             // Handle different actions
             switch (command.getAction()) {
                 case PLAY:
+                    queueService.updatePlaybackState(principal.getName(), roomId, command);
                     // Broadcast play command to all clients
                     broadcastPlaybackCommand(roomId, command);
                     break;
 
                 case PAUSE:
+                    queueService.updatePlaybackState(principal.getName(), roomId, command);
                     // Broadcast pause command
                     broadcastPlaybackCommand(roomId, command);
                     break;
 
                 case RESUME:
+                    queueService.updatePlaybackState(principal.getName(), roomId, command);
                     // Broadcast resume command
+                    broadcastPlaybackCommand(roomId, command);
+                    break;
+
+                case STOP:
+                    queueService.updatePlaybackState(principal.getName(), roomId, command);
                     broadcastPlaybackCommand(roomId, command);
                     break;
 
@@ -66,6 +75,7 @@ public class WebSocketWorshipController {
                     break;
 
                 case SEEK:
+                    queueService.updatePlaybackState(principal.getName(), roomId, command);
                     // Broadcast seek command
                     broadcastPlaybackCommand(roomId, command);
                     break;
@@ -124,7 +134,17 @@ public class WebSocketWorshipController {
             Map<String, Object> syncData = new HashMap<>();
             syncData.put("type", "SYNC_STATE");
             syncData.put("playbackStatus", roomResponse.getPlaybackStatus());
-            syncData.put("playbackPosition", roomResponse.getPlaybackPosition());
+            double playbackPosition = roomResponse.getPlaybackPosition() != null
+                ? roomResponse.getPlaybackPosition()
+                : 0.0;
+            if ("playing".equalsIgnoreCase(roomResponse.getPlaybackStatus())
+                && roomResponse.getPlaybackStartedAt() != null) {
+                Duration elapsed = Duration.between(roomResponse.getPlaybackStartedAt(), LocalDateTime.now());
+                if (!elapsed.isNegative()) {
+                    playbackPosition += elapsed.toMillis() / 1000.0;
+                }
+            }
+            syncData.put("playbackPosition", Math.max(0.0, playbackPosition));
             syncData.put("currentVideoId", roomResponse.getCurrentVideoId());
             syncData.put("currentVideoTitle", roomResponse.getCurrentVideoTitle());
             syncData.put("currentVideoThumbnail", roomResponse.getCurrentVideoThumbnail());
