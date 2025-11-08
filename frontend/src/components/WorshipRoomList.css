@@ -251,6 +251,31 @@
   color: var(--text-secondary);
 }
 
+.manage-room-button {
+  margin-left: 8px;
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.manage-room-button:hover:not(:disabled) {
+  background: var(--bg-elevated);
+  border-color: var(--border-glow);
+  color: var(--text-primary);
+  box-shadow: 0 0 6px var(--button-primary-glow);
+}
+
+.manage-room-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .room-description {
   margin: 0 0 12px;
   font-size: 14px;
@@ -347,9 +372,16 @@
 
 /* Room Actions */
 .room-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--border-primary);
+}
+
+.room-actions.manage-actions {
+  justify-content: flex-end;
 }
 
 .join-room-button {
@@ -370,6 +402,27 @@
   background: linear-gradient(135deg, var(--accent-primary-dark), var(--accent-secondary-dark));
   box-shadow: var(--glow-blue);
   transform: translateY(-1px);
+}
+
+.delete-room-button {
+  padding: 10px 18px;
+  background: rgba(255, 75, 75, 0.18);
+  border: 1px solid rgba(255, 75, 75, 0.4);
+  border-radius: var(--border-radius-md);
+  color: #ff6d6d;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.delete-room-button:hover:not(:disabled) {
+  background: rgba(255, 75, 75, 0.28);
+  box-shadow: 0 0 10px rgba(255, 75, 75, 0.35);
+}
+
+.delete-room-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 /* Empty State */

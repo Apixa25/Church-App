@@ -51,6 +51,7 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [createLoading, setCreateLoading] = useState(false);
+  const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -141,6 +142,26 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
     setImagePreview('');
     setCreateFormData({ ...createFormData, imageUrl: '' });
   };
+  const handleDeleteRoom = async (roomId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+
+    const confirmed = window.confirm('Are you sure you want to delete this worship room? This action cannot be undone.');
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeleteLoadingId(roomId);
+      await worshipAPI.deleteRoom(roomId);
+      loadRooms();
+    } catch (err) {
+      console.error('Error deleting room:', err);
+      alert('Failed to delete room. Please try again.');
+    } finally {
+      setDeleteLoadingId(null);
+    }
+  };
+
 
   const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -207,6 +228,16 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
         <div className="room-header">
           <h3>{room.name}</h3>
           {room.isPrivate && <span className="privacy-badge">🔒 Private</span>}
+          {room.canDelete && (
+            <button
+              className="manage-room-button"
+              onClick={(e) => handleDeleteRoom(room.id, e)}
+              disabled={deleteLoadingId === room.id}
+              title="Delete room"
+            >
+              {deleteLoadingId === room.id ? 'Deleting...' : '🗑️'}
+            </button>
+          )}
         </div>
 
         {room.description && <p className="room-description">{room.description}</p>}
@@ -248,6 +279,17 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
               className="join-room-button"
             >
               Join Room
+            </button>
+          </div>
+        )}
+        {!isJoinable && room.canDelete && (
+          <div className="room-actions manage-actions">
+            <button
+              onClick={(e) => handleDeleteRoom(room.id, e)}
+              className="delete-room-button"
+              disabled={deleteLoadingId === room.id}
+            >
+              {deleteLoadingId === room.id ? 'Deleting...' : 'Delete Room'}
             </button>
           </div>
         )}

@@ -43,6 +43,8 @@ export interface WorshipRoom {
   userRole?: ParticipantRole;
   isInWaitlist?: boolean;
   waitlistPosition?: number;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 export interface WorshipRoomRequest {
