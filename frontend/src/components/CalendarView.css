@@ -1,66 +1,81 @@
 /* Calendar View Styles */
 .calendar-view {
-  padding: 20px;
+  padding: var(--spacing-xl);
+  color: var(--text-secondary);
 }
 
 .calendar-container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--spacing-xl);
 }
 
 /* Calendar Controls */
 .calendar-controls {
   display: flex;
   justify-content: center;
-  padding: 10px;
+  padding: var(--spacing-sm);
 }
 
 .view-mode-toggle {
   display: flex;
-  background: #f7fafc;
-  border-radius: 8px;
-  padding: 4px;
-  gap: 2px;
+  background: rgba(91, 127, 255, 0.08);
+  border-radius: var(--border-radius-pill);
+  border: 1px solid var(--border-primary);
+  padding: 6px;
+  gap: 6px;
+  box-shadow: var(--shadow-sm);
 }
 
 .mode-btn {
-  padding: 8px 16px;
+  padding: 10px 20px;
   border: none;
   background: transparent;
-  border-radius: 6px;
+  border-radius: var(--border-radius-pill);
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  color: #718096;
-  transition: all 0.3s ease;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  transition: all var(--transition-base);
+  letter-spacing: 0.5px;
 }
 
 .mode-btn.active {
-  background: #4299e1;
-  color: white;
-  box-shadow: 0 2px 4px rgba(66, 153, 225, 0.3);
+  background: var(--accent-primary);
+  color: var(--text-primary);
+  box-shadow: var(--glow-blue);
 }
 
 .mode-btn:hover:not(.active) {
-  background: #e2e8f0;
-  color: #4a5568;
+  background: rgba(91, 127, 255, 0.15);
+  color: var(--text-secondary);
 }
 
 /* Main Calendar Layout */
 .calendar-main {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 30px;
+  gap: var(--spacing-xl);
   align-items: start;
 }
 
 /* DatePicker Container */
 .datepicker-container {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-xl);
+  padding: var(--spacing-lg);
+  border: 1px solid var(--border-primary);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  overflow: hidden;
+}
+
+.datepicker-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(91, 127, 255, 0.15), transparent 60%);
+  pointer-events: none;
 }
 
 /* Custom DatePicker Styles */
@@ -71,23 +86,24 @@
 }
 
 .custom-calendar .react-datepicker__header {
-  background: #4299e1 !important;
-  border-bottom: none !important;
-  border-radius: 8px 8px 0 0 !important;
-  padding: 15px 10px !important;
+  background: rgba(91, 127, 255, 0.2) !important;
+  border-bottom: 1px solid var(--border-primary) !important;
+  border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0 !important;
+  padding: var(--spacing-md) var(--spacing-sm) !important;
 }
 
 .custom-calendar .react-datepicker__current-month {
-  color: white !important;
+  color: var(--text-primary) !important;
   font-weight: 600 !important;
-  font-size: 1.1rem !important;
-  margin-bottom: 8px !important;
+  font-size: var(--font-size-lg) !important;
+  margin-bottom: var(--spacing-xs) !important;
+  letter-spacing: 0.5px;
 }
 
 .custom-calendar .react-datepicker__day-name {
-  color: white !important;
-  font-weight: 500 !important;
-  font-size: 0.9rem !important;
+  color: var(--text-secondary) !important;
+  font-weight: 600 !important;
+  font-size: 0.85rem !important;
   width: 2.5rem !important;
   line-height: 2rem !important;
 }
@@ -101,32 +117,36 @@
   height: 2.5rem !important;
   line-height: 1.2 !important;
   margin: 2px !important;
-  border-radius: 6px !important;
+  border-radius: var(--border-radius-md) !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   position: relative !important;
+  color: var(--text-secondary) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
 }
 
 .custom-calendar .react-datepicker__day:hover {
-  background: #bee3f8 !important;
-  border-radius: 6px !important;
+  background: rgba(91, 127, 255, 0.25) !important;
+  color: var(--text-primary) !important;
 }
 
 .custom-calendar .react-datepicker__day--selected {
-  background: #4299e1 !important;
-  color: white !important;
+  background: var(--accent-primary) !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--glow-blue);
 }
 
 .custom-calendar .react-datepicker__day--today {
   font-weight: bold !important;
-  color: #4299e1 !important;
+  color: var(--accent-tertiary-light) !important;
+  border: 1px solid rgba(6, 182, 212, 0.4) !important;
 }
 
 .custom-calendar .react-datepicker__day--today.react-datepicker__day--selected {
-  color: white !important;
+  color: var(--text-primary) !important;
 }
 
 /* Calendar Day Content */
@@ -140,14 +160,23 @@
 }
 
 .day-number {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   line-height: 1;
+  font-weight: 600;
+}
+
+.calendar-day.has-events .day-number {
+  color: var(--accent-primary-light);
+}
+
+.calendar-day.today .day-number {
+  color: var(--accent-tertiary-light);
 }
 
 .event-indicators {
   display: flex;
-  gap: 2px;
-  margin-top: 2px;
+  gap: 3px;
+  margin-top: 4px;
   flex-wrap: wrap;
   justify-content: center;
   max-width: 100%;
@@ -161,57 +190,69 @@
 }
 
 .more-events {
-  font-size: 8px;
-  color: #718096;
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
   font-weight: 500;
 }
 
 /* Event Category Colors */
-.event-dot.worship { background: #9f7aea; }
-.event-dot.bible_study { background: #48bb78; }
-.event-dot.prayer { background: #ed8936; }
-.event-dot.fellowship { background: #4299e1; }
-.event-dot.outreach { background: #38b2ac; }
-.event-dot.youth { background: #ed64a6; }
-.event-dot.children { background: #f6e05e; }
-.event-dot.mens { background: #4fd1c7; }
-.event-dot.womens { background: #fc8181; }
-.event-dot.seniors { background: #a78bfa; }
-.event-dot.missions { background: #68d391; }
-.event-dot.ministry { background: #4299e1; }
-.event-dot.social { background: #f687b3; }
-.event-dot.education { background: #90cdf4; }
-.event-dot.music { background: #fbb6ce; }
-.event-dot.general { background: #d2b48c; }
-.event-dot.other { background: #cbd5e0; }
+.event-dot.worship { background: #8b5cf6; box-shadow: 0 0 8px rgba(139, 92, 246, 0.6); }
+.event-dot.bible_study { background: #22d3ee; box-shadow: 0 0 8px rgba(34, 211, 238, 0.6); }
+.event-dot.prayer { background: #fbbf24; box-shadow: 0 0 8px rgba(251, 191, 36, 0.6); }
+.event-dot.fellowship { background: #5b7fff; box-shadow: 0 0 8px rgba(91, 127, 255, 0.6); }
+.event-dot.outreach { background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.6); }
+.event-dot.youth { background: #f472b6; box-shadow: 0 0 8px rgba(244, 114, 182, 0.6); }
+.event-dot.children { background: #facc15; box-shadow: 0 0 8px rgba(250, 204, 21, 0.6); }
+.event-dot.mens { background: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.6); }
+.event-dot.womens { background: #fb7185; box-shadow: 0 0 8px rgba(251, 113, 133, 0.6); }
+.event-dot.seniors { background: #c4b5fd; box-shadow: 0 0 8px rgba(196, 181, 253, 0.6); }
+.event-dot.missions { background: #14b8a6; box-shadow: 0 0 8px rgba(20, 184, 166, 0.6); }
+.event-dot.ministry { background: #6366f1; box-shadow: 0 0 8px rgba(99, 102, 241, 0.6); }
+.event-dot.social { background: #f472b6; box-shadow: 0 0 8px rgba(244, 114, 182, 0.6); }
+.event-dot.education { background: #60a5fa; box-shadow: 0 0 8px rgba(96, 165, 250, 0.6); }
+.event-dot.music { background: #f9a8d4; box-shadow: 0 0 8px rgba(249, 168, 212, 0.6); }
+.event-dot.general { background: #a5b4fc; box-shadow: 0 0 8px rgba(165, 180, 252, 0.6); }
+.event-dot.other { background: #d1d5db; box-shadow: 0 0 8px rgba(209, 213, 219, 0.5); }
 
 /* Selected Date Events */
 .selected-date-events {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-xl);
+  padding: var(--spacing-lg);
+  border: 1px solid var(--border-primary);
+  box-shadow: var(--shadow-lg);
   max-height: 600px;
   overflow-y: auto;
+  position: relative;
+}
+
+.selected-date-events::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(91, 127, 255, 0.12), transparent 55%);
+  pointer-events: none;
 }
 
 .selected-date-header {
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid #e2e8f0;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--border-primary);
 }
 
 .selected-date-header h3 {
-  color: #2d3748;
-  font-size: 1.3rem;
+  color: var(--text-primary);
+  font-size: var(--font-size-xl);
   font-weight: 600;
-  margin: 0 0 5px 0;
+  margin: 0 0 var(--spacing-xs) 0;
 }
 
 .selected-date-header p {
-  color: #718096;
-  font-size: 0.9rem;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
   margin: 0;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .events-list {
@@ -221,49 +262,53 @@
 
 .no-events {
   text-align: center;
-  padding: 40px 20px;
-  color: #718096;
+  padding: var(--spacing-lg);
+  color: var(--text-tertiary);
 }
 
 .no-events p {
-  margin: 0 0 15px 0;
-  font-size: 1rem;
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: var(--font-size-base);
 }
 
 .events-grid {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: var(--spacing-md);
 }
 
 /* Calendar Legend */
 .calendar-legend {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-xl);
+  padding: var(--spacing-lg);
+  border: 1px solid var(--border-primary);
+  box-shadow: var(--shadow-lg);
   grid-column: 1 / -1;
+  position: relative;
 }
 
 .calendar-legend h4 {
-  color: #2d3748;
-  font-size: 1rem;
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
   font-weight: 600;
-  margin: 0 0 15px 0;
+  margin: 0 0 var(--spacing-sm) 0;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .legend-items {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 10px;
+  gap: var(--spacing-sm);
 }
 
 .legend-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.85rem;
-  color: #4a5568;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
 }
 
 .legend-dot {
@@ -271,17 +316,18 @@
   height: 12px;
   border-radius: 50%;
   flex-shrink: 0;
+  box-shadow: 0 0 8px rgba(91, 127, 255, 0.4);
 }
 
 /* Button Styles */
 .btn {
-  padding: 8px 16px;
+  padding: 10px 18px;
   border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: var(--border-radius-pill);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-base);
   text-decoration: none;
   display: inline-flex;
   align-items: center;
@@ -290,76 +336,82 @@
 }
 
 .btn-primary {
-  background: #4299e1;
-  color: white;
+  background: var(--button-primary-bg);
+  color: var(--text-primary);
+  box-shadow: 0 4px 16px var(--button-primary-glow);
 }
 
 .btn-primary:hover {
-  background: #3182ce;
-  transform: translateY(-1px);
+  background: var(--button-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--glow-blue);
 }
 
 .btn-sm {
-  padding: 6px 12px;
-  font-size: 13px;
+  padding: 6px 14px;
+  font-size: var(--font-size-xs);
 }
 
 /* Week View Styles */
 .week-view {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-xl);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-primary);
+  position: relative;
 }
 
 .week-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid #e2e8f0;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--border-primary);
 }
 
 .week-header h3 {
-  color: #2d3748;
-  font-size: 1.2rem;
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
   font-weight: 600;
   margin: 0;
 }
 
 .nav-btn {
-  background: #f7fafc;
-  border: 1px solid #e2e8f0;
-  color: #4a5568;
+  background: rgba(91, 127, 255, 0.12);
+  border: 1px solid var(--border-primary);
+  color: var(--text-secondary);
   padding: 8px 16px;
-  border-radius: 6px;
+  border-radius: var(--border-radius-pill);
   cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.3s ease;
+  font-size: var(--font-size-xs);
+  transition: all var(--transition-base);
 }
 
 .nav-btn:hover {
-  background: #edf2f7;
-  border-color: #cbd5e0;
+  background: rgba(91, 127, 255, 0.22);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+  box-shadow: var(--glow-blue);
 }
 
 .week-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 1px;
-  background: #e2e8f0;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--border-radius-lg);
   overflow: hidden;
 }
 
 .week-day {
-  background: white;
+  background: var(--bg-secondary);
   padding: 15px;
   min-height: 120px;
   cursor: pointer;
   transition: all 0.3s ease;
-  border-right: 1px solid #e2e8f0;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .week-day:last-child {
@@ -367,17 +419,19 @@
 }
 
 .week-day:hover {
-  background: #f7fafc;
+  background: rgba(91, 127, 255, 0.12);
+  transform: translateY(-2px);
 }
 
 .week-day.today {
-  background: #ebf8ff;
-  border-left: 3px solid #4299e1;
+  background: rgba(6, 182, 212, 0.14);
+  border-left: 3px solid var(--accent-tertiary);
 }
 
 .week-day.selected {
-  background: #e6fffa;
-  border-left: 3px solid #38b2ac;
+  background: rgba(91, 127, 255, 0.16);
+  border-left: 3px solid var(--accent-primary);
+  box-shadow: inset 0 0 12px rgba(91, 127, 255, 0.25);
 }
 
 .day-header {
@@ -388,17 +442,17 @@
 }
 
 .day-name {
-  font-size: 0.8rem;
-  color: #718096;
-  font-weight: 500;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .day-number {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #2d3748;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
   margin-top: 2px;
 }
 
@@ -409,47 +463,49 @@
 }
 
 .event-item {
-  background: #f7fafc;
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--border-radius-md);
   padding: 6px 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  border-left: 3px solid #cbd5e0;
+  transition: all var(--transition-fast);
+  border-left: 3px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-secondary);
 }
 
 .event-item:hover {
-  background: #edf2f7;
-  transform: translateX(2px);
+  background: rgba(91, 127, 255, 0.2);
+  transform: translateX(4px);
+  color: var(--text-primary);
 }
 
-.event-item.worship { border-left-color: #9f7aea; }
-.event-item.bible_study { border-left-color: #48bb78; }
-.event-item.prayer { border-left-color: #ed8936; }
-.event-item.fellowship { border-left-color: #4299e1; }
-.event-item.outreach { border-left-color: #38b2ac; }
-.event-item.youth { border-left-color: #ed64a6; }
-.event-item.children { border-left-color: #f6e05e; }
-.event-item.general { border-left-color: #d2b48c; }
-.event-item.other { border-left-color: #cbd5e0; }
+.event-item.worship { border-left-color: #8b5cf6; }
+.event-item.bible_study { border-left-color: #22d3ee; }
+.event-item.prayer { border-left-color: #fbbf24; }
+.event-item.fellowship { border-left-color: #5b7fff; }
+.event-item.outreach { border-left-color: #10b981; }
+.event-item.youth { border-left-color: #f472b6; }
+.event-item.children { border-left-color: #facc15; }
+.event-item.general { border-left-color: #a5b4fc; }
+.event-item.other { border-left-color: #d1d5db; }
 
 .event-time {
   font-size: 0.7rem;
-  color: #718096;
-  font-weight: 500;
+  color: var(--accent-primary-light);
+  font-weight: 600;
   display: block;
   margin-bottom: 2px;
 }
 
 .event-title {
-  font-size: 0.8rem;
-  color: #2d3748;
-  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 600;
   line-height: 1.2;
 }
 
 .more-events {
   font-size: 0.7rem;
-  color: #a0aec0;
+  color: var(--text-tertiary);
   text-align: center;
   padding: 4px;
   font-style: italic;
@@ -457,24 +513,25 @@
 
 /* Day View Styles */
 .day-view {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-xl);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-primary);
 }
 
 .day-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid #e2e8f0;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--border-primary);
 }
 
 .day-header h3 {
-  color: #2d3748;
-  font-size: 1.3rem;
+  color: var(--text-primary);
+  font-size: var(--font-size-xl);
   font-weight: 600;
   margin: 0;
 }
@@ -486,53 +543,54 @@
 .events-timeline {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: var(--spacing-md);
 }
 
 .timeline-event {
-  background: #f7fafc;
-  border-radius: 8px;
-  padding: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-md);
   cursor: pointer;
-  transition: all 0.3s ease;
-  border-left: 4px solid #cbd5e0;
+  transition: all var(--transition-base);
+  border-left: 4px solid rgba(91, 127, 255, 0.3);
+  box-shadow: var(--shadow-sm);
 }
 
 .timeline-event:hover {
-  background: #edf2f7;
-  transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: rgba(91, 127, 255, 0.2);
+  transform: translateX(6px);
+  box-shadow: var(--glow-blue);
 }
 
 .timeline-event .event-time {
-  font-size: 0.9rem;
-  color: #4299e1;
-  font-weight: 600;
-  margin-bottom: 8px;
+  font-size: var(--font-size-sm);
+  color: var(--accent-primary-light);
+  font-weight: 700;
+  margin-bottom: var(--spacing-xs);
 }
 
 .timeline-event .end-time {
-  color: #718096;
+  color: var(--text-tertiary);
   font-weight: 400;
 }
 
 .timeline-event .event-title {
-  font-size: 1.1rem;
-  color: #2d3748;
+  font-size: var(--font-size-lg);
+  color: var(--text-primary);
   font-weight: 600;
-  margin: 0 0 8px 0;
+  margin: 0 0 var(--spacing-xs) 0;
 }
 
 .timeline-event .event-description {
-  color: #4a5568;
-  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
   line-height: 1.5;
-  margin: 0 0 8px 0;
+  margin: 0 0 var(--spacing-xs) 0;
 }
 
 .timeline-event .event-location {
-  color: #718096;
-  font-size: 0.85rem;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
   margin: 0;
 }
 
@@ -540,7 +598,7 @@
 @media (max-width: 1024px) {
   .calendar-main {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: var(--spacing-lg);
   }
   
   .selected-date-events {
@@ -550,17 +608,17 @@
 
 @media (max-width: 768px) {
   .calendar-view {
-    padding: 15px;
+    padding: var(--spacing-lg);
   }
   
   .calendar-container {
-    gap: 15px;
+    gap: var(--spacing-lg);
   }
   
   .datepicker-container,
   .selected-date-events,
   .calendar-legend {
-    padding: 15px;
+    padding: var(--spacing-md);
   }
   
   .custom-calendar .react-datepicker__day {
