@@ -21,6 +21,8 @@ import DonationPage from './components/DonationPage';
 import DonationAnalytics from './components/DonationAnalytics';
 import AdminDashboard from './components/AdminDashboard';
 import SettingsPage from './components/SettingsPage';
+import WorshipRoomList from './components/WorshipRoomList';
+import WorshipRoom from './components/WorshipRoom';
 import './App.css';
 
 const App: React.FC = () => {
@@ -284,6 +286,25 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Worship routes */}
+            <Route
+              path="/worship"
+              element={
+                <ProtectedRoute>
+                  <WorshipRoomList />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/worship/:roomId"
+              element={
+                <ProtectedRoute>
+                  <WorshipRoom />
                 </ProtectedRoute>
               }
             />
