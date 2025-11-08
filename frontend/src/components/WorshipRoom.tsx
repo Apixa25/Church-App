@@ -80,8 +80,8 @@ const WorshipRoom: React.FC = () => {
       setQueue(queueResponse.data);
       setParticipants(participantsResponse.data);
 
-      if (currentlyPlayingResponse.data) {
-        setCurrentSong(currentlyPlayingResponse.data);
+      if (currentlyPlayingResponse.data && 'id' in currentlyPlayingResponse.data) {
+        setCurrentSong(currentlyPlayingResponse.data as WorshipQueueEntry);
       }
 
       // Determine user role from room response
@@ -356,7 +356,7 @@ const WorshipRoom: React.FC = () => {
               <div className="song-details">
                 <h3>{currentSong.videoTitle}</h3>
                 <div className="song-meta">
-                  <span>Added by {currentSong.addedByUsername}</span>
+                  <span>Added by {currentSong.userName}</span>
                   <span>•</span>
                   <span>👍 {currentSong.upvoteCount} upvotes</span>
                   {currentSong.skipVoteCount > 0 && (
@@ -399,17 +399,17 @@ const WorshipRoom: React.FC = () => {
                 {participants.map((participant) => (
                   <div key={participant.id} className="participant-item">
                     <div className="participant-avatar">
-                      {participant.userProfilePictureUrl ? (
-                        <img src={participant.userProfilePictureUrl} alt={participant.username} />
+                      {participant.userProfilePic ? (
+                        <img src={participant.userProfilePic} alt={participant.userName} />
                       ) : (
-                        <span>{participant.username.charAt(0).toUpperCase()}</span>
+                        <span>{participant.userName.charAt(0).toUpperCase()}</span>
                       )}
                     </div>
                     <div className="participant-info">
-                      <span className="participant-name">{participant.username}</span>
+                      <span className="participant-name">{participant.userName}</span>
                       <span className="participant-role">{participant.role}</span>
                     </div>
-                    {room.currentLeaderUsername === participant.username && (
+                    {room.currentLeaderName === participant.userName && (
                       <span className="leader-badge">👑 Leader</span>
                     )}
                   </div>

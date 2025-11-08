@@ -24,12 +24,24 @@ export const worshipAPI = {
   getMyRooms: (): Promise<{ data: WorshipRoom[] }> =>
     api.get('/worship/rooms/my-rooms'),
 
+  // Alias for getUserRooms
+  getUserRooms: (): Promise<{ data: WorshipRoom[] }> =>
+    api.get('/worship/rooms/my-rooms'),
+
   // Get currently playing rooms
   getPlayingRooms: (): Promise<{ data: WorshipRoom[] }> =>
     api.get('/worship/rooms/playing'),
 
+  // Alias for getCurrentlyPlayingRooms
+  getCurrentlyPlayingRooms: (): Promise<{ data: WorshipRoom[] }> =>
+    api.get('/worship/rooms/playing'),
+
   // Get specific room details
   getRoom: (roomId: string): Promise<{ data: WorshipRoom }> =>
+    api.get(`/worship/rooms/${roomId}`),
+
+  // Alias for getRoomById
+  getRoomById: (roomId: string): Promise<{ data: WorshipRoom }> =>
     api.get(`/worship/rooms/${roomId}`),
 
   // Create new room
@@ -82,6 +94,10 @@ export const worshipAPI = {
   getNowPlaying: (roomId: string): Promise<{ data: WorshipQueueEntry | { message: string } }> =>
     api.get(`/worship/rooms/${roomId}/queue/now-playing`),
 
+  // Alias for getCurrentlyPlaying
+  getCurrentlyPlaying: (roomId: string): Promise<{ data: WorshipQueueEntry | { message: string } }> =>
+    api.get(`/worship/rooms/${roomId}/queue/now-playing`),
+
   // Add song to queue
   addToQueue: (roomId: string, songData: Omit<WorshipQueueEntryRequest, 'roomId'>): Promise<{ data: WorshipQueueEntry }> =>
     api.post(`/worship/rooms/${roomId}/queue`, { ...songData, roomId }),
@@ -104,6 +120,10 @@ export const worshipAPI = {
 
   // Skip current song
   skipSong: (roomId: string): Promise<{ data: { message: string } }> =>
+    api.post(`/worship/rooms/${roomId}/skip`),
+
+  // Alias for skip
+  skip: (roomId: string): Promise<{ data: { message: string } }> =>
     api.post(`/worship/rooms/${roomId}/skip`),
 
   // ==================== SETTINGS OPERATIONS ====================

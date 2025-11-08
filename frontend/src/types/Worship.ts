@@ -351,3 +351,8 @@ export const canAddToQueue = (role?: ParticipantRole): boolean => {
 export const canModerateRoom = (role?: ParticipantRole): boolean => {
   return role === ParticipantRole.MODERATOR;
 };
+
+export const canVote = (role?: ParticipantRole): boolean => {
+  // All users except undefined role can vote
+  return role !== undefined;
+};
