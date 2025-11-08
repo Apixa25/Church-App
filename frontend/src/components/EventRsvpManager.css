@@ -133,6 +133,75 @@
   margin-top: 0;
 }
 
+.attendee-list-helper {
+  margin-top: var(--spacing-sm);
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+.attendee-list-helper.error {
+  color: var(--error);
+}
+
+.attendee-list-wrapper {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-primary);
+  box-shadow: var(--shadow-xs);
+}
+
+.attendee-list-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  letter-spacing: 0.75px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.attendee-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  justify-content: center;
+}
+
+.attendee-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 6px 12px;
+  background: rgba(91, 127, 255, 0.12);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-pill);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--transition-fast);
+}
+
+.attendee-pill:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+  box-shadow: var(--glow-blue);
+}
+
+.guest-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--success);
+  border-radius: var(--border-radius-pill);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
 /* Public RSVPs Notes */
 .public-rsvp-notes {
   margin-top: var(--spacing-lg);
