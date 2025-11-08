@@ -74,7 +74,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(91, 127, 255, 0.15), transparent 60%);
+  background: linear-gradient(135deg, rgba(91, 127, 255, 0.08), transparent 60%);
   pointer-events: none;
 }
 
@@ -83,6 +83,7 @@
   width: 100% !important;
   border: none !important;
   font-family: inherit !important;
+  background: transparent !important;
 }
 
 .custom-calendar .react-datepicker__header {
@@ -165,12 +166,10 @@
   font-weight: 600;
 }
 
-.calendar-day.has-events .day-number {
-  color: var(--accent-primary-light);
-}
-
-.calendar-day.today .day-number {
-  color: var(--accent-tertiary-light);
+.calendar-day.has-events .day-number,
+.calendar-day.today .day-number,
+.calendar-day .day-number {
+  color: var(--text-primary);
 }
 
 .event-indicators {
@@ -400,7 +399,7 @@
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 1px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
   border-radius: var(--border-radius-lg);
   overflow: hidden;
 }
@@ -463,7 +462,7 @@
 }
 
 .event-item {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
   border-radius: var(--border-radius-md);
   padding: 6px 8px;
   cursor: pointer;
