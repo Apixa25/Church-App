@@ -43,7 +43,7 @@ public interface WorshipRoomRepository extends JpaRepository<WorshipRoom, UUID> 
     List<WorshipRoom> findBySearchTerm(@Param("searchTerm") String searchTerm);
 
     // Find rooms where user is a participant
-    @Query("SELECT DISTINCT wrp.worshipRoom FROM WorshipRoomParticipant wrp " +
+    @Query("SELECT wrp.worshipRoom FROM WorshipRoomParticipant wrp " +
            "WHERE wrp.user = :user AND wrp.isActive = true AND wrp.worshipRoom.isActive = true " +
            "ORDER BY wrp.lastActiveAt DESC")
     List<WorshipRoom> findRoomsByParticipant(@Param("user") User user);
