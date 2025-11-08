@@ -169,6 +169,13 @@ const EventCard: React.FC<EventCardProps> = ({
             </span>
           </div>
         )}
+
+        {event.bringListEnabled && (
+          <div className="detail-item">
+            <span className="detail-icon">🧺</span>
+            <span className="detail-text">Community bring-list available</span>
+          </div>
+        )}
       </div>
 
       {/* Creator Info */}

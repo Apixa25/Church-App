@@ -6,11 +6,15 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -82,6 +86,14 @@ public class Event {
     
     @Column(name = "requires_approval", nullable = false)
     private Boolean requiresApproval = false;
+    
+    @Column(name = "bring_list_enabled", nullable = false)
+    private Boolean bringListEnabled = false;
+    
+    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<EventBringItem> bringItems = new ArrayList<>();
     
     @Column(name = "original_category")
     private String originalCategory;

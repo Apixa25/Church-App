@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import DatePicker from 'react-datepicker';
 import { eventAPI, EVENT_CATEGORY_OPTIONS } from '../services/eventApi';
-import { Event, EventRequest, EventCategory } from '../types/Event';
+import { Event, EventRequest, EventCategory, EventBringItemInput } from '../types/Event';
 import { parseEventDate } from '../utils/dateUtils';
 import 'react-datepicker/dist/react-datepicker.css';
 import './EventCreateForm.css';
+import BringListEditor from './BringListEditor';
 
 interface EventCreateFormProps {
   onSuccess: (event: Event) => void;
@@ -58,7 +59,8 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
     register,
     handleSubmit,
     formState: { errors },
-    watch
+    watch,
+    setValue
   } = useForm<EventRequest>({
     defaultValues: {
       title: editEvent?.title || '',
@@ -67,9 +69,18 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
       category: editEvent?.category || EventCategory.GENERAL,
       maxAttendees: editEvent?.maxAttendees || undefined,
       isRecurring: editEvent?.isRecurring || false,
-      requiresApproval: editEvent?.requiresApproval || false
+      requiresApproval: editEvent?.requiresApproval || false,
+      bringListEnabled: editEvent?.bringListEnabled || false,
+      bringItems: []
     }
   });
+
+  const bringListEnabled = watch('bringListEnabled') || false;
+  const bringItems = (watch('bringItems') as EventBringItemInput[] | undefined) || [];
+
+  const handleBringItemsChange = (items: EventBringItemInput[]) => {
+    setValue('bringItems', items, { shouldDirty: true, shouldValidate: false });
+  };
 
   // const isRecurring = watch('isRecurring'); // TODO: Use for recurring event fields
 
@@ -101,6 +112,17 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
         maxAttendees: data.maxAttendees && data.maxAttendees.toString().trim() !== '' 
           ? parseInt(data.maxAttendees.toString(), 10) 
           : undefined,
+        bringListEnabled: data.bringListEnabled || false,
+        bringItems: (data.bringItems || [])
+          .map(item => ({
+            name: item.name?.trim() || '',
+            description: item.description?.trim() || undefined,
+            quantityNeeded: item.quantityNeeded !== undefined && item.quantityNeeded !== null
+              ? Number(item.quantityNeeded)
+              : undefined,
+            allowMultipleClaims: item.allowMultipleClaims !== undefined ? item.allowMultipleClaims : true
+          }))
+          .filter(item => item.name.length > 0)
       };
 
       // Debug logging to see what we're sending
@@ -310,6 +332,31 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
             Recurring event
           </label>
         </div>
+
+        {/* Bring List Toggle */}
+        <div className="form-group bring-list-toggle">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              {...register('bringListEnabled')}
+            />
+            <span className="checkmark"></span>
+            Enable communal bring-list
+          </label>
+          <p className="helper-text">
+            Invite attendees to claim items (e.g., potluck dishes, supplies). You can seed suggested items below.
+          </p>
+        </div>
+
+        {/* Bring List Editor */}
+        {bringListEnabled && (
+          <BringListEditor
+            items={bringItems}
+            onChange={handleBringItemsChange}
+            existingItems={editEvent?.bringItems}
+            isEditingExisting={Boolean(editEvent)}
+          />
+        )}
 
         {/* Form Actions */}
         <div className="form-actions">

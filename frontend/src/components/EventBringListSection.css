@@ -1,0 +1,310 @@
+.bring-list-section {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.bring-list-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.bring-list-header h3 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.bring-list-header p {
+  margin: 0.35rem 0 0;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.bring-list-error {
+  border: 1px solid #f87171;
+  background: rgba(248, 113, 113, 0.15);
+  color: #b91c1c;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+}
+
+.bring-list-error p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.bring-list-add-card {
+  border: 1px solid #cbd5f5;
+  border-radius: 12px;
+  padding: 1.25rem;
+  background: #f8fbff;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.bring-list-add-card h4 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.add-item-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.add-item-grid .input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.add-item-grid .input-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.add-item-grid input,
+.add-item-grid textarea {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease;
+}
+
+.add-item-grid input:focus,
+.add-item-grid textarea:focus {
+  border-color: #2563eb;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.add-item-grid label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #1e293b;
+}
+
+.add-item-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.bring-list-empty {
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-align: center;
+  color: #475569;
+  background: #f8fafc;
+}
+
+.bring-items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+}
+
+.bring-item-card {
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 1rem;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+}
+
+.bring-item-card .card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.bring-item-card h4 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.status-pill {
+  display: inline-block;
+  margin-top: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.item-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn.btn-link {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn.btn-link:hover {
+  text-decoration: underline;
+}
+
+.btn.btn-link.danger {
+  color: #e11d48;
+}
+
+.item-description {
+  margin: 0;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.item-edit-form {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 0.75rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.item-edit-form .input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.item-edit-form textarea,
+.item-edit-form input {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.edit-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.claim-section {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.claim-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.claim-form .input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.claim-form textarea,
+.claim-form input {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.claim-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.claim-actions .btn {
+  min-width: 140px;
+}
+
+.claim-list {
+  border-top: 1px dashed #e2e8f0;
+  padding-top: 0.6rem;
+}
+
+.claim-list h5 {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  color: #1e293b;
+}
+
+.claim-list ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.claim-list li {
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.claim-user {
+  font-weight: 600;
+}
+
+.claim-quantity {
+  margin-left: 0.35rem;
+  color: #0f172a;
+}
+
+.claim-note {
+  margin-left: 0.4rem;
+  font-style: italic;
+  color: #475569;
+}
+
+.bring-list-disabled {
+  margin-top: 2rem;
+  padding: 1.25rem;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  text-align: center;
+  color: #475569;
+}
+
+.bring-list-disabled h3 {
+  margin: 0 0 0.5rem;
+}
+
+.checkbox-label.inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.checkbox-label.inline input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: #2563eb;
+}
+
+@media (max-width: 640px) {
+  .bring-items-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

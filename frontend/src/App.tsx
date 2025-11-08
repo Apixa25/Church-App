@@ -15,6 +15,7 @@ import PrayerRequestsPage from './components/PrayerRequestsPage';
 import PrayerRequestDetail from './components/PrayerRequestDetail';
 import AnnouncementPage from './components/AnnouncementPage';
 import CalendarPage from './components/CalendarPage';
+import EventDetailsPage from './components/EventDetailsPage';
 import ResourcePage from './components/ResourcePage';
 import MyRSVPsPage from './components/MyRSVPsPage';
 import DonationPage from './components/DonationPage';
@@ -172,7 +173,7 @@ const App: React.FC = () => {
               path="/events/:eventId" 
               element={
                 <ProtectedRoute>
-                  <CalendarPage />
+                  <EventDetailsPage />
                 </ProtectedRoute>
               } 
             />
