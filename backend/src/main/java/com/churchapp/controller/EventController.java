@@ -57,6 +57,9 @@ public class EventController {
             Event createdEvent = eventService.createEvent(currentProfile.getUserId(), eventEntity);
             
             EventResponse response = EventResponse.fromEvent(createdEvent);
+            EventRsvpSummary rsvpSummary = eventRsvpService.getEventRsvpSummary(
+                    createdEvent.getId(), currentProfile.getUserId());
+            response.setRsvpSummary(rsvpSummary);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             log.error("Error creating event: {}", e.getMessage(), e);
@@ -98,6 +101,9 @@ public class EventController {
             Event updatedEvent = eventService.updateEvent(eventId, currentProfile.getUserId(), eventUpdate);
             
             EventResponse response = EventResponse.fromEvent(updatedEvent);
+            EventRsvpSummary rsvpSummary = eventRsvpService.getEventRsvpSummary(
+                    updatedEvent.getId(), currentProfile.getUserId());
+            response.setRsvpSummary(rsvpSummary);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
