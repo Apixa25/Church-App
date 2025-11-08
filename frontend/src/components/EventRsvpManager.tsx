@@ -23,10 +23,11 @@ const EventRsvpManager: React.FC<EventRsvpManagerProps> = ({
   const [guestCount, setGuestCount] = useState(0);
   const [notes, setNotes] = useState('');
   const [publicRsvpNotes, setPublicRsvpNotes] = useState<EventRsvp[]>([]);
+  const [attendingRsvps, setAttendingRsvps] = useState<EventRsvp[]>([]);
   const [notesLoading, setNotesLoading] = useState(false);
   const [notesError, setNotesError] = useState<string | null>(null);
 
-  const loadPublicNotes = async () => {
+  const loadEventRsvps = async () => {
     try {
       setNotesLoading(true);
       setNotesError(null);
@@ -34,10 +35,13 @@ const EventRsvpManager: React.FC<EventRsvpManagerProps> = ({
       const notesWithContent = data.filter(
         (rsvp) => rsvp.notes && rsvp.notes.trim().length > 0
       );
+      const attendingList = data.filter((rsvp) => rsvp.response === RsvpResponse.YES);
       setPublicRsvpNotes(notesWithContent);
+      setAttendingRsvps(attendingList);
     } catch (err: any) {
       setNotesError(err.response?.data?.error || 'Unable to load attendee notes.');
       setPublicRsvpNotes([]);
+      setAttendingRsvps([]);
     } finally {
       setNotesLoading(false);
     }
@@ -46,7 +50,7 @@ const EventRsvpManager: React.FC<EventRsvpManagerProps> = ({
   // Load user's current RSVP
   useEffect(() => {
     loadUserRsvp();
-    loadPublicNotes();
+    loadEventRsvps();
   }, [event.id]);
 
   const loadUserRsvp = async () => {
@@ -80,7 +84,7 @@ const EventRsvpManager: React.FC<EventRsvpManagerProps> = ({
       
       // Update local state
       await loadUserRsvp();
-      await loadPublicNotes();
+      await loadEventRsvps();
       
       // Notify parent component
       if (onRsvpUpdate) {
@@ -109,7 +113,7 @@ const EventRsvpManager: React.FC<EventRsvpManagerProps> = ({
       setCurrentRsvp(null);
       setGuestCount(0);
       setNotes('');
-      await loadPublicNotes();
+      await loadEventRsvps();
       
       // Notify parent component
       if (onRsvpUpdate) {
@@ -215,6 +219,31 @@ const EventRsvpManager: React.FC<EventRsvpManagerProps> = ({
               </span>
             )}
           </div>
+          {notesLoading && attendingRsvps.length === 0 && (
+            <p className="attendee-list-helper">Loading confirmed attendees…</p>
+          )}
+          {!notesLoading && notesError && attendingRsvps.length === 0 && (
+            <p className="attendee-list-helper error">{notesError}</p>
+          )}
+          {!notesLoading && attendingRsvps.length > 0 && (
+            <div className="attendee-list-wrapper">
+              <span className="attendee-list-label">Confirmed attendees</span>
+              <div className="attendee-list">
+                {attendingRsvps.map((rsvp) => (
+                  <span
+                    key={`${rsvp.userId}-${rsvp.updatedAt}`}
+                    className="attendee-pill"
+                    title={rsvp.userName || 'Community Member'}
+                  >
+                    {rsvp.userName || 'Community Member'}
+                    {rsvp.guestCount > 0 && (
+                      <span className="guest-pill">+{rsvp.guestCount}</span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
