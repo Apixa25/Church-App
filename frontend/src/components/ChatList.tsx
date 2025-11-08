@@ -9,6 +9,13 @@ interface ChatListProps {
   selectedGroupId?: string;
 }
 
+const formatGroupType = (type: string) => {
+  return type
+    .split('_')
+    .map((segment) => segment.charAt(0) + segment.slice(1).toLowerCase())
+    .join(' ');
+};
+
 const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) => {
   const [groups, setGroups] = useState<ChatGroup[]>([]);
   const [joinableGroups, setJoinableGroups] = useState<ChatGroup[]>([]);
@@ -191,28 +198,35 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
             <div className="groups-list">
               {joinableGroups.map((group) => (
                 <div key={group.id} className="chat-item joinable">
-                  <div className="chat-icon">
+                  <div className="chat-icon joinable-icon">
                     {group.imageUrl ? (
                       <img src={group.imageUrl} alt={group.name} />
                     ) : (
                       <span>{getGroupIcon(group.type)}</span>
                     )}
                   </div>
-                  <div className="chat-content">
-                    <div className="chat-header">
+                  <div className="joinable-body">
+                    <div className="joinable-header">
                       <h4>{group.name}</h4>
-                      <span className="member-count">{group.memberCount} members</span>
+                      <div className="joinable-badges">
+                        <span className="badge members-badge">{group.memberCount} members</span>
+                        <span className="badge type-badge">{formatGroupType(group.type)}</span>
+                      </div>
                     </div>
                     <p className="group-description">{group.description || 'No description'}</p>
-                    <div className="group-type">{group.type.replace('_', ' ').toLowerCase()}</div>
-                  </div>
-                  <div className="chat-actions">
-                    <button 
-                      onClick={(e) => handleJoinGroup(group.id, e)}
-                      className="join-button"
-                    >
-                      Join
-                    </button>
+                    <div className="joinable-footer">
+                      <span className="group-type">
+                        {formatGroupType(group.type)} group
+                      </span>
+                      <div className="chat-actions joinable-actions">
+                        <button 
+                          onClick={(e) => handleJoinGroup(group.id, e)}
+                          className="join-button"
+                        >
+                          Join
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
