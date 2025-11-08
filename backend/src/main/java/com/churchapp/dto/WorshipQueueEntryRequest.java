@@ -1,7 +1,6 @@
 package com.churchapp.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -15,7 +14,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class WorshipQueueEntryRequest {
 
-    @NotNull(message = "Room ID is required")
+    // Room ID is set by the controller from path variable, not from request body
     private UUID roomId;
 
     @NotBlank(message = "Video ID is required")

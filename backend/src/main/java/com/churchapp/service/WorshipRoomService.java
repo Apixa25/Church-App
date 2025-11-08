@@ -80,7 +80,10 @@ public class WorshipRoomService {
         creatorParticipant.setUser(user);
         creatorParticipant.setRole(WorshipRoomParticipant.ParticipantRole.MODERATOR);
         creatorParticipant.setLastActiveAt(LocalDateTime.now());
-        participantRepository.save(creatorParticipant);
+        creatorParticipant = participantRepository.save(creatorParticipant);
+
+        // Add participant to room's collection so isParticipant() works
+        room.getParticipants().add(creatorParticipant);
 
         // Broadcast room creation
         messagingTemplate.convertAndSend("/topic/worship/rooms",

@@ -46,19 +46,24 @@ const WorshipQueue: React.FC<WorshipQueueProps> = ({
       const videoTitle = `YouTube Video ${videoId}`;
       const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
 
-      await worshipAPI.addToQueue(roomId, {
+      const songData: any = {
         videoId,
         videoTitle,
         videoThumbnailUrl: thumbnailUrl,
-        videoDuration: undefined, // Will be determined by server if needed
-      });
+      };
+      // Don't include videoDuration if we don't have it - backend validation requires it to be positive if present
+
+      console.log('Adding song to queue:', { roomId, songData });
+      await worshipAPI.addToQueue(roomId, songData);
 
       setYoutubeUrl('');
       setShowAddSong(false);
       onQueueUpdate();
     } catch (err: any) {
       console.error('Error adding song:', err);
-      alert(err.response?.data?.error || 'Failed to add song to queue');
+      console.error('Error response:', err.response?.data);
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || 'Failed to add song to queue';
+      alert(errorMessage);
     } finally {
       setAddLoading(false);
     }

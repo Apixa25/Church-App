@@ -177,7 +177,7 @@ public class PostService {
     }
 
     public Page<Post> searchPosts(String searchTerm, Pageable pageable) {
-        return postRepository.findByContentContaining(searchTerm, pageable);
+        return postRepository.findByContentContaining(searchTerm, null, pageable);
     }
 
     public List<Post> getPostThread(UUID postId) {
