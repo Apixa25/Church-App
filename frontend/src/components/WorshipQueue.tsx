@@ -14,7 +14,7 @@ interface WorshipQueueProps {
   roomId: string;
   queue: WorshipQueueEntry[];
   currentSong: WorshipQueueEntry | null;
-  onQueueUpdate: () => void;
+  onQueueUpdate: (updatedEntry?: WorshipQueueEntry) => void;
   userRole: ParticipantRole;
 }
 
@@ -72,11 +72,11 @@ const WorshipQueue: React.FC<WorshipQueueProps> = ({
   const handleVote = async (queueEntryId: string, voteType: VoteType) => {
     console.log('Voting:', { queueEntryId, voteType, userRole, canVote: canVote(userRole) });
     try {
-      await worshipAPI.vote({
+      const response = await worshipAPI.vote({
         queueEntryId,
         voteType,
       });
-      onQueueUpdate();
+      onQueueUpdate(response.data as unknown as WorshipQueueEntry);
     } catch (err: any) {
       console.error('Error voting:', err);
       alert(err.response?.data?.error || 'Failed to vote');
