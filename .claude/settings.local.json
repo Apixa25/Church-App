@@ -26,7 +26,9 @@
       "Bash(findstr:*)",
       "Bash(netstat:*)",
       "Bash(dir)",
-      "Bash(mvn spring-boot:run:*)"
+      "Bash(mvn spring-boot:run:*)",
+      "Bash(del:*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []
