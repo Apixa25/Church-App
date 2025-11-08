@@ -100,7 +100,7 @@ export const worshipAPI = {
 
   // Add song to queue
   addToQueue: (roomId: string, songData: Omit<WorshipQueueEntryRequest, 'roomId'>): Promise<{ data: WorshipQueueEntry }> =>
-    api.post(`/worship/rooms/${roomId}/queue`, { ...songData, roomId }),
+    api.post(`/worship/rooms/${roomId}/queue`, songData),
 
   // Remove song from queue
   removeFromQueue: (queueEntryId: string): Promise<{ data: { message: string } }> =>

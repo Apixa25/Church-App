@@ -30,7 +30,12 @@
       "Bash(del:*)",
       "Bash(dir:*)",
       "Bash(npm start)",
-      "Bash(timeout 30 bash:*)"
+      "Bash(timeout 30 bash:*)",
+      "Bash(nul)",
+      "Bash(mvn clean compile:*)",
+      "Bash(./mvnw.cmd:*)",
+      "Bash(timeout 15 bash:*)",
+      "Bash(timeout 20 bash:*)"
     ],
     "deny": [],
     "ask": []

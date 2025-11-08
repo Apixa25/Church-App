@@ -91,6 +91,11 @@ public class WorshipPermissionService {
             return false;
         }
 
+        // Admins can always add songs once they have joined the room
+        if (user.getRole() == User.Role.ADMIN) {
+            return true;
+        }
+
         // Room creator can always add
         if (room.isCreator(user)) {
             return true;

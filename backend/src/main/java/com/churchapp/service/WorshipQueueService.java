@@ -4,6 +4,7 @@ import com.churchapp.dto.*;
 import com.churchapp.entity.*;
 import com.churchapp.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class WorshipQueueService {
 
     private final WorshipQueueRepository queueRepository;
@@ -35,76 +37,84 @@ public class WorshipQueueService {
 
     @Transactional
     public WorshipQueueEntryResponse addToQueue(String userEmail, WorshipQueueEntryRequest request) {
-        User user = getUserByEmail(userEmail);
-        WorshipRoom room = getRoomByIdOrThrow(request.getRoomId());
+        try {
+            User user = getUserByEmail(userEmail);
+            WorshipRoom room = getRoomByIdOrThrow(request.getRoomId());
 
-        // Validate permissions
-        if (!permissionService.canAddToQueue(user, room)) {
-            throw new RuntimeException("Insufficient permissions to add songs to queue");
-        }
-
-        // Get room settings
-        WorshipRoomSettings settings = getSettingsForRoom(room);
-
-        // Validate queue size
-        long currentQueueSize = queueRepository.countByWorshipRoomAndUserAndStatus(
-            room, user, WorshipQueueEntry.QueueStatus.WAITING
-        );
-
-        if (settings.isQueueFull((int) currentQueueSize)) {
-            throw new RuntimeException("Queue is full");
-        }
-
-        if (!settings.canUserAddMoreSongs((int) currentQueueSize)) {
-            throw new RuntimeException("You have reached the maximum number of songs in queue");
-        }
-
-        // Validate song duration
-        if (request.getVideoDuration() != null &&
-            !settings.isSongDurationValid(request.getVideoDuration())) {
-            throw new RuntimeException("Song duration is not within allowed range");
-        }
-
-        // Check for duplicates if not allowed
-        if (!settings.getAllowDuplicateSongs() &&
-            queueRepository.isVideoInQueue(room, request.getVideoId())) {
-            throw new RuntimeException("This song is already in the queue");
-        }
-
-        // Check cooldown
-        if (settings.getSongCooldownHours() != null && settings.getSongCooldownHours() > 0) {
-            LocalDateTime cooldownTime = LocalDateTime.now().minusHours(settings.getSongCooldownHours());
-            if (queueRepository.wasVideoRecentlyPlayed(room, request.getVideoId(), cooldownTime)) {
-                throw new RuntimeException("This song was recently played. Please wait before adding it again");
+            // Validate permissions
+            if (!permissionService.canAddToQueue(user, room)) {
+                throw new RuntimeException("Insufficient permissions to add songs to queue");
             }
+
+            // Get room settings
+            WorshipRoomSettings settings = getSettingsForRoom(room);
+
+            // Validate queue size
+            long currentQueueSize = queueRepository.countByWorshipRoomAndUserAndStatus(
+                room, user, WorshipQueueEntry.QueueStatus.WAITING
+            );
+
+            if (settings.isQueueFull((int) currentQueueSize)) {
+                throw new RuntimeException("Queue is full");
+            }
+
+            if (!settings.canUserAddMoreSongs((int) currentQueueSize)) {
+                throw new RuntimeException("You have reached the maximum number of songs in queue");
+            }
+
+            // Validate song duration
+            if (request.getVideoDuration() != null &&
+                !settings.isSongDurationValid(request.getVideoDuration())) {
+                throw new RuntimeException("Song duration is not within allowed range");
+            }
+
+            // Check for duplicates if not allowed
+            if (!settings.getAllowDuplicateSongs() &&
+                queueRepository.isVideoInQueue(room, request.getVideoId())) {
+                throw new RuntimeException("This song is already in the queue");
+            }
+
+            // Check cooldown
+            if (settings.getSongCooldownHours() != null && settings.getSongCooldownHours() > 0) {
+                LocalDateTime cooldownTime = LocalDateTime.now().minusHours(settings.getSongCooldownHours());
+                if (queueRepository.wasVideoRecentlyPlayed(room, request.getVideoId(), cooldownTime)) {
+                    throw new RuntimeException("This song was recently played. Please wait before adding it again");
+                }
+            }
+
+            // Check if video is banned
+            if (!settings.isVideoAllowed(request.getVideoId())) {
+                throw new RuntimeException("This video is not allowed in this room");
+            }
+
+            // Get next position
+            Integer maxPosition = queueRepository.getMaxPosition(room);
+            int nextPosition = (maxPosition == null ? 0 : maxPosition) + POSITION_GAP;
+
+            // Create queue entry
+            WorshipQueueEntry entry = new WorshipQueueEntry();
+            entry.setWorshipRoom(room);
+            entry.setUser(user);
+            entry.setVideoId(request.getVideoId());
+            entry.setVideoTitle(request.getVideoTitle());
+            entry.setVideoDuration(request.getVideoDuration());
+            entry.setVideoThumbnailUrl(request.getVideoThumbnailUrl());
+            entry.setPosition(nextPosition);
+            entry.setStatus(WorshipQueueEntry.QueueStatus.WAITING);
+
+            entry = queueRepository.save(entry);
+
+            // Broadcast queue update
+            broadcastQueueUpdate(room.getId(), "SONG_ADDED", entry);
+
+            return buildQueueEntryResponse(entry, user);
+        } catch (Exception ex) {
+            log.error("Failed to add song to queue for user {} in room {}. Reason: {}", userEmail,
+                request != null ? request.getRoomId() : null, ex.getMessage(), ex);
+            String rootMessage = ex.getClass().getSimpleName() +
+                (ex.getMessage() != null ? (": " + ex.getMessage()) : "");
+            throw new RuntimeException("Unable to add song to queue - " + rootMessage);
         }
-
-        // Check if video is banned
-        if (!settings.isVideoAllowed(request.getVideoId())) {
-            throw new RuntimeException("This video is not allowed in this room");
-        }
-
-        // Get next position
-        Integer maxPosition = queueRepository.getMaxPosition(room);
-        int nextPosition = (maxPosition == null ? 0 : maxPosition) + POSITION_GAP;
-
-        // Create queue entry
-        WorshipQueueEntry entry = new WorshipQueueEntry();
-        entry.setWorshipRoom(room);
-        entry.setUser(user);
-        entry.setVideoId(request.getVideoId());
-        entry.setVideoTitle(request.getVideoTitle());
-        entry.setVideoDuration(request.getVideoDuration());
-        entry.setVideoThumbnailUrl(request.getVideoThumbnailUrl());
-        entry.setPosition(nextPosition);
-        entry.setStatus(WorshipQueueEntry.QueueStatus.WAITING);
-
-        entry = queueRepository.save(entry);
-
-        // Broadcast queue update
-        broadcastQueueUpdate(room.getId(), "SONG_ADDED", entry);
-
-        return buildQueueEntryResponse(entry, user);
     }
 
     @Transactional
