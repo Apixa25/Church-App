@@ -573,11 +573,11 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
                     </div>
                   </div>
 
-                  {claimedByOthers.length > 0 && (
+                  {item.claims.length > 0 && (
                     <div className="claim-list">
-                      <h5>Others bringing:</h5>
+                      <h5>People bringing:</h5>
                       <ul>
-                        {claimedByOthers.map(claim => (
+                        {item.claims.map(claim => (
                           <li key={claim.id}>
                             <span className="claim-user">{claim.userName}</span>
                             <span className="claim-quantity">
