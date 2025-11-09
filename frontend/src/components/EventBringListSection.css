@@ -173,7 +173,6 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(140deg, rgba(91, 127, 255, 0.12), rgba(6, 182, 212, 0.1));
   opacity: 0;
   transition: opacity var(--transition-base);
   pointer-events: none;
@@ -198,8 +197,7 @@
   border-radius: var(--border-radius-lg);
   background: var(--bg-tertiary);
   border: 1px solid var(--border-secondary);
-  box-shadow: inset 0 0 18px rgba(91, 127, 255, 0.12);
-  transition: background var(--transition-base), border-color var(--transition-base);
+  transition: border-color var(--transition-base);
 }
 
 .bring-item-card:hover .card-header {
