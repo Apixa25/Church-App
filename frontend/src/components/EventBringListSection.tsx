@@ -226,6 +226,48 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
     });
   }, [items]);
 
+  const summaryRows = useMemo(
+    () =>
+      sortedItems.map(item => {
+        const quantityNeeded =
+          item.quantityNeeded !== undefined ? item.quantityNeeded : null;
+        const quantityClaimed = item.quantityClaimed ?? 0;
+
+        let quantityRemaining: number | null;
+        if (item.quantityRemaining !== undefined) {
+          quantityRemaining = item.quantityRemaining;
+        } else if (item.quantityNeeded !== undefined) {
+          quantityRemaining = Math.max(item.quantityNeeded - quantityClaimed, 0);
+        } else if (item.allowMultipleClaims) {
+          quantityRemaining = null; // unlimited / open
+        } else {
+          quantityRemaining = Math.max(1 - quantityClaimed, 0);
+        }
+
+        return {
+          id: item.id,
+          name: item.name,
+          needed: quantityNeeded,
+          claimed: quantityClaimed,
+          remaining: quantityRemaining,
+          allowMultipleClaims: item.allowMultipleClaims,
+          claims: item.claims
+        };
+      }),
+    [sortedItems]
+  );
+
+  const outstandingItems = useMemo(
+    () =>
+      summaryRows.filter(row => {
+        if (row.remaining === null) {
+          return true;
+        }
+        return row.remaining > 0;
+      }),
+    [summaryRows]
+  );
+
   if (!bringListEnabled) {
     return (
       <div className="bring-list-disabled">
@@ -337,197 +379,288 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
           <p>No items on the bring-list yet. Be the first to add something!</p>
         </div>
       ) : (
-        <div className="bring-items-grid">
-          {sortedItems.map(item => {
-            const claimDraft = claimDrafts[item.id] ?? { quantity: 1, note: '' };
-            const userHasClaim = Boolean(item.userClaim);
-            const remainingText =
-              item.quantityNeeded !== undefined
-                ? `${item.quantityClaimed ?? 0}/${item.quantityNeeded} claimed`
-                : item.allowMultipleClaims
-                ? 'Multiple claims allowed'
-                : 'Single claim';
+        <>
+          <div className="bring-items-grid">
+            {sortedItems.map(item => {
+              const claimDraft = claimDrafts[item.id] ?? { quantity: 1, note: '' };
+              const userHasClaim = Boolean(item.userClaim);
+              const remainingText =
+                item.quantityNeeded !== undefined
+                  ? `${item.quantityClaimed ?? 0}/${item.quantityNeeded} claimed`
+                  : item.allowMultipleClaims
+                  ? 'Multiple claims allowed'
+                  : 'Single claim';
 
-            const claimedByOthers =
-              item.claims.filter(claim => claim.userId !== item.userClaim?.userId) || [];
+              const claimedByOthers =
+                item.claims.filter(claim => claim.userId !== item.userClaim?.userId) || [];
 
-            const claimDisabled =
-              claimingItemId === item.id ||
-              (item.quantityRemaining !== undefined &&
-                item.quantityRemaining <= 0 &&
-                !userHasClaim &&
-                item.allowMultipleClaims !== true);
+              const claimDisabled =
+                claimingItemId === item.id ||
+                (item.quantityRemaining !== undefined &&
+                  item.quantityRemaining <= 0 &&
+                  !userHasClaim &&
+                  item.allowMultipleClaims !== true);
 
-            return (
-              <div key={item.id} className="bring-item-card">
-                <div className="card-header">
-                  <div>
-                    <h4>{item.name}</h4>
-                    <span className="status-pill">{remainingText}</span>
+              return (
+                <div key={item.id} className="bring-item-card">
+                  <div className="card-header">
+                    <div>
+                      <h4>{item.name}</h4>
+                      <span className="status-pill">{remainingText}</span>
+                    </div>
+                    {item.canEdit && (
+                      <div className="item-actions">
+                        <button
+                          type="button"
+                          className="btn btn-link"
+                          onClick={() =>
+                            editingItemId === item.id ? setEditingItemId(null) : handleStartEdit(item)
+                          }
+                        >
+                          {editingItemId === item.id ? 'Cancel' : 'Edit'}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-link danger"
+                          onClick={() => handleDeleteItem(item.id)}
+                          disabled={loading}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  {item.canEdit && (
-                    <div className="item-actions">
-                      <button
-                        type="button"
-                        className="btn btn-link"
-                        onClick={() =>
-                          editingItemId === item.id ? setEditingItemId(null) : handleStartEdit(item)
-                        }
-                      >
-                        {editingItemId === item.id ? 'Cancel' : 'Edit'}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-link danger"
-                        onClick={() => handleDeleteItem(item.id)}
-                        disabled={loading}
-                      >
-                        Delete
-                      </button>
+
+                  {item.description && <p className="item-description">{item.description}</p>}
+
+                  {editingItemId === item.id && (
+                    <div className="item-edit-form">
+                      <div className="input-group">
+                        <label htmlFor={`edit-name-${item.id}`}>Item name *</label>
+                        <input
+                          id={`edit-name-${item.id}`}
+                          type="text"
+                          value={editDraft.name ?? ''}
+                          onChange={(event) =>
+                            setEditDraft(prev => ({ ...prev, name: event.target.value }))
+                          }
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label htmlFor={`edit-qty-${item.id}`}>Quantity needed</label>
+                        <input
+                          id={`edit-qty-${item.id}`}
+                          type="number"
+                          min={1}
+                          value={editDraft.quantityNeeded ?? ''}
+                          onChange={(event) =>
+                            setEditDraft(prev => ({
+                              ...prev,
+                              quantityNeeded:
+                                event.target.value === '' ? undefined : Number(event.target.value)
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label htmlFor={`edit-desc-${item.id}`}>Notes</label>
+                        <textarea
+                          id={`edit-desc-${item.id}`}
+                          rows={2}
+                          value={editDraft.description ?? ''}
+                          onChange={(event) =>
+                            setEditDraft(prev => ({ ...prev, description: event.target.value }))
+                          }
+                        />
+                      </div>
+                      <label className="checkbox-label inline">
+                        <input
+                          type="checkbox"
+                          checked={editDraft.allowMultipleClaims !== false}
+                          onChange={(event) =>
+                            setEditDraft(prev => ({
+                              ...prev,
+                              allowMultipleClaims: event.target.checked
+                            }))
+                          }
+                        />
+                        <span className="checkmark"></span>
+                        Allow multiple claims
+                      </label>
+                      <div className="edit-actions">
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={handleUpdateItem}
+                          disabled={savingEdit}
+                        >
+                          {savingEdit ? 'Saving...' : 'Save changes'}
+                        </button>
+                      </div>
                     </div>
                   )}
-                </div>
 
-                {item.description && <p className="item-description">{item.description}</p>}
-
-                {editingItemId === item.id && (
-                  <div className="item-edit-form">
-                    <div className="input-group">
-                      <label htmlFor={`edit-name-${item.id}`}>Item name *</label>
-                      <input
-                        id={`edit-name-${item.id}`}
-                        type="text"
-                        value={editDraft.name ?? ''}
-                        onChange={(event) =>
-                          setEditDraft(prev => ({ ...prev, name: event.target.value }))
-                        }
-                      />
+                  <div className="claim-section">
+                    <div className="claim-form">
+                      <div className="input-group">
+                        <label htmlFor={`claim-qty-${item.id}`}>Quantity</label>
+                        <input
+                          id={`claim-qty-${item.id}`}
+                          type="number"
+                          min={1}
+                          value={claimDraft.quantity}
+                          onChange={(event) =>
+                            handleClaimChange(item.id, {
+                              quantity: Number(event.target.value)
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="input-group full-width">
+                        <label htmlFor={`claim-note-${item.id}`}>Note</label>
+                        <textarea
+                          id={`claim-note-${item.id}`}
+                          rows={2}
+                          value={claimDraft.note}
+                          onChange={(event) =>
+                            handleClaimChange(item.id, { note: event.target.value })
+                          }
+                          placeholder="Add a short note (optional)"
+                        />
+                      </div>
                     </div>
-                    <div className="input-group">
-                      <label htmlFor={`edit-qty-${item.id}`}>Quantity needed</label>
-                      <input
-                        id={`edit-qty-${item.id}`}
-                        type="number"
-                        min={1}
-                        value={editDraft.quantityNeeded ?? ''}
-                        onChange={(event) =>
-                          setEditDraft(prev => ({
-                            ...prev,
-                            quantityNeeded:
-                              event.target.value === '' ? undefined : Number(event.target.value)
-                          }))
-                        }
-                      />
-                    </div>
-                    <div className="input-group">
-                      <label htmlFor={`edit-desc-${item.id}`}>Notes</label>
-                      <textarea
-                        id={`edit-desc-${item.id}`}
-                        rows={2}
-                        value={editDraft.description ?? ''}
-                        onChange={(event) =>
-                          setEditDraft(prev => ({ ...prev, description: event.target.value }))
-                        }
-                      />
-                    </div>
-                    <label className="checkbox-label inline">
-                      <input
-                        type="checkbox"
-                        checked={editDraft.allowMultipleClaims !== false}
-                        onChange={(event) =>
-                          setEditDraft(prev => ({
-                            ...prev,
-                            allowMultipleClaims: event.target.checked
-                          }))
-                        }
-                      />
-                      <span className="checkmark"></span>
-                      Allow multiple claims
-                    </label>
-                    <div className="edit-actions">
+                    <div className="claim-actions">
                       <button
                         type="button"
                         className="btn btn-primary btn-sm"
-                        onClick={handleUpdateItem}
-                        disabled={savingEdit}
+                        onClick={() => submitClaim(item)}
+                        disabled={claimDisabled}
                       >
-                        {savingEdit ? 'Saving...' : 'Save changes'}
+                        {item.userClaim ? 'Update my claim' : 'Claim this'}
                       </button>
+                      {item.userClaim && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => releaseClaim(item.id)}
+                          disabled={claimingItemId === item.id}
+                        >
+                          Release
+                        </button>
+                      )}
                     </div>
                   </div>
-                )}
 
-                <div className="claim-section">
-                  <div className="claim-form">
-                    <div className="input-group">
-                      <label htmlFor={`claim-qty-${item.id}`}>Quantity</label>
-                      <input
-                        id={`claim-qty-${item.id}`}
-                        type="number"
-                        min={1}
-                        value={claimDraft.quantity}
-                        onChange={(event) =>
-                          handleClaimChange(item.id, {
-                            quantity: Number(event.target.value)
-                          })
-                        }
-                      />
+                  {claimedByOthers.length > 0 && (
+                    <div className="claim-list">
+                      <h5>Others bringing:</h5>
+                      <ul>
+                        {claimedByOthers.map(claim => (
+                          <li key={claim.id}>
+                            <span className="claim-user">{claim.userName}</span>
+                            <span className="claim-quantity">
+                              {claim.quantity} {claim.quantity === 1 ? 'item' : 'items'}
+                            </span>
+                            {claim.note && <span className="claim-note">“{claim.note}”</span>}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                    <div className="input-group full-width">
-                      <label htmlFor={`claim-note-${item.id}`}>Note</label>
-                      <textarea
-                        id={`claim-note-${item.id}`}
-                        rows={2}
-                        value={claimDraft.note}
-                        onChange={(event) =>
-                          handleClaimChange(item.id, { note: event.target.value })
-                        }
-                        placeholder="Add a short note (optional)"
-                      />
-                    </div>
-                  </div>
-                  <div className="claim-actions">
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-sm"
-                      onClick={() => submitClaim(item)}
-                      disabled={claimDisabled}
-                    >
-                      {item.userClaim ? 'Update my claim' : 'Claim this'}
-                    </button>
-                    {item.userClaim && (
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => releaseClaim(item.id)}
-                        disabled={claimingItemId === item.id}
-                      >
-                        Release
-                      </button>
-                    )}
-                  </div>
+                  )}
                 </div>
+              );
+            })}
+          </div>
 
-                {claimedByOthers.length > 0 && (
-                  <div className="claim-list">
-                    <h5>Others bringing:</h5>
-                    <ul>
-                      {claimedByOthers.map(claim => (
-                        <li key={claim.id}>
-                          <span className="claim-user">{claim.userName}</span>
-                          <span className="claim-quantity">
-                            {claim.quantity} {claim.quantity === 1 ? 'item' : 'items'}
-                          </span>
-                          {claim.note && <span className="claim-note">“{claim.note}”</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+          <div className="bring-list-summary">
+            <div className="summary-header">
+              <div>
+                <h3>Bring-list summary</h3>
+                <p className="summary-subtitle">
+                  Snapshot of every item, who’s bringing it, and what’s still open.
+                </p>
               </div>
-            );
-          })}
-        </div>
+            </div>
+
+            <div className="summary-table-wrapper">
+              <table className="bring-summary-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Needed</th>
+                    <th>Claimed</th>
+                    <th>Remaining</th>
+                    <th>People Bringing</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summaryRows.map(row => (
+                    <tr key={row.id}>
+                      <td>
+                        <div className="summary-item-cell">
+                          <span className="summary-item-name">{row.name}</span>
+                          {row.allowMultipleClaims && row.needed === null && (
+                            <span className="summary-badge">Open</span>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        {row.needed === null
+                          ? row.allowMultipleClaims
+                            ? 'Open'
+                            : '—'
+                          : row.needed}
+                      </td>
+                      <td>{row.claimed}</td>
+                      <td>
+                        {row.remaining === null
+                          ? row.allowMultipleClaims
+                            ? 'Open'
+                            : '—'
+                          : row.remaining}
+                      </td>
+                      <td>
+                        {row.claims.length === 0 ? (
+                          <span className="summary-none">No claims yet</span>
+                        ) : (
+                          <ul className="summary-claim-list">
+                            {row.claims.map(claim => (
+                              <li key={claim.id}>
+                                <span className="summary-claim-user">{claim.userName}</span>
+                                <span className="summary-claim-quantity">{claim.quantity}</span>
+                                {claim.note && (
+                                  <span className="summary-claim-note">“{claim.note}”</span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="bring-summary-remaining">
+              <h4>Still needed</h4>
+              {outstandingItems.length === 0 ? (
+                <p className="summary-none">Everything is covered—thank you! 🎉</p>
+              ) : (
+                <ul>
+                  {outstandingItems.map(item => (
+                    <li key={item.id}>
+                      <span className="summary-item-name">{item.name}</span>
+                      <span className="summary-remaining-value">
+                        {item.remaining === null ? 'Open' : `${item.remaining} remaining`}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
