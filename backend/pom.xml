@@ -15,6 +15,10 @@
 	<description>Church App Backend API</description>
 	<properties>
 		<java.version>17</java.version>
+		<postgresql.version>42.7.4</postgresql.version>
+		<db.url>jdbc:postgresql://localhost:5433/church_app</db.url>
+		<db.user>church_user</db.user>
+		<db.password>church_password</db.password>
 	</properties>
 	<dependencies>
 		<!-- Spring Boot Web -->
@@ -149,6 +153,23 @@
 
 	<build>
 		<plugins>
+			<plugin>
+				<groupId>org.flywaydb</groupId>
+				<artifactId>flyway-maven-plugin</artifactId>
+				<version>9.22.3</version>
+				<configuration>
+					<url>${db.url}</url>
+					<user>${db.user}</user>
+					<password>${db.password}</password>
+				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>org.postgresql</groupId>
+						<artifactId>postgresql</artifactId>
+						<version>${postgresql.version}</version>
+					</dependency>
+				</dependencies>
+			</plugin>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>

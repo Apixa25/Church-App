@@ -14,5 +14,3 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS banner_image_url VARCHAR(500);
 
 COMMENT ON COLUMN users.banner_image_url IS 'User profile banner image URL for profile header display';
 
-COMMIT;
-
