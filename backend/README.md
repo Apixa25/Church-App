@@ -4,23 +4,36 @@
 
 ### Prerequisites
 - Java 17+
-- Maven 3.6+
-- PostgreSQL 12+
-- Docker (recommended)
+- Docker Desktop (or compatible Docker runtime)
+- Optional: Maven 3.6+ (the project ships with the Maven Wrapper `mvnw`)
 
 ### Database Setup
 
 1. **Using Docker (Recommended)**:
    ```bash
    cd backend
-   docker-compose up -d
+   docker compose up -d
    ```
+   This spins up PostgreSQL 15 with credentials that match the defaults in `application.properties`:
+   - Host: `localhost`
+   - Port: `5432`
+   - Database: `church_app`
+   - User: `church_user`
+   - Password: `church_password`
 
 2. **Manual PostgreSQL Setup**:
    - Install PostgreSQL
    - Create database: `church_app`
    - Create user: `church_user` with password: `church_password`
    - Grant privileges to user
+   - Export environment overrides if you do **not** use the defaults:
+     ```bash
+     export DB_HOST=localhost
+     export DB_PORT=5432
+     export DB_NAME=church_app
+     export DB_USER=church_user
+     export DB_PASSWORD=church_password
+     ```
 
 ### Configuration
 
@@ -39,14 +52,25 @@
      jwt.secret=your-super-secure-256-bit-secret-key
      ```
 
+### Run Database Migrations
+
+Flyway manages the schema. Apply migrations any time the backend dependencies change or after pulling new code:
+
+```bash
+cd backend
+./mvnw flyway:migrate
+```
+
+If you installed Maven globally, you can substitute `mvn`.
+
 ### Running the Application
 
 ```bash
 cd backend
-mvn spring-boot:run
+./mvnw spring-boot:run
 ```
 
-The application will start on `http://localhost:8080`
+The application will start on `http://localhost:8083/api`.
 
 ### API Endpoints
 
@@ -64,7 +88,7 @@ The application will start on `http://localhost:8080`
 
 **Register a new user**:
 ```bash
-curl -X POST http://localhost:8080/api/auth/register \
+curl -X POST http://localhost:8083/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Doe",
@@ -75,7 +99,7 @@ curl -X POST http://localhost:8080/api/auth/register \
 
 **Login**:
 ```bash
-curl -X POST http://localhost:8080/api/auth/login \
+curl -X POST http://localhost:8083/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "john@example.com",
