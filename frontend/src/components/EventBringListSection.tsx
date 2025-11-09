@@ -92,9 +92,10 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
       const payload: EventBringItemInput = {
         name: newItem.name.trim(),
         description: newItem.description?.trim() || undefined,
-        quantityNeeded: newItem.quantityNeeded && newItem.quantityNeeded > 0
-          ? newItem.quantityNeeded
-          : undefined,
+        quantityNeeded:
+          newItem.quantityNeeded && newItem.quantityNeeded > 0
+            ? newItem.quantityNeeded
+            : 1,
         allowMultipleClaims: newItem.allowMultipleClaims !== false
       };
       await eventAPI.addBringItem(eventId, payload);
@@ -130,7 +131,10 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
       const payload: EventBringItemInput = {
         name: editDraft.name.trim(),
         description: editDraft.description?.trim() || undefined,
-        quantityNeeded: editDraft.quantityNeeded ?? undefined,
+        quantityNeeded:
+          editDraft.quantityNeeded && editDraft.quantityNeeded > 0
+            ? editDraft.quantityNeeded
+            : 1,
         allowMultipleClaims: editDraft.allowMultipleClaims !== false
       };
       await eventAPI.updateBringItem(eventId, editingItemId, payload);
@@ -231,7 +235,7 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
     () =>
       sortedItems.map(item => {
         const allowMultiple = item.allowMultipleClaims !== false;
-        const quantityNeeded = item.quantityNeeded ?? null;
+        const quantityNeeded = item.quantityNeeded ?? 1;
         const totalClaimed = typeof item.quantityClaimed === 'number'
           ? item.quantityClaimed
           : item.claims?.reduce((sum, claim) => sum + (claim.quantity ?? 0), 0) ?? 0;
@@ -389,7 +393,7 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
               const userHasClaim = Boolean(item.userClaim);
 
               const allowMultiple = item.allowMultipleClaims !== false;
-              const quantityNeeded = item.quantityNeeded ?? null;
+              const quantityNeeded = item.quantityNeeded ?? 1;
               const totalClaimed = typeof item.quantityClaimed === 'number'
                 ? item.quantityClaimed
                 : item.claims?.reduce((sum, claim) => sum + (claim.quantity ?? 0), 0) ?? 0;
@@ -633,7 +637,7 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
                       <td>
                         {row.remaining === null
                           ? 'Open'
-                          : row.remaining === 0 && row.needed === null
+                          : row.remaining === 0
                           ? 'Closed'
                           : row.remaining}
                       </td>
@@ -672,6 +676,8 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
                       <span className="summary-remaining-value">
                         {item.remaining === null
                           ? 'Open'
+                          : item.remaining === 0
+                          ? 'Closed'
                           : `${item.remaining} remaining`}
                       </span>
                     </li>
