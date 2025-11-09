@@ -117,7 +117,10 @@ const CommentForm: React.FC<CommentFormProps> = ({
 
   return (
     <div className={`comment-form ${compact ? 'compact' : ''}`}>
-      <form onSubmit={handleSubmit}>
+      <form
+        onSubmit={handleSubmit}
+        className={compact ? 'comment-form compact' : 'comment-form'}
+      >
         {/* Reply Header */}
         {replyTo && (
           <div className="reply-header">
