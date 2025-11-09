@@ -70,8 +70,40 @@ public class UserProfileService {
             user.setPhoneNumber(request.getPhoneNumber().trim().isEmpty() ? null : request.getPhoneNumber().trim());
         }
         
-        if (request.getAddress() != null) {
-            user.setAddress(request.getAddress().trim().isEmpty() ? null : request.getAddress().trim());
+        if (request.getAddressLine1() != null) {
+            user.setAddressLine1(request.getAddressLine1().trim());
+        }
+
+        if (request.getAddressLine2() != null) {
+            user.setAddressLine2(request.getAddressLine2().trim().isEmpty() ? null : request.getAddressLine2().trim());
+        }
+
+        if (request.getCity() != null) {
+            user.setCity(request.getCity().trim());
+        }
+
+        if (request.getStateProvince() != null) {
+            user.setStateProvince(request.getStateProvince().trim());
+        }
+
+        if (request.getPostalCode() != null) {
+            user.setPostalCode(request.getPostalCode().trim());
+        }
+
+        if (request.getCountry() != null) {
+            user.setCountry(request.getCountry().trim().isEmpty() ? "United States" : request.getCountry().trim());
+        }
+
+        if (request.getLatitude() != null) {
+            user.setLatitude(request.getLatitude());
+        }
+
+        if (request.getLongitude() != null) {
+            user.setLongitude(request.getLongitude());
+        }
+
+        if (request.getGeocodeStatus() != null) {
+            user.setGeocodeStatus(request.getGeocodeStatus().trim().isEmpty() ? null : request.getGeocodeStatus().trim());
         }
         
         if (request.getBirthday() != null) {

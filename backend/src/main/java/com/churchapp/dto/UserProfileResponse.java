@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -22,7 +23,15 @@ public class UserProfileResponse {
     private String website;
     private String interests; // JSON string of interests array
     private String phoneNumber;
-    private String address;
+    private String addressLine1;
+    private String addressLine2;
+    private String city;
+    private String stateProvince;
+    private String postalCode;
+    private String country;
+    private BigDecimal latitude;
+    private BigDecimal longitude;
+    private String geocodeStatus;
     private LocalDate birthday;
     private String spiritualGift;
     private String equippingGifts;
@@ -43,7 +52,15 @@ public class UserProfileResponse {
             user.getWebsite(),
             user.getInterests(),
             user.getPhoneNumber(),
-            user.getAddress(),
+            user.getAddressLine1(),
+            user.getAddressLine2(),
+            user.getCity(),
+            user.getStateProvince(),
+            user.getPostalCode(),
+            user.getCountry(),
+            user.getLatitude(),
+            user.getLongitude(),
+            user.getGeocodeStatus(),
             user.getBirthday(),
             user.getSpiritualGift(),
             user.getEquippingGifts(),

@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -62,8 +63,32 @@ public class User {
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
     
-    @Column(name = "address", length = 500)
-    private String address;
+    @Column(name = "address_line1", length = 255, nullable = false)
+    private String addressLine1 = "";
+
+    @Column(name = "address_line2", length = 255)
+    private String addressLine2;
+
+    @Column(name = "city", length = 100, nullable = false)
+    private String city = "";
+
+    @Column(name = "state_province", length = 100, nullable = false)
+    private String stateProvince = "";
+
+    @Column(name = "postal_code", length = 20, nullable = false)
+    private String postalCode = "";
+
+    @Column(name = "country", length = 100, nullable = false)
+    private String country = "United States";
+
+    @Column(name = "latitude", precision = 9, scale = 6)
+    private BigDecimal latitude;
+
+    @Column(name = "longitude", precision = 9, scale = 6)
+    private BigDecimal longitude;
+
+    @Column(name = "geocode_status", length = 50)
+    private String geocodeStatus;
     
     @Column(name = "birthday")
     private LocalDate birthday;

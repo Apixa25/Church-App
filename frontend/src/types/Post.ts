@@ -13,7 +13,15 @@ export interface User {
   website?: string;
   interests?: string[];
   phoneNumber?: string;
-  address?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  stateProvince?: string;
+  postalCode?: string;
+  country?: string;
+  latitude?: number;
+  longitude?: number;
+  geocodeStatus?: string;
   birthday?: string;
   spiritualGift?: string;
   equippingGifts?: string;

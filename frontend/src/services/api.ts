@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { UserProfile } from '../types/Profile';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
 
@@ -64,12 +65,7 @@ export const profileAPI = {
   getUserProfile: (userId: string) =>
     api.get(`/profile/${userId}`),
   
-  updateMyProfile: (data: {
-    name?: string;
-    bio?: string;
-    role?: string;
-    profilePicUrl?: string;
-  }) =>
+  updateMyProfile: (data: Partial<UserProfile>) =>
     api.put('/profile/me', data),
   
   uploadProfilePicture: (file: File) => {
