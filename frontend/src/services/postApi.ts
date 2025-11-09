@@ -13,6 +13,7 @@ import {
   PostStats,
   PostSearchFilters
 } from '../types/Post';
+import { ProfileUpdateRequest } from '../types/Profile';
 
 // ========== POST CRUD OPERATIONS ==========
 
@@ -289,7 +290,7 @@ export const getUserProfile = async (userId: string): Promise<any> => {
   return response.data;
 };
 
-export const updateUserProfile = async (userId: string, profileData: any): Promise<any> => {
+export const updateUserProfile = async (userId: string, profileData: ProfileUpdateRequest): Promise<any> => {
   const response = await api.put('/profile/me', profileData);
   return response.data;
 };

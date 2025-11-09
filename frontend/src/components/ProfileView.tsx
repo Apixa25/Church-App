@@ -180,7 +180,39 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
       MODERATOR: '⭐ Moderator',
       ADMIN: '👑 Administrator',
     };
+
     return roleMap[role as keyof typeof roleMap] || role;
+  };
+
+  const formatStructuredAddress = (userProfile: UserProfile) => {
+    const segments: string[] = [];
+    if (userProfile.addressLine1) {
+      segments.push(userProfile.addressLine1);
+    }
+    if (userProfile.addressLine2) {
+      segments.push(userProfile.addressLine2);
+    }
+    const cityStateParts: string[] = [];
+    if (userProfile.city) {
+      cityStateParts.push(userProfile.city);
+    }
+    if (userProfile.stateProvince) {
+      cityStateParts.push(userProfile.stateProvince);
+    }
+    const localityParts: string[] = [];
+    if (cityStateParts.length > 0) {
+      localityParts.push(cityStateParts.join(', '));
+    }
+    if (userProfile.postalCode) {
+      localityParts.push(userProfile.postalCode);
+    }
+    if (localityParts.length > 0) {
+      segments.push(localityParts.join(' '));
+    }
+    if (userProfile.country) {
+      segments.push(userProfile.country);
+    }
+    return segments.join(', ');
   };
 
   if (loading) {
@@ -222,6 +254,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
       />
     );
   }
+
+  const formattedAddress = formatStructuredAddress(profile);
 
   return (
     <div className="profile-view-container x-style">
@@ -324,10 +358,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
                   <a href={`tel:${profile.phoneNumber}`}>{profile.phoneNumber}</a>
                 </span>
               )}
-              {profile.address && (
+              {formattedAddress && (
                 <span className="meta-item-x">
                   <span className="meta-icon-x">🏠</span>
-                  {profile.address}
+                  {formattedAddress}
                 </span>
               )}
               <span className="meta-item-x">

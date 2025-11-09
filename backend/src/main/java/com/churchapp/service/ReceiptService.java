@@ -134,7 +134,7 @@ public class ReceiptService {
         User donor = donation.getUser();
         receiptData.setDonorName(donor.getName());
         receiptData.setDonorEmail(donor.getEmail());
-        receiptData.setDonorAddress(donor.getAddress()); // Assuming address field exists
+        receiptData.setDonorAddress(formatDonorAddress(donor));
 
         // Donation details
         receiptData.setDonationId(donation.getId());
@@ -165,6 +165,54 @@ public class ReceiptService {
         receiptData.setTaxStatement(receiptData.getStandardTaxStatement());
 
         return receiptData;
+    }
+
+    private String formatDonorAddress(User donor) {
+        StringBuilder builder = new StringBuilder();
+
+        if (donor.getAddressLine1() != null && !donor.getAddressLine1().isBlank()) {
+            builder.append(donor.getAddressLine1().trim());
+        }
+
+        if (donor.getAddressLine2() != null && !donor.getAddressLine2().isBlank()) {
+            appendSeparator(builder);
+            builder.append(donor.getAddressLine2().trim());
+        }
+
+        StringBuilder cityStatePostal = new StringBuilder();
+        if (donor.getCity() != null && !donor.getCity().isBlank()) {
+            cityStatePostal.append(donor.getCity().trim());
+        }
+        if (donor.getStateProvince() != null && !donor.getStateProvince().isBlank()) {
+            if (cityStatePostal.length() > 0) {
+                cityStatePostal.append(", ");
+            }
+            cityStatePostal.append(donor.getStateProvince().trim());
+        }
+        if (donor.getPostalCode() != null && !donor.getPostalCode().isBlank()) {
+            if (cityStatePostal.length() > 0) {
+                cityStatePostal.append(" ");
+            }
+            cityStatePostal.append(donor.getPostalCode().trim());
+        }
+
+        if (cityStatePostal.length() > 0) {
+            appendSeparator(builder);
+            builder.append(cityStatePostal);
+        }
+
+        if (donor.getCountry() != null && !donor.getCountry().isBlank()) {
+            appendSeparator(builder);
+            builder.append(donor.getCountry().trim());
+        }
+
+        return builder.toString();
+    }
+
+    private void appendSeparator(StringBuilder builder) {
+        if (builder.length() > 0) {
+            builder.append(", ");
+        }
     }
 
     /**

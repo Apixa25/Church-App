@@ -39,7 +39,15 @@ interface ProfileFormData {
   website: string;
   interests: string[];
   phoneNumber: string;
-  address: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  stateProvince: string;
+  postalCode: string;
+  country: string;
+  latitude: string;
+  longitude: string;
+  geocodeStatus: string;
   birthday: string;
   spiritualGifts: string[];
   equippingGifts: string[];
@@ -66,7 +74,15 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
     website: '',
     interests: [],
     phoneNumber: '',
-    address: '',
+    addressLine1: '',
+    addressLine2: '',
+    city: '',
+    stateProvince: '',
+    postalCode: '',
+    country: 'United States',
+    latitude: '',
+    longitude: '',
+    geocodeStatus: '',
     birthday: '',
     spiritualGifts: [],
     equippingGifts: []
@@ -106,7 +122,19 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
           }
         })(),
         phoneNumber: profileToUse.phoneNumber || '',
-        address: profileToUse.address || '',
+        addressLine1: profileToUse.addressLine1 || '',
+        addressLine2: profileToUse.addressLine2 || '',
+        city: profileToUse.city || '',
+        stateProvince: profileToUse.stateProvince || '',
+        postalCode: profileToUse.postalCode || '',
+        country: profileToUse.country || 'United States',
+        latitude: profileToUse.latitude !== undefined && profileToUse.latitude !== null
+          ? String(profileToUse.latitude)
+          : '',
+        longitude: profileToUse.longitude !== undefined && profileToUse.longitude !== null
+          ? String(profileToUse.longitude)
+          : '',
+        geocodeStatus: profileToUse.geocodeStatus || '',
         birthday: profileToUse.birthday || '',
         spiritualGifts: profileToUse.spiritualGift
           ? profileToUse.spiritualGift
@@ -265,6 +293,41 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
       return false;
     }
 
+    if (!formData.addressLine1.trim()) {
+      setError('Address line 1 is required');
+      return false;
+    }
+
+    if (!formData.city.trim()) {
+      setError('City is required');
+      return false;
+    }
+
+    if (!formData.stateProvince.trim()) {
+      setError('State or province is required');
+      return false;
+    }
+
+    if (!formData.postalCode.trim()) {
+      setError('Postal code is required');
+      return false;
+    }
+
+    if (!formData.country.trim()) {
+      setError('Country is required');
+      return false;
+    }
+
+    if (formData.latitude.trim() && isNaN(Number(formData.latitude.trim()))) {
+      setError('Latitude must be a valid number');
+      return false;
+    }
+
+    if (formData.longitude.trim() && isNaN(Number(formData.longitude.trim()))) {
+      setError('Longitude must be a valid number');
+      return false;
+    }
+
     return true;
   };
 
@@ -307,14 +370,40 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
       }
 
       // Prepare profile data with serialization for backend expectations
-      const { spiritualGifts, equippingGifts, ...restFormData } = formData;
+      const {
+        spiritualGifts,
+        equippingGifts,
+        interests,
+        latitude,
+        longitude,
+        geocodeStatus,
+        ...restFormData
+      } = formData;
+
+      const latitudeValue = latitude.trim() ? Number(latitude.trim()) : null;
+      const longitudeValue = longitude.trim() ? Number(longitude.trim()) : null;
+
       const updatedProfile = {
         ...restFormData,
+        name: restFormData.name.trim(),
+        bio: restFormData.bio.trim(),
+        location: restFormData.location.trim(),
+        website: restFormData.website.trim(),
+        phoneNumber: restFormData.phoneNumber.trim(),
+        addressLine1: restFormData.addressLine1.trim(),
+        addressLine2: restFormData.addressLine2.trim(),
+        city: restFormData.city.trim(),
+        stateProvince: restFormData.stateProvince.trim(),
+        postalCode: restFormData.postalCode.trim(),
+        country: restFormData.country.trim() || 'United States',
         spiritualGift: spiritualGifts.join(', '),
         equippingGifts: equippingGifts.join(', '),
         profilePicUrl,
         bannerImageUrl,
-        interests: JSON.stringify(formData.interests) // Convert array to JSON string for backend
+        interests: JSON.stringify(interests), // Convert array to JSON string for backend
+        latitude: latitudeValue,
+        longitude: longitudeValue,
+        geocodeStatus: geocodeStatus.trim()
       };
 
       const result = await updateUserProfile(user!.userId, updatedProfile);
@@ -335,7 +424,15 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
           website: result.website,
           interests: result.interests,
           phoneNumber: result.phoneNumber,
-          address: result.address,
+          addressLine1: result.addressLine1,
+          addressLine2: result.addressLine2,
+          city: result.city,
+          stateProvince: result.stateProvince,
+          postalCode: result.postalCode,
+          country: result.country,
+          latitude: result.latitude !== undefined && result.latitude !== null ? result.latitude : null,
+          longitude: result.longitude !== undefined && result.longitude !== null ? result.longitude : null,
+          geocodeStatus: result.geocodeStatus || null,
           birthday: result.birthday,
           spiritualGift: result.spiritualGift,
           equippingGifts: result.equippingGifts,
@@ -605,18 +702,128 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
             </div>
           </div>
 
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="addressLine1">Address Line 1 *</label>
+              <input
+                id="addressLine1"
+                type="text"
+                value={formData.addressLine1}
+                onChange={(e) => handleInputChange('addressLine1', e.target.value)}
+                placeholder="123 Church Street"
+                maxLength={255}
+                className="form-input"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="addressLine2">Address Line 2</label>
+              <input
+                id="addressLine2"
+                type="text"
+                value={formData.addressLine2}
+                onChange={(e) => handleInputChange('addressLine2', e.target.value)}
+                placeholder="Apartment, suite, etc."
+                maxLength={255}
+                className="form-input"
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="city">City *</label>
+              <input
+                id="city"
+                type="text"
+                value={formData.city}
+                onChange={(e) => handleInputChange('city', e.target.value)}
+                placeholder="City"
+                maxLength={100}
+                className="form-input"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="stateProvince">State / Province *</label>
+              <input
+                id="stateProvince"
+                type="text"
+                value={formData.stateProvince}
+                onChange={(e) => handleInputChange('stateProvince', e.target.value)}
+                placeholder="State or province"
+                maxLength={100}
+                className="form-input"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="postalCode">Postal Code *</label>
+              <input
+                id="postalCode"
+                type="text"
+                value={formData.postalCode}
+                onChange={(e) => handleInputChange('postalCode', e.target.value)}
+                placeholder="ZIP or postal code"
+                maxLength={20}
+                className="form-input"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="country">Country *</label>
+              <input
+                id="country"
+                type="text"
+                value={formData.country}
+                onChange={(e) => handleInputChange('country', e.target.value)}
+                placeholder="Country"
+                maxLength={100}
+                className="form-input"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="latitude">Latitude</label>
+              <input
+                id="latitude"
+                type="text"
+                value={formData.latitude}
+                onChange={(e) => handleInputChange('latitude', e.target.value)}
+                placeholder="Optional latitude (e.g., 37.7749)"
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="longitude">Longitude</label>
+              <input
+                id="longitude"
+                type="text"
+                value={formData.longitude}
+                onChange={(e) => handleInputChange('longitude', e.target.value)}
+                placeholder="Optional longitude (e.g., -122.4194)"
+                className="form-input"
+              />
+            </div>
+          </div>
+
           <div className="form-group">
-            <label htmlFor="address">Address</label>
-            <textarea
-              id="address"
-              value={formData.address}
-              onChange={(e) => handleInputChange('address', e.target.value)}
-              placeholder="Street address, city, state, zip code..."
-              maxLength={500}
-              rows={3}
-              className="form-textarea"
+            <label htmlFor="geocodeStatus">Geocode Status</label>
+            <input
+              id="geocodeStatus"
+              type="text"
+              value={formData.geocodeStatus}
+              onChange={(e) => handleInputChange('geocodeStatus', e.target.value)}
+              placeholder="Optional geocode status notes"
+              maxLength={50}
+              className="form-input"
             />
-            <small className="char-count">{formData.address.length}/500</small>
           </div>
 
           <div className="form-group spiritual-gifts-group" role="group" aria-label="Spiritual gifts selection">
