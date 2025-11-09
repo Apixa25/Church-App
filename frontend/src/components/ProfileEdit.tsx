@@ -788,43 +788,6 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
             </div>
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="latitude">Latitude</label>
-              <input
-                id="latitude"
-                type="text"
-                value={formData.latitude}
-                onChange={(e) => handleInputChange('latitude', e.target.value)}
-                placeholder="Optional latitude (e.g., 37.7749)"
-                className="form-input"
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="longitude">Longitude</label>
-              <input
-                id="longitude"
-                type="text"
-                value={formData.longitude}
-                onChange={(e) => handleInputChange('longitude', e.target.value)}
-                placeholder="Optional longitude (e.g., -122.4194)"
-                className="form-input"
-              />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="geocodeStatus">Geocode Status</label>
-            <input
-              id="geocodeStatus"
-              type="text"
-              value={formData.geocodeStatus}
-              onChange={(e) => handleInputChange('geocodeStatus', e.target.value)}
-              placeholder="Optional geocode status notes"
-              maxLength={50}
-              className="form-input"
-            />
-          </div>
 
           <div className="form-group spiritual-gifts-group" role="group" aria-label="Spiritual gifts selection">
             <label className="spiritual-gifts-label">Spiritual Gifts</label>
