@@ -36,4 +36,3 @@ COMMENT ON COLUMN users.address IS 'User home address for location-based feature
 COMMENT ON COLUMN users.birthday IS 'User birthday for celebrations and age-based features';
 COMMENT ON COLUMN users.spiritual_gift IS 'User spiritual gifts for ministry matching';
 
-COMMIT;

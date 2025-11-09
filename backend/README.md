@@ -16,7 +16,7 @@
    ```
    This spins up PostgreSQL 15 with credentials that match the defaults in `application.properties`:
    - Host: `localhost`
-   - Port: `5432`
+   - Port: `5433`
    - Database: `church_app`
    - User: `church_user`
    - Password: `church_password`

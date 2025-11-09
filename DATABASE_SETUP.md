@@ -19,7 +19,7 @@ This launches a PostgreSQL 15 container with the following defaults (the applica
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `DB_HOST` | `localhost` | Database host |
-| `DB_PORT` | `5432` | Database port |
+| `DB_PORT` | `5433` | Database port |
 | `DB_NAME` | `church_app` | Database name |
 | `DB_USER` | `church_user` | Username |
 | `DB_PASSWORD` | `church_password` | Password |
