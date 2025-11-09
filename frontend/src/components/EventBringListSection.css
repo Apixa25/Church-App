@@ -189,15 +189,21 @@
 }
 
 .bring-item-card .card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
   gap: var(--spacing-sm);
   padding: var(--spacing-md);
   border-radius: var(--border-radius-lg);
   background: var(--bg-tertiary);
   border: 1px solid var(--border-secondary);
   transition: border-color var(--transition-base);
+}
+
+.bring-item-card .card-header > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
 }
 
 .bring-item-card:hover .card-header {
@@ -214,22 +220,27 @@
 .status-pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   margin-top: var(--spacing-xs);
-  padding: 0.4rem 0.85rem;
+  padding: 0.25rem 0.6rem;
   border-radius: var(--border-radius-pill);
   background: rgba(91, 127, 255, 0.2);
   color: var(--accent-primary-light);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: 600;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   box-shadow: 0 0 18px rgba(91, 127, 255, 0.25);
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
 }
 
 .item-actions {
   display: flex;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
   align-items: center;
   flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .btn.btn-link {
@@ -238,9 +249,10 @@
   color: var(--accent-primary);
   font-weight: 600;
   cursor: pointer;
-  padding: 0.35rem 0.9rem;
+  padding: 0.25rem 0.7rem;
   position: relative;
   border-radius: var(--border-radius-pill);
+  font-size: var(--font-size-xs);
   transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
