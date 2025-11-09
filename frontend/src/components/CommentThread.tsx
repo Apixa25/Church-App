@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Comment } from '../types/Post';
 import { getPostComments, addComment } from '../services/postApi';
 import { formatRelativeDate } from '../utils/dateUtils';
@@ -12,6 +12,66 @@ interface CommentThreadProps {
   onCommentCountChange?: (count: number) => void;
 }
 
+const sortCommentTree = (nodes: Comment[]): Comment[] => {
+  return [...nodes]
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    .map(node => ({
+      ...node,
+      replies: node.replies ? sortCommentTree(node.replies) : []
+    }));
+};
+
+const buildCommentTree = (flatComments: Comment[]): Comment[] => {
+  if (!flatComments || flatComments.length === 0) {
+    return [];
+  }
+
+  const commentMap = new Map<string, Comment>();
+  const pendingChildren = new Map<string, Comment[]>();
+  const roots: Comment[] = [];
+
+  flatComments.forEach(raw => {
+    const comment: Comment = {
+      ...raw,
+      replies: raw.replies ? [...raw.replies] : []
+    };
+
+    commentMap.set(comment.id, comment);
+
+    const waiting = pendingChildren.get(comment.id);
+    if (waiting) {
+      comment.replies = [...(comment.replies ?? []), ...waiting];
+      pendingChildren.delete(comment.id);
+    }
+
+    if (comment.parentCommentId) {
+      const parent = commentMap.get(comment.parentCommentId);
+      if (parent) {
+        parent.replies = [...(parent.replies ?? []), comment];
+      } else {
+        const list = pendingChildren.get(comment.parentCommentId) ?? [];
+        list.push(comment);
+        pendingChildren.set(comment.parentCommentId, list);
+      }
+    } else {
+      roots.push(comment);
+    }
+  });
+
+  pendingChildren.forEach(children => {
+    children.forEach(child => roots.push(child));
+  });
+
+  return sortCommentTree(roots);
+};
+
+const countComments = (nodes: Comment[]): number =>
+  nodes.reduce(
+    (total, comment) =>
+      total + 1 + (comment.replies ? countComments(comment.replies) : 0),
+    0
+  );
+
 const CommentThread: React.FC<CommentThreadProps> = ({
   postId,
   initialComments = [],
@@ -19,28 +79,28 @@ const CommentThread: React.FC<CommentThreadProps> = ({
   showReplyForms = true,
   onCommentCountChange
 }) => {
-  const [comments, setComments] = useState<Comment[]>(initialComments);
+  const [comments, setComments] = useState<Comment[]>(() => buildCommentTree(initialComments));
+  const [totalCount, setTotalCount] = useState<number>(() => countComments(buildCommentTree(initialComments)));
   const [loading, setLoading] = useState(initialComments.length === 0);
   const [error, setError] = useState<string>('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
   const [newCommentText, setNewCommentText] = useState('');
+  const [initialized, setInitialized] = useState(initialComments.length > 0);
 
-  useEffect(() => {
-    if (initialComments.length === 0) {
-      loadComments();
-    }
-  }, [postId]);
-
-  const loadComments = async () => {
+  const loadComments = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
       const response = await getPostComments(postId);
-      setComments(response.content);
+      const tree = buildCommentTree(response.content);
+      setComments(tree);
+      const total = countComments(tree);
+      setTotalCount(total);
+      setInitialized(true);
 
       if (onCommentCountChange) {
-        onCommentCountChange(response.totalElements);
+        onCommentCountChange(total);
       }
     } catch (err: any) {
       setError('Failed to load comments');
@@ -48,7 +108,25 @@ const CommentThread: React.FC<CommentThreadProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [postId, onCommentCountChange]);
+
+  useEffect(() => {
+    if (!initialized) {
+      if (initialComments.length === 0) {
+        loadComments();
+      } else {
+        const tree = buildCommentTree(initialComments);
+        setComments(tree);
+        const total = countComments(tree);
+        setTotalCount(total);
+        setInitialized(true);
+        setLoading(false);
+        if (onCommentCountChange) {
+          onCommentCountChange(total);
+        }
+      }
+    }
+  }, [initialized, initialComments, loadComments]);
 
   const handleReply = async (parentCommentId: string | null, content: string) => {
     if (!content.trim()) return;
@@ -60,23 +138,31 @@ const CommentThread: React.FC<CommentThreadProps> = ({
         anonymous: false
       });
 
-      // Add the new comment to the appropriate place in the thread
+      const normalizedComment: Comment = { ...comment, replies: [] };
+
       if (parentCommentId) {
-        // It's a reply - find the parent and add it
         setComments(prevComments =>
-          addReplyToComment(prevComments, parentCommentId, comment)
+          sortCommentTree(addReplyToComment(prevComments, parentCommentId, normalizedComment))
         );
+        setExpandedThreads(prev => {
+          const updated = new Set(prev);
+          updated.add(parentCommentId);
+          return updated;
+        });
       } else {
-        // It's a top-level comment
-        setComments(prev => [comment, ...prev]);
+        setComments(prev => sortCommentTree([...prev, normalizedComment]));
       }
 
       setReplyingTo(null);
       setNewCommentText('');
 
-      if (onCommentCountChange) {
-        onCommentCountChange(comments.length + 1);
-      }
+      setTotalCount(prev => {
+        const updated = prev + 1;
+        if (onCommentCountChange) {
+          onCommentCountChange(updated);
+        }
+        return updated;
+      });
     } catch (err: any) {
       setError('Failed to post comment');
       console.error('Error posting comment:', err);
@@ -86,10 +172,8 @@ const CommentThread: React.FC<CommentThreadProps> = ({
   const addReplyToComment = (comments: Comment[], parentId: string, reply: Comment): Comment[] => {
     return comments.map(comment => {
       if (comment.id === parentId) {
-        return {
-          ...comment,
-          replies: comment.replies ? [...comment.replies, reply] : [reply]
-        };
+        const replies = [...(comment.replies ?? []), reply];
+        return { ...comment, replies };
       }
       if (comment.replies) {
         return {
@@ -115,7 +199,7 @@ const CommentThread: React.FC<CommentThreadProps> = ({
 
   const renderComment = (comment: Comment, depth: number = 0): React.ReactNode => {
     const hasReplies = comment.replies && comment.replies.length > 0;
-    const isExpanded = expandedThreads.has(comment.id);
+    const isExpanded = expandedThreads.has(comment.id) || depth === 0;
     const showReplyForm = replyingTo === comment.id;
     const indentClass = depth > 0 ? `comment-indent-${Math.min(depth, maxDepth)}` : '';
 
@@ -158,7 +242,6 @@ const CommentThread: React.FC<CommentThreadProps> = ({
         <div className="comment-content">
           <p className="comment-text">{comment.content}</p>
 
-          {/* Comment Media */}
           {comment.mediaUrls && comment.mediaUrls.length > 0 && (
             <div className="comment-media">
               {comment.mediaUrls.map((url, index) => (
@@ -182,7 +265,6 @@ const CommentThread: React.FC<CommentThreadProps> = ({
           )}
         </div>
 
-        {/* Reply Form */}
         {showReplyForm && (
           <div className="reply-form-container">
             <form
@@ -223,15 +305,16 @@ const CommentThread: React.FC<CommentThreadProps> = ({
           </div>
         )}
 
-        {/* Replies */}
         {hasReplies && (
           <div className="comment-replies">
-            <button
-              className="toggle-replies-button"
-              onClick={() => toggleThreadExpansion(comment.id)}
-            >
-              {isExpanded ? '▼' : '▶'} {comment.replies!.length} repl{comment.replies!.length === 1 ? 'y' : 'ies'}
-            </button>
+            {comment.replies!.length > 0 && depth < maxDepth && (
+              <button
+                className="toggle-replies-button"
+                onClick={() => toggleThreadExpansion(comment.id)}
+              >
+                {isExpanded ? '▼' : '▶'} {comment.replies!.length} repl{comment.replies!.length === 1 ? 'y' : 'ies'}
+              </button>
+            )}
 
             {isExpanded && (
               <div className="replies-container">
@@ -244,7 +327,6 @@ const CommentThread: React.FC<CommentThreadProps> = ({
     );
   };
 
-  // Use the centralized date formatting utility
   const formatTimestamp = (timestamp: string): string => {
     return formatRelativeDate(timestamp);
   };
@@ -272,7 +354,7 @@ const CommentThread: React.FC<CommentThreadProps> = ({
   return (
     <div className="comment-thread">
       <div className="comment-thread-header">
-        <h3>Comments ({comments.length})</h3>
+        <h3>Comments ({totalCount})</h3>
         {showReplyForms && (
           <button
             className="add-comment-button"
@@ -284,7 +366,6 @@ const CommentThread: React.FC<CommentThreadProps> = ({
         )}
       </div>
 
-      {/* Root level comment form */}
       {replyingTo === 'root' && (
         <div className="root-comment-form">
           <form
@@ -324,7 +405,6 @@ const CommentThread: React.FC<CommentThreadProps> = ({
         </div>
       )}
 
-      {/* Comments List */}
       <div className="comments-list">
         {comments.length === 0 ? (
           <div className="no-comments">
