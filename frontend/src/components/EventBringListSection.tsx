@@ -178,6 +178,7 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
       return;
     }
     if (
+      item.allowMultipleClaims !== true &&
       item.quantityRemaining !== undefined &&
       !item.userClaim &&
       draft.quantity > item.quantityRemaining
@@ -229,28 +230,30 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
   const summaryRows = useMemo(
     () =>
       sortedItems.map(item => {
-        const quantityNeeded =
-          item.quantityNeeded !== undefined ? item.quantityNeeded : null;
-        const quantityClaimed = item.quantityClaimed ?? 0;
+        const allowMultiple = item.allowMultipleClaims !== false;
+        const quantityNeeded = item.quantityNeeded ?? null;
+        const totalClaimed = typeof item.quantityClaimed === 'number'
+          ? item.quantityClaimed
+          : item.claims?.reduce((sum, claim) => sum + (claim.quantity ?? 0), 0) ?? 0;
 
         let quantityRemaining: number | null;
-        if (item.quantityRemaining !== undefined) {
+        if (item.quantityRemaining !== undefined && item.quantityRemaining !== null) {
           quantityRemaining = item.quantityRemaining;
-        } else if (item.quantityNeeded !== undefined) {
-          quantityRemaining = Math.max(item.quantityNeeded - quantityClaimed, 0);
-        } else if (item.allowMultipleClaims) {
-          quantityRemaining = null; // unlimited / open
+        } else if (quantityNeeded !== null) {
+          quantityRemaining = Math.max(quantityNeeded - totalClaimed, 0);
+        } else if (allowMultiple) {
+          quantityRemaining = totalClaimed > 0 ? 0 : null;
         } else {
-          quantityRemaining = Math.max(1 - quantityClaimed, 0);
+          quantityRemaining = Math.max(1 - totalClaimed, 0);
         }
 
         return {
           id: item.id,
           name: item.name,
           needed: quantityNeeded,
-          claimed: quantityClaimed,
+          claimed: totalClaimed,
           remaining: quantityRemaining,
-          allowMultipleClaims: item.allowMultipleClaims,
+          allowMultipleClaims: allowMultiple,
           claims: item.claims
         };
       }),
@@ -384,29 +387,44 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
             {sortedItems.map(item => {
               const claimDraft = claimDrafts[item.id] ?? { quantity: 1, note: '' };
               const userHasClaim = Boolean(item.userClaim);
-              const remainingText =
-                item.quantityNeeded !== undefined
-                  ? `${item.quantityClaimed ?? 0}/${item.quantityNeeded} claimed`
-                  : item.allowMultipleClaims
-                  ? 'Multiple claims allowed'
-                  : 'Single claim';
 
-              const claimedByOthers =
-                item.claims.filter(claim => claim.userId !== item.userClaim?.userId) || [];
+              const allowMultiple = item.allowMultipleClaims !== false;
+              const quantityNeeded = item.quantityNeeded ?? null;
+              const totalClaimed = typeof item.quantityClaimed === 'number'
+                ? item.quantityClaimed
+                : item.claims?.reduce((sum, claim) => sum + (claim.quantity ?? 0), 0) ?? 0;
+
+              let effectiveRemaining: number | null;
+              if (item.quantityRemaining !== undefined && item.quantityRemaining !== null) {
+                effectiveRemaining = item.quantityRemaining;
+              } else if (quantityNeeded !== null) {
+                effectiveRemaining = Math.max(quantityNeeded - totalClaimed, 0);
+              } else if (allowMultiple) {
+                effectiveRemaining = totalClaimed > 0 ? 0 : null;
+              } else {
+                effectiveRemaining = Math.max(1 - totalClaimed, 0);
+              }
+
+              const statusLabel =
+                effectiveRemaining === null
+                  ? 'Open'
+                  : effectiveRemaining <= 0
+                  ? 'Closed'
+                  : `${effectiveRemaining} remaining`;
 
               const claimDisabled =
                 claimingItemId === item.id ||
-                (item.quantityRemaining !== undefined &&
-                  item.quantityRemaining <= 0 &&
-                  !userHasClaim &&
-                  item.allowMultipleClaims !== true);
+                (!userHasClaim && effectiveRemaining !== null && effectiveRemaining <= 0);
+
+              const claimedByOthers =
+                item.claims.filter(claim => claim.userId !== item.userClaim?.userId) || [];
 
               return (
                 <div key={item.id} className="bring-item-card">
                   <div className="card-header">
                     <div>
                       <h4>{item.name}</h4>
-                      <span className="status-pill">{remainingText}</span>
+                      <span className="status-pill">{statusLabel}</span>
                     </div>
                     {item.canEdit && (
                       <div className="item-actions">
@@ -614,9 +632,9 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
                       <td>{row.claimed}</td>
                       <td>
                         {row.remaining === null
-                          ? row.allowMultipleClaims
-                            ? 'Open'
-                            : '—'
+                          ? 'Open'
+                          : row.remaining === 0 && row.needed === null
+                          ? 'Closed'
                           : row.remaining}
                       </td>
                       <td>
@@ -652,7 +670,9 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
                     <li key={item.id}>
                       <span className="summary-item-name">{item.name}</span>
                       <span className="summary-remaining-value">
-                        {item.remaining === null ? 'Open' : `${item.remaining} remaining`}
+                        {item.remaining === null
+                          ? 'Open'
+                          : `${item.remaining} remaining`}
                       </span>
                     </li>
                   ))}
