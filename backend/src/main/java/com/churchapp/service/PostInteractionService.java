@@ -279,6 +279,10 @@ public class PostInteractionService {
         return postBookmarkRepository.findById_UserIdOrderByCreatedAtDesc(userId, pageable);
     }
 
+    public Page<Post> getUserBookmarkedPosts(UUID userId, Pageable pageable) {
+        return postBookmarkRepository.findBookmarkedPostsByUserId(userId, pageable);
+    }
+
     public long getPostBookmarkCount(UUID postId) {
         return postBookmarkRepository.countById_PostId(postId);
     }

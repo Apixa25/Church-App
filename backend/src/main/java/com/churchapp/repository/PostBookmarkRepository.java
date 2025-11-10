@@ -22,6 +22,7 @@ public interface PostBookmarkRepository extends JpaRepository<PostBookmark, Post
     // Find bookmarks by user
     Page<PostBookmark> findById_UserIdOrderByCreatedAtDesc(UUID userId, Pageable pageable);
     List<PostBookmark> findById_UserIdOrderByCreatedAtDesc(UUID userId);
+    List<PostBookmark> findById_UserIdAndId_PostIdIn(UUID userId, List<UUID> postIds);
 
     // Check if user bookmarked a specific post
     Optional<PostBookmark> findById_PostIdAndId_UserId(UUID postId, UUID userId);
@@ -62,7 +63,7 @@ public interface PostBookmarkRepository extends JpaRepository<PostBookmark, Post
     @Query("DELETE FROM PostBookmark pb WHERE pb.id.postId IN :postIds")
     void deleteByPostIds(@Param("postIds") List<UUID> postIds);
 
-    // Find bookmarked posts for user (with post details)
-    @Query("SELECT pb FROM PostBookmark pb JOIN FETCH pb.post WHERE pb.id.userId = :userId ORDER BY pb.createdAt DESC")
-    Page<PostBookmark> findBookmarksWithPostsByUserId(@Param("userId") UUID userId, Pageable pageable);
+    // Find bookmarked posts for user
+    @Query("SELECT pb.post FROM PostBookmark pb WHERE pb.id.userId = :userId ORDER BY pb.createdAt DESC")
+    Page<com.churchapp.entity.Post> findBookmarkedPostsByUserId(@Param("userId") UUID userId, Pageable pageable);
 }

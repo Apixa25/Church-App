@@ -3,10 +3,12 @@ package com.churchapp.controller;
 import com.churchapp.dto.*;
 import com.churchapp.entity.Post;
 import com.churchapp.entity.PostComment;
+import com.churchapp.repository.UserRepository;
 import com.churchapp.service.FeedService;
 import com.churchapp.service.FileUploadService;
 import com.churchapp.service.NotificationService;
 import com.churchapp.service.PostInteractionService;
+import com.churchapp.service.PostResponseMapper;
 import com.churchapp.service.PostService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +39,8 @@ public class PostController {
     private final FeedService feedService;
     private final NotificationService notificationService;
     private final FileUploadService fileUploadService;
+    private final PostResponseMapper postResponseMapper;
+    private final UserRepository userRepository;
 
     // ========== POST CRUD OPERATIONS ==========
 
@@ -57,7 +61,7 @@ public class PostController {
                 request.isAnonymous()
             );
 
-            PostResponse response = PostResponse.fromEntity(post);
+            PostResponse response = postResponseMapper.mapPost(post, resolveUserId(user));
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
         } catch (IllegalArgumentException e) {
@@ -83,7 +87,7 @@ public class PostController {
                 request.isAnonymous()
             );
 
-            PostResponse response = PostResponse.fromEntity(reply);
+            PostResponse response = postResponseMapper.mapPost(reply, resolveUserId(user));
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
         } catch (IllegalArgumentException e) {
@@ -108,7 +112,7 @@ public class PostController {
                 request.getMediaTypes()
             );
 
-            PostResponse response = PostResponse.fromEntity(quote);
+            PostResponse response = postResponseMapper.mapPost(quote, resolveUserId(user));
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
         } catch (IllegalArgumentException e) {
@@ -119,14 +123,16 @@ public class PostController {
     }
 
     @GetMapping("/{postId}")
-    public ResponseEntity<PostResponse> getPost(@PathVariable UUID postId) {
+    public ResponseEntity<PostResponse> getPost(
+            @PathVariable UUID postId,
+            @AuthenticationPrincipal User user) {
         Optional<Post> post = postService.getPost(postId);
 
         if (post.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 
-        PostResponse response = PostResponse.fromEntity(post.get());
+        PostResponse response = postResponseMapper.mapPost(post.get(), resolveUserId(user));
         return ResponseEntity.ok(response);
     }
 
@@ -134,11 +140,12 @@ public class PostController {
     public ResponseEntity<Page<PostResponse>> getUserPosts(
             @PathVariable UUID userId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal User user) {
 
         Pageable pageable = PageRequest.of(page, size);
         Page<Post> posts = postService.getUserPosts(userId, pageable);
-        Page<PostResponse> responses = posts.map(PostResponse::fromEntity);
+        Page<PostResponse> responses = postResponseMapper.mapPage(posts, resolveUserId(user));
 
         return ResponseEntity.ok(responses);
     }
@@ -165,7 +172,8 @@ public class PostController {
     public ResponseEntity<Page<PostResponse>> getFeed(
             @RequestParam(defaultValue = "community") String feedType,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal User user) {
 
         try {
             // For church community: default to community feed (all posts)
@@ -182,10 +190,10 @@ public class PostController {
 
             Pageable pageable = PageRequest.of(page, size);
 
-            // In church community model, all users see all posts
-            // No need for user-specific filtering
-            Page<Post> posts = feedService.getFeed(null, type, pageable);
-            Page<PostResponse> responses = posts.map(PostResponse::fromEntity);
+            UUID viewerId = resolveUserId(user);
+
+            Page<Post> posts = feedService.getFeed(viewerId, type, pageable);
+            Page<PostResponse> responses = postResponseMapper.mapPage(posts, viewerId);
 
             return ResponseEntity.ok(responses);
 
@@ -199,11 +207,13 @@ public class PostController {
     @GetMapping("/feed/trending")
     public ResponseEntity<Page<PostResponse>> getTrendingFeed(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal User user) {
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<Post> posts = feedService.getFeed(null, FeedService.FeedType.TRENDING, pageable);
-        Page<PostResponse> responses = posts.map(PostResponse::fromEntity);
+        UUID viewerId = resolveUserId(user);
+        Page<Post> posts = feedService.getFeed(viewerId, FeedService.FeedType.TRENDING, pageable);
+        Page<PostResponse> responses = postResponseMapper.mapPage(posts, viewerId);
 
         return ResponseEntity.ok(responses);
     }
@@ -212,11 +222,12 @@ public class PostController {
     public ResponseEntity<Page<PostResponse>> getPostsByCategory(
             @PathVariable String category,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal User user) {
 
         Pageable pageable = PageRequest.of(page, size);
         Page<Post> posts = feedService.getPostsByCategory(category, pageable);
-        Page<PostResponse> responses = posts.map(PostResponse::fromEntity);
+        Page<PostResponse> responses = postResponseMapper.mapPage(posts, resolveUserId(user));
 
         return ResponseEntity.ok(responses);
     }
@@ -225,13 +236,14 @@ public class PostController {
     public ResponseEntity<Page<PostResponse>> getPostsByType(
             @PathVariable String postType,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal User user) {
 
         try {
             Post.PostType type = Post.PostType.valueOf(postType.toUpperCase());
             Pageable pageable = PageRequest.of(page, size);
             Page<Post> posts = feedService.getPostsByType(type, pageable);
-            Page<PostResponse> responses = posts.map(PostResponse::fromEntity);
+            Page<PostResponse> responses = postResponseMapper.mapPage(posts, resolveUserId(user));
 
             return ResponseEntity.ok(responses);
 
@@ -245,7 +257,8 @@ public class PostController {
             @RequestParam String query,
             @RequestParam(required = false) String postType,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal User user) {
 
         if (query == null || query.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
@@ -265,19 +278,47 @@ public class PostController {
         
         Page<Post> posts = feedService.searchPosts(query, type, pageable);
         log.info("📝 Found {} posts (total: {}) for query: '{}'", posts.getContent().size(), posts.getTotalElements(), query);
-        Page<PostResponse> responses = posts.map(PostResponse::fromEntity);
+        Page<PostResponse> responses = postResponseMapper.mapPage(posts, resolveUserId(user));
+
+        return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/bookmarks")
+    public ResponseEntity<Page<PostResponse>> getBookmarkedPosts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal User user) {
+
+        UUID viewerId = resolveUserId(user);
+        if (viewerId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Post> bookmarkedPosts = postInteractionService.getUserBookmarkedPosts(viewerId, pageable);
+        Page<PostResponse> responses = postResponseMapper.mapPage(bookmarkedPosts, viewerId);
 
         return ResponseEntity.ok(responses);
     }
 
     @GetMapping("/{postId}/thread")
-    public ResponseEntity<List<PostResponse>> getPostThread(@PathVariable UUID postId) {
+    public ResponseEntity<List<PostResponse>> getPostThread(
+            @PathVariable UUID postId,
+            @AuthenticationPrincipal User user) {
         List<Post> thread = feedService.getPostThread(postId);
-        List<PostResponse> responses = thread.stream()
-            .map(PostResponse::fromEntity)
-            .collect(java.util.stream.Collectors.toList());
+        List<PostResponse> responses = postResponseMapper.mapList(thread, resolveUserId(user));
 
         return ResponseEntity.ok(responses);
+    }
+
+    private UUID resolveUserId(User securityUser) {
+        if (securityUser == null) {
+            return null;
+        }
+
+        return userRepository.findByEmail(securityUser.getUsername())
+            .map(com.churchapp.entity.User::getId)
+            .orElse(null);
     }
 
     // ========== INTERACTION OPERATIONS ==========

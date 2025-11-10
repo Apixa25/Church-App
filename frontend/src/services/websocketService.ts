@@ -72,7 +72,7 @@ export interface PostUpdate {
 }
 
 export interface PostInteractionUpdate {
-  type: 'post_like' | 'post_unlike' | 'post_comment' | 'post_share' | 'post_bookmark';
+  type: 'post_like' | 'post_unlike' | 'post_comment' | 'post_share' | 'post_bookmark' | 'post_unbookmark';
   postId: string;
   userId: string;
   userName?: string;
