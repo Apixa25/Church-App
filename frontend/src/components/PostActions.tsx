@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Post } from '../types/Post';
+import { Post, SharePostRequest } from '../types/Post';
 import { likePost, unlikePost, bookmarkPost, unbookmarkPost } from '../services/postApi';
 import LikeButton from './LikeButton';
 import ShareModal from './ShareModal';
@@ -70,8 +70,7 @@ const PostActions: React.FC<PostActionsProps> = ({
     }
   };
 
-  const handleShare = async (shareRequest: any) => {
-    // The ShareModal handles the API call, we just need to update the UI
+  const handleShare = async (_shareRequest: SharePostRequest) => {
     const updatedPost: Post = {
       ...post,
       sharesCount: post.sharesCount + 1

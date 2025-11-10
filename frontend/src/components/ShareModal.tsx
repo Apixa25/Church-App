@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { Share as CapacitorShare } from '@capacitor/share';
 import { Post, ShareType, SharePostRequest } from '../types/Post';
+import { sharePost } from '../services/postApi';
 import './ShareModal.css';
 
 interface ShareModalProps {
@@ -19,8 +22,18 @@ const ShareModal: React.FC<ShareModalProps> = ({
   const [quoteText, setQuoteText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [externalShareMessage, setExternalShareMessage] = useState('');
+  const [externalShareError, setExternalShareError] = useState('');
 
   const maxQuoteLength = 500;
+
+  const shareUrl = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return `/posts/${post.id}`;
+    }
+    const origin = window.location?.origin || '';
+    return `${origin}/posts/${post.id}`;
+  }, [post.id]);
 
   const handleShare = async () => {
     if (isSubmitting) return;
@@ -47,6 +60,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
         shareRequest.content = quoteText.trim();
       }
 
+      await sharePost(post.id, shareRequest);
       await onShare(shareRequest);
       onClose();
 
@@ -69,6 +83,65 @@ const ShareModal: React.FC<ShareModalProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       onClose();
+    }
+  };
+
+  const handleCopyLink = async () => {
+    setExternalShareMessage('');
+    setExternalShareError('');
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const tempInput = document.createElement('input');
+        tempInput.style.position = 'absolute';
+        tempInput.style.left = '-1000px';
+        tempInput.value = shareUrl;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+      }
+      setExternalShareMessage('Link copied! Paste it into Facebook, X, or anywhere else.');
+    } catch (err) {
+      console.error('Failed to copy share link:', err);
+      setExternalShareError('Unable to copy automatically. Please copy the link manually.');
+    }
+  };
+
+  const handleNativeShare = async () => {
+    setExternalShareMessage('');
+    setExternalShareError('');
+
+    try {
+      if (Capacitor.isNativePlatform()) {
+        await CapacitorShare.share({
+          title: 'Share Post',
+          text: shareType === ShareType.QUOTE && quoteText
+            ? quoteText
+            : 'Check out this post from our church community!',
+          url: shareUrl,
+          dialogTitle: 'Share with friends'
+        });
+        return;
+      }
+
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Share Post',
+          text: shareType === ShareType.QUOTE && quoteText
+            ? quoteText
+            : 'Check out this post from our church community!',
+          url: shareUrl
+        });
+        return;
+      }
+
+      await handleCopyLink();
+    } catch (err) {
+      console.error('Failed to open native share dialog:', err);
+      setExternalShareError('Unable to open the device share menu. Try copying the link instead.');
     }
   };
 
@@ -245,6 +318,33 @@ const ShareModal: React.FC<ShareModalProps> = ({
               'Repost'
             )}
           </button>
+        </div>
+
+        {/* External Share */}
+        <div className="share-external">
+          <h3>Share outside the app</h3>
+          <p className="share-external-description">
+            Copy a direct link to paste on Facebook, X, or anywhere else. On mobile, you can open your device&rsquo;s share sheet too.
+          </p>
+          <div className="share-link-row">
+            <code className="share-link-display">{shareUrl}</code>
+            <button className="share-button secondary" onClick={handleCopyLink}>
+              Copy Link
+            </button>
+          </div>
+          <button className="share-button outline" onClick={handleNativeShare}>
+            Use Device Share Menu
+          </button>
+          {externalShareMessage && (
+            <div className="share-external-message success">
+              {externalShareMessage}
+            </div>
+          )}
+          {externalShareError && (
+            <div className="share-external-message error">
+              {externalShareError}
+            </div>
+          )}
         </div>
 
         {/* Share Preview */}

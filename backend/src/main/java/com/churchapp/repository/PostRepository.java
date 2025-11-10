@@ -81,6 +81,9 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     @Query("SELECT COUNT(p) FROM Post p WHERE p.user.id = :userId")
     long countByUserId(@Param("userId") UUID userId);
 
+    @Query("SELECT COALESCE(SUM(p.sharesCount), 0) FROM Post p WHERE p.user.id = :userId")
+    long sumSharesCountByUserId(@Param("userId") UUID userId);
+
     @Query("SELECT COUNT(p) FROM Post p WHERE p.user.id = :userId AND p.createdAt >= :since")
     long countByUserIdSince(@Param("userId") UUID userId, @Param("since") LocalDateTime since);
 

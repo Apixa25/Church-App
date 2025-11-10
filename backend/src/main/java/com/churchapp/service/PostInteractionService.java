@@ -230,6 +230,10 @@ public class PostInteractionService {
         return postShareRepository.countByPostId(postId);
     }
 
+    public long getSharesReceivedByUser(UUID userId) {
+        return postRepository.sumSharesCountByUserId(userId);
+    }
+
     // ========== BOOKMARK OPERATIONS ==========
 
     @Transactional

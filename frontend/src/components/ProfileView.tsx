@@ -5,7 +5,7 @@ import { UserProfile, ProfileCompletionStatus } from '../types/Profile';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileEdit from './ProfileEdit';
 import { Post } from '../types/Post';
-import { getUserPosts, getBookmarkedPosts } from '../services/postApi';
+import { getUserPosts, getBookmarkedPosts, getUserShareStats } from '../services/postApi';
 import PostCard from './PostCard';
 import { parseEventDate } from '../utils/dateUtils';
 import './ProfileView.css';
@@ -35,6 +35,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [postsCount, setPostsCount] = useState(0);
   const [imageError, setImageError] = useState(false);
+  const [sharesReceived, setSharesReceived] = useState(0);
 
   // Bookmarks state
   const [bookmarkedPosts, setBookmarkedPosts] = useState<Post[]>([]);
@@ -46,10 +47,21 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const isOwnProfile = !userId || userId === user?.userId;
   const targetUserId = userId || user?.userId || '';
 
+  const loadShareStats = useCallback(async (targetId: string) => {
+    try {
+      const stats = await getUserShareStats(targetId);
+      setSharesReceived(stats?.sharesReceived ?? 0);
+    } catch (err) {
+      console.error('Error loading share stats:', err);
+      setSharesReceived(0);
+    }
+  }, []);
+
   const fetchProfile = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
+      setSharesReceived(0);
 
       // If we have a specific userId and it's not our own profile, get that user's profile
       // Otherwise, get our own profile
@@ -59,13 +71,17 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
       
       setProfile(response.data);
       setImageError(false); // Reset image error when profile loads
+
+      if (targetUserId) {
+        await loadShareStats(targetUserId);
+      }
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 'Failed to load profile';
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [userId, user?.userId]);
+  }, [userId, user?.userId, loadShareStats, targetUserId]);
 
   const loadUserPosts = useCallback(async (reset: boolean = false) => {
     if (!targetUserId) return;
@@ -191,11 +207,20 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   }, [isOwnProfile]);
 
   const handlePostUpdate = useCallback((updatedPost: Post) => {
+    let shareDelta = 0;
     setPosts(prevPosts =>
-      prevPosts.map(post =>
-        post.id === updatedPost.id ? updatedPost : post
-      )
+      prevPosts.map(post => {
+        if (post.id === updatedPost.id) {
+          shareDelta = updatedPost.sharesCount - post.sharesCount;
+          return updatedPost;
+        }
+        return post;
+      })
     );
+
+    if (shareDelta !== 0) {
+      setSharesReceived(prev => Math.max(0, prev + shareDelta));
+    }
 
     handleBookmarkPostUpdate(updatedPost);
   }, [handleBookmarkPostUpdate]);
@@ -546,6 +571,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
               <div className="stat-item-x">
                 <span className="stat-number-x">{(profile as any).followerCount || 0}</span>
                 <span className="stat-label-x">Followers</span>
+              </div>
+              <div className="stat-item-x">
+                <span className="stat-number-x">{sharesReceived}</span>
+                <span className="stat-label-x">Post Shares</span>
               </div>
             </div>
           </div>
