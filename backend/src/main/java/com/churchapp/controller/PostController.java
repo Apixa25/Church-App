@@ -24,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -431,6 +432,12 @@ public class PostController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    @GetMapping("/user/{userId}/share-stats")
+    public ResponseEntity<Map<String, Long>> getUserShareStats(@PathVariable UUID userId) {
+        long sharesReceived = postInteractionService.getSharesReceivedByUser(userId);
+        return ResponseEntity.ok(Map.of("sharesReceived", sharesReceived));
     }
 
     @PostMapping("/{postId}/bookmark")

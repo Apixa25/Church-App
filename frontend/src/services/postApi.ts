@@ -189,6 +189,13 @@ export const getBookmarkedPosts = async (
   return response.data;
 };
 
+export const getUserShareStats = async (
+  userId: string
+): Promise<{ sharesReceived: number }> => {
+  const response = await api.get(`/posts/user/${userId}/share-stats`);
+  return response.data;
+};
+
 // ========== MEDIA UPLOAD ==========
 
 export const uploadMedia = async (files: File[]): Promise<string[]> => {

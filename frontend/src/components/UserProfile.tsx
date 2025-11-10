@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Post } from '../types/Post';
-import { getUserProfile, getUserPosts, getBookmarkedPosts, followUser, unfollowUser } from '../services/postApi';
+import { getUserProfile, getUserPosts, getBookmarkedPosts, followUser, unfollowUser, getUserShareStats } from '../services/postApi';
 import { useAuth, User } from '../contexts/AuthContext';
 import PostCard from './PostCard';
 import { parseEventDate } from '../utils/dateUtils';
@@ -30,6 +30,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
   const [bookmarksLoading, setBookmarksLoading] = useState(false);
   const [hasMoreBookmarks, setHasMoreBookmarks] = useState(true);
   const [bookmarksError, setBookmarksError] = useState<string>('');
+  const [sharesReceived, setSharesReceived] = useState(0);
 
   const bookmarksPageRef = useRef(0);
 
@@ -70,9 +71,18 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
     try {
       setIsLoading(true);
       setError('');
+      setSharesReceived(0);
 
       const profile = await getUserProfile(targetUserId);
       setProfileUser(profile);
+
+      try {
+        const stats = await getUserShareStats(targetUserId);
+        setSharesReceived(stats?.sharesReceived ?? 0);
+      } catch (statsError) {
+        console.error('Error loading share stats:', statsError);
+        setSharesReceived(0);
+      }
 
       // Check if current user is following this user
       if (currentUser && currentUser.id !== targetUserId) {
@@ -209,11 +219,20 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
   }, [isOwnProfile]);
 
   const handlePostUpdate = useCallback((updatedPost: Post) => {
+    let shareDelta = 0;
     setUserPosts(prevPosts =>
-      prevPosts.map(post =>
-        post.id === updatedPost.id ? updatedPost : post
-      )
+      prevPosts.map(post => {
+        if (post.id === updatedPost.id) {
+          shareDelta = updatedPost.sharesCount - post.sharesCount;
+          return updatedPost;
+        }
+        return post;
+      })
     );
+
+    if (shareDelta !== 0) {
+      setSharesReceived(prev => Math.max(0, prev + shareDelta));
+    }
 
     handleBookmarkPostUpdate(updatedPost);
   }, [handleBookmarkPostUpdate]);
@@ -375,6 +394,10 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
               <div className="stat-item">
                 <span className="stat-number">{profileUser.followingCount || 0}</span>
                 <span className="stat-label">Following</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-number">{sharesReceived}</span>
+                <span className="stat-label">Post Shares</span>
               </div>
             </div>
           </div>

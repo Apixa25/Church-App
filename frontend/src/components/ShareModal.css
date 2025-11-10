@@ -294,6 +294,85 @@
   border-top: 1px solid #e9ecef;
 }
 
+.share-external {
+  margin: 0 24px 24px;
+  padding: 18px;
+  border: 1px dashed #d0e2ff;
+  border-radius: 14px;
+  background: #f8fbff;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.share-external h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1d3b70;
+}
+
+.share-external-description {
+  margin: 0;
+  font-size: 13px;
+  color: #51617a;
+  line-height: 1.5;
+}
+
+.share-link-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.share-link-display {
+  flex: 1;
+  min-width: 220px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #c6d8f5;
+  font-size: 13px;
+  color: #1d3b70;
+  font-family: 'Courier New', Courier, monospace;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.share-external .share-button.secondary {
+  background: #e3f0ff;
+  color: #1d5ad7;
+  border: 1px solid #bcd6ff;
+}
+
+.share-external .share-button.secondary:hover {
+  background: #d8eaff;
+}
+
+.share-external .share-button.outline {
+  background: transparent;
+  border: 1px solid #bcd6ff;
+  color: #1d5ad7;
+}
+
+.share-external .share-button.outline:hover {
+  background: #edf5ff;
+}
+
+.share-external-message {
+  font-size: 13px;
+}
+
+.share-external-message.success {
+  color: #2e7d32;
+}
+
+.share-external-message.error {
+  color: #c62828;
+}
+
 .cancel-button {
   padding: 10px 20px;
   border: 2px solid #6c757d;
