@@ -29,10 +29,10 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
   const shareUrl = useMemo(() => {
     if (typeof window === 'undefined') {
-      return `/posts/${post.id}`;
+      return `/public/posts/${post.id}/preview`;
     }
     const origin = window.location?.origin || '';
-    return `${origin}/posts/${post.id}`;
+    return `${origin}/public/posts/${post.id}/preview`;
   }, [post.id]);
 
   const handleShare = async () => {
