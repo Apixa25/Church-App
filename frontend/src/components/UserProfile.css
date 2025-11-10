@@ -539,50 +539,6 @@
   padding: 24px;
 }
 
-.activity-metrics {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-  margin-bottom: 24px;
-}
-
-.metric-card {
-  flex: 1 1 240px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--border-radius-md);
-  padding: 20px;
-  box-shadow: var(--shadow-sm);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.metric-icon {
-  font-size: 28px;
-}
-
-.metric-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.metric-label {
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--text-secondary);
-  font-weight: 600;
-}
-
-.metric-note {
-  margin: 0;
-  font-size: 14px;
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-
 .activity-card h3 {
   margin: 0 0 24px 0;
   font-size: 20px;
@@ -677,15 +633,6 @@
   .about-card h3,
   .activity-card h3 {
     font-size: 18px;
-  }
-
-  .activity-metrics {
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .metric-card {
-    flex: 1 1 auto;
   }
 }
 

@@ -14,7 +14,6 @@ import {
   PostSearchFilters
 } from '../types/Post';
 import { ProfileUpdateRequest } from '../types/Profile';
-import { User } from '../contexts/AuthContext';
 
 // ========== POST CRUD OPERATIONS ==========
 
@@ -296,7 +295,7 @@ export const invalidateCommentsCache = (postId: string): void => {
 
 // ========== USER PROFILE OPERATIONS ==========
 
-export const getUserProfile = async (userId: string): Promise<User> => {
+export const getUserProfile = async (userId: string): Promise<any> => {
   const response = await api.get(`/users/${userId}`);
   return response.data;
 };

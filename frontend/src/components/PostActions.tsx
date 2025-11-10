@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Post, SharePostRequest } from '../types/Post';
-import { likePost, unlikePost, bookmarkPost, unbookmarkPost, sharePost } from '../services/postApi';
+import { Post } from '../types/Post';
+import { likePost, unlikePost, bookmarkPost, unbookmarkPost } from '../services/postApi';
 import LikeButton from './LikeButton';
 import ShareModal from './ShareModal';
 import CommentForm from './CommentForm';
@@ -70,9 +70,8 @@ const PostActions: React.FC<PostActionsProps> = ({
     }
   };
 
-  const handleShare = async (shareRequest: SharePostRequest) => {
-    await sharePost(post.id, shareRequest);
-
+  const handleShare = async (shareRequest: any) => {
+    // The ShareModal handles the API call, we just need to update the UI
     const updatedPost: Post = {
       ...post,
       sharesCount: post.sharesCount + 1

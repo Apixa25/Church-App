@@ -276,8 +276,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
   };
   
   const memberSince = formatJoinedDate(profileUser.createdAt);
-  const totalSharesReceived = profileUser.totalPostShares ?? 0;
-  const totalPostsCreated = profileUser.postsCount ?? userPosts.length ?? 0;
 
   return (
     <div className="user-profile">
@@ -367,7 +365,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
 
             <div className="profile-stats">
               <div className="stat-item">
-                <span className="stat-number">{totalPostsCreated}</span>
+                <span className="stat-number">{profileUser.postsCount || 0}</span>
                 <span className="stat-label">Posts</span>
               </div>
               <div className="stat-item">
@@ -377,10 +375,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
               <div className="stat-item">
                 <span className="stat-number">{profileUser.followingCount || 0}</span>
                 <span className="stat-label">Following</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-number">{totalSharesReceived}</span>
-                <span className="stat-label">Shares</span>
               </div>
             </div>
           </div>
@@ -599,32 +593,11 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
         {activeTab === 'activity' && (
           <div className="activity-section">
             <div className="activity-card">
-              <h3>Community Impact</h3>
-
-              <div className="activity-metrics">
-                <div className="metric-card">
-                  <div className="metric-icon">🔄</div>
-                  <div className="metric-value">{totalSharesReceived}</div>
-                  <div className="metric-label">Shares Received</div>
-                  <p className="metric-note">
-                    Church members have reshared your posts {totalSharesReceived === 1 ? 'once' : `${totalSharesReceived} times`}.
-                  </p>
-                </div>
-
-                <div className="metric-card">
-                  <div className="metric-icon">📝</div>
-                  <div className="metric-value">{totalPostsCreated}</div>
-                  <div className="metric-label">Posts Created</div>
-                  <p className="metric-note">
-                    Keep sharing stories and prayer needs to inspire the community.
-                  </p>
-                </div>
-              </div>
-
+              <h3>Recent Activity</h3>
               <div className="activity-placeholder">
                 <div className="activity-icon">📊</div>
-                <p>Detailed activity analytics coming soon!</p>
-                <small>We&apos;ll add trends for likes, comments, and more here.</small>
+                <p>Activity tracking coming soon!</p>
+                <small>This will show recent posts, comments, and interactions.</small>
               </div>
             </div>
           </div>
