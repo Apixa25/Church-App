@@ -154,6 +154,9 @@ const PostFeed: React.FC<PostFeedProps> = ({
             case 'post_bookmark':
               updatedPost.bookmarksCount += 1;
               break;
+            case 'post_unbookmark':
+              updatedPost.bookmarksCount = Math.max(0, updatedPost.bookmarksCount - 1);
+              break;
           }
 
           return updatedPost;

@@ -19,6 +19,7 @@ public interface PostLikeRepository extends JpaRepository<PostLike, PostLike.Pos
 
     // Find likes by user
     List<PostLike> findById_UserIdOrderByCreatedAtDesc(UUID userId);
+    List<PostLike> findById_UserIdAndId_PostIdIn(UUID userId, List<UUID> postIds);
 
     // Check if user liked a specific post
     Optional<PostLike> findById_PostIdAndId_UserId(UUID postId, UUID userId);

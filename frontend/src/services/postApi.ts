@@ -179,6 +179,16 @@ export const unbookmarkPost = async (postId: string): Promise<void> => {
   await api.delete(`/posts/${postId}/bookmark`);
 };
 
+export const getBookmarkedPosts = async (
+  page: number = 0,
+  size: number = 20
+): Promise<FeedResponse> => {
+  const response = await api.get('/posts/bookmarks', {
+    params: { page, size }
+  });
+  return response.data;
+};
+
 // ========== MEDIA UPLOAD ==========
 
 export const uploadMedia = async (files: File[]): Promise<string[]> => {

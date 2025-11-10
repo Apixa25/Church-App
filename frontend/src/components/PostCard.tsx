@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Post, PostType, Comment } from '../types/Post';
 import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost, deletePost } from '../services/postApi';
 import CommentThread from './CommentThread';
@@ -33,7 +33,20 @@ const PostCard: React.FC<PostCardProps> = ({
   const [showCommentThread, setShowCommentThread] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<Comment[]>([]);
-  
+
+  useEffect(() => {
+    setIsLiked(post.isLikedByCurrentUser || false);
+    setIsBookmarked(post.isBookmarkedByCurrentUser || false);
+    setLikesCount(post.likesCount);
+    setCommentsCount(post.commentsCount);
+  }, [
+    post.id,
+    post.isLikedByCurrentUser,
+    post.isBookmarkedByCurrentUser,
+    post.likesCount,
+    post.commentsCount
+  ]);
+
   // Check if current user can delete this post (owner, admin, or moderator)
   const canDelete = user && (
     user.userId === post.userId || 
@@ -93,10 +106,16 @@ const PostCard: React.FC<PostCardProps> = ({
         await bookmarkPost(post.id);
       }
 
+      const updatedBookmarksCount = Math.max(
+        0,
+        (post.bookmarksCount || 0) + (wasBookmarked ? -1 : 1)
+      );
+
       // Update parent component if callback provided
       if (onPostUpdate) {
         onPostUpdate({
           ...post,
+          bookmarksCount: updatedBookmarksCount,
           isBookmarkedByCurrentUser: !wasBookmarked
         });
       }

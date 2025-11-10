@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Post } from '../types/Post';
-import { getUserProfile, getUserPosts, followUser, unfollowUser } from '../services/postApi';
+import { getUserProfile, getUserPosts, getBookmarkedPosts, followUser, unfollowUser } from '../services/postApi';
 import { useAuth, User } from '../contexts/AuthContext';
 import PostCard from './PostCard';
 import { parseEventDate } from '../utils/dateUtils';
@@ -21,14 +21,27 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(false);
   const [error, setError] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'posts' | 'about' | 'activity'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'about' | 'activity' | 'bookmarks'>('posts');
   const [page, setPage] = useState(0);
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [bookmarkedPosts, setBookmarkedPosts] = useState<Post[]>([]);
+  const [bookmarksLoading, setBookmarksLoading] = useState(false);
+  const [hasMoreBookmarks, setHasMoreBookmarks] = useState(true);
+  const [bookmarksError, setBookmarksError] = useState<string>('');
+
+  const bookmarksPageRef = useRef(0);
 
   const POSTS_PER_PAGE = 12;
   const targetUserId = userId || routeUserId || currentUser?.id;
+  const isOwnProfile = Boolean(
+    currentUser &&
+    (
+      (profileUser && currentUser.id === profileUser.id) ||
+      (!profileUser && (!targetUserId || currentUser.id === targetUserId))
+    )
+  );
 
   // Load user profile
   useEffect(() => {
@@ -43,6 +56,13 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
       loadUserPosts(true);
     }
   }, [activeTab, targetUserId]);
+
+  useEffect(() => {
+    setBookmarkedPosts([]);
+    setHasMoreBookmarks(true);
+    setBookmarksError('');
+    bookmarksPageRef.current = 0;
+  }, [targetUserId]);
 
   const loadUserProfile = async () => {
     if (!targetUserId) return;
@@ -93,6 +113,44 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
     }
   };
 
+  const loadBookmarkedPosts = useCallback(async (reset: boolean = false) => {
+    if (!isOwnProfile) return;
+
+    try {
+      setBookmarksLoading(true);
+      setBookmarksError('');
+
+      const pageToLoad = reset ? 0 : bookmarksPageRef.current;
+      if (reset) {
+        bookmarksPageRef.current = 0;
+      }
+
+      const response = await getBookmarkedPosts(pageToLoad, POSTS_PER_PAGE);
+
+      if (reset) {
+        setBookmarkedPosts(response.content);
+      } else {
+        setBookmarkedPosts(prev => [...prev, ...response.content]);
+      }
+
+      setHasMoreBookmarks(!response.last);
+      bookmarksPageRef.current = response.number + 1;
+    } catch (err: any) {
+      console.error('Error loading bookmarked posts:', err);
+      setBookmarksError(err?.message || 'Failed to load bookmarked posts');
+    } finally {
+      setBookmarksLoading(false);
+    }
+  }, [isOwnProfile]);
+
+  useEffect(() => {
+    if (activeTab === 'bookmarks' && isOwnProfile) {
+      if (bookmarkedPosts.length === 0) {
+        loadBookmarkedPosts(true);
+      }
+    }
+  }, [activeTab, isOwnProfile, bookmarkedPosts.length, loadBookmarkedPosts]);
+
   const handleFollowToggle = async () => {
     if (!currentUser || !profileUser || followLoading) return;
 
@@ -118,9 +176,37 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
     }
   };
 
+  const loadMoreBookmarks = useCallback(() => {
+    if (!bookmarksLoading && hasMoreBookmarks) {
+      loadBookmarkedPosts(false);
+    }
+  }, [bookmarksLoading, hasMoreBookmarks, loadBookmarkedPosts]);
+
   const handleEditProfile = () => {
     navigate('/profile/edit');
   };
+
+  const handleBookmarkPostUpdate = useCallback((updatedPost: Post) => {
+    if (!isOwnProfile) return;
+
+    setBookmarkedPosts(prev => {
+      const exists = prev.some(post => post.id === updatedPost.id);
+
+      if (updatedPost.isBookmarkedByCurrentUser) {
+        if (exists) {
+          return prev.map(post => (post.id === updatedPost.id ? updatedPost : post));
+        }
+        return [updatedPost, ...prev];
+      }
+
+      return prev.filter(post => post.id !== updatedPost.id);
+    });
+  }, [isOwnProfile]);
+
+  const handleBookmarkPostDelete = useCallback((postId: string) => {
+    if (!isOwnProfile) return;
+    setBookmarkedPosts(prev => prev.filter(post => post.id !== postId));
+  }, [isOwnProfile]);
 
   const handlePostUpdate = useCallback((updatedPost: Post) => {
     setUserPosts(prevPosts =>
@@ -128,12 +214,15 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
         post.id === updatedPost.id ? updatedPost : post
       )
     );
-  }, []);
+
+    handleBookmarkPostUpdate(updatedPost);
+  }, [handleBookmarkPostUpdate]);
 
   const handlePostDelete = useCallback((postId: string) => {
     // Remove deleted post from list
     setUserPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
-  }, []);
+    handleBookmarkPostDelete(postId);
+  }, [handleBookmarkPostDelete]);
 
   const loadMorePosts = () => {
     if (!postsLoading && hasMorePosts) {
@@ -167,8 +256,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
     );
   }
 
-  const isOwnProfile = currentUser?.id === profileUser.id;
-  
   // Format joined date using robust date parsing
   const formatJoinedDate = (dateString: string | undefined): string => {
     if (!dateString) {
@@ -303,6 +390,14 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
           📝 Posts ({profileUser.postsCount || 0})
         </button>
         <button
+          className={`nav-tab ${activeTab === 'bookmarks' ? 'active' : ''}`}
+          onClick={() => setActiveTab('bookmarks')}
+          disabled={!isOwnProfile}
+          title={!isOwnProfile ? 'Bookmarks are private' : undefined}
+        >
+          🔖 Bookmarks
+        </button>
+        <button
           className={`nav-tab ${activeTab === 'about' ? 'active' : ''}`}
           onClick={() => setActiveTab('about')}
         >
@@ -358,6 +453,84 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
                       )}
                     </button>
                   </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'bookmarks' && (
+          <div className="posts-section">
+            {!isOwnProfile ? (
+              <div className="empty-posts">
+                <div className="empty-icon">🔒</div>
+                <h3>Bookmarks are private</h3>
+                <p>{profileUser.name} keeps their saved posts just for themselves.</p>
+              </div>
+            ) : (
+              <>
+                {bookmarksError && (
+                  <div className="bookmarks-error">
+                    <span className="error-message">⚠️ {bookmarksError}</span>
+                    <button
+                      onClick={() => loadBookmarkedPosts(true)}
+                      disabled={bookmarksLoading}
+                      className="load-more-btn"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
+
+                {bookmarksLoading && bookmarkedPosts.length === 0 && (
+                  <div className="profile-loading">
+                    <div className="loading-spinner"></div>
+                    <span>Loading bookmarks...</span>
+                  </div>
+                )}
+
+                {!bookmarksLoading && bookmarkedPosts.length === 0 && !bookmarksError && (
+                  <div className="empty-posts">
+                    <div className="empty-icon">🔖</div>
+                    <h3>No bookmarks yet</h3>
+                    <p>Tap the bookmark icon on posts to build your personal collection.</p>
+                  </div>
+                )}
+
+                {bookmarkedPosts.length > 0 && (
+                  <>
+                    <div className="posts-grid">
+                      {bookmarkedPosts.map(post => (
+                        <div key={post.id} className="post-grid-item">
+                          <PostCard
+                            post={post}
+                            onPostUpdate={handleBookmarkPostUpdate}
+                            onPostDelete={handleBookmarkPostDelete}
+                            compact={true}
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    {hasMoreBookmarks && (
+                      <div className="load-more-section">
+                        <button
+                          onClick={loadMoreBookmarks}
+                          disabled={bookmarksLoading}
+                          className="load-more-btn"
+                        >
+                          {bookmarksLoading ? (
+                            <>
+                              <div className="load-spinner"></div>
+                              Loading...
+                            </>
+                          ) : (
+                            'Load More Bookmarks'
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
