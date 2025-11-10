@@ -189,6 +189,11 @@ export const getBookmarkedPosts = async (
   return response.data;
 };
 
+export const getPublicPost = async (postId: string): Promise<any> => {
+  const response = await api.get(`/public/posts/${postId}`);
+  return response.data;
+};
+
 export const getUserShareStats = async (
   userId: string
 ): Promise<{ sharesReceived: number }> => {

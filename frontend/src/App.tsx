@@ -6,6 +6,7 @@ import RegisterForm from './components/RegisterForm';
 import Dashboard from './components/Dashboard';
 import AuthCallback from './components/AuthCallback';
 import ProtectedRoute from './components/ProtectedRoute';
+import PublicPostPreview from './components/PublicPostPreview';
 import ProfileView from './components/ProfileView';
 import ProfileEdit from './components/ProfileEdit';
 import ChatList from './components/ChatList';
@@ -37,6 +38,7 @@ const App: React.FC = () => {
             <Route path="/register" element={<RegisterForm />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/auth/error" element={<div>Authentication Error</div>} />
+            <Route path="/posts/:postId" element={<PublicPostPreview />} />
             
             {/* Protected routes */}
             <Route 
