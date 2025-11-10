@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Post, PostType, Comment } from '../types/Post';
-import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost, deletePost } from '../services/postApi';
+import { Post, PostType, Comment, SharePostRequest } from '../types/Post';
+import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost, deletePost, sharePost } from '../services/postApi';
 import CommentThread from './CommentThread';
 import { formatRelativeDate } from '../utils/dateUtils';
 import { useAuth } from '../contexts/AuthContext';
+import ShareModal from './ShareModal';
 import './PostCard.css';
 
 interface PostCardProps {
@@ -28,23 +29,27 @@ const PostCard: React.FC<PostCardProps> = ({
   const [isBookmarked, setIsBookmarked] = useState(post.isBookmarkedByCurrentUser || false);
   const [likesCount, setLikesCount] = useState(post.likesCount);
   const [commentsCount, setCommentsCount] = useState(post.commentsCount);
+  const [sharesCount, setSharesCount] = useState(post.sharesCount || 0);
   const [isLoading, setIsLoading] = useState(false);
   const [showCommentForm, setShowCommentForm] = useState(false);
   const [showCommentThread, setShowCommentThread] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<Comment[]>([]);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   useEffect(() => {
     setIsLiked(post.isLikedByCurrentUser || false);
     setIsBookmarked(post.isBookmarkedByCurrentUser || false);
     setLikesCount(post.likesCount);
     setCommentsCount(post.commentsCount);
+    setSharesCount(post.sharesCount || 0);
   }, [
     post.id,
     post.isLikedByCurrentUser,
     post.isBookmarkedByCurrentUser,
     post.likesCount,
-    post.commentsCount
+    post.commentsCount,
+    post.sharesCount
   ]);
 
   // Check if current user can delete this post (owner, admin, or moderator)
@@ -87,6 +92,25 @@ const PostCard: React.FC<PostCardProps> = ({
       console.error('Error toggling like:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleShare = async (shareRequest: SharePostRequest) => {
+    try {
+      await sharePost(post.id, shareRequest);
+
+      const nextSharesCount = sharesCount + 1;
+      setSharesCount(nextSharesCount);
+
+      if (onPostUpdate) {
+        onPostUpdate({
+          ...post,
+          sharesCount: nextSharesCount
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing post:', error);
+      throw error;
     }
   };
 
@@ -333,10 +357,10 @@ const PostCard: React.FC<PostCardProps> = ({
 
         <button
           className="action-button share-button"
-          onClick={() => {/* TODO: Implement share modal */}}
+          onClick={() => setIsShareModalOpen(true)}
           aria-label="Share post"
         >
-          🔄 {post.sharesCount > 0 && post.sharesCount}
+          🔄 {sharesCount > 0 && sharesCount}
         </button>
       </div>
 
@@ -359,6 +383,13 @@ const PostCard: React.FC<PostCardProps> = ({
           />
         </div>
       )}
+
+      <ShareModal
+        post={post}
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        onShare={handleShare}
+      />
     </div>
   );
 };

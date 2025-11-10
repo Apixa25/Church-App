@@ -3,6 +3,8 @@ package com.churchapp.service;
 import com.churchapp.dto.UserProfileRequest;
 import com.churchapp.dto.UserProfileResponse;
 import com.churchapp.entity.User;
+import com.churchapp.repository.PostRepository;
+import com.churchapp.repository.PostShareRepository;
 import com.churchapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,19 +28,21 @@ public class UserProfileService {
     
     private final UserRepository userRepository;
     private final FileUploadService fileUploadService;
+    private final PostRepository postRepository;
+    private final PostShareRepository postShareRepository;
     
     public UserProfileResponse getUserProfile(UUID userId) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         
-        return UserProfileResponse.fromUser(user);
+        return buildProfileResponse(user);
     }
     
     public UserProfileResponse getUserProfileByEmail(String email) {
         User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
         
-        return UserProfileResponse.fromUser(user);
+        return buildProfileResponse(user);
     }
     
     public UserProfileResponse updateUserProfile(UUID userId, UserProfileRequest request) {
@@ -134,7 +138,7 @@ public class UserProfileService {
         User updatedUser = userRepository.save(user);
         log.info("User profile updated for user: {}", userId);
         
-        return UserProfileResponse.fromUser(updatedUser);
+        return buildProfileResponse(updatedUser);
     }
     
     public String uploadProfilePicture(UUID userId, MultipartFile file) {
@@ -218,7 +222,7 @@ public class UserProfileService {
     public Page<UserProfileResponse> searchUsers(String query, Pageable pageable) {
         Specification<User> spec = createUserSearchSpecification(query);
         Page<User> users = userRepository.findAll(spec, pageable);
-        return users.map(UserProfileResponse::fromUser);
+        return users.map(this::buildProfileResponse);
     }
     
     private Specification<User> createUserSearchSpecification(String query) {
@@ -242,5 +246,17 @@ public class UserProfileService {
             
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
+    }
+
+    private UserProfileResponse buildProfileResponse(User user) {
+        UserProfileResponse response = UserProfileResponse.fromUser(user);
+        long postsCount = postRepository.countByUserId(user.getId());
+        long sharesCount = postShareRepository.countByUserId(user.getId());
+
+        response.setPostsCount(postsCount);
+        response.setTotalPostShares(sharesCount);
+
+        // Future enhancement: populate followers/following when follow system is active
+        return response;
     }
 }

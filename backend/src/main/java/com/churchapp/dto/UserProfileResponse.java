@@ -41,6 +41,10 @@ public class UserProfileResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime lastLogin;
+    private long postsCount;
+    private long followersCount;
+    private long followingCount;
+    private long totalPostShares;
     
     public static UserProfileResponse fromUser(User user) {
         return new UserProfileResponse(
@@ -69,7 +73,11 @@ public class UserProfileResponse {
             user.getBannerImageUrl(),
             user.getCreatedAt(),
             user.getUpdatedAt(),
-            user.getLastLogin()
+            user.getLastLogin(),
+            0L,
+            0L,
+            0L,
+            0L
         );
     }
 }
