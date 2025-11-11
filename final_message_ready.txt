@@ -1,0 +1,45 @@
+## Share Flow Stabilized 🎯
+- 🔧 Routed ShareModal through a portal and temporary body-scroll lock so the overlay escapes post-card overflow, matching the smooth announcements-sharing flow promised in project-vision.md §6 and the polished settings experience in §11.
+- 🎯 Added a one-tick backdrop guard that ignores the initial pointer event, removing the flicker when the modal immediately reopened and satisfying the joyful Enneagram 7 vibe from project-vision.md §1.
+- 💡 Kept all existing share logic additive-only, so deliberate backdrop clicks still close cleanly while our community can celebrate shares without regressions.
+
+## Simplified Snippet
+`25:88:frontend/src/components/ShareModal.tsx
+  const ignoreBackdropClick = useRef(false);
+  const cleanupBackdropGuard = useRef<number | null>(null);
+  const modalRootRef = useRef<HTMLDivElement | null>(null);
+  const previousBodyOverflow = useRef<string | null>(null);
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+    const node = document.createElement('div');
+    node.setAttribute('data-share-modal-root', 'true');
+    modalRootRef.current = node;
+    document.body.appendChild(node);
+    return () => {
+      if (modalRootRef.current) {
+        document.body.removeChild(modalRootRef.current);
+        modalRootRef.current = null;
+      }
+    };
+  }, []);
+  // ... existing code ...
+  if (!isOpen || !modalRootRef.current) return null;
+  return createPortal(
+    <div
+      className="share-modal-overlay"
+      onClick={handleOverlayClick}
+      onKeyDown={handleKeyDown}
+      tabIndex={-1}
+    >
+    // ... existing code ...
+`
+
+## Tests 🧪
+- 
+pm run build
+
+## Character/Token Counts ℹ️
+- Characters: 1747
+- Approx. tokens: 437
