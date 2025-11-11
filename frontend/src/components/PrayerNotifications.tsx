@@ -34,7 +34,8 @@ const PrayerNotifications: React.FC = () => {
       new_prayer: '🙏',
       prayer_interaction: '💙',
       prayer_answered: '✨',
-      prayer_comment: '💬'
+      prayer_comment: '💬',
+      prayer_updated: '📝'
     };
     return iconMap[type] || '🔔';
   };
