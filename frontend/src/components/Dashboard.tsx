@@ -7,10 +7,8 @@ import PostFeed from './PostFeed';
 import PostComposer from './PostComposer';
 import QuickActions from './QuickActions';
 import DashboardStats from './DashboardStats';
-import NotificationCenter from './NotificationCenter';
 import PrayerNotifications from './PrayerNotifications';
 import EventNotifications from './EventNotifications';
-import NotificationSystem from './NotificationSystem';
 import SearchComponent from './SearchComponent';
 import QuickDonationWidget from './QuickDonationWidget';
 import { FeedType } from '../types/Post';
@@ -322,33 +320,11 @@ const Dashboard: React.FC = () => {
                 isLoading={isLoading} 
               />
             </div>
-
-            <div className="dashboard-card">
-              <NotificationCenter
-                notifications={dashboardData?.notifications || {
-                  totalUnread: 0,
-                  prayerRequests: 0,
-                  announcements: 0,
-                  chatMessages: 0,
-                  events: 0,
-                  previews: []
-                }}
-                isLoading={isLoading}
-              />
-            </div>
-
             <div className="dashboard-card">
               <QuickDonationWidget />
             </div>
           </div>
         </div>
-
-        {/* Notification System */}
-        <NotificationSystem
-          position="top-right"
-          maxNotifications={50}
-          autoHideDelay={5000}
-        />
 
         {/* Search Component */}
         <SearchComponent

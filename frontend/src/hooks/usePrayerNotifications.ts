@@ -4,7 +4,12 @@ import webSocketService, { PrayerRequestUpdate, PrayerInteractionUpdate, WebSock
 
 export interface PrayerNotification {
   id: string;
-  type: 'new_prayer' | 'prayer_interaction' | 'prayer_answered' | 'prayer_comment';
+  type:
+    | 'new_prayer'
+    | 'prayer_interaction'
+    | 'prayer_comment'
+    | 'prayer_answered'
+    | 'prayer_updated';
   title: string;
   message: string;
   prayerRequestId: string;
@@ -84,66 +89,72 @@ export const usePrayerNotifications = () => {
 
   // Handle prayer request updates - using useCallback with empty dependency array
   const handlePrayerRequestUpdate = useCallback((data: any) => {
-    console.log('🔥 handlePrayerRequestUpdate called with data:', data);
-    console.log('🔥 Current user:', userRef.current);
-
     if (!userRef.current) {
-      console.log('🔥 No user, returning early');
       return;
     }
 
+    const rawType = data.eventType || data.type;
+    if (!rawType) {
+      return;
+    }
+
+    const eventType = String(rawType).toLowerCase();
+    const isOwnPrayer = data.userId && data.userId === userRef.current.userId;
+
     let notification: PrayerNotification | null = null;
 
-    // Handle the new PrayerNotificationEvent format from backend
-    if (data.type === 'NEW_PRAYER_REQUEST') {
-      // Don't notify users of their own prayer requests
-      if (data.userId === userRef.current.userId) return;
-      
-      notification = {
-        id: `prayer-${data.prayerRequestId}-${Date.now()}`,
-        type: 'new_prayer',
-        title: 'New Prayer Request',
-        message: `${data.userName || 'A community member'} submitted a new prayer request: "${data.title}"`,
-        prayerRequestId: data.prayerRequestId,
-        timestamp: data.timestamp,
-        read: false,
-        actionUrl: `/prayers/${data.prayerRequestId}`
-      };
-    }
-    // Handle the old format for backward compatibility
-    else if (data.type === 'prayer_request') {
-      // Don't notify users of their own prayer requests
-      if (data.userId === userRef.current.userId) return;
-      
-      notification = {
-        id: `prayer-${data.prayerRequestId}-${Date.now()}`,
-        type: 'new_prayer',
-        title: 'New Prayer Request',
-        message: 'A community member has submitted a new prayer request',
-        prayerRequestId: data.prayerRequestId,
-        timestamp: data.timestamp,
-        read: false,
-        actionUrl: `/prayers/${data.prayerRequestId}`
-      };
-    }
-    else if (data.type === 'prayer_update') {
-      notification = {
-        id: `prayer-update-${data.prayerRequestId}-${Date.now()}`,
-        type: 'prayer_answered',
-        title: 'Prayer Update',
-        message: 'A prayer request has been updated',
-        prayerRequestId: data.prayerRequestId,
-        timestamp: data.timestamp,
-        read: false,
-        actionUrl: `/prayers/${data.prayerRequestId}`
-      };
+    switch (eventType) {
+      case 'new_prayer':
+      case 'new_prayer_request':
+      case 'prayer_request':
+        if (isOwnPrayer) return;
+        notification = {
+          id: `prayer-${data.prayerRequestId}-${Date.now()}`,
+          type: 'new_prayer',
+          title: 'New Prayer Request',
+          message: `${data.userName || 'A community member'} shared "${data.title ?? 'a new request'}"`,
+          prayerRequestId: data.prayerRequestId,
+          timestamp: data.timestamp,
+          read: false,
+          actionUrl: `/prayers/${data.prayerRequestId}`
+        };
+        break;
+      case 'prayer_answered':
+      case 'prayer_status_changed':
+        notification = {
+          id: `prayer-update-${data.prayerRequestId}-${Date.now()}`,
+          type: 'prayer_answered',
+          title: 'Prayer Answered',
+          message:
+            data.message ||
+            `${data.userName || 'A community member'} marked "${data.title ?? 'a request'}" as answered`,
+          prayerRequestId: data.prayerRequestId,
+          timestamp: data.timestamp,
+          read: false,
+          actionUrl: `/prayers/${data.prayerRequestId}`
+        };
+        break;
+      case 'prayer_update':
+      case 'prayer_updated':
+        notification = {
+          id: `prayer-updated-${data.prayerRequestId}-${Date.now()}`,
+          type: 'prayer_updated',
+          title: 'Prayer Updated',
+          message:
+            data.message ||
+            `${data.userName || 'A community member'} updated "${data.title ?? 'a prayer request'}"`,
+          prayerRequestId: data.prayerRequestId,
+          timestamp: data.timestamp,
+          read: false,
+          actionUrl: `/prayers/${data.prayerRequestId}`
+        };
+        break;
+      default:
+        break;
     }
 
     if (notification) {
-      console.log('🔥 Adding prayer notification:', notification);
       addNotificationRef.current(notification);
-    } else {
-      console.log('🔥 No notification created from data:', data);
     }
   }, []); // Empty dependency array to prevent re-creation
 
