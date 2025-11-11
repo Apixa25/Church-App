@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Capacitor } from '@capacitor/core';
 import { Share as CapacitorShare } from '@capacitor/share';
 import { Post, ShareType, SharePostRequest } from '../types/Post';
@@ -24,6 +25,59 @@ const ShareModal: React.FC<ShareModalProps> = ({
   const [error, setError] = useState('');
   const [externalShareMessage, setExternalShareMessage] = useState('');
   const [externalShareError, setExternalShareError] = useState('');
+  const ignoreBackdropClick = useRef(false);
+  const cleanupBackdropGuard = useRef<number | null>(null);
+  const modalRootRef = useRef<HTMLDivElement | null>(null);
+  const previousBodyOverflow = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+    const node = document.createElement('div');
+    node.setAttribute('data-share-modal-root', 'true');
+    modalRootRef.current = node;
+    document.body.appendChild(node);
+    return () => {
+      if (modalRootRef.current) {
+        document.body.removeChild(modalRootRef.current);
+        modalRootRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+    if (!isOpen) {
+      if (previousBodyOverflow.current !== null) {
+        document.body.style.overflow = previousBodyOverflow.current;
+        previousBodyOverflow.current = null;
+      }
+      return;
+    }
+    const body = document.body;
+    ignoreBackdropClick.current = true;
+    cleanupBackdropGuard.current = window.setTimeout(() => {
+      ignoreBackdropClick.current = false;
+    }, 0);
+    if (previousBodyOverflow.current === null) {
+      previousBodyOverflow.current = body.style.overflow || '';
+      body.style.overflow = 'hidden';
+    }
+    return () => {
+      if (cleanupBackdropGuard.current !== null) {
+        window.clearTimeout(cleanupBackdropGuard.current);
+      }
+      cleanupBackdropGuard.current = null;
+      ignoreBackdropClick.current = false;
+      if (previousBodyOverflow.current !== null) {
+        body.style.overflow = previousBodyOverflow.current;
+        previousBodyOverflow.current = null;
+      }
+    };
+  }, [isOpen]);
 
   const maxQuoteLength = 500;
 
@@ -75,6 +129,10 @@ const ShareModal: React.FC<ShareModalProps> = ({
   };
 
   const handleOverlayClick = (e: React.MouseEvent) => {
+    if (ignoreBackdropClick.current) {
+      ignoreBackdropClick.current = false;
+      return;
+    }
     if (e.target === e.currentTarget) {
       onClose();
     }
@@ -163,9 +221,9 @@ const ShareModal: React.FC<ShareModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !modalRootRef.current) return null;
 
-  return (
+  return createPortal(
     <div
       className="share-modal-overlay"
       onClick={handleOverlayClick}
@@ -384,7 +442,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
         </div>
       </div>
     </div>
-  );
+  , modalRootRef.current);
 };
 
 export default ShareModal;
