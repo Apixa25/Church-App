@@ -120,16 +120,18 @@ const PrayerSheet: React.FC<PrayerSheetProps> = ({ onBack }) => {
               <li key={prayer.id} className="prayer-item">
                 <div className="prayer-item-header">
                   <span className="prayer-number">{index + 1}.</span>
-                  <h2 className="prayer-title">{prayer.title}</h2>
+                  <h2 className="prayer-title">{prayer.title || 'Untitled Prayer Request'}</h2>
                 </div>
                 <p className="prayer-date">📅 {formatDate(prayer.createdAt)}</p>
-                {prayer.description && (
-                  <div className="prayer-description">
-                    {prayer.description.split('\n').map((paragraph, i) => (
-                      <p key={i}>{paragraph}</p>
-                    ))}
-                  </div>
-                )}
+                <div className="prayer-description">
+                  {prayer.description ? (
+                    prayer.description.split('\n').map((paragraph, i) => (
+                      <p key={i}>{paragraph || '\u00A0'}</p>
+                    ))
+                  ) : (
+                    <p className="no-description">No description provided.</p>
+                  )}
+                </div>
               </li>
             ))}
           </ol>
@@ -141,23 +143,26 @@ const PrayerSheet: React.FC<PrayerSheetProps> = ({ onBack }) => {
           max-width: 900px;
           margin: 0 auto;
           padding: 2rem;
-          background: var(--bg-primary);
+          background: transparent;
+          min-height: 100vh;
         }
 
         .prayer-sheet-loading,
         .prayer-sheet-error {
           text-align: center;
           padding: 3rem 1rem;
+          color: var(--text-primary);
         }
 
         .loading-spinner {
           width: 3rem;
           height: 3rem;
-          border: 4px solid var(--bg-tertiary);
+          border: 4px solid var(--bg-elevated);
           border-top: 4px solid var(--accent-primary);
           border-radius: 50%;
           animation: spin 1s linear infinite;
           margin: 0 auto 1rem;
+          box-shadow: 0 0 20px var(--button-primary-glow);
         }
 
         @keyframes spin {
@@ -171,8 +176,11 @@ const PrayerSheet: React.FC<PrayerSheetProps> = ({ onBack }) => {
           justify-content: space-between;
           align-items: flex-start;
           margin-bottom: 2rem;
-          padding-bottom: 1.5rem;
-          border-bottom: 2px solid var(--border-primary);
+          padding: 1.5rem;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border-primary);
+          border-radius: var(--border-radius-md);
+          box-shadow: var(--shadow-md);
           gap: 1rem;
           flex-wrap: wrap;
         }
@@ -181,13 +189,18 @@ const PrayerSheet: React.FC<PrayerSheetProps> = ({ onBack }) => {
           margin: 0 0 0.5rem 0;
           color: var(--text-primary);
           font-size: 2rem;
-          font-weight: 600;
+          font-weight: 700;
+          background: var(--gradient-primary);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
         }
 
         .sheet-description {
           margin: 0;
           color: var(--text-secondary);
           font-size: 1rem;
+          line-height: 1.5;
         }
 
         .header-actions {
@@ -210,31 +223,36 @@ const PrayerSheet: React.FC<PrayerSheetProps> = ({ onBack }) => {
         }
 
         .btn-primary {
-          background: var(--accent-primary);
+          background: var(--gradient-primary);
           color: white;
           box-shadow: 0 2px 8px var(--button-primary-glow);
         }
 
         .btn-primary:hover {
-          background: var(--accent-primary-dark);
-          transform: translateY(-1px);
+          transform: translateY(-2px);
           box-shadow: var(--glow-blue);
+        }
+
+        .btn-primary:active {
+          transform: translateY(0);
         }
 
         .btn-secondary {
           background: var(--bg-secondary);
-          border: 2px solid var(--border-primary);
+          border: 1px solid var(--border-primary);
           color: var(--text-secondary);
         }
 
         .btn-secondary:hover {
-          background: var(--bg-tertiary);
+          background: var(--bg-elevated);
           border-color: var(--border-glow);
           color: var(--text-primary);
+          box-shadow: 0 2px 8px rgba(91, 127, 255, 0.2);
         }
 
         .prayer-sheet-content {
-          background: white;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border-primary);
           padding: 2rem;
           border-radius: var(--border-radius-md);
           box-shadow: var(--shadow-md);
@@ -253,16 +271,24 @@ const PrayerSheet: React.FC<PrayerSheetProps> = ({ onBack }) => {
 
         .prayer-item {
           counter-increment: prayer-counter;
-          margin-bottom: 2rem;
-          padding-bottom: 2rem;
-          border-bottom: 1px solid var(--border-primary);
+          margin-bottom: 1.5rem;
+          padding: 1.5rem;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-primary);
+          border-radius: var(--border-radius-md);
+          box-shadow: var(--shadow-sm);
           page-break-inside: avoid;
+          transition: all var(--transition-base);
+        }
+
+        .prayer-item:hover {
+          box-shadow: var(--shadow-md);
+          border-color: var(--border-glow);
+          transform: translateY(-2px);
         }
 
         .prayer-item:last-child {
-          border-bottom: none;
           margin-bottom: 0;
-          padding-bottom: 0;
         }
 
         .prayer-item-header {
@@ -273,19 +299,23 @@ const PrayerSheet: React.FC<PrayerSheetProps> = ({ onBack }) => {
         }
 
         .prayer-number {
-          font-weight: 600;
-          color: var(--accent-primary);
-          font-size: 1.1rem;
+          font-weight: 700;
+          background: var(--gradient-primary);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          font-size: 1.2rem;
           flex-shrink: 0;
         }
 
         .prayer-title {
           margin: 0;
           color: var(--text-primary);
-          font-size: 1.25rem;
-          font-weight: 600;
+          font-size: 1.3rem;
+          font-weight: 700;
           line-height: 1.4;
           flex: 1;
+          margin-bottom: 0.75rem;
         }
 
         .prayer-date {
@@ -293,38 +323,53 @@ const PrayerSheet: React.FC<PrayerSheetProps> = ({ onBack }) => {
           color: var(--text-tertiary);
           font-size: 0.9rem;
           font-style: italic;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
         }
 
         .prayer-description {
           margin: 1rem 0 0 0;
           color: var(--text-secondary);
-          line-height: 1.6;
+          line-height: 1.7;
           font-size: 1rem;
         }
 
         .prayer-description p {
           margin: 0 0 0.75rem 0;
+          white-space: pre-wrap;
+          word-wrap: break-word;
         }
 
         .prayer-description p:last-child {
           margin-bottom: 0;
         }
 
+        .prayer-description .no-description {
+          color: var(--text-tertiary);
+          font-style: italic;
+        }
+
         .empty-sheet {
           text-align: center;
           padding: 3rem 1rem;
           color: var(--text-tertiary);
+          background: var(--bg-secondary);
+          border: 1px dashed var(--border-primary);
+          border-radius: var(--border-radius-md);
         }
 
         .empty-icon {
           font-size: 4rem;
           margin-bottom: 1rem;
+          opacity: 0.6;
         }
 
         .empty-sheet h2 {
           margin: 0 0 0.5rem 0;
           color: var(--text-primary);
           font-size: 1.5rem;
+          font-weight: 600;
         }
 
         .empty-sheet p {
@@ -332,18 +377,20 @@ const PrayerSheet: React.FC<PrayerSheetProps> = ({ onBack }) => {
           max-width: 500px;
           margin: 0 auto;
           line-height: 1.5;
+          color: var(--text-secondary);
         }
 
         .error-message {
-          background-color: rgba(239, 68, 68, 0.2);
+          background-color: rgba(239, 68, 68, 0.15);
           border: 1px solid var(--error);
           color: var(--error);
-          padding: 1rem;
+          padding: 1rem 1.5rem;
           border-radius: var(--border-radius-md);
           margin-bottom: 1.5rem;
           display: flex;
           align-items: center;
           gap: 0.5rem;
+          box-shadow: 0 2px 8px var(--error-glow);
         }
 
         .error-icon {
@@ -364,14 +411,22 @@ const PrayerSheet: React.FC<PrayerSheetProps> = ({ onBack }) => {
             padding: 0;
             margin: 0;
             max-width: 100%;
-            background: white;
+            background: white !important;
           }
 
           .prayer-sheet-content {
-            background: white;
+            background: white !important;
             padding: 1.5rem;
-            box-shadow: none;
-            border: none;
+            box-shadow: none !important;
+            border: 1px solid #ddd !important;
+          }
+
+          .prayer-item {
+            background: white !important;
+            border: 1px solid #ddd !important;
+            box-shadow: none !important;
+            page-break-inside: avoid;
+            break-inside: avoid;
           }
 
           .sheet-header.print-only {
@@ -406,20 +461,38 @@ const PrayerSheet: React.FC<PrayerSheetProps> = ({ onBack }) => {
           }
 
           .prayer-title {
-            color: #000;
-            font-size: 1.1rem;
+            color: #000 !important;
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            -webkit-text-fill-color: #000 !important;
           }
 
           .prayer-date {
-            color: #666;
+            color: #666 !important;
+            margin: 0.5rem 0 1rem 0;
           }
 
           .prayer-description {
-            color: #333;
+            color: #333 !important;
+            margin-top: 1rem;
+            line-height: 1.6;
+          }
+
+          .prayer-description p {
+            margin: 0 0 0.75rem 0;
+            line-height: 1.6;
+            color: #333 !important;
+          }
+
+          .prayer-description .no-description {
+            color: #999 !important;
+            font-style: italic;
           }
 
           .prayer-number {
-            color: #000;
+            color: #000 !important;
+            -webkit-text-fill-color: #000 !important;
           }
 
           @page {
