@@ -205,6 +205,21 @@ const PrayerRequestsPage: React.FC = () => {
         )}
       </div>
 
+      {stats && (
+        <div className="prayer-sheet-section">
+          <button 
+            className="btn btn-prayer-sheet"
+            onClick={() => {
+              setViewMode('sheet');
+              setSearchParams({ mode: 'sheet' });
+            }}
+            title="View printable prayer sheet with all active prayers"
+          >
+            📋 Prayer Sheet
+          </button>
+        </div>
+      )}
+
       {error && (
         <div className="error-message">
           <span className="error-icon">⚠️</span>
@@ -249,16 +264,6 @@ const PrayerRequestsPage: React.FC = () => {
                   ✨ Submit Prayer Request
                 </button>
               )}
-              <button 
-                className="btn btn-secondary sheet-btn"
-                onClick={() => {
-                  setViewMode('sheet');
-                  setSearchParams({ mode: 'sheet' });
-                }}
-                title="View printable prayer sheet with all active prayers"
-              >
-                📋 Prayer Sheet
-              </button>
             </div>
 
             <div className="filter-controls">
@@ -471,6 +476,41 @@ const PrayerRequestsPage: React.FC = () => {
           font-weight: 500;
           color: #ffffff;
           text-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+        }
+
+        .prayer-sheet-section {
+          margin-top: 1.5rem;
+          margin-bottom: 2rem;
+          display: flex;
+          justify-content: center;
+        }
+
+        .btn-prayer-sheet {
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border-primary);
+          color: var(--text-secondary);
+          padding: 0.75rem 2rem;
+          border-radius: var(--border-radius-md);
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all var(--transition-base);
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          box-shadow: var(--shadow-sm);
+        }
+
+        .btn-prayer-sheet:hover {
+          background: var(--bg-elevated);
+          border-color: var(--border-glow);
+          color: var(--text-primary);
+          box-shadow: var(--shadow-md);
+          transform: translateY(-2px);
+        }
+
+        .btn-prayer-sheet:active {
+          transform: translateY(0);
         }
 
         .error-message {
