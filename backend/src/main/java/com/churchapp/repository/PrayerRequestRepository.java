@@ -38,6 +38,10 @@ public interface PrayerRequestRepository extends JpaRepository<PrayerRequest, UU
     @Query("SELECT pr FROM PrayerRequest pr WHERE pr.status = 'ACTIVE' ORDER BY pr.createdAt DESC")
     Page<PrayerRequest> findAllActivePrayers(Pageable pageable);
     
+    // Find all active prayers as list (for prayer sheet)
+    @Query("SELECT pr FROM PrayerRequest pr WHERE pr.status = 'ACTIVE' ORDER BY pr.createdAt DESC")
+    List<PrayerRequest> findAllActivePrayersList();
+    
     // Search prayers by title or description
     @Query("SELECT pr FROM PrayerRequest pr WHERE " +
            "LOWER(pr.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +

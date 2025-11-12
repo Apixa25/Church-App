@@ -303,6 +303,20 @@ public class PrayerRequestController {
         }
     }
     
+    @GetMapping("/sheet")
+    public ResponseEntity<?> getPrayerSheet(@AuthenticationPrincipal User user) {
+        try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            List<PrayerRequestResponse> activePrayers = prayerRequestService.getActivePrayersForSheet(
+                currentProfile.getUserId());
+            return ResponseEntity.ok(activePrayers);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
     // Helper method to enrich prayer request responses with interaction summaries
     private PrayerRequestResponse enrichWithInteractions(PrayerRequestResponse prayerResponse) {
         try {

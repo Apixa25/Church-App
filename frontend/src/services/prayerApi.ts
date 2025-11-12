@@ -161,6 +161,10 @@ export const prayerAPI = {
   // Get prayer statistics
   getPrayerStats: () =>
     api.get<PrayerStats>('/prayers/stats'),
+
+  // Get active prayers for prayer sheet
+  getPrayerSheet: () =>
+    api.get<PrayerRequest[]>('/prayers/sheet'),
 };
 
 // Prayer Interaction API endpoints

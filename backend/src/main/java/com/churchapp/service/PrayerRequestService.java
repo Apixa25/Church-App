@@ -10,7 +10,6 @@ import com.churchapp.entity.User;
 import com.churchapp.repository.PrayerRequestRepository;
 import com.churchapp.repository.PrayerInteractionRepository;
 import com.churchapp.repository.UserRepository;
-import com.churchapp.service.FileUploadService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -403,6 +402,29 @@ public class PrayerRequestService {
     
     public long getAnsweredPrayerCount() {
         return prayerRequestRepository.countByStatus(PrayerRequest.PrayerStatus.ANSWERED);
+    }
+    
+    /**
+     * Get all active prayers for prayer sheet
+     * Returns prayers in chronological order (newest first) with full details
+     * Respects anonymity settings - only shows anonymous prayers to their owners
+     */
+    public List<PrayerRequestResponse> getActivePrayersForSheet(UUID requestingUserId) {
+        List<PrayerRequest> activePrayers = prayerRequestRepository.findAllActivePrayersList();
+        
+        return activePrayers.stream()
+                .filter(prayer -> {
+                    // Show prayer if: user is owner OR prayer is not anonymous
+                    return prayer.getUser().getId().equals(requestingUserId) || !prayer.getIsAnonymous();
+                })
+                .map(prayer -> {
+                    // For owner, show full details; for others, respect anonymity
+                    if (prayer.getUser().getId().equals(requestingUserId)) {
+                        return PrayerRequestResponse.fromPrayerRequestForOwner(prayer);
+                    }
+                    return PrayerRequestResponse.fromPrayerRequest(prayer);
+                })
+                .collect(Collectors.toList());
     }
     
     /**
