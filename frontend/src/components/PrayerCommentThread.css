@@ -132,6 +132,13 @@
   box-shadow: none;
 }
 
+.comment-thread .comment-item {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .comments-list {
   min-height: 100px;
   display: flex;
@@ -142,29 +149,42 @@
 
 .comment-item {
   position: relative;
-  padding: var(--spacing-sm) 0 var(--spacing-md);
+  padding: var(--spacing-xs) 0 var(--spacing-md);
   margin: 0;
   max-width: 100%;
   transition: opacity var(--transition-base);
 }
 
-.comment-item.depth-0 {
-  padding-left: 0;
-}
-
-.comment-item:not(.depth-0) {
-  padding-left: 1.75rem;
-}
-
-.comment-item:not(.depth-0)::before {
+.comment-item::before {
   content: '';
   position: absolute;
-  left: 0;
-  top: 1.25rem;
-  width: 1.1rem;
-  height: 2px;
+  top: 1.15rem;
+  left: calc(-1.25rem + 0.3rem);
+  width: 0.95rem;
+  height: 1px;
   background: var(--thread-line-color);
   border-radius: 999px;
+  opacity: var(--connector-opacity, 0);
+  pointer-events: none;
+}
+
+.comment-item::after {
+  content: '';
+  position: absolute;
+  top: 1.15rem;
+  left: calc(-1.25rem + 0.3rem);
+  width: 1px;
+  height: var(--vertical-line-height, 0);
+  background: var(--thread-line-color);
+  border-radius: 999px;
+  opacity: var(--connector-opacity, 0);
+  pointer-events: none;
+}
+
+.comment-item[data-depth='0']::before,
+.comment-item[data-depth='0']::after {
+  opacity: 0;
+  width: 0;
 }
 
 .comment-item.collapsed {
@@ -337,20 +357,10 @@
 
 .comment-children {
   margin-top: var(--spacing-xs);
-  margin-left: 1.5rem;
-  padding-left: 1.1rem;
-  border-left: 2px solid var(--thread-line-color);
+  padding-left: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 0;
-}
-
-.comment-children > .comment-item {
-  padding-left: 0;
-}
-
-.comment-children > .comment-item::before {
-  left: -1.1rem;
 }
 
 .collapsed-reply-count {
@@ -416,18 +426,17 @@
 }
 
 @media (max-width: 640px) {
-  .comment-item:not(.depth-0) {
-    padding-left: 1.4rem;
-  }
-
   .comment-children {
-    margin-left: 1.1rem;
-    padding-left: 0.9rem;
+    padding-left: 1rem;
   }
 
-  .comment-children > .comment-item::before {
-    left: -0.9rem;
-    width: 0.9rem;
+  .comment-item::before {
+    left: calc(-1rem + 0.25rem);
+    width: 0.7rem;
+  }
+
+  .comment-item::after {
+    left: calc(-1rem + 0.25rem);
   }
 }
 
