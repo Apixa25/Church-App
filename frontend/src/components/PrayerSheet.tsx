@@ -47,6 +47,17 @@ const PrayerSheet: React.FC<PrayerSheetProps> = ({ onBack }) => {
     });
   };
 
+  const calculateDaysOld = (dateString: string | number[]): number => {
+    const date = parseEventDate(dateString);
+    if (!date) {
+      return 0;
+    }
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
   if (loading) {
     return (
       <div className="prayer-sheet-loading">
@@ -116,24 +127,32 @@ const PrayerSheet: React.FC<PrayerSheetProps> = ({ onBack }) => {
           </div>
         ) : (
           <ol className="prayer-list">
-            {prayers.map((prayer, index) => (
-              <li key={prayer.id} className="prayer-item">
-                <div className="prayer-item-header">
-                  <span className="prayer-number">{index + 1}.</span>
-                  <p className="prayer-date">📅 {formatDate(prayer.createdAt)}</p>
-                </div>
-                <h2 className="prayer-title">{prayer.title || 'Untitled Prayer Request'}</h2>
-                <div className="prayer-description">
-                  {prayer.description ? (
-                    prayer.description.split('\n').map((paragraph, i) => (
-                      <p key={i}>{paragraph || '\u00A0'}</p>
-                    ))
-                  ) : (
-                    <p className="no-description">No description provided.</p>
-                  )}
-                </div>
-              </li>
-            ))}
+            {prayers.map((prayer, index) => {
+              const daysOld = calculateDaysOld(prayer.createdAt);
+              return (
+                <li key={prayer.id} className="prayer-item">
+                  <div className="prayer-item-header">
+                    <span className="prayer-number">{index + 1}.</span>
+                    <div className="prayer-date-container">
+                      <p className="prayer-date">📅 {formatDate(prayer.createdAt)}</p>
+                      <span className="days-old">
+                        {daysOld === 0 ? 'Today' : daysOld === 1 ? '1 Day Old' : `${daysOld} Days Old`}
+                      </span>
+                    </div>
+                  </div>
+                  <h2 className="prayer-title">{prayer.title || 'Untitled Prayer Request'}</h2>
+                  <div className="prayer-description">
+                    {prayer.description ? (
+                      prayer.description.split('\n').map((paragraph, i) => (
+                        <p key={i}>{paragraph || '\u00A0'}</p>
+                      ))
+                    ) : (
+                      <p className="no-description">No description provided.</p>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ol>
         )}
       </div>
@@ -308,6 +327,14 @@ const PrayerSheet: React.FC<PrayerSheetProps> = ({ onBack }) => {
           flex-shrink: 0;
         }
 
+        .prayer-date-container {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          flex: 1;
+          flex-wrap: wrap;
+        }
+
         .prayer-date {
           margin: 0;
           color: var(--text-tertiary);
@@ -316,7 +343,17 @@ const PrayerSheet: React.FC<PrayerSheetProps> = ({ onBack }) => {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          flex: 1;
+        }
+
+        .days-old {
+          color: var(--accent-primary);
+          font-size: 0.85rem;
+          font-weight: 600;
+          padding: 0.25rem 0.75rem;
+          background: rgba(91, 127, 255, 0.15);
+          border: 1px solid rgba(91, 127, 255, 0.3);
+          border-radius: var(--border-radius-pill);
+          white-space: nowrap;
         }
 
         .prayer-title {
@@ -460,9 +497,25 @@ const PrayerSheet: React.FC<PrayerSheetProps> = ({ onBack }) => {
             border-bottom: none;
           }
 
+          .prayer-date-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+          }
+
           .prayer-date {
             color: #666 !important;
-            margin: 0 0 0.5rem 0 !important;
+            margin: 0 !important;
+          }
+
+          .days-old {
+            color: #555 !important;
+            background: #f0f0f0 !important;
+            border: 1px solid #ddd !important;
+            padding: 0.2rem 0.6rem !important;
+            border-radius: 12px !important;
+            font-size: 0.8rem !important;
           }
 
           .prayer-title {
