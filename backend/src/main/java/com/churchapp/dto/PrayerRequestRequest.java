@@ -19,6 +19,8 @@ public class PrayerRequestRequest {
     @Size(max = 2000, message = "Prayer description cannot exceed 2000 characters")
     private String description;
     
+    private String imageUrl;
+    
     private Boolean isAnonymous = false;
     
     private PrayerRequest.PrayerCategory category = PrayerRequest.PrayerCategory.GENERAL;

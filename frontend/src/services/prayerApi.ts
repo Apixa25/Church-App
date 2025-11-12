@@ -56,6 +56,29 @@ export const prayerAPI = {
   createPrayerRequest: (data: PrayerRequestCreateRequest) =>
     api.post<PrayerRequest>('/prayers', data),
 
+  // Create a new prayer request with image
+  createPrayerRequestWithImage: (data: PrayerRequestCreateRequest, imageFile?: File) => {
+    const formData = new FormData();
+    formData.append('title', data.title);
+    if (data.description) {
+      formData.append('description', data.description);
+    }
+    if (data.isAnonymous !== undefined) {
+      formData.append('isAnonymous', data.isAnonymous.toString());
+    }
+    if (data.category) {
+      formData.append('category', data.category);
+    }
+    if (imageFile) {
+      formData.append('image', imageFile);
+    }
+    return api.post<PrayerRequest>('/prayers/with-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  },
+
   // Get a single prayer request by ID
   getPrayerRequest: (id: string) =>
     api.get<PrayerRequest>(`/prayers/${id}`),
@@ -63,6 +86,37 @@ export const prayerAPI = {
   // Update a prayer request
   updatePrayerRequest: (id: string, data: PrayerRequestUpdateRequest) =>
     api.put<PrayerRequest>(`/prayers/${id}`, data),
+
+  // Update a prayer request with image
+  updatePrayerRequestWithImage: (id: string, data: PrayerRequestUpdateRequest, imageFile?: File) => {
+    const formData = new FormData();
+    if (data.title) {
+      formData.append('title', data.title);
+    }
+    if (data.description !== undefined) {
+      formData.append('description', data.description || '');
+    }
+    if (data.isAnonymous !== undefined) {
+      formData.append('isAnonymous', data.isAnonymous.toString());
+    }
+    if (data.category) {
+      formData.append('category', data.category);
+    }
+    if (data.status) {
+      formData.append('status', data.status);
+    }
+    if (data.imageUrl !== undefined) {
+      formData.append('imageUrl', data.imageUrl || '');
+    }
+    if (imageFile) {
+      formData.append('image', imageFile);
+    }
+    return api.put<PrayerRequest>(`/prayers/${id}/with-image`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  },
 
   // Delete a prayer request
   deletePrayerRequest: (id: string) =>

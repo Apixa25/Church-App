@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
@@ -48,6 +49,50 @@ public class PrayerRequestController {
         }
     }
     
+    @PostMapping(value = "/with-image", consumes = {"multipart/form-data"})
+    public ResponseEntity<?> createPrayerRequestWithImage(
+            @AuthenticationPrincipal User user,
+            @RequestParam("title") String title,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam(value = "isAnonymous", required = false, defaultValue = "false") Boolean isAnonymous,
+            @RequestParam(value = "category", required = false) String category,
+            @RequestParam(value = "image", required = false) MultipartFile imageFile) {
+        try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            
+            // Build request object
+            PrayerRequestRequest request = new PrayerRequestRequest();
+            request.setTitle(title);
+            request.setDescription(description);
+            request.setIsAnonymous(isAnonymous != null ? isAnonymous : false);
+            
+            // Parse category
+            if (category != null && !category.trim().isEmpty()) {
+                try {
+                    request.setCategory(PrayerRequest.PrayerCategory.valueOf(category.toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    request.setCategory(PrayerRequest.PrayerCategory.GENERAL);
+                }
+            } else {
+                request.setCategory(PrayerRequest.PrayerCategory.GENERAL);
+            }
+            
+            // Create prayer request with image
+            PrayerRequestResponse prayerRequest = prayerRequestService.createPrayerRequestWithImage(
+                currentProfile.getUserId(), request, imageFile);
+            return ResponseEntity.ok(prayerRequest);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        } catch (Exception e) {
+            log.error("Error creating prayer request with image: {}", e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create prayer request: " + e.getMessage());
+            return ResponseEntity.status(500).body(error);
+        }
+    }
+    
     @GetMapping("/{prayerRequestId}")
     public ResponseEntity<?> getPrayerRequest(@AuthenticationPrincipal User user,
                                             @PathVariable UUID prayerRequestId) {
@@ -77,6 +122,61 @@ public class PrayerRequestController {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @PutMapping(value = "/{prayerRequestId}/with-image", consumes = {"multipart/form-data"})
+    public ResponseEntity<?> updatePrayerRequestWithImage(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID prayerRequestId,
+            @RequestParam(value = "title", required = false) String title,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam(value = "isAnonymous", required = false) Boolean isAnonymous,
+            @RequestParam(value = "category", required = false) String category,
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "imageUrl", required = false) String imageUrl,
+            @RequestParam(value = "image", required = false) MultipartFile imageFile) {
+        try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            
+            // Build update request object
+            PrayerRequestUpdateRequest request = new PrayerRequestUpdateRequest();
+            request.setTitle(title);
+            request.setDescription(description);
+            request.setIsAnonymous(isAnonymous);
+            request.setImageUrl(imageUrl);
+            
+            // Parse category
+            if (category != null && !category.trim().isEmpty()) {
+                try {
+                    request.setCategory(PrayerRequest.PrayerCategory.valueOf(category.toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    // Invalid category, ignore
+                }
+            }
+            
+            // Parse status
+            if (status != null && !status.trim().isEmpty()) {
+                try {
+                    request.setStatus(PrayerRequest.PrayerStatus.valueOf(status.toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    // Invalid status, ignore
+                }
+            }
+            
+            // Update prayer request with image
+            PrayerRequestResponse updatedPrayerRequest = prayerRequestService.updatePrayerRequestWithImage(
+                prayerRequestId, currentProfile.getUserId(), request, imageFile);
+            return ResponseEntity.ok(updatedPrayerRequest);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        } catch (Exception e) {
+            log.error("Error updating prayer request with image: {}", e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update prayer request: " + e.getMessage());
+            return ResponseEntity.status(500).body(error);
         }
     }
     

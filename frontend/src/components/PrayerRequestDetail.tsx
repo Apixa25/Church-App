@@ -331,6 +331,16 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
         <div className="prayer-body">
           <h1 className="prayer-title">{prayer.title}</h1>
           
+          {prayer.imageUrl && (
+            <div className="prayer-image-container">
+              <img 
+                src={prayer.imageUrl} 
+                alt={prayer.title}
+                className="prayer-image"
+              />
+            </div>
+          )}
+          
           {prayer.description && (
             <div className="prayer-description">
               {prayer.description.split('\n').map((paragraph, index) => (
@@ -540,6 +550,21 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
           font-size: 1.75rem;
           line-height: 1.3;
           font-weight: 600;
+        }
+
+        .prayer-image-container {
+          margin: 1.5rem 0;
+          border-radius: var(--border-radius-md);
+          overflow: hidden;
+          border: 2px solid var(--border-primary);
+          box-shadow: var(--shadow-md);
+        }
+
+        .prayer-image {
+          width: 100%;
+          max-height: 600px;
+          object-fit: cover;
+          display: block;
         }
 
         .prayer-description p {

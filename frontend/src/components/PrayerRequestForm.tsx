@@ -52,6 +52,8 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(existingPrayer?.imageUrl || null);
 
   const watchedCategory = watch('category');
 
@@ -64,8 +66,46 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
         category: existingPrayer.category,
         status: existingPrayer.status
       });
+      setImagePreview(existingPrayer.imageUrl || null);
     }
   }, [existingPrayer, reset]);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select an image file');
+        return;
+      }
+      
+      // Validate file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        setError('Image size must be less than 10MB');
+        return;
+      }
+      
+      setSelectedImage(file);
+      setError(null);
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    // Clear file input
+    const fileInput = document.getElementById('image-input') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  };
 
   const onSubmit = async (data: PrayerFormData) => {
     setLoading(true);
@@ -81,9 +121,25 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
           description: data.description || undefined,
           isAnonymous: data.isAnonymous,
           category: data.category,
-          status: data.status
+          status: data.status,
+          // If image was removed (had image before, now no preview and no new image), set to empty string
+          // If new image selected, undefined (will be handled by imageFile)
+          // If image exists and no changes, pass existing imageUrl
+          imageUrl: (!imagePreview && existingPrayer.imageUrl && !selectedImage) 
+            ? '' 
+            : (imagePreview ? imagePreview : undefined)
         };
-        response = await prayerAPI.updatePrayerRequest(existingPrayer.id, updateRequest);
+        
+        // If image was selected or removed, use multipart endpoint
+        if (selectedImage || (!imagePreview && existingPrayer.imageUrl)) {
+          response = await prayerAPI.updatePrayerRequestWithImage(
+            existingPrayer.id, 
+            updateRequest, 
+            selectedImage || undefined
+          );
+        } else {
+          response = await prayerAPI.updatePrayerRequest(existingPrayer.id, updateRequest);
+        }
       } else {
         const createRequest: PrayerRequestCreateRequest = {
           title: data.title,
@@ -91,7 +147,13 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
           isAnonymous: data.isAnonymous,
           category: data.category
         };
-        response = await prayerAPI.createPrayerRequest(createRequest);
+        
+        // If image was selected, use multipart endpoint
+        if (selectedImage) {
+          response = await prayerAPI.createPrayerRequestWithImage(createRequest, selectedImage);
+        } else {
+          response = await prayerAPI.createPrayerRequest(createRequest);
+        }
       }
 
       const prayer = response.data;
@@ -104,6 +166,11 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
       // Reset form if creating new prayer
       if (mode === 'create') {
         reset();
+        setSelectedImage(null);
+        setImagePreview(null);
+      } else {
+        // Reset image selection after successful update
+        setSelectedImage(null);
       }
     } catch (err: any) {
       setError(handleApiError(err));
@@ -181,6 +248,64 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
           {errors.description && (
             <span className="error-text">{errors.description.message}</span>
           )}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="image-input" className="form-label">
+            Image (Optional)
+          </label>
+          <div className="image-upload-section">
+            {imagePreview && (
+              <div className="image-preview">
+                <img src={imagePreview} alt="Preview" className="preview-image" />
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="remove-image-btn"
+                  title="Remove image"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            {!imagePreview && (
+              <label htmlFor="image-input" className="image-upload-label">
+                <input
+                  id="image-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  disabled={loading}
+                  style={{ display: 'none' }}
+                />
+                <div className="image-upload-button">
+                  <span className="upload-icon">📷</span>
+                  <span className="upload-text">Upload Image</span>
+                </div>
+                <small className="form-help">JPG, PNG, GIF, or WebP • Max 10MB</small>
+              </label>
+            )}
+            {imagePreview && (
+              <label htmlFor="image-input" className="image-upload-label">
+                <input
+                  id="image-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  disabled={loading}
+                  style={{ display: 'none' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('image-input')?.click()}
+                  className="change-image-btn"
+                  disabled={loading}
+                >
+                  Change Image
+                </button>
+              </label>
+            )}
+          </div>
         </div>
 
         <div className="form-group">
@@ -371,6 +496,109 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
           color: var(--text-tertiary);
           margin-top: 0.25rem;
           font-style: italic;
+        }
+
+        .image-upload-section {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .image-preview {
+          position: relative;
+          width: 100%;
+          max-width: 400px;
+          border-radius: var(--border-radius-md);
+          overflow: hidden;
+          border: 2px solid var(--border-primary);
+        }
+
+        .preview-image {
+          width: 100%;
+          height: auto;
+          max-height: 300px;
+          object-fit: cover;
+          display: block;
+        }
+
+        .remove-image-btn {
+          position: absolute;
+          top: 0.5rem;
+          right: 0.5rem;
+          background: rgba(239, 68, 68, 0.9);
+          color: white;
+          border: none;
+          border-radius: 50%;
+          width: 30px;
+          height: 30px;
+          cursor: pointer;
+          font-size: 1rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all var(--transition-base);
+        }
+
+        .remove-image-btn:hover {
+          background: rgba(239, 68, 68, 1);
+          transform: scale(1.1);
+        }
+
+        .image-upload-label {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          cursor: pointer;
+        }
+
+        .image-upload-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          padding: 1rem;
+          background: var(--bg-secondary);
+          border: 2px dashed var(--border-primary);
+          border-radius: var(--border-radius-md);
+          transition: all var(--transition-base);
+          color: var(--text-secondary);
+        }
+
+        .image-upload-button:hover {
+          background: var(--bg-tertiary);
+          border-color: var(--accent-primary);
+          color: var(--text-primary);
+        }
+
+        .upload-icon {
+          font-size: 1.5rem;
+        }
+
+        .upload-text {
+          font-weight: 500;
+        }
+
+        .change-image-btn {
+          padding: 0.5rem 1rem;
+          background: var(--bg-secondary);
+          border: 2px solid var(--border-primary);
+          border-radius: var(--border-radius-md);
+          color: var(--text-secondary);
+          cursor: pointer;
+          font-size: 0.9rem;
+          font-weight: 500;
+          transition: all var(--transition-base);
+        }
+
+        .change-image-btn:hover:not(:disabled) {
+          background: var(--bg-tertiary);
+          border-color: var(--accent-primary);
+          color: var(--text-primary);
+        }
+
+        .change-image-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
         }
 
         .checkbox-group {

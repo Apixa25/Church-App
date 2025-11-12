@@ -10,6 +10,7 @@ import com.churchapp.entity.User;
 import com.churchapp.repository.PrayerRequestRepository;
 import com.churchapp.repository.PrayerInteractionRepository;
 import com.churchapp.repository.UserRepository;
+import com.churchapp.service.FileUploadService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,6 +35,7 @@ public class PrayerRequestService {
     private final PrayerRequestRepository prayerRequestRepository;
     private final UserRepository userRepository;
     private final PrayerInteractionRepository prayerInteractionRepository;
+    private final FileUploadService fileUploadService;
     
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
@@ -45,12 +48,56 @@ public class PrayerRequestService {
         prayerRequest.setUser(user);
         prayerRequest.setTitle(request.getTitle().trim());
         prayerRequest.setDescription(request.getDescription() != null ? request.getDescription().trim() : null);
+        prayerRequest.setImageUrl(request.getImageUrl());
         prayerRequest.setIsAnonymous(request.getIsAnonymous() != null ? request.getIsAnonymous() : false);
         prayerRequest.setCategory(request.getCategory() != null ? request.getCategory() : PrayerRequest.PrayerCategory.GENERAL);
         prayerRequest.setStatus(PrayerRequest.PrayerStatus.ACTIVE); // Always start as active
         
         PrayerRequest savedPrayerRequest = prayerRequestRepository.save(prayerRequest);
         log.info("Prayer request created with id: {} by user: {}", savedPrayerRequest.getId(), userId);
+        
+        // Send WebSocket notification for new prayer request
+        notifyNewPrayerRequest(savedPrayerRequest);
+        
+        return PrayerRequestResponse.fromPrayerRequestForOwner(savedPrayerRequest);
+    }
+    
+    public PrayerRequestResponse createPrayerRequestWithImage(UUID userId, PrayerRequestRequest request, MultipartFile imageFile) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        
+        // Upload image if provided
+        String imageUrl = null;
+        if (imageFile != null && !imageFile.isEmpty()) {
+            try {
+                // Validate that it's an image
+                String contentType = imageFile.getContentType();
+                if (contentType == null || !contentType.startsWith("image/")) {
+                    throw new RuntimeException("File must be an image");
+                }
+                
+                // Upload image to S3
+                imageUrl = fileUploadService.uploadFile(imageFile, "prayer-requests");
+                log.info("Image uploaded for prayer request: {}", imageUrl);
+            } catch (Exception e) {
+                log.error("Error uploading image for prayer request: {}", e.getMessage(), e);
+                throw new RuntimeException("Failed to upload image: " + e.getMessage(), e);
+            }
+        }
+        
+        // Create prayer request with image URL
+        PrayerRequest prayerRequest = new PrayerRequest();
+        prayerRequest.setUser(user);
+        prayerRequest.setTitle(request.getTitle().trim());
+        prayerRequest.setDescription(request.getDescription() != null ? request.getDescription().trim() : null);
+        prayerRequest.setImageUrl(imageUrl);
+        prayerRequest.setIsAnonymous(request.getIsAnonymous() != null ? request.getIsAnonymous() : false);
+        prayerRequest.setCategory(request.getCategory() != null ? request.getCategory() : PrayerRequest.PrayerCategory.GENERAL);
+        prayerRequest.setStatus(PrayerRequest.PrayerStatus.ACTIVE); // Always start as active
+        
+        PrayerRequest savedPrayerRequest = prayerRequestRepository.save(prayerRequest);
+        log.info("Prayer request created with id: {} by user: {} (with image: {})", 
+            savedPrayerRequest.getId(), userId, imageUrl != null);
         
         // Send WebSocket notification for new prayer request
         notifyNewPrayerRequest(savedPrayerRequest);
@@ -89,6 +136,24 @@ public class PrayerRequestService {
             prayerRequest.setDescription(request.getDescription().trim().isEmpty() ? null : request.getDescription().trim());
         }
         
+        if (request.getImageUrl() != null) {
+            // If imageUrl is empty string, remove the image
+            if (request.getImageUrl().trim().isEmpty()) {
+                // Delete old image if exists
+                if (prayerRequest.getImageUrl() != null && !prayerRequest.getImageUrl().isEmpty()) {
+                    try {
+                        fileUploadService.deleteFile(prayerRequest.getImageUrl());
+                        log.info("Deleted old image for prayer request: {}", prayerRequestId);
+                    } catch (Exception e) {
+                        log.warn("Could not delete old image for prayer request {}: {}", prayerRequestId, e.getMessage());
+                    }
+                }
+                prayerRequest.setImageUrl(null);
+            } else {
+                prayerRequest.setImageUrl(request.getImageUrl().trim());
+            }
+        }
+        
         if (request.getIsAnonymous() != null) {
             prayerRequest.setIsAnonymous(request.getIsAnonymous());
         }
@@ -103,6 +168,92 @@ public class PrayerRequestService {
         
         PrayerRequest updatedPrayerRequest = prayerRequestRepository.save(prayerRequest);
         log.info("Prayer request updated: {} by user: {}", prayerRequestId, userId);
+        
+        // Send WebSocket notification for prayer update
+        notifyPrayerRequestUpdate(updatedPrayerRequest);
+        
+        return PrayerRequestResponse.fromPrayerRequestForOwner(updatedPrayerRequest);
+    }
+    
+    public PrayerRequestResponse updatePrayerRequestWithImage(UUID prayerRequestId, UUID userId, PrayerRequestUpdateRequest request, MultipartFile imageFile) {
+        PrayerRequest prayerRequest = prayerRequestRepository.findById(prayerRequestId)
+            .orElseThrow(() -> new RuntimeException("Prayer request not found with id: " + prayerRequestId));
+        
+        // Only the owner can update their prayer request
+        if (!prayerRequest.getUser().getId().equals(userId)) {
+            throw new RuntimeException("You can only update your own prayer requests");
+        }
+        
+        // Handle image upload/removal
+        // Check if imageUrl is explicitly set to empty string (to remove image)
+        if (request.getImageUrl() != null && request.getImageUrl().trim().isEmpty()) {
+            // Remove image - delete old image if exists
+            if (prayerRequest.getImageUrl() != null && !prayerRequest.getImageUrl().isEmpty()) {
+                try {
+                    fileUploadService.deleteFile(prayerRequest.getImageUrl());
+                    log.info("Deleted image for prayer request: {}", prayerRequestId);
+                } catch (Exception e) {
+                    log.warn("Could not delete image for prayer request {}: {}", prayerRequestId, e.getMessage());
+                }
+            }
+            prayerRequest.setImageUrl(null);
+        } else if (imageFile != null && !imageFile.isEmpty()) {
+            // Upload new image
+            try {
+                // Validate that it's an image
+                String contentType = imageFile.getContentType();
+                if (contentType == null || !contentType.startsWith("image/")) {
+                    throw new RuntimeException("File must be an image");
+                }
+                
+                // Delete old image if exists
+                if (prayerRequest.getImageUrl() != null && !prayerRequest.getImageUrl().isEmpty()) {
+                    try {
+                        fileUploadService.deleteFile(prayerRequest.getImageUrl());
+                        log.info("Deleted old image for prayer request: {}", prayerRequestId);
+                    } catch (Exception e) {
+                        log.warn("Could not delete old image for prayer request {}: {}", prayerRequestId, e.getMessage());
+                    }
+                }
+                
+                // Upload new image to S3
+                String imageUrl = fileUploadService.uploadFile(imageFile, "prayer-requests");
+                prayerRequest.setImageUrl(imageUrl);
+                log.info("Image uploaded for prayer request: {}", imageUrl);
+            } catch (Exception e) {
+                log.error("Error uploading image for prayer request: {}", e.getMessage(), e);
+                throw new RuntimeException("Failed to upload image: " + e.getMessage(), e);
+            }
+        }
+        // If imageUrl is provided as a non-empty string but no imageFile, keep existing or use provided URL
+        else if (request.getImageUrl() != null && !request.getImageUrl().trim().isEmpty()) {
+            prayerRequest.setImageUrl(request.getImageUrl().trim());
+        }
+        
+        // Update other fields
+        if (request.getTitle() != null && !request.getTitle().trim().isEmpty()) {
+            prayerRequest.setTitle(request.getTitle().trim());
+        }
+        
+        if (request.getDescription() != null) {
+            prayerRequest.setDescription(request.getDescription().trim().isEmpty() ? null : request.getDescription().trim());
+        }
+        
+        if (request.getIsAnonymous() != null) {
+            prayerRequest.setIsAnonymous(request.getIsAnonymous());
+        }
+        
+        if (request.getCategory() != null) {
+            prayerRequest.setCategory(request.getCategory());
+        }
+        
+        if (request.getStatus() != null) {
+            prayerRequest.setStatus(request.getStatus());
+        }
+        
+        PrayerRequest updatedPrayerRequest = prayerRequestRepository.save(prayerRequest);
+        log.info("Prayer request updated: {} by user: {} (with image: {})", 
+            prayerRequestId, userId, updatedPrayerRequest.getImageUrl() != null);
         
         // Send WebSocket notification for prayer update
         notifyPrayerRequestUpdate(updatedPrayerRequest);
