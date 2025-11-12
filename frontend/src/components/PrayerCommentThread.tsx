@@ -231,10 +231,26 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
       .filter(Boolean)
       .join(' ');
 
+    const isConnectorVisible = depth > 0 ? 1 : 0;
+
+    const verticalLineHeight = (() => {
+      if (!isConnectorVisible) {
+        return '0';
+      }
+      if (isLastChild) {
+        return hasReplies && !isCollapsed
+          ? 'calc(var(--spacing-xs) + 0.9rem)'
+          : '0.9rem';
+      }
+      return 'calc(100% + var(--spacing-sm))';
+    })();
+
     const connectorStyle = {
-      '--depth': depth,
-      '--has-children': hasReplies && !isCollapsed ? 1 : 0,
-      '--is-last': isLastChild ? 1 : 0
+      '--depth': depth.toString(),
+      '--has-children': hasReplies && !isCollapsed ? '1' : '0',
+      '--is-last': isLastChild ? '1' : '0',
+      '--connector-opacity': isConnectorVisible.toString(),
+      '--vertical-line-height': verticalLineHeight
     } as React.CSSProperties;
 
     return (
