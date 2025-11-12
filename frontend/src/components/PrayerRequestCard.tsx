@@ -34,7 +34,11 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isOwner = user?.email === prayer.userId || user?.userId === prayer.userId;
+  // Fix owner check: only compare UUIDs (not email to UUID)
+  const isOwner = user?.userId === prayer.userId;
+  const isAdmin = user?.role === 'ADMIN';
+  const isModerator = user?.role === 'MODERATOR';
+  const canDelete = isOwner || isAdmin || isModerator;
   const categoryColor = PRAYER_CATEGORY_COLORS[prayer.category];
   const statusColor = PRAYER_STATUS_COLORS[prayer.status];
 
@@ -146,9 +150,9 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
           </div>
         </div>
 
-        {showActions && isOwner && (
+        {showActions && canDelete && (
           <div className="prayer-actions">
-            {onEdit && (
+            {onEdit && isOwner && (
               <button 
                 className="action-btn edit-btn"
                 onClick={() => onEdit(prayer)}
@@ -161,7 +165,7 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
               <button 
                 className="action-btn delete-btn"
                 onClick={() => onDelete(prayer.id)}
-                title="Delete prayer"
+                title={(isAdmin || isModerator) && !isOwner ? "Delete prayer (Admin)" : "Delete prayer"}
               >
                 🗑️
               </button>

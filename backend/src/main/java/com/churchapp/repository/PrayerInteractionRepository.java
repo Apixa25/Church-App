@@ -6,6 +6,7 @@ import com.churchapp.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -96,4 +97,15 @@ public interface PrayerInteractionRepository extends JpaRepository<PrayerInterac
         @Param("prayerRequestId") UUID prayerRequestId, 
         @Param("since") LocalDateTime since
     );
+    
+    // Bulk delete all interactions for a prayer request
+    // This bypasses JPA entity management and deletes directly at the database level
+    // Delete replies first (interactions with a parent), then top-level interactions
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM PrayerInteraction pi WHERE pi.prayerRequest.id = :prayerRequestId AND pi.parentInteraction IS NOT NULL")
+    void deleteRepliesByPrayerRequestId(@Param("prayerRequestId") UUID prayerRequestId);
+    
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM PrayerInteraction pi WHERE pi.prayerRequest.id = :prayerRequestId AND pi.parentInteraction IS NULL")
+    void deleteTopLevelInteractionsByPrayerRequestId(@Param("prayerRequestId") UUID prayerRequestId);
 }
