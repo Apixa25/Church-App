@@ -1,0 +1,27 @@
+.comment-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.delete-comment-button {
+  padding: 4px 12px;
+  border: 1px solid var(--error);
+  background: transparent;
+  color: var(--error);
+  border-radius: var(--border-radius-pill);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.delete-comment-button:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.delete-comment-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+

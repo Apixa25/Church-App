@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  PrayerRequest, 
+import {
+  PrayerRequest,
   PrayerInteraction,
   InteractionType,
-  PrayerInteractionCreateRequest,
   PrayerStatus,
   PrayerRequestUpdateRequest,
   PRAYER_CATEGORY_LABELS,
@@ -15,8 +14,9 @@ import {
 } from '../types/Prayer';
 import { prayerAPI, prayerInteractionAPI, handleApiError } from '../services/prayerApi';
 import { useAuth } from '../contexts/AuthContext';
-import { formatFullDate, formatRelativeDate } from '../utils/dateUtils';
+import { formatFullDate } from '../utils/dateUtils';
 import { usePrayerNotifications } from '../hooks/usePrayerNotifications';
+import PrayerCommentThread from './PrayerCommentThread';
 
 interface PrayerRequestDetailProps {
   prayerId?: string;
@@ -38,14 +38,10 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
 
   const [prayer, setPrayer] = useState<PrayerRequest | null>(null);
   const [interactions, setInteractions] = useState<PrayerInteraction[]>([]);
-  const [comments, setComments] = useState<PrayerInteraction[]>([]);
   const [userInteractions, setUserInteractions] = useState<Record<InteractionType, boolean>>({} as Record<InteractionType, boolean>);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [commenting, setCommenting] = useState(false);
-  const [commentText, setCommentText] = useState('');
-  const [submittingComment, setSubmittingComment] = useState(false);
 
   const isOwner = user && prayer && (user.email === prayer.userId || user.userId === prayer.userId);
 
@@ -84,18 +80,11 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
       const prayerResponse = await prayerAPI.getPrayerRequest(prayerId);
       setPrayer(prayerResponse.data);
 
-      // Load interactions and comments
-      const [interactionsResponse, commentsResponse] = await Promise.all([
-        prayerInteractionAPI.getReactionsByPrayer(prayerId),
-        prayerInteractionAPI.getCommentsByPrayer(prayerId)
-      ]);
-
+      // Load interactions
+      const interactionsResponse = await prayerInteractionAPI.getReactionsByPrayer(prayerId);
       setInteractions(interactionsResponse.data);
-      // Handle comments response - it might be PrayerInteractionListResponse or PrayerInteraction[]
-      const commentsData = Array.isArray(commentsResponse.data) 
-        ? commentsResponse.data
-        : commentsResponse.data.content || [];
-      setComments(commentsData);
+
+      // Seed comment count from summary if available
 
       // Load user interactions if logged in
       if (user) {
@@ -159,47 +148,6 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
     }
   };
 
-  const handleSubmitComment = async () => {
-    if (!user || !prayerId || !commentText.trim()) return;
-
-    setSubmittingComment(true);
-    try {
-      const commentRequest: PrayerInteractionCreateRequest = {
-        prayerRequestId: prayerId,
-        type: 'COMMENT',
-        content: commentText.trim()
-      };
-
-      await prayerInteractionAPI.createInteraction(commentRequest);
-      
-      // Reload comments
-      const commentsResponse = await prayerInteractionAPI.getCommentsByPrayer(prayerId);
-      const commentsData = Array.isArray(commentsResponse.data) 
-        ? commentsResponse.data
-        : commentsResponse.data.content || [];
-      setComments(commentsData);
-      
-      // Clear comment form
-      setCommentText('');
-      setCommenting(false);
-    } catch (err: any) {
-      setError(handleApiError(err));
-    } finally {
-      setSubmittingComment(false);
-    }
-  };
-
-  const handleDeleteComment = async (interactionId: string) => {
-    if (!window.confirm('Are you sure you want to delete this comment?')) return;
-
-    try {
-      await prayerInteractionAPI.deleteInteraction(interactionId);
-      setComments(prev => prev.filter(c => c.id !== interactionId));
-    } catch (err: any) {
-      setError(handleApiError(err));
-    }
-  };
-
   const handleStatusChange = async (newStatus: PrayerStatus) => {
     if (!prayer || !prayerId) return;
     
@@ -227,10 +175,6 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
     return formatFullDate(dateString);
   };
   
-  const formatRelativeTime = (dateString: string | number[]) => {
-    return formatRelativeDate(dateString);
-  };
-
   const getInteractionCount = (type: InteractionType): number => {
     return interactions.filter(i => i.type === type).length;
   };
@@ -379,103 +323,11 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
       </div>
 
       <div className="comments-section">
-        <h3 className="comments-title">
-          💬 Comments ({comments.length})
-        </h3>
-
-        {user && (
-          <div className="comment-form">
-            {!commenting ? (
-              <button 
-                className="start-comment-btn"
-                onClick={() => setCommenting(true)}
-              >
-                💬 Add a comment...
-              </button>
-            ) : (
-              <div className="comment-input-section">
-                <textarea
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Share your thoughts, encouragement, or support..."
-                  className="comment-textarea"
-                  rows={3}
-                />
-                <div className="comment-actions">
-                  <button 
-                    onClick={() => {
-                      setCommenting(false);
-                      setCommentText('');
-                    }}
-                    className="btn btn-secondary"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    onClick={handleSubmitComment}
-                    disabled={!commentText.trim() || submittingComment}
-                    className="btn btn-primary"
-                  >
-                    {submittingComment ? 'Posting...' : 'Post Comment'}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="comments-list">
-          {comments.map((comment) => {
-            const isOwnerComment = user && (user.email === comment.userId || user.userId === comment.userId);
-            
-            return (
-              <div key={comment.id} className="comment">
-                <div className="comment-header">
-                  <div className="comment-author">
-                    {comment.userProfilePicUrl ? (
-                      <img 
-                        src={comment.userProfilePicUrl} 
-                        alt={comment.userName}
-                        className="comment-avatar"
-                      />
-                    ) : (
-                      <div className="comment-avatar placeholder">
-                        {comment.userName.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    
-                    <div className="comment-info">
-                      <span className="comment-author-name">{comment.userName}</span>
-                      <span className="comment-date">{formatRelativeTime(comment.timestamp)}</span>
-                    </div>
-                  </div>
-
-                  {isOwnerComment && (
-                    <button 
-                      onClick={() => handleDeleteComment(comment.id)}
-                      className="delete-comment-btn"
-                      title="Delete comment"
-                    >
-                      🗑️
-                    </button>
-                  )}
-                </div>
-
-                <div className="comment-content">
-                  {comment.content?.split('\n').map((line, index) => (
-                    <p key={index}>{line}</p>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {comments.length === 0 && (
-          <div className="no-comments">
-            <p>No comments yet. {user ? 'Be the first to comment!' : 'Login to add a comment.'}</p>
-          </div>
-        )}
+        <PrayerCommentThread
+          prayerId={prayer.id}
+          currentUserId={user?.userId || user?.email || undefined}
+          currentUserEmail={user?.email || undefined}
+        />
       </div>
 
       <style>{`

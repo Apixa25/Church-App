@@ -59,6 +59,10 @@ public class PrayerInteractionService {
                 return null; // Indicate removal
             }
         }
+
+        if (request.getParentInteractionId() != null && request.getType() != PrayerInteraction.InteractionType.COMMENT) {
+            throw new RuntimeException("Only comments can have a parent interaction");
+        }
         
         // Create new interaction
         PrayerInteraction interaction = new PrayerInteraction();
@@ -72,8 +76,24 @@ public class PrayerInteractionService {
                 throw new RuntimeException("Comment content is required");
             }
             interaction.setContent(request.getContent().trim());
+
+            if (request.getParentInteractionId() != null) {
+                PrayerInteraction parentInteraction = prayerInteractionRepository.findById(request.getParentInteractionId())
+                    .orElseThrow(() -> new RuntimeException("Parent comment not found with id: " + request.getParentInteractionId()));
+
+                if (parentInteraction.getType() != PrayerInteraction.InteractionType.COMMENT) {
+                    throw new RuntimeException("Parent interaction must be a comment");
+                }
+
+                if (!parentInteraction.getPrayerRequest().getId().equals(prayerRequest.getId())) {
+                    throw new RuntimeException("Parent comment belongs to a different prayer request");
+                }
+
+                interaction.setParentInteraction(parentInteraction);
+            }
         } else {
             interaction.setContent(request.getContent() != null ? request.getContent().trim() : null);
+            interaction.setParentInteraction(null);
         }
         
         PrayerInteraction savedInteraction = prayerInteractionRepository.save(interaction);

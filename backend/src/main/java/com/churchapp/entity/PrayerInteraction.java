@@ -1,13 +1,18 @@
 package com.churchapp.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -46,6 +51,19 @@ public class PrayerInteraction {
     @CreationTimestamp
     @Column(name = "timestamp", nullable = false, updatable = false)
     private LocalDateTime timestamp;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_interaction_id")
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    private PrayerInteraction parentInteraction;
+
+    @OneToMany(mappedBy = "parentInteraction", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("timestamp ASC")
+    @JsonIgnore
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    private List<PrayerInteraction> replies = new ArrayList<>();
     
     public enum InteractionType {
         PRAY,           // "I'm praying for this" reaction
