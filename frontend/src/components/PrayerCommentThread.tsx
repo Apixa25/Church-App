@@ -221,136 +221,142 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
       currentUserId === comment.userId ||
       (!!currentUserEmail && currentUserEmail === comment.userId);
 
-    const itemClasses = [
-      'comment-item',
-      depthClass,
-      isCollapsed ? 'collapsed' : '',
-      hasReplies ? 'has-children' : '',
-      isLastChild ? 'is-last' : ''
-    ]
-      .filter(Boolean)
-      .join(' ');
+    const authorInitial = comment.userName?.charAt(0)?.toUpperCase() ?? 'U';
+    const replyCount = typeof comment.replyCount === 'number' ? comment.replyCount : null;
+    const scoreDisplay = replyCount !== null && replyCount > 0 ? replyCount.toString() : '·';
+    const scoreLabel =
+      replyCount !== null && replyCount > 0
+        ? `${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}`
+        : 'reply';
+    const timestampDate = normalizeTimestamp(comment.timestamp);
 
     return (
       <div
         key={comment.id}
-        className={itemClasses}
+        className={`thing comment ${depthClass} ${isCollapsed ? 'collapsed' : ''}`}
+        data-id={`t1_${comment.id}`}
         data-depth={depth}
         data-has-children={hasReplies}
-        data-is-collapsed={isCollapsed}
       >
-        <div className="comment-content-wrapper">
-          <div className="comment-card">
-            <div className="comment-header">
-              <button
-                className={`collapse-toggle ${isCollapsed ? 'collapsed' : ''}`}
-                onClick={() => toggleCollapse(comment.id)}
-                aria-label={isCollapsed ? 'Expand comment thread' : 'Collapse comment thread'}
-                type="button"
-              >
-                {isCollapsed ? '+' : '−'}
-              </button>
-              <div className="comment-author">
-                {comment.userProfilePicUrl ? (
-                  <img
-                    src={comment.userProfilePicUrl}
-                    alt={comment.userName}
-                    className="comment-avatar"
-                  />
-                ) : (
-                  <div className="comment-avatar-placeholder">
-                    {comment.userName?.charAt(0)?.toUpperCase() ?? 'U'}
-                  </div>
-                )}
-                <div className="comment-author-info">
-                  <span className="comment-author-name">{comment.userName}</span>
-                  <span className="comment-timestamp">{formatTimestamp(comment.timestamp)}</span>
-                </div>
-              </div>
+        <div className="midcol unvoted">
+          <button className="arrow up" type="button" aria-label="Upvote (display only)" disabled />
+          <div className="score unvoted">{scoreDisplay}</div>
+          <button className="arrow down" type="button" aria-label="Downvote (display only)" disabled />
+        </div>
 
-              <div className="comment-actions">
-                <button
-                  className="reply-button"
-                  onClick={() => setReplyingTo(comment.id)}
-                  disabled={!canComment || replyingTo !== null || depth >= maxDepth}
-                >
-                  Reply
-                </button>
+        <div className="entry">
+          <p className="tagline">
+            <span className="author-avatar" aria-hidden="true">
+              {comment.userProfilePicUrl ? (
+                <img
+                  src={comment.userProfilePicUrl}
+                  alt={comment.userName ?? 'Community member'}
+                  className="author-avatar-image"
+                />
+              ) : (
+                <span className="avatar-placeholder">{authorInitial}</span>
+              )}
+            </span>
+            <span className="tagline-content">
+              <span className="author-wrapper">
+                <span className="author-label">{comment.userName ?? 'Community Member'}</span>
+              </span>
+              <span className="tag-separator" aria-hidden="true">
+                •
+              </span>
+              <span className="score-text">{scoreLabel}</span>
+              <span className="tag-separator" aria-hidden="true">
+                •
+              </span>
+              <time className="time" dateTime={timestampDate.toISOString()}>
+                {formatTimestamp(comment.timestamp)}
+              </time>
+            </span>
+          </p>
 
-                {isOwner && (
-                  <button
-                    className="delete-comment-button"
-                    onClick={() => handleDeleteComment(comment.id)}
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {!isCollapsed && (
-              <div className="comment-card-content">
+          {!isCollapsed && (
+            <div className="usertext body">
+              <div className="md">
                 {comment.content?.split('\n').map((line, index) => (
-                  <p key={index} className="comment-text">
+                  <p key={index} className="md-paragraph">
                     {line}
                   </p>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-        {showReplyForm && (
-          <div className="reply-form-container">
-            <form
-              className="reply-form"
-              onSubmit={event => {
-                event.preventDefault();
-                handleAddComment(comment.id, newCommentText);
-              }}
-            >
-              <textarea
-                value={newCommentText}
-                onChange={event => setNewCommentText(event.target.value)}
-                placeholder={`Reply to ${comment.userName}...`}
-                className="reply-textarea"
-                rows={3}
-                maxLength={1000}
-              />
-              <div className="reply-form-actions">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setReplyingTo(null);
-                    setNewCommentText('');
-                  }}
-                  className="cancel-reply-button"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={!newCommentText.trim() || isSubmitting}
-                  className="submit-reply-button"
-                >
-                  {isSubmitting ? 'Posting...' : 'Reply'}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-          {isCollapsed && hasReplies && (
+          <div className="comment-actions">
             <button
-              className="collapsed-reply-count"
+              className="reply-btn"
+              onClick={() => setReplyingTo(comment.id)}
+              disabled={!canComment || replyingTo !== null || depth >= maxDepth}
+              type="button"
+            >
+              reply
+            </button>
+
+            {isOwner && (
+              <button
+                className="delete-btn"
+                onClick={() => handleDeleteComment(comment.id)}
+                type="button"
+              >
+                delete
+              </button>
+            )}
+
+            <button
+              className="collapse-btn"
               onClick={() => toggleCollapse(comment.id)}
               type="button"
             >
-              Show {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
+              {isCollapsed ? '[+]' : '[–]'}
             </button>
+          </div>
+
+          {showReplyForm && (
+            <div className="reply-form-container">
+              <form
+                className="reply-form"
+                onSubmit={event => {
+                  event.preventDefault();
+                  handleAddComment(comment.id, newCommentText);
+                }}
+              >
+                <textarea
+                  value={newCommentText}
+                  onChange={event => setNewCommentText(event.target.value)}
+                  placeholder={`Reply to ${comment.userName ?? 'this comment'}...`}
+                  className="reply-textarea"
+                  rows={3}
+                  maxLength={1000}
+                />
+                <div className="reply-form-actions">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReplyingTo(null);
+                      setNewCommentText('');
+                    }}
+                    className="cancel-reply-button"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!newCommentText.trim() || isSubmitting}
+                    className="submit-reply-button"
+                  >
+                    {isSubmitting ? 'Posting...' : 'Reply'}
+                  </button>
+                </div>
+              </form>
+            </div>
           )}
 
           {!isCollapsed && hasReplies && (
-            <div className="comment-children">
+            <div className="replies">
               {replies.map((reply, index) =>
                 renderComment(reply as PrayerComment, depth + 1, index === replies.length - 1)
               )}
@@ -439,9 +445,15 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
             <p>No comments yet. {canComment ? 'Be the first to comment!' : 'Login to add a comment.'}</p>
           </div>
         ) : (
-          comments.map((comment, index) =>
-            renderComment(comment, 0, index === comments.length - 1)
-          )
+          <div className="comment-section">
+            <div className="commentarea">
+              <div className="sitetable nestable">
+                {comments.map((comment, index) =>
+                  renderComment(comment, 0, index === comments.length - 1)
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
