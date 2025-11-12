@@ -193,6 +193,16 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
 
         <h3 className="prayer-title">{prayer.title}</h3>
         
+        {prayer.imageUrl && (
+          <div className="prayer-image-container">
+            <img 
+              src={prayer.imageUrl} 
+              alt={prayer.title}
+              className="prayer-image"
+            />
+          </div>
+        )}
+        
         {prayer.description && !compact && (
           <p className="prayer-description">{prayer.description}</p>
         )}
@@ -382,6 +392,26 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
           font-size: 1.1rem;
           line-height: 1.4;
           font-weight: 600;
+        }
+
+        .prayer-image-container {
+          margin: 0.75rem 0;
+          border-radius: var(--border-radius-md);
+          overflow: hidden;
+          border: 1px solid var(--border-primary);
+        }
+
+        .prayer-image {
+          width: 100%;
+          max-height: 400px;
+          object-fit: cover;
+          display: block;
+          cursor: pointer;
+          transition: transform var(--transition-base);
+        }
+
+        .prayer-image:hover {
+          transform: scale(1.02);
         }
 
         .prayer-description {

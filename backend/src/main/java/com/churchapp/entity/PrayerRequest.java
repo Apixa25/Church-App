@@ -42,6 +42,9 @@ public class PrayerRequest {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
     
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+    
     @Column(name = "is_anonymous", nullable = false)
     private Boolean isAnonymous = false;
     

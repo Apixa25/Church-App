@@ -19,6 +19,7 @@ public class PrayerRequestResponse {
     private String userProfilePicUrl;
     private String title;
     private String description;
+    private String imageUrl;
     private Boolean isAnonymous;
     private PrayerRequest.PrayerCategory category;
     private PrayerRequest.PrayerStatus status;
@@ -35,6 +36,7 @@ public class PrayerRequestResponse {
             prayerRequest.getIsAnonymous() ? null : prayerRequest.getUser().getProfilePicUrl(),
             prayerRequest.getTitle(),
             prayerRequest.getDescription(),
+            prayerRequest.getImageUrl(),
             prayerRequest.getIsAnonymous(),
             prayerRequest.getCategory(),
             prayerRequest.getStatus(),
@@ -53,6 +55,7 @@ public class PrayerRequestResponse {
             prayerRequest.getUser().getProfilePicUrl(),
             prayerRequest.getTitle(),
             prayerRequest.getDescription(),
+            prayerRequest.getImageUrl(),
             prayerRequest.getIsAnonymous(),
             prayerRequest.getCategory(),
             prayerRequest.getStatus(),

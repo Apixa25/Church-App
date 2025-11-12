@@ -34,6 +34,7 @@ export interface PrayerRequest {
   userProfilePicUrl?: string;
   title: string;
   description?: string;
+  imageUrl?: string;
   isAnonymous: boolean;
   category: PrayerCategory;
   status: PrayerStatus;
@@ -45,6 +46,7 @@ export interface PrayerRequest {
 export interface PrayerRequestCreateRequest {
   title: string;
   description?: string;
+  imageUrl?: string;
   isAnonymous?: boolean;
   category?: PrayerCategory;
 }
@@ -52,6 +54,7 @@ export interface PrayerRequestCreateRequest {
 export interface PrayerRequestUpdateRequest {
   title?: string;
   description?: string;
+  imageUrl?: string;
   isAnonymous?: boolean;
   category?: PrayerCategory;
   status?: PrayerStatus;
