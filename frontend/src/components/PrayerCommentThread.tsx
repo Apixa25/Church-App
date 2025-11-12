@@ -207,7 +207,11 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
     return formatRelativeDate(timestamp);
   };
 
-  const renderComment = (comment: PrayerComment, depth: number = 0): React.ReactNode => {
+  const renderComment = (
+    comment: PrayerComment,
+    depth: number = 0,
+    isLastChild: boolean = true
+  ): React.ReactNode => {
     const replies = comment.replies ?? [];
     const hasReplies = replies.length > 0;
     const isCollapsed = collapsedComments.has(comment.id);
@@ -217,11 +221,31 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
       currentUserId === comment.userId ||
       (!!currentUserEmail && currentUserEmail === comment.userId);
 
+    const itemClasses = [
+      'comment-item',
+      depthClass,
+      isCollapsed ? 'collapsed' : '',
+      hasReplies ? 'has-children' : '',
+      isLastChild ? 'is-last' : ''
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+    const connectorStyle = {
+      '--depth': depth,
+      '--has-children': hasReplies && !isCollapsed ? 1 : 0,
+      '--is-last': isLastChild ? 1 : 0
+    } as React.CSSProperties;
+
     return (
-      <div key={comment.id} className={`comment-item ${depthClass} ${isCollapsed ? 'collapsed' : ''}`}>
-        <div className="comment-branch">
-          {depth > 0 && <span className="branch-line" aria-hidden="true" />}
-        </div>
+      <div
+        key={comment.id}
+        className={itemClasses}
+        data-depth={depth}
+        data-has-children={hasReplies}
+        data-is-collapsed={isCollapsed}
+        style={connectorStyle}
+      >
         <div className="comment-content-wrapper">
           <div className="comment-card">
             <div className="comment-header">
@@ -334,7 +358,9 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
 
           {!isCollapsed && hasReplies && (
             <div className="comment-children">
-              {replies.map(reply => renderComment(reply as PrayerComment, depth + 1))}
+              {replies.map((reply, index) =>
+                renderComment(reply as PrayerComment, depth + 1, index === replies.length - 1)
+              )}
             </div>
           )}
         </div>
@@ -420,7 +446,9 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
             <p>No comments yet. {canComment ? 'Be the first to comment!' : 'Login to add a comment.'}</p>
           </div>
         ) : (
-          comments.map(comment => renderComment(comment))
+          comments.map((comment, index) =>
+            renderComment(comment, 0, index === comments.length - 1)
+          )
         )}
       </div>
     </div>
