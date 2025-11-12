@@ -22,12 +22,14 @@ interface PrayerRequestDetailProps {
   prayerId?: string;
   onClose?: () => void;
   onEdit?: (prayer: PrayerRequest) => void;
+  onDelete?: (prayerId: string) => void;
 }
 
 const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
   prayerId: propPrayerId,
   onClose,
-  onEdit
+  onEdit,
+  onDelete
 }) => {
   const { prayerId: paramPrayerId } = useParams();
   const navigate = useNavigate();
@@ -43,7 +45,11 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const isOwner = user && prayer && (user.email === prayer.userId || user.userId === prayer.userId);
+  // Fix owner check: only compare UUIDs (not email to UUID)
+  const isOwner = user && prayer && (user.userId === prayer.userId);
+  const isAdmin = user?.role === 'ADMIN';
+  const isModerator = user?.role === 'MODERATOR';
+  const canDelete = isOwner || isAdmin || isModerator;
 
   const loadUserInteractions = useCallback(async () => {
     if (!user || !prayerId) return;
@@ -170,6 +176,32 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
     }
   };
 
+  const handleDelete = async () => {
+    if (!prayerId || !prayer) return;
+    
+    const confirmMessage = isAdmin || isModerator 
+      ? 'Are you sure you want to delete this prayer request? (Admin action)'
+      : 'Are you sure you want to delete this prayer request?';
+    
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+    
+    try {
+      await prayerAPI.deletePrayerRequest(prayerId);
+      
+      // Call onDelete callback if provided
+      if (onDelete) {
+        onDelete(prayerId);
+      } else {
+        // Fallback: navigate back to prayers list
+        handleBack();
+      }
+    } catch (err: any) {
+      setError(handleApiError(err));
+    }
+  };
+
   // Use the robust date utility functions
   const formatDate = (dateString: string | number[]) => {
     return formatFullDate(dateString);
@@ -215,25 +247,36 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
           ← Back
         </button>
         
-        {isOwner && (
+        {(isOwner || canDelete) && (
           <div className="owner-actions">
-            {onEdit && (
+            {onEdit && isOwner && (
               <button onClick={() => onEdit(prayer)} className="edit-btn">
                 ✏️ Edit Prayer
               </button>
             )}
-            <select 
-              value={prayer.status} 
-              onChange={(e) => handleStatusChange(e.target.value as PrayerStatus)}
-              className="status-change-select"
-              title="Change prayer status"
-            >
-              {Object.entries(PRAYER_STATUS_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
+            {isOwner && (
+              <select 
+                value={prayer.status} 
+                onChange={(e) => handleStatusChange(e.target.value as PrayerStatus)}
+                className="status-change-select"
+                title="Change prayer status"
+              >
+                {Object.entries(PRAYER_STATUS_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            )}
+            {canDelete && (
+              <button 
+                onClick={handleDelete} 
+                className="delete-btn"
+                title={(isAdmin || isModerator) && !isOwner ? "Delete prayer (Admin)" : "Delete prayer"}
+              >
+                🗑️ Delete Prayer
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -350,7 +393,7 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
           border-bottom: 2px solid var(--border-primary);
         }
 
-        .back-btn, .edit-btn {
+        .back-btn, .edit-btn, .delete-btn {
           background: var(--bg-secondary);
           border: 2px solid var(--border-primary);
           border-radius: var(--border-radius-md);
@@ -361,7 +404,7 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
           transition: all var(--transition-base);
         }
 
-        .back-btn:hover, .edit-btn:hover {
+        .back-btn:hover, .edit-btn:hover, .delete-btn:hover {
           background: var(--bg-tertiary);
           border-color: var(--border-glow);
           color: var(--text-primary);
@@ -378,6 +421,19 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
           background: var(--accent-primary-dark);
           border-color: var(--accent-primary-dark);
           box-shadow: var(--glow-blue);
+        }
+
+        .delete-btn {
+          background: #e74c3c;
+          border-color: #e74c3c;
+          color: white;
+          box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+        }
+
+        .delete-btn:hover {
+          background: #c0392b;
+          border-color: #c0392b;
+          box-shadow: 0 0 12px rgba(231, 76, 60, 0.5);
         }
 
         .owner-actions {

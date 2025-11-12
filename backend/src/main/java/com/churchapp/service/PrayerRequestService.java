@@ -8,6 +8,7 @@ import com.churchapp.dto.PrayerRequestResponse;
 import com.churchapp.entity.PrayerRequest;
 import com.churchapp.entity.User;
 import com.churchapp.repository.PrayerRequestRepository;
+import com.churchapp.repository.PrayerInteractionRepository;
 import com.churchapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,7 @@ public class PrayerRequestService {
     
     private final PrayerRequestRepository prayerRequestRepository;
     private final UserRepository userRepository;
+    private final PrayerInteractionRepository prayerInteractionRepository;
     
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
@@ -112,13 +114,53 @@ public class PrayerRequestService {
         PrayerRequest prayerRequest = prayerRequestRepository.findById(prayerRequestId)
             .orElseThrow(() -> new RuntimeException("Prayer request not found with id: " + prayerRequestId));
         
-        // Only the owner can delete their prayer request
-        if (!prayerRequest.getUser().getId().equals(userId)) {
+        // Get the user making the request
+        User requestingUser = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        
+        // Allow deletion if user is the owner OR if user is an admin/moderator
+        boolean isOwner = prayerRequest.getUser().getId().equals(userId);
+        boolean isAdmin = requestingUser.getRole() == User.Role.ADMIN;
+        boolean isModerator = requestingUser.getRole() == User.Role.MODERATOR;
+        
+        if (!isOwner && !isAdmin && !isModerator) {
             throw new RuntimeException("You can only delete your own prayer requests");
         }
         
+        // Delete all related prayer interactions first to avoid foreign key constraint violation
+        // This includes reactions, comments, and replies
+        // Use bulk delete queries to efficiently delete all interactions,
+        // deleting replies first (children) then top-level interactions (parents)
+        // This avoids foreign key constraint violations with the parent-child relationship
+        try {
+            long interactionCount = prayerInteractionRepository.countByPrayerRequestId(prayerRequestId);
+            
+            if (interactionCount > 0) {
+                log.info("Deleting {} interactions (including replies) for prayer request: {}", interactionCount, prayerRequestId);
+                
+                // Step 1: Delete all reply interactions (interactions with a parent) first
+                // This avoids foreign key constraint violations with the parent_interaction_id reference
+                prayerInteractionRepository.deleteRepliesByPrayerRequestId(prayerRequestId);
+                prayerInteractionRepository.flush();
+                log.debug("Deleted reply interactions for prayer request: {}", prayerRequestId);
+                
+                // Step 2: Delete all top-level interactions (interactions without a parent)
+                // Now safe to delete since all replies have been deleted
+                prayerInteractionRepository.deleteTopLevelInteractionsByPrayerRequestId(prayerRequestId);
+                prayerInteractionRepository.flush();
+                log.debug("Deleted top-level interactions for prayer request: {}", prayerRequestId);
+                
+                log.info("Successfully deleted {} interactions for prayer request: {}", interactionCount, prayerRequestId);
+            }
+        } catch (Exception e) {
+            log.error("Error deleting interactions for prayer request {}: {}", prayerRequestId, e.getMessage(), e);
+            throw new RuntimeException("Failed to delete prayer request: " + e.getMessage(), e);
+        }
+        
+        // Now delete the prayer request
         prayerRequestRepository.delete(prayerRequest);
-        log.info("Prayer request deleted: {} by user: {}", prayerRequestId, userId);
+        log.info("Prayer request deleted: {} by user: {} (owner: {}, admin: {}, moderator: {})", 
+            prayerRequestId, userId, isOwner, isAdmin, isModerator);
     }
     
     public Page<PrayerRequestResponse> getAllPrayerRequests(UUID requestingUserId, int page, int size) {

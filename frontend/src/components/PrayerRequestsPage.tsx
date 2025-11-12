@@ -153,6 +153,7 @@ const PrayerRequestsPage: React.FC = () => {
         prayerId={searchParams.get('id') || selectedPrayer?.id}
         onClose={handleBackToList}
         onEdit={handleEditPrayer}
+        onDelete={handleDeletePrayer}
       />
     );
   }
