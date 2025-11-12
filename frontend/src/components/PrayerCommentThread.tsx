@@ -223,62 +223,64 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
           {depth > 0 && <span className="branch-line" aria-hidden="true" />}
         </div>
         <div className="comment-content-wrapper">
-          <div className="comment-header">
-            <button
-              className={`collapse-toggle ${isCollapsed ? 'collapsed' : ''}`}
-              onClick={() => toggleCollapse(comment.id)}
-              aria-label={isCollapsed ? 'Expand comment thread' : 'Collapse comment thread'}
-              type="button"
-            >
-              {isCollapsed ? '+' : '−'}
-            </button>
-          <div className="comment-author">
-            {comment.userProfilePicUrl ? (
-              <img
-                src={comment.userProfilePicUrl}
-                alt={comment.userName}
-                className="comment-avatar"
-              />
-            ) : (
-              <div className="comment-avatar-placeholder">
-                {comment.userName?.charAt(0)?.toUpperCase() ?? 'U'}
+          <div className="comment-card">
+            <div className="comment-header">
+              <button
+                className={`collapse-toggle ${isCollapsed ? 'collapsed' : ''}`}
+                onClick={() => toggleCollapse(comment.id)}
+                aria-label={isCollapsed ? 'Expand comment thread' : 'Collapse comment thread'}
+                type="button"
+              >
+                {isCollapsed ? '+' : '−'}
+              </button>
+              <div className="comment-author">
+                {comment.userProfilePicUrl ? (
+                  <img
+                    src={comment.userProfilePicUrl}
+                    alt={comment.userName}
+                    className="comment-avatar"
+                  />
+                ) : (
+                  <div className="comment-avatar-placeholder">
+                    {comment.userName?.charAt(0)?.toUpperCase() ?? 'U'}
+                  </div>
+                )}
+                <div className="comment-author-info">
+                  <span className="comment-author-name">{comment.userName}</span>
+                  <span className="comment-timestamp">{formatTimestamp(comment.timestamp)}</span>
+                </div>
+              </div>
+
+              <div className="comment-actions">
+                <button
+                  className="reply-button"
+                  onClick={() => setReplyingTo(comment.id)}
+                  disabled={!canComment || replyingTo !== null || depth >= maxDepth}
+                >
+                  Reply
+                </button>
+
+                {isOwner && (
+                  <button
+                    className="delete-comment-button"
+                    onClick={() => handleDeleteComment(comment.id)}
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {!isCollapsed && (
+              <div className="comment-card-content">
+                {comment.content?.split('\n').map((line, index) => (
+                  <p key={index} className="comment-text">
+                    {line}
+                  </p>
+                ))}
               </div>
             )}
-            <div className="comment-author-info">
-              <span className="comment-author-name">{comment.userName}</span>
-              <span className="comment-timestamp">{formatTimestamp(comment.timestamp)}</span>
-            </div>
           </div>
-
-          <div className="comment-actions">
-            <button
-              className="reply-button"
-              onClick={() => setReplyingTo(comment.id)}
-              disabled={!canComment || replyingTo !== null || depth >= maxDepth}
-            >
-              Reply
-            </button>
-
-            {isOwner && (
-              <button
-                className="delete-comment-button"
-                onClick={() => handleDeleteComment(comment.id)}
-              >
-                Delete
-              </button>
-            )}
-          </div>
-        </div>
-
-          {!isCollapsed && (
-            <div className="comment-body">
-              {comment.content?.split('\n').map((line, index) => (
-                <p key={index} className="comment-text">
-                  {line}
-                </p>
-              ))}
-            </div>
-          )}
 
         {showReplyForm && (
           <div className="reply-form-container">
