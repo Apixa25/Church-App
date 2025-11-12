@@ -101,7 +101,7 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
-  const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
+  const [collapsedComments, setCollapsedComments] = useState<Set<string>>(new Set());
   const [newCommentText, setNewCommentText] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
@@ -159,9 +159,9 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
       await prayerInteractionAPI.createInteraction(payload);
 
       if (parentCommentId) {
-        setExpandedThreads(prev => {
+        setCollapsedComments(prev => {
           const updated = new Set(prev);
-          updated.add(parentCommentId);
+          updated.delete(parentCommentId);
           return updated;
         });
       }
@@ -191,8 +191,8 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
     }
   };
 
-  const toggleThreadExpansion = (commentId: string) => {
-    setExpandedThreads(prev => {
+  const toggleCollapse = (commentId: string) => {
+    setCollapsedComments(prev => {
       const updated = new Set(prev);
       if (updated.has(commentId)) {
         updated.delete(commentId);
@@ -210,16 +210,28 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
   const renderComment = (comment: PrayerComment, depth: number = 0): React.ReactNode => {
     const replies = comment.replies ?? [];
     const hasReplies = replies.length > 0;
-    const isExpanded = expandedThreads.has(comment.id) || depth === 0;
+    const isCollapsed = collapsedComments.has(comment.id);
     const showReplyForm = replyingTo === comment.id;
-    const indentClass = depth > 0 ? `comment-indent-${Math.min(depth, maxDepth)}` : '';
+    const depthClass = `depth-${Math.min(depth, maxDepth)}`;
     const isOwner =
       currentUserId === comment.userId ||
       (!!currentUserEmail && currentUserEmail === comment.userId);
 
     return (
-      <div key={comment.id} className={`comment-item ${indentClass}`}>
-        <div className="comment-header">
+      <div key={comment.id} className={`comment-item ${depthClass} ${isCollapsed ? 'collapsed' : ''}`}>
+        <div className="comment-branch">
+          {depth > 0 && <span className="branch-line" aria-hidden="true" />}
+        </div>
+        <div className="comment-content-wrapper">
+          <div className="comment-header">
+            <button
+              className={`collapse-toggle ${isCollapsed ? 'collapsed' : ''}`}
+              onClick={() => toggleCollapse(comment.id)}
+              aria-label={isCollapsed ? 'Expand comment thread' : 'Collapse comment thread'}
+              type="button"
+            >
+              {isCollapsed ? '+' : '−'}
+            </button>
           <div className="comment-author">
             {comment.userProfilePicUrl ? (
               <img
@@ -258,13 +270,15 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
           </div>
         </div>
 
-        <div className="comment-content">
-          {comment.content?.split('\n').map((line, index) => (
-            <p key={index} className="comment-text">
-              {line}
-            </p>
-          ))}
-        </div>
+          {!isCollapsed && (
+            <div className="comment-body">
+              {comment.content?.split('\n').map((line, index) => (
+                <p key={index} className="comment-text">
+                  {line}
+                </p>
+              ))}
+            </div>
+          )}
 
         {showReplyForm && (
           <div className="reply-form-container">
@@ -306,23 +320,22 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
           </div>
         )}
 
-        {hasReplies && (
-          <div className="comment-replies">
+          {isCollapsed && hasReplies && (
             <button
-              className="toggle-replies-button"
-              onClick={() => toggleThreadExpansion(comment.id)}
+              className="collapsed-reply-count"
+              onClick={() => toggleCollapse(comment.id)}
+              type="button"
             >
-              {isExpanded ? '▼' : '▶'} {replies.length}{' '}
-              {replies.length === 1 ? 'reply' : 'replies'}
+              Show {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
             </button>
+          )}
 
-            {isExpanded && (
-              <div className="replies-container">
-                {replies.map(reply => renderComment(reply as PrayerComment, depth + 1))}
-              </div>
-            )}
-          </div>
-        )}
+          {!isCollapsed && hasReplies && (
+            <div className="comment-children">
+              {replies.map(reply => renderComment(reply as PrayerComment, depth + 1))}
+            </div>
+          )}
+        </div>
       </div>
     );
   };
