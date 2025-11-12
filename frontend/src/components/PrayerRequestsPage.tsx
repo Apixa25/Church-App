@@ -13,8 +13,9 @@ import { prayerAPI } from '../services/prayerApi';
 import PrayerRequestForm from './PrayerRequestForm';
 import PrayerRequestList from './PrayerRequestList';
 import PrayerRequestDetail from './PrayerRequestDetail';
+import PrayerSheet from './PrayerSheet';
 
-type ViewMode = 'list' | 'create' | 'edit' | 'detail';
+type ViewMode = 'list' | 'create' | 'edit' | 'detail' | 'sheet';
 
 const PrayerRequestsPage: React.FC = () => {
   const { user } = useAuth();
@@ -47,6 +48,8 @@ const PrayerRequestsPage: React.FC = () => {
       // The detail component will load the prayer
     } else if (mode === 'create') {
       setViewMode('create');
+    } else if (mode === 'sheet') {
+      setViewMode('sheet');
     }
   }, [searchParams]);
 
@@ -158,6 +161,17 @@ const PrayerRequestsPage: React.FC = () => {
     );
   }
 
+  if (viewMode === 'sheet') {
+    return (
+      <PrayerSheet
+        onBack={() => {
+          setViewMode('list');
+          setSearchParams({});
+        }}
+      />
+    );
+  }
+
   return (
     <div className="prayer-requests-page">
       <div className="page-header">
@@ -235,6 +249,16 @@ const PrayerRequestsPage: React.FC = () => {
                   ✨ Submit Prayer Request
                 </button>
               )}
+              <button 
+                className="btn btn-secondary sheet-btn"
+                onClick={() => {
+                  setViewMode('sheet');
+                  setSearchParams({ mode: 'sheet' });
+                }}
+                title="View printable prayer sheet with all active prayers"
+              >
+                📋 Prayer Sheet
+              </button>
             </div>
 
             <div className="filter-controls">
