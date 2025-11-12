@@ -66,12 +66,16 @@ export interface PrayerInteraction {
   type: InteractionType;
   content?: string;
   timestamp: string | number[];
+  parentInteractionId?: string;
+  replyCount?: number;
+  replies?: PrayerInteraction[];
 }
 
 export interface PrayerInteractionCreateRequest {
   prayerRequestId: string;
   type: InteractionType;
   content?: string;
+  parentInteractionId?: string;
 }
 
 export interface PrayerInteractionSummary {
@@ -79,6 +83,11 @@ export interface PrayerInteractionSummary {
   totalComments: number;
   uniqueParticipants: number;
   interactionCounts: Record<InteractionType, number>;
+}
+
+export interface PrayerComment extends PrayerInteraction {
+  type: 'COMMENT';
+  replies?: PrayerComment[];
 }
 
 export interface PrayerListResponse {

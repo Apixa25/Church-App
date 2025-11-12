@@ -22,4 +22,6 @@ public class PrayerInteractionRequest {
     
     @Size(max = 1000, message = "Interaction content cannot exceed 1000 characters")
     private String content; // Optional - only for comments
+
+    private UUID parentInteractionId;
 }

@@ -20,6 +20,8 @@ public class PrayerInteractionResponse {
     private String userProfilePicUrl;
     private PrayerInteraction.InteractionType type;
     private String content;
+    private UUID parentInteractionId;
+    private int replyCount;
     private LocalDateTime timestamp;
     
     public static PrayerInteractionResponse fromPrayerInteraction(PrayerInteraction interaction) {
@@ -31,6 +33,8 @@ public class PrayerInteractionResponse {
             interaction.getUser().getProfilePicUrl(),
             interaction.getType(),
             interaction.getContent(),
+            interaction.getParentInteraction() != null ? interaction.getParentInteraction().getId() : null,
+            interaction.getReplies() != null ? interaction.getReplies().size() : 0,
             interaction.getTimestamp()
         );
     }
