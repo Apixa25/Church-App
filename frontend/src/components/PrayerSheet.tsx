@@ -120,9 +120,9 @@ const PrayerSheet: React.FC<PrayerSheetProps> = ({ onBack }) => {
               <li key={prayer.id} className="prayer-item">
                 <div className="prayer-item-header">
                   <span className="prayer-number">{index + 1}.</span>
-                  <h2 className="prayer-title">{prayer.title || 'Untitled Prayer Request'}</h2>
+                  <p className="prayer-date">📅 {formatDate(prayer.createdAt)}</p>
                 </div>
-                <p className="prayer-date">📅 {formatDate(prayer.createdAt)}</p>
+                <h2 className="prayer-title">{prayer.title || 'Untitled Prayer Request'}</h2>
                 <div className="prayer-description">
                   {prayer.description ? (
                     prayer.description.split('\n').map((paragraph, i) => (
@@ -293,9 +293,9 @@ const PrayerSheet: React.FC<PrayerSheetProps> = ({ onBack }) => {
 
         .prayer-item-header {
           display: flex;
-          align-items: flex-start;
+          align-items: center;
           gap: 0.75rem;
-          margin-bottom: 0.5rem;
+          margin-bottom: 0.75rem;
         }
 
         .prayer-number {
@@ -308,24 +308,24 @@ const PrayerSheet: React.FC<PrayerSheetProps> = ({ onBack }) => {
           flex-shrink: 0;
         }
 
-        .prayer-title {
-          margin: 0;
-          color: var(--text-primary);
-          font-size: 1.3rem;
-          font-weight: 700;
-          line-height: 1.4;
-          flex: 1;
-          margin-bottom: 0.75rem;
-        }
-
         .prayer-date {
-          margin: 0.5rem 0 1rem 0;
+          margin: 0;
           color: var(--text-tertiary);
           font-size: 0.9rem;
           font-style: italic;
           display: flex;
           align-items: center;
           gap: 0.5rem;
+          flex: 1;
+        }
+
+        .prayer-title {
+          margin: 0 0 1rem 0;
+          color: var(--text-primary);
+          font-size: 1.3rem;
+          font-weight: 700;
+          line-height: 1.4;
+          padding-left: calc(1.2rem + 0.75rem);
         }
 
         .prayer-description {
@@ -460,17 +460,18 @@ const PrayerSheet: React.FC<PrayerSheetProps> = ({ onBack }) => {
             border-bottom: none;
           }
 
+          .prayer-date {
+            color: #666 !important;
+            margin: 0 0 0.5rem 0 !important;
+          }
+
           .prayer-title {
             color: #000 !important;
             font-size: 1.2rem;
             font-weight: 700;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.5rem !important;
+            padding-left: calc(1.2rem + 0.75rem) !important;
             -webkit-text-fill-color: #000 !important;
-          }
-
-          .prayer-date {
-            color: #666 !important;
-            margin: 0.5rem 0 1rem 0;
           }
 
           .prayer-description {
