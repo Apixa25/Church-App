@@ -468,9 +468,9 @@
 .replies > .thing.comment::after {
   content: 'H-LINE';
   position: absolute;
-  left: -38px; /* Distance from child to parent's vertical line (70px parent position - 32px indent) */
+  left: 0px; /* Start at the child comment's left edge */
   top: 26px; /* Align with child profile icon center (padding 4px + avatar 44px/2 = 26px) */
-  width: 70px; /* From parent line to child profile icon center (38px + 32px) */
+  width: 70px; /* Extend to child's avatar center */
   height: 4px; /* DEBUG: Thicker for visibility */
   background: #00ff00 !important; /* DEBUG: Bright green */
   border: 2px solid magenta !important; /* DEBUG: Magenta border */
@@ -735,9 +735,9 @@
 
   /* Horizontal branch on mobile */
   .replies > .thing.comment::after {
-    left: -39px; /* Distance from child to parent's vertical line (59px parent - 20px indent) */
+    left: 0px; /* Start at the child comment's left edge */
     top: 23px; /* Mobile profile icon center (padding 3px + avatar 40px/2 = 23px) */
-    width: 59px; /* From parent line to child profile icon center (39px + 20px) */
+    width: 59px; /* Extend to child's avatar center */
     height: 4px; /* DEBUG: Thicker for visibility */
   }
 
