@@ -427,6 +427,36 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.btn-print-summary {
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--border-radius-md);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 2px 8px var(--button-primary-glow);
+}
+
+.btn-print-summary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--glow-blue);
+}
+
+.btn-print-summary:active {
+  transform: translateY(0);
+}
+
+.summary-print-header {
+  display: none;
 }
 
 .summary-subtitle {
@@ -579,6 +609,198 @@
 
   .bring-summary-table {
     min-width: 100%;
+  }
+
+  .summary-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .btn-print-summary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Print Styles */
+@media print {
+  /* Hide entire bring-list-section container except summary */
+  .bring-list-section {
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+
+  /* Hide all sections within bring-list-section except summary */
+  .bring-list-header,
+  .bring-list-add-card,
+  .bring-list-error,
+  .bring-items-grid,
+  .bring-list-empty,
+  .bring-list-disabled {
+    display: none !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .bring-list-summary {
+    background: white !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 1rem !important;
+    margin: 0 !important;
+    page-break-inside: avoid;
+    display: block !important;
+  }
+
+  .summary-print-header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #000;
+  }
+
+  .summary-print-header h1 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.5rem;
+    color: #000;
+    font-weight: 700;
+  }
+
+  .summary-print-header .print-subtitle {
+    margin: 0;
+    font-size: 1rem;
+    color: #666;
+    font-weight: 500;
+  }
+
+  .summary-header {
+    display: none !important;
+  }
+
+  .bring-summary-table {
+    background: white !important;
+    border: 1px solid #ddd !important;
+    width: 100%;
+  }
+
+  .bring-summary-table thead th {
+    background: #f0f0f0 !important;
+    color: #000 !important;
+    border-bottom: 2px solid #000 !important;
+    font-weight: 700;
+    padding: 0.75rem 0.5rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  .bring-summary-table thead th.no-print {
+    display: none !important;
+  }
+
+  .bring-summary-table td.no-print {
+    display: none !important;
+  }
+
+  .bring-summary-table tbody tr {
+    border-bottom: 1px solid #ddd !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .bring-summary-table tbody tr:hover {
+    background: white !important;
+  }
+
+  .bring-summary-table td {
+    color: #333 !important;
+    border-bottom: 1px solid #ddd !important;
+    padding: 0.75rem 0.5rem !important;
+    font-size: 0.9rem !important;
+  }
+
+  .summary-item-name {
+    color: #000 !important;
+    font-weight: 600;
+  }
+
+  .summary-badge {
+    background: #e0e0e0 !important;
+    color: #000 !important;
+    border: 1px solid #999 !important;
+  }
+
+  .summary-none {
+    color: #666 !important;
+  }
+
+  .summary-claim-user {
+    color: #000 !important;
+    font-weight: 600;
+  }
+
+  .summary-claim-quantity {
+    color: #555 !important;
+  }
+
+  .summary-claim-note {
+    color: #666 !important;
+  }
+
+  /* Show "Still needed" section when printing */
+  .bring-summary-remaining {
+    margin-top: 1.5rem !important;
+    padding-top: 1rem !important;
+    border-top: 1px solid #000 !important;
+    display: block !important;
+  }
+
+  .bring-summary-remaining h4 {
+    margin: 0 0 0.75rem 0 !important;
+    font-size: 1.1rem !important;
+    color: #000 !important;
+    font-weight: 700 !important;
+  }
+
+  .bring-summary-remaining ul {
+    margin: 0 !important;
+    padding-left: 1.5rem !important;
+    list-style-type: disc !important;
+  }
+
+  .bring-summary-remaining li {
+    margin: 0.5rem 0 !important;
+    color: #333 !important;
+    line-height: 1.5 !important;
+  }
+
+  .bring-summary-remaining .summary-item-name {
+    font-weight: 600 !important;
+    color: #000 !important;
+    margin-right: 0.5rem !important;
+  }
+
+  .bring-summary-remaining .summary-remaining-value {
+    color: #555 !important;
+  }
+
+  .bring-summary-remaining .summary-none {
+    margin: 0 !important;
+    color: #666 !important;
+    font-style: italic !important;
+  }
+
+  @page {
+    margin: 0.75in;
+    size: letter;
+  }
+
+  body {
+    background: white !important;
   }
 }
 

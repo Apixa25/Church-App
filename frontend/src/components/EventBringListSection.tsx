@@ -13,6 +13,7 @@ interface EventBringListSectionProps {
   initialItems?: EventBringItem[];
   canManageList: boolean;
   onItemsUpdated?: (items: EventBringItem[]) => void;
+  eventTitle?: string;
 }
 
 interface ClaimDraft {
@@ -32,7 +33,8 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
   bringListEnabled,
   initialItems = [],
   canManageList,
-  onItemsUpdated
+  onItemsUpdated,
+  eventTitle
 }) => {
   const [items, setItems] = useState<EventBringItem[]>(initialItems);
   const [loading, setLoading] = useState(false);
@@ -599,9 +601,21 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
               <div>
                 <h3>Bring-list summary</h3>
                 <p className="summary-subtitle">
-                  Snapshot of every item, who’s bringing it, and what’s still open.
+                  Snapshot of every item, who's bringing it, and what's still open.
                 </p>
               </div>
+              <button 
+                className="btn btn-print-summary no-print"
+                onClick={() => window.print()}
+                title="Print or save as PDF"
+              >
+                🖨️ Print / Save PDF
+              </button>
+            </div>
+
+            <div className="summary-print-header print-only">
+              <h1>{eventTitle || 'Bring-list Summary'}</h1>
+              <p className="print-subtitle">Bring-list Summary</p>
             </div>
 
             <div className="summary-table-wrapper">
@@ -612,7 +626,7 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
                     <th>Needed</th>
                     <th>Claimed</th>
                     <th>Remaining</th>
-                    <th>People Bringing</th>
+                    <th className="no-print">People Bringing</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -622,7 +636,7 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
                         <div className="summary-item-cell">
                           <span className="summary-item-name">{row.name}</span>
                           {row.allowMultipleClaims && row.needed === null && (
-                            <span className="summary-badge">Open</span>
+                            <span className="summary-badge no-print">Open</span>
                           )}
                         </div>
                       </td>
@@ -641,7 +655,7 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
                           ? 'Closed'
                           : row.remaining}
                       </td>
-                      <td>
+                      <td className="no-print">
                         {row.claims.length === 0 ? (
                           <span className="summary-none">No claims yet</span>
                         ) : (
@@ -651,7 +665,7 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
                                 <span className="summary-claim-user">{claim.userName}</span>
                                 <span className="summary-claim-quantity">{claim.quantity}</span>
                                 {claim.note && (
-                                  <span className="summary-claim-note">“{claim.note}”</span>
+                                  <span className="summary-claim-note">"{claim.note}"</span>
                                 )}
                               </li>
                             ))}
