@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ChatMessage as MessageType } from '../services/chatApi';
+import ClickableAvatar from './ClickableAvatar';
 
 interface ChatMessageProps {
   message: MessageType;
@@ -82,17 +83,15 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   return (
     <div className={`message ${isOwnMessage ? 'own-message' : 'other-message'}`}>
       {!isOwnMessage && (
-        <div className="message-avatar">
-          {message.userProfilePicUrl ? (
-            <img src={message.userProfilePicUrl} alt={message.userName} />
-          ) : (
-            <div className="avatar-placeholder">
-              {message.userName.charAt(0).toUpperCase()}
-            </div>
-          )}
-        </div>
+        <ClickableAvatar
+          userId={message.userId}
+          profilePicUrl={message.userProfilePicUrl}
+          userName={message.userName}
+          size="small"
+          className="message-avatar"
+        />
       )}
-      
+
       <div className="message-content">
         {!isOwnMessage && (
           <div className="message-header">

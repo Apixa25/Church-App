@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Announcement, AnnouncementCategory } from '../types/Announcement';
 import { announcementAPI } from '../services/announcementApi';
 import { safeParseDate } from '../utils/dateUtils';
+import ClickableAvatar from './ClickableAvatar';
 import './AnnouncementList.css';
 
 interface AnnouncementListProps {
@@ -222,13 +223,12 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
             <div key={announcement.id} className="announcement-card pinned">
               <div className="announcement-header">
                 <div className="announcement-author">
-                  {announcement.userProfilePicUrl && (
-                    <img 
-                      src={announcement.userProfilePicUrl} 
-                      alt={announcement.userName} 
-                      className="author-avatar"
-                    />
-                  )}
+                  <ClickableAvatar
+                    userId={announcement.userId}
+                    profilePicUrl={announcement.userProfilePicUrl}
+                    userName={announcement.userName}
+                    size="medium"
+                  />
                   <div className="author-info">
                     <span className="author-name">{announcement.userName}</span>
                     <span className="author-role">{announcement.userRole}</span>
@@ -344,13 +344,12 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
             <div key={announcement.id} className="announcement-card">
               <div className="announcement-header">
                 <div className="announcement-author">
-                  {announcement.userProfilePicUrl && (
-                    <img 
-                      src={announcement.userProfilePicUrl} 
-                      alt={announcement.userName} 
-                      className="author-avatar"
-                    />
-                  )}
+                  <ClickableAvatar
+                    userId={announcement.userId}
+                    profilePicUrl={announcement.userProfilePicUrl}
+                    userName={announcement.userName}
+                    size="medium"
+                  />
                   <div className="author-info">
                     <span className="author-name">{announcement.userName}</span>
                     <span className="author-role">{announcement.userRole}</span>

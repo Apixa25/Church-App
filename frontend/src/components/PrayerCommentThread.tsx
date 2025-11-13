@@ -6,6 +6,7 @@ import {
 } from '../types/Prayer';
 import { prayerInteractionAPI, handleApiError } from '../services/prayerApi';
 import { formatRelativeDate, safeParseDate } from '../utils/dateUtils';
+import ClickableAvatar from './ClickableAvatar';
 import './PrayerCommentThread.css';
 
 interface PrayerCommentThreadProps {
@@ -254,17 +255,13 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
 
         <div className="entry">
           <p className="tagline">
-            <span className="prayer-comment-avatar" aria-hidden="true">
-              {comment.userProfilePicUrl ? (
-                <img
-                  src={comment.userProfilePicUrl}
-                  alt={comment.userName ?? 'Community member'}
-                  className="prayer-comment-avatar-image"
-                />
-              ) : (
-                <span className="avatar-placeholder">{authorInitial}</span>
-              )}
-            </span>
+            <ClickableAvatar
+              userId={comment.userId}
+              profilePicUrl={comment.userProfilePicUrl}
+              userName={comment.userName ?? 'Community Member'}
+              size="small"
+              className="prayer-comment-avatar"
+            />
             <span className="tagline-content">
               <span className="author-wrapper">
                 <span className="author-label">{comment.userName ?? 'Community Member'}</span>
