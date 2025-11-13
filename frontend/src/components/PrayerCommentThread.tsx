@@ -6,7 +6,6 @@ import {
 } from '../types/Prayer';
 import { prayerInteractionAPI, handleApiError } from '../services/prayerApi';
 import { formatRelativeDate, safeParseDate } from '../utils/dateUtils';
-import './CommentThread.css';
 import './PrayerCommentThread.css';
 
 interface PrayerCommentThreadProps {
@@ -93,7 +92,7 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
   prayerId,
   currentUserId,
   currentUserEmail,
-  maxDepth = 3,
+  maxDepth = 8,
   onCommentCountChange
 }) => {
   const [comments, setComments] = useState<PrayerComment[]>([]);
@@ -104,6 +103,7 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
   const [collapsedComments, setCollapsedComments] = useState<Set<string>>(new Set());
   const [newCommentText, setNewCommentText] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
 
   const canComment = Boolean(currentUserId || currentUserEmail);
 
@@ -230,14 +230,28 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
         : 'reply';
     const timestampDate = normalizeTimestamp(comment.timestamp);
 
+    // Check if we should show "Continue this thread" link
+    const shouldShowContinueThread = depth >= maxDepth && hasReplies;
+    const isThreadExpanded = expandedThreads.has(comment.id);
+
     return (
       <div
         key={comment.id}
         className={`thing comment ${depthClass} ${isCollapsed ? 'collapsed' : ''}`}
         data-id={`t1_${comment.id}`}
         data-depth={depth}
-        data-has-children={hasReplies}
+        data-has-children={hasReplies ? "true" : "false"}
       >
+        {/* Circular collapse button - Reddit style */}
+        <button
+          className="collapse-thread-btn"
+          onClick={() => toggleCollapse(comment.id)}
+          type="button"
+          aria-label={isCollapsed ? 'Expand thread' : 'Collapse thread'}
+        >
+          <span className="collapse-icon">{isCollapsed ? '+' : '−'}</span>
+        </button>
+
         <div className="midcol unvoted">
           <button className="arrow up" type="button" aria-label="Upvote (display only)" disabled />
           <div className="score unvoted">{scoreDisplay}</div>
@@ -246,12 +260,12 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
 
         <div className="entry">
           <p className="tagline">
-            <span className="author-avatar" aria-hidden="true">
+            <span className="prayer-comment-avatar" aria-hidden="true">
               {comment.userProfilePicUrl ? (
                 <img
                   src={comment.userProfilePicUrl}
                   alt={comment.userName ?? 'Community member'}
-                  className="author-avatar-image"
+                  className="prayer-comment-avatar-image"
                 />
               ) : (
                 <span className="avatar-placeholder">{authorInitial}</span>
@@ -290,7 +304,7 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
             <button
               className="reply-btn"
               onClick={() => setReplyingTo(comment.id)}
-              disabled={!canComment || replyingTo !== null || depth >= maxDepth}
+              disabled={!canComment || replyingTo !== null}
               type="button"
             >
               reply
@@ -305,14 +319,6 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
                 delete
               </button>
             )}
-
-            <button
-              className="collapse-btn"
-              onClick={() => toggleCollapse(comment.id)}
-              type="button"
-            >
-              {isCollapsed ? '[+]' : '[–]'}
-            </button>
           </div>
 
           {showReplyForm && (
@@ -357,8 +363,20 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
 
           {!isCollapsed && hasReplies && (
             <div className="replies">
-              {replies.map((reply, index) =>
-                renderComment(reply as PrayerComment, depth + 1, index === replies.length - 1)
+              {shouldShowContinueThread && !isThreadExpanded ? (
+                <div className="continue-thread-container">
+                  <button
+                    className="continue-thread-link"
+                    onClick={() => setExpandedThreads(prev => new Set(prev).add(comment.id))}
+                    type="button"
+                  >
+                    <span className="continue-arrow">→</span> Continue this thread ({replies.length} {replies.length === 1 ? 'reply' : 'replies'})
+                  </button>
+                </div>
+              ) : (
+                replies.map((reply, index) =>
+                  renderComment(reply as PrayerComment, depth + 1, index === replies.length - 1)
+                )
               )}
             </div>
           )}
