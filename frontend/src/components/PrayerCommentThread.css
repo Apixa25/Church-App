@@ -423,11 +423,13 @@
 /* ACTION BUTTONS - COMPACT */
 .comment-actions {
   display: flex;
+  flex-direction: row !important; /* Force horizontal - override PrayerRequestDetail.tsx */
   align-items: center;
   gap: 6px;
   margin-top: 4px;
   font-size: 13px; /* Increased from 11px */
   font-weight: 700;
+  flex-wrap: nowrap !important; /* Prevent wrapping - override PrayerRequestDetail.tsx */
 }
 
 /* Push action buttons right on child comments to clear vertical lines */
@@ -440,11 +442,13 @@
   border: none;
   color: white;
   cursor: pointer;
-  padding: 6px 16px;
+  padding: 6px 16px; /* Larger size */
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14px;
   border-radius: var(--border-radius-pill);
   transition: all 0.15s ease;
+  flex-shrink: 0; /* Prevent shrinking and wrapping */
+  white-space: nowrap; /* Keep text on one line */
 }
 
 .reply-btn:hover:not(:disabled) {
@@ -461,18 +465,23 @@
 }
 
 .delete-btn {
-  background: none;
+  background: var(--error);
   border: none;
-  color: var(--error);
+  color: white;
   cursor: pointer;
-  padding: 0;
-  font-weight: 700;
-  font-size: 13px; /* Increased from 11px */
-  transition: color 0.15s ease;
+  padding: 4px 12px; /* Smaller size */
+  font-weight: 600;
+  font-size: 12px;
+  border-radius: var(--border-radius-pill);
+  transition: all 0.15s ease;
+  flex-shrink: 0; /* Prevent shrinking and wrapping */
+  white-space: nowrap; /* Keep text on one line */
 }
 
 .delete-btn:hover {
-  text-decoration: underline;
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 /* HIDE CONTENT WHEN COLLAPSED */
@@ -744,11 +753,17 @@
     gap: 5px;
     margin-top: 3px;
     font-size: 10px;
+    flex-wrap: nowrap; /* Keep buttons side-by-side on mobile */
   }
 
-  .reply-btn,
+  .reply-btn {
+    font-size: 13px !important;
+    padding: 6px 14px !important; /* Larger on mobile */
+  }
+
   .delete-btn {
-    font-size: 10px;
+    font-size: 11px !important;
+    padding: 4px 10px !important; /* Smaller on mobile - override PrayerRequestDetail.tsx */
   }
 
   /* REDDIT-STYLE THREAD CONNECTORS ON MOBILE - Keep same positioning as desktop! */
