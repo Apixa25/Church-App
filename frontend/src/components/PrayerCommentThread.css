@@ -194,7 +194,7 @@
   min-width: 16px;
   flex-shrink: 0;
   border: 1px solid var(--border-secondary);
-  background: transparent;
+  background: var(--bg-secondary);
   border-radius: 50%;
   cursor: pointer;
   display: flex;
@@ -203,6 +203,14 @@
   transition: all 0.15s ease;
   padding: 0;
   margin-top: 1px;
+}
+
+/* Position collapse button at L-intersection for child comments */
+.replies > .thing.comment .collapse-thread-btn {
+  position: absolute;
+  left: 2px; /* Position at the L-intersection: vertical line at 10px - button half 8px = 2px */
+  top: 18px; /* Vertically center with avatar: padding 4px + avatar center 22px - button half 8px = 18px */
+  z-index: 1000;
 }
 
 .collapse-thread-btn:hover {
@@ -301,6 +309,19 @@
   padding-right: 4px;
 }
 
+/* For child comments: position avatar absolutely and add padding for text */
+.replies > .thing.comment .entry {
+  position: relative; /* For absolute positioning of avatar */
+  padding-left: 52px; /* Space for avatar: collapse 16px + gap 4px + avatar 44px - overlap 12px = 52px */
+}
+
+/* Position avatar absolutely for child comments */
+.replies > .thing.comment .prayer-comment-avatar {
+  position: absolute;
+  left: 20px; /* collapse 16px + gap 4px = 20px from entry's left edge */
+  top: 0;
+}
+
 /* AUTHOR LINE - COMPACT */
 .tagline {
   display: flex;
@@ -345,6 +366,11 @@
   min-width: 0;
 }
 
+/* Push text content right on child comments to avoid vertical line */
+.replies > .thing.comment .tagline-content {
+  margin-left: 35px; /* Additional space to clear the vertical line */
+}
+
 .author-wrapper {
   flex-shrink: 1;
   min-width: 0;
@@ -376,6 +402,11 @@
   margin: 0 0 4px 0;
 }
 
+/* Push comment body text right on child comments */
+.replies > .thing.comment .usertext.body {
+  margin-left: 35px; /* Match tagline-content offset */
+}
+
 .md {
   font-size: 16px; /* Increased from 13px (about 23% larger) */
   line-height: 1.4;
@@ -400,6 +431,11 @@
   margin-top: 4px;
   font-size: 13px; /* Increased from 11px */
   font-weight: 700;
+}
+
+/* Push action buttons right on child comments */
+.replies > .thing.comment .comment-actions {
+  margin-left: 35px; /* Match tagline-content offset */
 }
 
 .reply-btn {
@@ -452,7 +488,7 @@
   content: 'V-LINE';
   position: absolute;
   left: 10px; /* From replies left edge to parent avatar center: 16 + 4 + 22 - 32 = 10px */
-  top: -26px; /* Start from parent's avatar center (4px padding + 22px to center) */
+  top: -54px; /* Connect to parent's avatar bottom (parent padding 4px + avatar 44px + spacing 2px = 50px up, adjusted to -54px) */
   bottom: 0; /* Extend to bottom of last child */
   width: 4px; /* DEBUG: Thicker for visibility */
   background: #ff0000 !important; /* DEBUG: Bright red */
@@ -470,7 +506,7 @@
   position: absolute;
   left: 10px; /* Start from the vertical line position */
   top: 26px; /* Align with child profile icon center (padding 4px + avatar 44px/2 = 26px) */
-  width: 32px; /* Extend to child's avatar center: collapse 16px + gap 4px + avatar center 22px - vertical line position 10px = 32px */
+  width: 32px; /* Extend to child's avatar center: avatar left 20px + avatar center 22px - vertical line position 10px = 32px */
   height: 4px; /* DEBUG: Thicker for visibility */
   background: #00ff00 !important; /* DEBUG: Bright green */
   border: 2px solid magenta !important; /* DEBUG: Magenta border */
@@ -724,30 +760,8 @@
     font-size: 10px;
   }
 
-  /* REDDIT-STYLE THREAD CONNECTORS ON MOBILE */
-
-  /* Vertical line from profile on mobile */
-  .thing.comment[data-has-children="true"] > .entry > .replies::before {
-    left: 17px; /* From replies left edge: collapse 14px + gap 3px + avatar center 20px - margin-left 20px = 17px */
-    top: -26px; /* Start above the replies container to reach parent's avatar center */
-    bottom: 0; /* Extend to bottom of last child */
-    width: 4px; /* DEBUG: Thicker for visibility */
-  }
-
-  /* Horizontal branch on mobile */
-  .replies > .thing.comment::after {
-    left: 17px; /* Start from the vertical line position */
-    top: 23px; /* Mobile profile icon center (padding 3px + avatar 40px/2 = 23px) */
-    width: 20px; /* Extend to child's avatar center: collapse 14px + gap 3px + avatar center 20px - vertical line position 17px = 20px */
-    height: 4px; /* DEBUG: Thicker for visibility */
-  }
-
-  /* MINIMAL INDENTATION (20px on mobile) */
-  .replies {
-    margin-top: 3px;
-    margin-left: 20px; /* Increased for proper spacing */
-    padding-left: 0;
-  }
+  /* REDDIT-STYLE THREAD CONNECTORS ON MOBILE - Keep same positioning as desktop! */
+  /* No changes to thread connector positions - they stay fixed across all screen sizes */
 
   /* CONTINUE THREAD - MOBILE */
   .continue-thread-container {
