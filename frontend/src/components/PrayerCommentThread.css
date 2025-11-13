@@ -447,13 +447,13 @@
 
 /* REDDIT-STYLE L-SHAPED THREAD CONNECTORS */
 
-/* Vertical line from parent profile icon down through children */
-.thing.comment[data-has-children="true"]::before {
+/* Vertical line from parent profile icon down to last direct child */
+.thing.comment[data-has-children="true"] > .entry > .replies::before {
   content: 'V-LINE';
   position: absolute;
-  left: 70px; /* Profile icon center (collapse 16px + gap 4px + midcol 24px + gap 4px + avatar 44px/2 = 70px) */
-  top: 26px; /* Profile icon vertical center (padding 4px + avatar 44px/2 = 26px) */
-  bottom: 0;
+  left: 10px; /* From replies left edge: collapse 16px + gap 4px + avatar center 22px - margin-left 32px = 10px */
+  top: -30px; /* Start above the replies container to reach parent's avatar center */
+  bottom: 0; /* Extend to bottom of last child */
   width: 4px; /* DEBUG: Thicker for visibility */
   background: #ff0000 !important; /* DEBUG: Bright red */
   border: 2px solid cyan !important; /* DEBUG: Cyan border */
@@ -470,7 +470,7 @@
   position: absolute;
   left: 0px; /* Start at the child comment's left edge */
   top: 26px; /* Align with child profile icon center (padding 4px + avatar 44px/2 = 26px) */
-  width: 70px; /* Extend to child's avatar center */
+  width: 42px; /* Extend to child's avatar center: collapse 16px + gap 4px + avatar center 22px = 42px */
   height: 4px; /* DEBUG: Thicker for visibility */
   background: #00ff00 !important; /* DEBUG: Bright green */
   border: 2px solid magenta !important; /* DEBUG: Magenta border */
@@ -727,9 +727,10 @@
   /* REDDIT-STYLE THREAD CONNECTORS ON MOBILE */
 
   /* Vertical line from profile on mobile */
-  .thing.comment[data-has-children="true"]::before {
-    left: 59px; /* Adjusted for mobile: collapse 14px + gap 3px + midcol 18px + gap 3px + avatar 40px/2 */
-    top: 23px; /* Mobile profile icon center (padding 3px + avatar 40px/2 = 23px) */
+  .thing.comment[data-has-children="true"] > .entry > .replies::before {
+    left: 17px; /* From replies left edge: collapse 14px + gap 3px + avatar center 20px - margin-left 20px = 17px */
+    top: -26px; /* Start above the replies container to reach parent's avatar center */
+    bottom: 0; /* Extend to bottom of last child */
     width: 4px; /* DEBUG: Thicker for visibility */
   }
 
@@ -737,7 +738,7 @@
   .replies > .thing.comment::after {
     left: 0px; /* Start at the child comment's left edge */
     top: 23px; /* Mobile profile icon center (padding 3px + avatar 40px/2 = 23px) */
-    width: 59px; /* Extend to child's avatar center */
+    width: 37px; /* Extend to child's avatar center: collapse 14px + gap 3px + avatar center 20px = 37px */
     height: 4px; /* DEBUG: Thicker for visibility */
   }
 
