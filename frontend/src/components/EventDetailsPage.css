@@ -201,3 +201,108 @@
   }
 }
 
+/* Print Styles - Hide everything except bring-list-summary */
+@media print {
+  /* Reset page layout for printing */
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    height: auto !important;
+  }
+
+  .App {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide all navigation and headers */
+  header,
+  nav,
+  .app-header,
+  .main-navigation {
+    display: none !important;
+  }
+
+  /* Hide entire event details page wrapper */
+  .event-details-page {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: white !important;
+    min-height: auto !important;
+  }
+
+  /* Hide event details card wrapper */
+  .event-details-card {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: white !important;
+    border-radius: 0 !important;
+  }
+
+  .event-details-card::before {
+    display: none !important;
+  }
+
+  /* Hide ALL content on the page first */
+  .event-details-card > .page-header,
+  .event-details-card > .event-description,
+  .event-details-card > .event-meta-grid,
+  .event-details-card > .event-rsvp-manager {
+    display: none !important;
+  }
+
+  /* Show bring-list-section */
+  .event-details-card > .bring-list-section {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  /* Hide all elements within bring-list-section except summary */
+  .bring-list-section .bring-list-header,
+  .bring-list-section .bring-list-add-card,
+  .bring-list-section .bring-list-error,
+  .bring-list-section .bring-items-grid,
+  .bring-list-section .bring-list-empty,
+  .bring-list-section .bring-list-disabled {
+    display: none !important;
+  }
+
+  /* Show only the bring-list-summary */
+  .bring-list-section .bring-list-summary {
+    display: block !important;
+    margin: 0 !important;
+    padding: 1rem !important;
+    background: white !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    page-break-inside: avoid;
+    position: relative !important;
+    width: 100% !important;
+  }
+
+  /* Ensure summary table is visible */
+  .bring-list-summary .summary-table-wrapper {
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  .bring-list-summary .bring-summary-table {
+    display: table !important;
+    width: 100% !important;
+    min-width: auto !important;
+  }
+
+  .bring-list-summary .summary-print-header {
+    display: block !important;
+  }
+}
+

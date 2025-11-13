@@ -176,6 +176,7 @@ const EventDetailsPage: React.FC = () => {
           initialItems={event.bringItems}
           canManageList={canManageBringList}
           onItemsUpdated={handleBringItemsUpdated}
+          eventTitle={event.title}
         />
       </div>
     </div>
