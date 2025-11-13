@@ -451,8 +451,8 @@
 .thing.comment[data-has-children="true"] > .entry > .replies::before {
   content: 'V-LINE';
   position: absolute;
-  left: 10px; /* From replies left edge: collapse 16px + gap 4px + avatar center 22px - margin-left 32px = 10px */
-  top: -30px; /* Start above the replies container to reach parent's avatar center */
+  left: 10px; /* From replies left edge to parent avatar center: 16 + 4 + 22 - 32 = 10px */
+  top: -26px; /* Start from parent's avatar center (4px padding + 22px to center) */
   bottom: 0; /* Extend to bottom of last child */
   width: 4px; /* DEBUG: Thicker for visibility */
   background: #ff0000 !important; /* DEBUG: Bright red */
@@ -468,9 +468,9 @@
 .replies > .thing.comment::after {
   content: 'H-LINE';
   position: absolute;
-  left: 0px; /* Start at the child comment's left edge */
+  left: 10px; /* Start from the vertical line position */
   top: 26px; /* Align with child profile icon center (padding 4px + avatar 44px/2 = 26px) */
-  width: 42px; /* Extend to child's avatar center: collapse 16px + gap 4px + avatar center 22px = 42px */
+  width: 32px; /* Extend to child's avatar center: collapse 16px + gap 4px + avatar center 22px - vertical line position 10px = 32px */
   height: 4px; /* DEBUG: Thicker for visibility */
   background: #00ff00 !important; /* DEBUG: Bright green */
   border: 2px solid magenta !important; /* DEBUG: Magenta border */
@@ -736,9 +736,9 @@
 
   /* Horizontal branch on mobile */
   .replies > .thing.comment::after {
-    left: 0px; /* Start at the child comment's left edge */
+    left: 17px; /* Start from the vertical line position */
     top: 23px; /* Mobile profile icon center (padding 3px + avatar 40px/2 = 23px) */
-    width: 37px; /* Extend to child's avatar center: collapse 14px + gap 3px + avatar center 20px = 37px */
+    width: 20px; /* Extend to child's avatar center: collapse 14px + gap 3px + avatar center 20px - vertical line position 17px = 20px */
     height: 4px; /* DEBUG: Thicker for visibility */
   }
 
