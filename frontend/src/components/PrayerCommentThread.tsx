@@ -252,12 +252,6 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
           <span className="collapse-icon">{isCollapsed ? '+' : '−'}</span>
         </button>
 
-        <div className="midcol unvoted">
-          <button className="arrow up" type="button" aria-label="Upvote (display only)" disabled />
-          <div className="score unvoted">{scoreDisplay}</div>
-          <button className="arrow down" type="button" aria-label="Downvote (display only)" disabled />
-        </div>
-
         <div className="entry">
           <p className="tagline">
             <span className="prayer-comment-avatar" aria-hidden="true">
