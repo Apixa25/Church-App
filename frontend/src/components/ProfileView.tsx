@@ -8,6 +8,7 @@ import { Post } from '../types/Post';
 import { getUserPosts, getBookmarkedPosts, getUserShareStats } from '../services/postApi';
 import PostCard from './PostCard';
 import { parseEventDate } from '../utils/dateUtils';
+import chatApi from '../services/chatApi';
 import './ProfileView.css';
 
 interface ProfileViewProps {
@@ -43,6 +44,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const [bookmarksError, setBookmarksError] = useState<string | null>(null);
   const [bookmarksPage, setBookmarksPage] = useState(0);
   const [hasMoreBookmarks, setHasMoreBookmarks] = useState(true);
+
+  // Direct message state
+  const [creatingDM, setCreatingDM] = useState(false);
 
   const isOwnProfile = !userId || userId === user?.userId;
   const targetUserId = userId || user?.userId || '';
@@ -244,6 +248,27 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
     }
   };
 
+  const handleMessageUser = async () => {
+    if (!profile?.email || isOwnProfile) return;
+
+    try {
+      setCreatingDM(true);
+      setError(null);
+
+      // Create or get existing DM conversation
+      const dmGroup = await chatApi.createDirectMessage(profile.email);
+
+      // Navigate to the chat
+      navigate(`/chats/${dmGroup.id}`);
+    } catch (err: any) {
+      console.error('Error starting direct message:', err);
+      const errorMessage = err.response?.data?.error || 'Failed to start conversation';
+      setError(`Could not message ${profile.name}: ${errorMessage}`);
+    } finally {
+      setCreatingDM(false);
+    }
+  };
+
   // Format date for "Joined" display
   const formatJoinedDate = (dateString: string | undefined): string => {
     if (!dateString) {
@@ -430,10 +455,37 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
 
           <div className="profile-info-x">
             <div className="profile-name-section">
-              <h1 className="profile-name-x">
-                {profile.name}
-                {profile.role === 'ADMIN' && <span className="verified-badge-x">✓</span>}
-              </h1>
+              <div className="profile-name-row">
+                <h1 className="profile-name-x">
+                  {profile.name}
+                  {profile.role === 'ADMIN' && <span className="verified-badge-x">✓</span>}
+                </h1>
+                {!isOwnProfile && (
+                  <button
+                    onClick={handleMessageUser}
+                    disabled={creatingDM}
+                    className="message-user-button"
+                    title={`Send message to ${profile.name}`}
+                    aria-label={`Send message to ${profile.name}`}
+                  >
+                    <svg
+                      className="message-icon"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                      <polyline points="22,6 12,13 2,6"></polyline>
+                    </svg>
+                    {creatingDM && <span className="message-loading">...</span>}
+                  </button>
+                )}
+              </div>
               <p className="profile-username-x">@{profile.email.split('@')[0]}</p>
             </div>
 

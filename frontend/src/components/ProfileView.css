@@ -164,6 +164,12 @@
   margin-bottom: 12px;
 }
 
+.profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .profile-name-x {
   margin: 0 0 4px 0;
   font-size: 20px;
@@ -172,6 +178,60 @@
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* Message User Button */
+.message-user-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 2px solid var(--accent-primary);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--accent-primary);
+  font-weight: 600;
+  min-width: 44px;
+  min-height: 44px;
+  position: relative;
+}
+
+.message-user-button:hover:not(:disabled) {
+  background: var(--accent-primary);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
+}
+
+.message-user-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(108, 92, 231, 0.2);
+}
+
+.message-user-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.message-icon {
+  flex-shrink: 0;
+}
+
+.message-loading {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
 }
 
 .verified-badge-x {
