@@ -11,6 +11,7 @@ import PrayerNotifications from './PrayerNotifications';
 import EventNotifications from './EventNotifications';
 import SearchComponent from './SearchComponent';
 import QuickDonationWidget from './QuickDonationWidget';
+import ClickableAvatar from './ClickableAvatar';
 import { FeedType } from '../types/Post';
 import './Dashboard.css';
 
@@ -159,31 +160,13 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="user-info">
             <div className="user-details">
-              <div 
-                className="profile-pic-container clickable" 
-                onClick={() => navigate('/profile')}
-                title="Click to view your profile"
-              >
-                {user?.profilePicUrl ? (
-                  <img 
-                    src={user.profilePicUrl} 
-                    alt={user.name}
-                    className="profile-pic"
-                    key={user.profilePicUrl} // Force re-render when URL changes
-                    onError={(e) => {
-                      // Fallback to placeholder if image fails to load
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const placeholder = target.nextElementSibling as HTMLElement;
-                      if (placeholder) placeholder.style.display = 'flex';
-                    }}
-                  />
-                ) : (
-                  <div className="profile-pic-placeholder">
-                    {user?.name?.charAt(0)?.toUpperCase() || '👤'}
-                  </div>
-                )}
-              </div>
+              <ClickableAvatar
+                userId={user?.userId || user?.id}
+                profilePicUrl={user?.profilePicUrl}
+                userName={user?.name || 'User'}
+                size="large"
+                className="profile-pic-container"
+              />
               <div>
                 <p className="user-name">👋 Welcome, {user?.name}!</p>
                 <p className="user-role">Role: {user?.role}</p>

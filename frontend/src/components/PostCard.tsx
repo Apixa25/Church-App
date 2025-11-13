@@ -5,6 +5,7 @@ import CommentThread from './CommentThread';
 import { formatRelativeDate } from '../utils/dateUtils';
 import { useAuth } from '../contexts/AuthContext';
 import ShareModal from './ShareModal';
+import ClickableAvatar from './ClickableAvatar';
 import './PostCard.css';
 
 interface PostCardProps {
@@ -272,17 +273,13 @@ const PostCard: React.FC<PostCardProps> = ({
       {/* Post Header */}
       <div className="post-header">
         <div className="post-author">
-          {post.userProfilePicUrl ? (
-            <img
-              src={post.userProfilePicUrl}
-              alt={post.userName}
-              className="author-avatar"
-            />
-          ) : (
-            <div className="author-avatar-placeholder">
-              {post.userName.charAt(0).toUpperCase()}
-            </div>
-          )}
+          <ClickableAvatar
+            userId={post.userId}
+            profilePicUrl={post.userProfilePicUrl}
+            userName={post.userName}
+            size="medium"
+            isAnonymous={post.isAnonymous}
+          />
           <div className="author-info">
             <div className="author-name">
               {post.isAnonymous ? 'Anonymous' : post.userName}

@@ -11,6 +11,7 @@ import {
 import { formatRelativeDate } from '../utils/dateUtils';
 import { prayerInteractionAPI, handleApiError } from '../services/prayerApi';
 import { useAuth } from '../contexts/AuthContext';
+import ClickableAvatar from './ClickableAvatar';
 
 interface PrayerRequestCardProps {
   prayer: PrayerRequest;
@@ -130,18 +131,14 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
 
       <div className="prayer-header">
         <div className="prayer-author">
-          {prayer.userProfilePicUrl && !prayer.isAnonymous ? (
-            <img 
-              src={prayer.userProfilePicUrl} 
-              alt={prayer.userName}
-              className="author-avatar"
-            />
-          ) : (
-            <div className="author-avatar placeholder">
-              {prayer.isAnonymous ? '🙏' : prayer.userName.charAt(0).toUpperCase()}
-            </div>
-          )}
-          
+          <ClickableAvatar
+            userId={prayer.userId}
+            profilePicUrl={prayer.userProfilePicUrl}
+            userName={prayer.userName}
+            size="medium"
+            isAnonymous={prayer.isAnonymous}
+          />
+
           <div className="author-info">
             <span className="author-name">
               {prayer.isAnonymous ? 'Anonymous Request' : prayer.userName}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Comment } from '../types/Post';
 import { getPostComments, addComment, deleteComment } from '../services/postApi';
 import { formatRelativeDate } from '../utils/dateUtils';
+import ClickableAvatar from './ClickableAvatar';
 import './CommentThread.css';
 
 interface CommentThreadProps {
@@ -244,17 +245,14 @@ const CommentThread: React.FC<CommentThreadProps> = ({
 
         <div className="entry">
           <p className="tagline">
-            <span className="comment-avatar" aria-hidden="true">
-              {comment.userProfilePicUrl ? (
-                <img
-                  src={comment.userProfilePicUrl}
-                  alt={comment.userName ?? 'Community member'}
-                  className="comment-avatar-image"
-                />
-              ) : (
-                <span className="avatar-placeholder">{authorInitial}</span>
-              )}
-            </span>
+            <ClickableAvatar
+              userId={comment.userId}
+              profilePicUrl={comment.userProfilePicUrl}
+              userName={comment.userName ?? 'Community Member'}
+              size="small"
+              isAnonymous={comment.isAnonymous}
+              className="comment-avatar"
+            />
             <span className="tagline-content">
               <span className="author-wrapper">
                 <span className="author-label">
