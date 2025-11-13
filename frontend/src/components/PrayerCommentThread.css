@@ -333,6 +333,8 @@
   border: 1px solid var(--border-secondary);
   background: var(--bg-secondary);
   flex-shrink: 0;
+  position: relative;
+  z-index: 2; /* Above thread lines */
 }
 
 .prayer-comment-avatar-image {
@@ -355,7 +357,10 @@
   min-width: 0;
 }
 
-/* SIMPLIFIED: No special text positioning */
+/* Push text content right on child comments to clear vertical lines */
+.replies > .thing.comment .tagline-content {
+  margin-left: 16px;
+}
 
 .author-wrapper {
   flex-shrink: 1;
@@ -388,7 +393,10 @@
   margin: 0 0 4px 0;
 }
 
-/* SIMPLIFIED: No special body positioning */
+/* Push comment body right on child comments to clear vertical lines */
+.replies > .thing.comment .usertext.body {
+  margin-left: 16px;
+}
 
 .md {
   font-size: 16px; /* Increased from 13px (about 23% larger) */
@@ -416,7 +424,10 @@
   font-weight: 700;
 }
 
-/* SIMPLIFIED: No special actions positioning */
+/* Push action buttons right on child comments to clear vertical lines */
+.replies > .thing.comment .comment-actions {
+  margin-left: 16px;
+}
 
 .reply-btn {
   background: none;
