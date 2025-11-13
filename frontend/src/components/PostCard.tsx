@@ -363,6 +363,8 @@ const PostCard: React.FC<PostCardProps> = ({
         <div className="comment-thread-container">
           <CommentThread
             postId={post.id}
+            currentUserId={user?.id}
+            currentUserEmail={user?.email}
             initialComments={comments}
             onCommentCountChange={(count) => {
               setCommentsCount(count);
