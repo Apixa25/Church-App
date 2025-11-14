@@ -17,7 +17,8 @@ import java.util.UUID;
     @Index(name = "idx_announcement_created_at", columnList = "created_at"),
     @Index(name = "idx_announcement_category", columnList = "category"),
     @Index(name = "idx_announcement_pinned", columnList = "is_pinned"),
-    @Index(name = "idx_announcement_user_id", columnList = "user_id")
+    @Index(name = "idx_announcement_user_id", columnList = "user_id"),
+    @Index(name = "idx_announcements_organization_id", columnList = "organization_id")
 })
 @Data
 @NoArgsConstructor
@@ -63,7 +64,12 @@ public class Announcement {
     
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
-    
+
+    // Multi-tenant organization field
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id")
+    private Organization organization;
+
     public enum AnnouncementCategory {
         GENERAL,
         WORSHIP,

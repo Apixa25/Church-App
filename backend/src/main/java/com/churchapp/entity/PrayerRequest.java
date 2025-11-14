@@ -17,7 +17,8 @@ import java.util.UUID;
     @Index(name = "idx_prayer_user_id", columnList = "user_id"),
     @Index(name = "idx_prayer_category", columnList = "category"),
     @Index(name = "idx_prayer_status", columnList = "status"),
-    @Index(name = "idx_prayer_created_at", columnList = "created_at")
+    @Index(name = "idx_prayer_created_at", columnList = "created_at"),
+    @Index(name = "idx_prayers_organization_id", columnList = "organization_id")
 })
 @Data
 @NoArgsConstructor
@@ -63,7 +64,12 @@ public class PrayerRequest {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-    
+
+    // Multi-tenant organization field
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id")
+    private Organization organization;
+
     public enum PrayerCategory {
         HEALTH,
         FAMILY,

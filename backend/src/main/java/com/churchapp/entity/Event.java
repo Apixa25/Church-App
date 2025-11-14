@@ -23,7 +23,8 @@ import java.util.UUID;
     @Index(name = "idx_event_group_id", columnList = "group_id"),
     @Index(name = "idx_event_start_time", columnList = "start_time"),
     @Index(name = "idx_event_end_time", columnList = "end_time"),
-    @Index(name = "idx_event_created_at", columnList = "created_at")
+    @Index(name = "idx_event_created_at", columnList = "created_at"),
+    @Index(name = "idx_events_organization_id", columnList = "organization_id")
 })
 @Data
 @NoArgsConstructor
@@ -105,7 +106,12 @@ public class Event {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-    
+
+    // Multi-tenant organization field
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id")
+    private Organization organization;
+
     public enum EventStatus {
         SCHEDULED,
         IN_PROGRESS,
