@@ -1,6 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { OrganizationProvider } from './contexts/OrganizationContext';
+import { GroupProvider } from './contexts/GroupContext';
+import { FeedFilterProvider } from './contexts/FeedFilterContext';
 import LoginForm from './components/LoginForm';
 import RegisterForm from './components/RegisterForm';
 import Dashboard from './components/Dashboard';
@@ -30,9 +33,12 @@ import './App.css';
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <Router>
-        <div className="App">
-          <Routes>
+      <OrganizationProvider>
+        <GroupProvider>
+          <FeedFilterProvider>
+            <Router>
+              <div className="App">
+                <Routes>
             {/* Public routes */}
             <Route path="/login" element={<LoginForm />} />
             <Route path="/register" element={<RegisterForm />} />
@@ -315,9 +321,12 @@ const App: React.FC = () => {
             {/* Default redirect */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </div>
-      </Router>
+                </Routes>
+              </div>
+            </Router>
+          </FeedFilterProvider>
+        </GroupProvider>
+      </OrganizationProvider>
     </AuthProvider>
   );
 };
