@@ -8,6 +8,7 @@ import com.churchapp.repository.ChatGroupRepository;
 import com.churchapp.repository.EventRepository;
 import com.churchapp.repository.EventRsvpRepository;
 import com.churchapp.repository.UserRepository;
+import com.churchapp.repository.OrganizationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -31,15 +32,21 @@ public class EventService {
     private final UserRepository userRepository;
     private final ChatGroupRepository chatGroupRepository;
     private final EventBringListService eventBringListService;
-    
+    private final OrganizationRepository organizationRepository;
+
     public Event createEvent(UUID creatorId, Event eventRequest, Boolean bringListEnabled, List<EventBringItemRequest> bringItems) {
         User creator = userRepository.findById(creatorId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + creatorId));
-        
-        log.info("Creating event - Title: '{}', StartTime: '{}', EndTime: '{}', Category: '{}', Status: '{}'", 
-                eventRequest.getTitle(), eventRequest.getStartTime(), eventRequest.getEndTime(), 
+
+        // Events REQUIRE a primary organization
+        if (creator.getPrimaryOrganization() == null) {
+            throw new RuntimeException("Cannot create event without a primary organization. Please join a church first.");
+        }
+
+        log.info("Creating event - Title: '{}', StartTime: '{}', EndTime: '{}', Category: '{}', Status: '{}'",
+                eventRequest.getTitle(), eventRequest.getStartTime(), eventRequest.getEndTime(),
                 eventRequest.getCategory(), eventRequest.getStatus());
-        
+
         Event event = new Event();
         event.setTitle(eventRequest.getTitle().trim());
         event.setDescription(eventRequest.getDescription() != null ? eventRequest.getDescription().trim() : null);
@@ -47,6 +54,7 @@ public class EventService {
         event.setEndTime(eventRequest.getEndTime());
         event.setLocation(eventRequest.getLocation() != null ? eventRequest.getLocation().trim() : null);
         event.setCreator(creator);
+        event.setOrganization(creator.getPrimaryOrganization()); // Always org-scoped
         // Map problematic categories to working ones based on user testing
         Event.EventCategory mappedCategory = mapCategoryToWorkingValue(eventRequest.getCategory());
         event.setCategory(mappedCategory);
@@ -193,17 +201,57 @@ public class EventService {
         log.info("Event deleted with id: {} by user: {}", eventId, userId);
     }
     
-    // Query methods
+    // Query methods - org-scoped
     public Page<Event> getAllEvents(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return eventRepository.findAll(pageable);
     }
-    
+
+    /**
+     * Get all events for user's primary organization
+     */
+    public Page<Event> getEventsForUser(UUID userId, int page, int size) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.getPrimaryOrganization() == null) {
+            throw new RuntimeException("Cannot view events without a primary organization");
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        return eventRepository.findByOrganizationId(user.getPrimaryOrganization().getId(), pageable);
+    }
+
+    /**
+     * Get upcoming events for user's primary organization
+     */
+    public List<Event> getUpcomingEventsForUser(UUID userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.getPrimaryOrganization() == null) {
+            throw new RuntimeException("Cannot view events without a primary organization");
+        }
+
+        return eventRepository.findUpcomingByOrganizationId(
+            user.getPrimaryOrganization().getId(),
+            LocalDateTime.now()
+        );
+    }
+
+    /**
+     * Get events for a specific organization (for admins/analytics)
+     */
+    public Page<Event> getEventsByOrganization(UUID organizationId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return eventRepository.findByOrganizationId(organizationId, pageable);
+    }
+
     public Page<Event> getRecentEvents(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return eventRepository.findRecentEventsOrderByCreatedAt(pageable);
     }
-    
+
     public Page<Event> getUpcomingEvents(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return eventRepository.findUpcomingEvents(LocalDateTime.now(), pageable);
