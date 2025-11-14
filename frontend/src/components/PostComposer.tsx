@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { PostType, MediaFile, CreatePostRequest } from '../types/Post';
 import { createPost, uploadMedia } from '../services/postApi';
+import { useOrganization } from '../contexts/OrganizationContext';
+import { useGroup } from '../contexts/GroupContext';
 import './PostComposer.css';
 
 interface PostComposerProps {
@@ -25,6 +27,10 @@ const PostComposer: React.FC<PostComposerProps> = ({
   replyTo,
   quoteTo
 }) => {
+  // Multi-tenant contexts
+  const { primaryMembership, allMemberships } = useOrganization();
+  const { unmutedGroups } = useGroup();
+
   const [content, setContent] = useState('');
   const [selectedPostType, setSelectedPostType] = useState<PostType>(PostType.GENERAL);
   const [category, setCategory] = useState('');
@@ -34,6 +40,12 @@ const PostComposer: React.FC<PostComposerProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string>('');
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Multi-tenant post targeting
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string | undefined>(
+    primaryMembership?.organizationId
+  );
+  const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(undefined);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -147,7 +159,10 @@ const PostComposer: React.FC<PostComposerProps> = ({
         postType: selectedPostType,
         category: category.trim() || undefined,
         location: location.trim() || undefined,
-        anonymous: isAnonymous
+        anonymous: isAnonymous,
+        // Multi-tenant fields
+        organizationId: selectedOrganizationId,
+        groupId: selectedGroupId
       };
 
       // Create the post
@@ -344,6 +359,48 @@ const PostComposer: React.FC<PostComposerProps> = ({
         {/* Advanced Options */}
         {showAdvanced && (
           <div className="advanced-options">
+            {/* Multi-tenant: Organization selector */}
+            <div className="option-group">
+              <label htmlFor="organization">Post to Organization:</label>
+              <select
+                id="organization"
+                value={selectedOrganizationId || ''}
+                onChange={(e) => {
+                  setSelectedOrganizationId(e.target.value || undefined);
+                  setSelectedGroupId(undefined); // Reset group when org changes
+                }}
+                className="organization-select"
+              >
+                <option value="">Global Feed (No Organization)</option>
+                {allMemberships.map(membership => (
+                  <option key={membership.id} value={membership.organizationId}>
+                    {membership.organizationName}
+                    {membership.organizationId === primaryMembership?.organizationId ? ' (Primary)' : ' (Secondary)'}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Multi-tenant: Group selector */}
+            {unmutedGroups.length > 0 && (
+              <div className="option-group">
+                <label htmlFor="group">Post to Group (optional):</label>
+                <select
+                  id="group"
+                  value={selectedGroupId || ''}
+                  onChange={(e) => setSelectedGroupId(e.target.value || undefined)}
+                  className="group-select"
+                >
+                  <option value="">No specific group</option>
+                  {unmutedGroups.map(membership => (
+                    <option key={membership.id} value={membership.groupId}>
+                      {membership.groupName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div className="option-group">
               <label htmlFor="category">Category:</label>
               <select
