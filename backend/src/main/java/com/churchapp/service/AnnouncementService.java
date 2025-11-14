@@ -6,6 +6,7 @@ import com.churchapp.entity.Announcement;
 import com.churchapp.entity.User;
 import com.churchapp.repository.AnnouncementRepository;
 import com.churchapp.repository.UserRepository;
+import com.churchapp.repository.OrganizationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -28,27 +29,35 @@ public class AnnouncementService {
     
     private final AnnouncementRepository announcementRepository;
     private final UserRepository userRepository;
-    
+    private final OrganizationRepository organizationRepository;
+
     public AnnouncementResponse createAnnouncement(UUID userId, AnnouncementRequest request) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-        
+
+        // Announcements REQUIRE a primary organization
+        if (user.getPrimaryOrganization() == null) {
+            throw new RuntimeException("Cannot create announcement without a primary organization. Please join a church first.");
+        }
+
         // Only admin and moderator can create announcements
         if (!isAuthorizedToManageAnnouncements(user)) {
             throw new AccessDeniedException("User does not have permission to create announcements");
         }
-        
+
         Announcement announcement = new Announcement();
         announcement.setUser(user);
+        announcement.setOrganization(user.getPrimaryOrganization()); // Always org-scoped
         announcement.setTitle(request.getTitle().trim());
         announcement.setContent(request.getContent().trim());
         announcement.setImageUrl(request.getImageUrl());
         announcement.setCategory(request.getCategory() != null ? request.getCategory() : Announcement.AnnouncementCategory.GENERAL);
         announcement.setIsPinned(request.getIsPinned() != null ? request.getIsPinned() : false);
-        
+
         Announcement savedAnnouncement = announcementRepository.save(announcement);
-        log.info("Announcement created with id: {} by user: {}", savedAnnouncement.getId(), userId);
-        
+        log.info("Announcement created with id: {} by user: {} in org: {}",
+            savedAnnouncement.getId(), userId, user.getPrimaryOrganization().getId());
+
         return AnnouncementResponse.fromAnnouncement(savedAnnouncement);
     }
     
@@ -66,20 +75,67 @@ public class AnnouncementService {
     public Page<AnnouncementResponse> getAllAnnouncements(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Announcement> announcements = announcementRepository.findAllActive(pageable);
-        
+
         return announcements.map(AnnouncementResponse::fromAnnouncement);
     }
-    
+
+    /**
+     * Get all announcements for user's primary organization
+     */
+    public Page<AnnouncementResponse> getAnnouncementsForUser(UUID userId, int page, int size) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.getPrimaryOrganization() == null) {
+            throw new RuntimeException("Cannot view announcements without a primary organization");
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Announcement> announcements = announcementRepository.findByOrganizationId(
+            user.getPrimaryOrganization().getId(), pageable);
+
+        return announcements.map(AnnouncementResponse::fromAnnouncement);
+    }
+
+    /**
+     * Get announcements for a specific organization (for admins/analytics)
+     */
+    public Page<AnnouncementResponse> getAnnouncementsByOrganization(UUID organizationId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Announcement> announcements = announcementRepository.findByOrganizationId(organizationId, pageable);
+
+        return announcements.map(AnnouncementResponse::fromAnnouncement);
+    }
+
+    /**
+     * Get pinned announcements for user's primary organization
+     */
+    public List<AnnouncementResponse> getPinnedAnnouncementsForUser(UUID userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.getPrimaryOrganization() == null) {
+            throw new RuntimeException("Cannot view announcements without a primary organization");
+        }
+
+        List<Announcement> pinnedAnnouncements = announcementRepository.findPinnedByOrganizationId(
+            user.getPrimaryOrganization().getId());
+
+        return pinnedAnnouncements.stream()
+            .map(AnnouncementResponse::fromAnnouncement)
+            .collect(Collectors.toList());
+    }
+
     public Page<AnnouncementResponse> getAnnouncementsByCategory(Announcement.AnnouncementCategory category, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Announcement> announcements = announcementRepository.findByCategoryOrderByCreatedAtDesc(category, pageable);
-        
+
         return announcements.map(AnnouncementResponse::fromAnnouncement);
     }
-    
+
     public List<AnnouncementResponse> getPinnedAnnouncements() {
         List<Announcement> pinnedAnnouncements = announcementRepository.findPinnedAnnouncements();
-        
+
         return pinnedAnnouncements.stream()
             .map(AnnouncementResponse::fromAnnouncement)
             .collect(Collectors.toList());
