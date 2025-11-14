@@ -51,6 +51,7 @@ public class PostController {
             @AuthenticationPrincipal User user) {
 
         try {
+            // Use new multi-tenant createPost method with optional org/group context
             Post post = postService.createPost(
                 user.getUsername(),
                 request.getContent(),
@@ -59,7 +60,9 @@ public class PostController {
                 request.getPostType(),
                 request.getCategory(),
                 request.getLocation(),
-                request.isAnonymous()
+                request.isAnonymous(),
+                request.getOrganizationId(),  // Multi-tenant: optional org context
+                request.getGroupId()           // Multi-tenant: optional group context
             );
 
             PostResponse response = postResponseMapper.mapPost(post, resolveUserId(user));
@@ -169,6 +172,10 @@ public class PostController {
 
     // ========== FEED OPERATIONS ==========
 
+    /**
+     * Multi-tenant feed endpoint
+     * Returns posts based on user's feed preferences (primary org, secondary orgs, groups)
+     */
     @GetMapping("/feed")
     public ResponseEntity<Page<PostResponse>> getFeed(
             @RequestParam(defaultValue = "community") String feedType,
@@ -177,29 +184,68 @@ public class PostController {
             @AuthenticationPrincipal User user) {
 
         try {
-            // For church community: default to community feed (all posts)
-            FeedService.FeedType type;
-            if ("trending".equalsIgnoreCase(feedType)) {
-                type = FeedService.FeedType.TRENDING;
-            } else if ("following".equalsIgnoreCase(feedType)) {
-                // In church model, following = community (everyone sees everything)
-                type = FeedService.FeedType.CHRONOLOGICAL;
-            } else {
-                // Default to chronological (community feed)
-                type = FeedService.FeedType.CHRONOLOGICAL;
-            }
-
+            UUID viewerId = resolveUserId(user);
             Pageable pageable = PageRequest.of(page, size);
 
-            UUID viewerId = resolveUserId(user);
+            Page<Post> posts;
 
-            Page<Post> posts = feedService.getFeed(viewerId, type, pageable);
+            // Use multi-tenant feed for default/community feed
+            if ("trending".equalsIgnoreCase(feedType)) {
+                posts = postService.getTrendingFeed(viewerId, pageable);
+            } else {
+                // Default to multi-tenant chronological feed
+                posts = postService.getMultiTenantFeed(viewerId, pageable);
+            }
+
             Page<PostResponse> responses = postResponseMapper.mapPage(posts, viewerId);
-
             return ResponseEntity.ok(responses);
 
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Get posts for a specific organization
+     */
+    @GetMapping("/feed/organization/{orgId}")
+    public ResponseEntity<Page<PostResponse>> getOrganizationFeed(
+            @PathVariable UUID orgId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal User user) {
+
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            Page<Post> posts = postService.getOrganizationFeed(orgId, pageable);
+            Page<PostResponse> responses = postResponseMapper.mapPage(posts, resolveUserId(user));
+
+            return ResponseEntity.ok(responses);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Get posts for a specific group
+     */
+    @GetMapping("/feed/group/{groupId}")
+    public ResponseEntity<Page<PostResponse>> getGroupFeed(
+            @PathVariable UUID groupId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal User user) {
+
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            Page<Post> posts = postService.getGroupFeed(groupId, pageable);
+            Page<PostResponse> responses = postResponseMapper.mapPage(posts, resolveUserId(user));
+
+            return ResponseEntity.ok(responses);
+
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
