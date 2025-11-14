@@ -2,6 +2,8 @@ package com.churchapp.service;
 
 import com.churchapp.entity.*;
 import com.churchapp.repository.DonationRepository;
+import com.churchapp.repository.OrganizationRepository;
+import com.churchapp.repository.UserRepository;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.model.PaymentIntent;
@@ -26,13 +28,35 @@ public class StripePaymentService {
 
     private final DonationRepository donationRepository;
     private final StripeCustomerService stripeCustomerService;
+    private final OrganizationRepository organizationRepository;
+    private final UserRepository userRepository;
 
     /**
      * Create a payment intent for a one-time donation
+     *
+     * For multi-tenant support:
+     * - Requires user to have a primary organization
+     * - Routes payment to organization's Stripe Connect account
+     * - Uses "destination charges" pattern for Stripe Connect
      */
     public PaymentIntent createPaymentIntent(User user, BigDecimal amount, DonationCategory category,
                                            String purpose, String receiptEmail) throws StripeException {
         log.info("Creating payment intent for user {} with amount ${}", user.getId(), amount);
+
+        // Donations REQUIRE a primary organization for Stripe Connect routing
+        if (user.getPrimaryOrganization() == null) {
+            throw new RuntimeException("Cannot create donation without a primary organization. Please join a church first.");
+        }
+
+        Organization organization = user.getPrimaryOrganization();
+
+        // Check if organization has Stripe Connect account configured
+        if (organization.getStripeConnectAccountId() == null || organization.getStripeConnectAccountId().trim().isEmpty()) {
+            throw new RuntimeException("Organization " + organization.getName() + " has not configured donation processing. Please contact your church administrator.");
+        }
+
+        log.info("Routing donation to organization {} with Stripe Connect account {}",
+            organization.getId(), organization.getStripeConnectAccountId());
 
         // Convert amount to cents (Stripe expects amounts in cents)
         long amountInCents = amount.multiply(BigDecimal.valueOf(100)).longValue();
@@ -43,6 +67,8 @@ public class StripePaymentService {
         // Build metadata for the payment intent
         Map<String, String> metadata = new HashMap<>();
         metadata.put("user_id", user.getId().toString());
+        metadata.put("organization_id", organization.getId().toString());
+        metadata.put("organization_name", organization.getName());
         metadata.put("category", category.name());
         metadata.put("church_app", "true");
         metadata.put("donation_type", "one_time");
@@ -50,27 +76,39 @@ public class StripePaymentService {
             metadata.put("purpose", purpose.trim().substring(0, Math.min(purpose.trim().length(), 500)));
         }
 
-        // Create payment intent parameters
-        PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
+        // Create payment intent parameters with Stripe Connect
+        // Using "destination charges" pattern: payment goes to connected account, platform can take application fee
+        PaymentIntentCreateParams.Builder paramsBuilder = PaymentIntentCreateParams.builder()
                 .setAmount(amountInCents)
                 .setCurrency("usd")
                 .setCustomer(customer.getId())
                 .setReceiptEmail(receiptEmail != null ? receiptEmail : user.getEmail())
-                .setDescription(String.format("%s donation for %s",
+                .setDescription(String.format("%s donation for %s to %s",
                     category.getDisplayName(),
-                    user.getName()))
+                    user.getName(),
+                    organization.getName()))
                 .putAllMetadata(metadata)
                 .setAutomaticPaymentMethods(
                     PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
                         .setEnabled(true)
                         .build()
                 )
-                .build();
+                // Stripe Connect: Send payment to organization's connected account
+                .setTransferData(
+                    PaymentIntentCreateParams.TransferData.builder()
+                        .setDestination(organization.getStripeConnectAccountId())
+                        .build()
+                );
 
-        PaymentIntent paymentIntent = PaymentIntent.create(params);
+        // Optional: Set application fee (platform fee) - e.g., 3% or flat fee
+        // Uncomment if you want to charge a platform fee
+        // long applicationFeeAmount = (long) (amountInCents * 0.03); // 3% platform fee
+        // paramsBuilder.setApplicationFeeAmount(applicationFeeAmount);
 
-        log.info("Created payment intent {} for user {} with amount ${}",
-            paymentIntent.getId(), user.getId(), amount);
+        PaymentIntent paymentIntent = PaymentIntent.create(paramsBuilder.build());
+
+        log.info("Created payment intent {} for user {} with amount ${} routed to organization {} ({})",
+            paymentIntent.getId(), user.getId(), amount, organization.getName(), organization.getStripeConnectAccountId());
 
         return paymentIntent;
     }
@@ -100,19 +138,31 @@ public class StripePaymentService {
         Map<String, String> metadata = paymentIntent.getMetadata();
         String categoryStr = metadata.get("category");
         String purpose = metadata.get("purpose");
+        String organizationIdStr = metadata.get("organization_id");
+
+        // Get organization from metadata (for multi-tenant routing)
+        Organization organization = null;
+        if (organizationIdStr != null) {
+            UUID organizationId = UUID.fromString(organizationIdStr);
+            organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new RuntimeException("Organization not found with id: " + organizationId));
+        } else if (user.getPrimaryOrganization() != null) {
+            // Fallback to user's primary organization if not in metadata
+            organization = user.getPrimaryOrganization();
+        } else {
+            throw new RuntimeException("Cannot create donation record without organization information");
+        }
 
         // Convert amount from cents to dollars
         BigDecimal amount = BigDecimal.valueOf(paymentIntent.getAmount()).divide(BigDecimal.valueOf(100));
 
         // Get payment method details
-        String paymentMethodId = null;
         String last4 = null;
         String brand = null;
 
         // Stripe 24.x: charges are not expanded by default; rely on PaymentMethod if needed
         String pmIdFromIntent = paymentIntent.getPaymentMethod();
         if (pmIdFromIntent != null) {
-            paymentMethodId = pmIdFromIntent;
             try {
                 PaymentMethod pm = PaymentMethod.retrieve(pmIdFromIntent);
                 if (pm.getCard() != null) {
@@ -127,6 +177,7 @@ public class StripePaymentService {
         // Create donation record
         Donation donation = new Donation();
         donation.setUser(user);
+        donation.setOrganization(organization); // Multi-tenant: link to organization
         donation.setAmount(amount);
         donation.setTransactionId(generateTransactionId());
         donation.setStripePaymentIntentId(paymentIntentId);
@@ -148,8 +199,8 @@ public class StripePaymentService {
         // Save donation
         donation = donationRepository.save(donation);
 
-        log.info("Created donation record {} for payment intent {} with amount ${}",
-            donation.getId(), paymentIntentId, amount);
+        log.info("Created donation record {} for payment intent {} with amount ${} for organization {}",
+            donation.getId(), paymentIntentId, amount, organization.getName());
 
         return donation;
     }
@@ -178,9 +229,9 @@ public class StripePaymentService {
             return donationRepository.findByStripePaymentIntentId(paymentIntent.getId()).get();
         }
 
-        // Create user object (you might want to fetch from database for validation)
-        User user = new User();
-        user.setId(userId);
+        // Fetch full user entity with organization relationships
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
         return confirmPayment(paymentIntent.getId(), user);
     }
