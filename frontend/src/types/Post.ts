@@ -141,6 +141,9 @@ export interface CreatePostRequest {
   category?: string;
   location?: string;
   anonymous?: boolean;
+  // Multi-tenant fields
+  organizationId?: string;
+  groupId?: string;
 }
 
 export interface CreateReplyRequest {
