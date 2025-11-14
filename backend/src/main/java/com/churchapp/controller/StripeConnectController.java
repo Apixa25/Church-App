@@ -35,7 +35,7 @@ public class StripeConnectController {
     private final UserRepository userRepository;
     private final UserOrganizationMembershipRepository membershipRepository;
 
-    @Value("${stripe.api.key}")
+    @Value("${stripe.secret.key}")
     private String stripeApiKey;
 
     @Value("${app.base.url:http://localhost:3000}")

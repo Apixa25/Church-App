@@ -20,6 +20,8 @@ CREATE TABLE organizations (
     settings JSONB,
     metadata JSONB,
     parent_organization_id UUID,
+    member_count INTEGER NOT NULL DEFAULT 0,
+    primary_member_count INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP
@@ -139,13 +141,13 @@ CREATE TABLE user_group_memberships (
 );
 
 ALTER TABLE user_group_memberships ADD CONSTRAINT pk_user_group_memberships PRIMARY KEY(id);
-ALTER TABLE user_group_memberships ADD CONSTRAINT uk_user_group
+ALTER TABLE user_group_memberships ADD CONSTRAINT uk_user_group_membership
     UNIQUE(user_id, group_id);
-ALTER TABLE user_group_memberships ADD CONSTRAINT fk_user_group_user
+ALTER TABLE user_group_memberships ADD CONSTRAINT fk_user_group_membership_user
     FOREIGN KEY(user_id) REFERENCES users(id);
-ALTER TABLE user_group_memberships ADD CONSTRAINT fk_user_group_group
+ALTER TABLE user_group_memberships ADD CONSTRAINT fk_user_group_membership_group
     FOREIGN KEY(group_id) REFERENCES groups(id);
-ALTER TABLE user_group_memberships ADD CONSTRAINT chk_user_group_role
+ALTER TABLE user_group_memberships ADD CONSTRAINT chk_user_group_membership_role
     CHECK(role IN('MEMBER', 'MODERATOR', 'CREATOR'));
 
 CREATE INDEX idx_user_group_user_id ON user_group_memberships(user_id);
@@ -160,6 +162,7 @@ CREATE TABLE feed_preferences (
     user_id UUID NOT NULL,
     active_filter VARCHAR(30) NOT NULL,
     selected_group_ids JSONB,
+    created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL
 );
 
