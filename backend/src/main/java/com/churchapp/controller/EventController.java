@@ -165,7 +165,7 @@ public class EventController {
         try {
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
             Page<Event> eventsPage;
-            
+
             // Handle different filtering options
             if (category != null) {
                 Event.EventCategory eventCategory = Event.EventCategory.valueOf(category.toUpperCase());
@@ -178,7 +178,8 @@ public class EventController {
             } else if (groupId != null) {
                 eventsPage = eventService.getEventsByGroup(groupId, page, size);
             } else {
-                eventsPage = eventService.getAllEvents(page, size);
+                // Multi-tenant: Get events for user's primary organization
+                eventsPage = eventService.getEventsForUser(currentProfile.getUserId(), page, size);
             }
             
             // Convert to response DTOs with RSVP summaries
@@ -213,9 +214,11 @@ public class EventController {
                                              @AuthenticationPrincipal User user) {
         try {
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
-            Page<Event> eventsPage = eventService.getUpcomingEvents(page, size);
-            
-            List<EventResponse> eventResponses = eventsPage.getContent().stream()
+
+            // Multi-tenant: Get upcoming events for user's primary organization
+            List<Event> upcomingEvents = eventService.getUpcomingEventsForUser(currentProfile.getUserId());
+
+            List<EventResponse> eventResponses = upcomingEvents.stream()
                 .map(event -> {
                     EventResponse response = EventResponse.fromEvent(event);
                     EventRsvpSummary rsvpSummary = eventRsvpService.getEventRsvpSummary(
@@ -224,12 +227,11 @@ public class EventController {
                     return response;
                 })
                 .collect(Collectors.toList());
-            
+
             Map<String, Object> response = new HashMap<>();
             response.put("events", eventResponses);
-            response.put("totalPages", eventsPage.getTotalPages());
-            response.put("totalElements", eventsPage.getTotalElements());
-            
+            response.put("totalElements", eventResponses.size());
+
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();

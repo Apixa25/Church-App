@@ -249,7 +249,7 @@ public class PostService {
         return postRepository.findPostsByFollowingUsers(followingIds, pageable);
     }
 
-    private Page<Post> getTrendingFeed(UUID userId, Pageable pageable) {
+    public Page<Post> getTrendingFeed(UUID userId, Pageable pageable) {
         // Get trending posts filtered by user's feed parameters
         FeedFilterService.FeedParameters params = feedFilterService.getFeedParameters(userId);
         LocalDateTime since = LocalDateTime.now().minusDays(7);
