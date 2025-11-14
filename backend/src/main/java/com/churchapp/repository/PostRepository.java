@@ -101,4 +101,81 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     // Bulk operations for cleanup
     void deleteByUserId(UUID userId);
     void deleteByCreatedAtBefore(LocalDateTime cutoffDate);
+
+    // ========================================================================
+    // MULTI-TENANT ORGANIZATION/GROUP QUERIES
+    // ========================================================================
+
+    // Multi-tenant feed query - shows posts from:
+    // 1. User's primary organization (all visibility levels)
+    // 2. User's secondary organizations (PUBLIC only)
+    // 3. User's unmuted groups
+    @Query("SELECT DISTINCT p FROM Post p WHERE " +
+           "(" +
+           "  (p.organization.id = :primaryOrgId) " +
+           "  OR (p.organization.id IN :secondaryOrgIds AND p.visibility = 'PUBLIC') " +
+           "  OR (p.group.id IN :groupIds)" +
+           ") " +
+           "AND p.isReply = false " +
+           "ORDER BY p.createdAt DESC")
+    Page<Post> findMultiTenantFeed(
+        @Param("primaryOrgId") UUID primaryOrgId,
+        @Param("secondaryOrgIds") List<UUID> secondaryOrgIds,
+        @Param("groupIds") List<UUID> groupIds,
+        Pageable pageable
+    );
+
+    // Feed for users with NO primary organization (social-only users)
+    @Query("SELECT DISTINCT p FROM Post p WHERE " +
+           "(p.group.id IN :groupIds OR p.organization.id = :globalOrgId) " +
+           "AND p.isReply = false " +
+           "AND p.visibility = 'PUBLIC' " +
+           "ORDER BY p.createdAt DESC")
+    Page<Post> findGlobalUserFeed(
+        @Param("groupIds") List<UUID> groupIds,
+        @Param("globalOrgId") UUID globalOrgId,
+        Pageable pageable
+    );
+
+    // Organization-scoped feed
+    @Query("SELECT p FROM Post p WHERE " +
+           "p.organization.id = :orgId " +
+           "AND p.isReply = false " +
+           "ORDER BY p.createdAt DESC")
+    Page<Post> findByOrganizationId(@Param("orgId") UUID orgId, Pageable pageable);
+
+    // Group-scoped feed
+    @Query("SELECT p FROM Post p WHERE " +
+           "p.group.id = :groupId " +
+           "AND p.isReply = false " +
+           "ORDER BY p.createdAt DESC")
+    Page<Post> findByGroupId(@Param("groupId") UUID groupId, Pageable pageable);
+
+    // Count posts by organization
+    @Query("SELECT COUNT(p) FROM Post p WHERE p.organization.id = :orgId")
+    Long countByOrganizationId(@Param("orgId") UUID orgId);
+
+    // Count posts by group
+    @Query("SELECT COUNT(p) FROM Post p WHERE p.group.id = :groupId")
+    Long countByGroupId(@Param("groupId") UUID groupId);
+
+    // Trending posts within an organization
+    @Query("SELECT p FROM Post p WHERE " +
+           "p.organization.id = :orgId " +
+           "AND p.createdAt >= :since " +
+           "ORDER BY (p.likesCount + p.commentsCount + p.sharesCount) DESC")
+    Page<Post> findTrendingPostsByOrganization(
+        @Param("orgId") UUID orgId,
+        @Param("since") LocalDateTime since,
+        Pageable pageable
+    );
+
+    // User posts within an organization (for analytics)
+    @Query("SELECT p FROM Post p WHERE " +
+           "p.userPrimaryOrgIdSnapshot = :orgId " +
+           "AND p.createdAt >= :since")
+    List<Post> findByUserPrimaryOrgSnapshot(
+        @Param("orgId") UUID orgId,
+        @Param("since") LocalDateTime since
+    );
 }
