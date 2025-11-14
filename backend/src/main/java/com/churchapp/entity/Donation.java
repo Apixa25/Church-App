@@ -18,7 +18,8 @@ import java.util.UUID;
     @Index(name = "idx_donation_timestamp", columnList = "timestamp"),
     @Index(name = "idx_donation_transaction_id", columnList = "transaction_id"),
     @Index(name = "idx_donation_category", columnList = "category"),
-    @Index(name = "idx_donation_user_timestamp", columnList = "user_id, timestamp")
+    @Index(name = "idx_donation_user_timestamp", columnList = "user_id, timestamp"),
+    @Index(name = "idx_donations_organization_id", columnList = "organization_id")
 })
 @Data
 @NoArgsConstructor
@@ -99,6 +100,11 @@ public class Donation {
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
+
+    // Multi-tenant organization field
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id")
+    private Organization organization;
 
     // Helper methods
     public boolean isReceiptSent() {

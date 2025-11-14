@@ -139,6 +139,17 @@ public class User {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    // Multi-tenant organization fields
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "primary_organization_id")
+    private Organization primaryOrganization;
+
+    @Column(name = "created_via", length = 100)
+    private String createdVia; // App slug that user signed up through
+
+    @Column(name = "last_org_switch_at")
+    private LocalDateTime lastOrgSwitchAt;
+
     // Donation relationships
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Donation> donations = new ArrayList<>();

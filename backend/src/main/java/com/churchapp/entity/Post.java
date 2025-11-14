@@ -23,7 +23,10 @@ import java.util.UUID;
     @Index(name = "idx_posts_parent_post_id", columnList = "parent_post_id"),
     @Index(name = "idx_posts_quoted_post_id", columnList = "quoted_post_id"),
     @Index(name = "idx_posts_is_reply", columnList = "is_reply"),
-    @Index(name = "idx_posts_is_quote", columnList = "is_quote")
+    @Index(name = "idx_posts_is_quote", columnList = "is_quote"),
+    @Index(name = "idx_posts_organization_id", columnList = "organization_id"),
+    @Index(name = "idx_posts_group_id", columnList = "group_id"),
+    @Index(name = "idx_posts_user_primary_org_snapshot", columnList = "user_primary_org_id_snapshot")
 })
 @Data
 @NoArgsConstructor
@@ -100,6 +103,27 @@ public class Post {
 
     @Column(name = "bookmarks_count", nullable = false)
     private Integer bookmarksCount = 0;
+
+    // Multi-tenant organization/group fields
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id")
+    private Organization organization;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id")
+    private Group group;
+
+    @Column(name = "user_primary_org_id_snapshot")
+    private UUID userPrimaryOrgIdSnapshot; // Snapshot of user's primary org at post time
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "visibility", length = 20)
+    private PostVisibility visibility = PostVisibility.PUBLIC;
+
+    public enum PostVisibility {
+        PUBLIC,
+        ORG_ONLY
+    }
 
     // Helper methods for managing counts
     public void incrementLikesCount() {

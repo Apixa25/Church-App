@@ -20,7 +20,8 @@ import java.util.UUID;
     @Index(name = "idx_subscription_user_id", columnList = "user_id"),
     @Index(name = "idx_subscription_stripe_id", columnList = "stripe_subscription_id"),
     @Index(name = "idx_subscription_status", columnList = "status"),
-    @Index(name = "idx_subscription_user_status", columnList = "user_id, status")
+    @Index(name = "idx_subscription_user_status", columnList = "user_id, status"),
+    @Index(name = "idx_donation_subs_organization_id", columnList = "organization_id")
 })
 @Data
 @NoArgsConstructor
@@ -124,6 +125,11 @@ public class DonationSubscription {
     @Column(name = "updated_at")
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    // Multi-tenant organization field
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id")
+    private Organization organization;
 
     // One-to-many relationship with donations
     @OneToMany(mappedBy = "subscription", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
