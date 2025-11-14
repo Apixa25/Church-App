@@ -1,0 +1,56 @@
+{
+  "appId": "com.thegathering.app",
+  "appName": "The Gathering",
+  "webDir": "build",
+  "bundledWebRuntime": false,
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#4a90e2",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false,
+      "androidSpinnerStyle": "large",
+      "iosSpinnerStyle": "small",
+      "spinnerColor": "#ffffff"
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    },
+    "App": {
+      "launchUrl": "thegathering://",
+      "deepLinkScheme": "thegathering"
+    }
+  },
+  "server": {
+    "url": "http://localhost:3000",
+    "cleartext": true,
+    "androidScheme": "https",
+    "iosScheme": "https",
+    "hostname": "app.thegathering.com",
+    "allowNavigation": [
+      "http://localhost:3000",
+      "http://localhost:8080",
+      "https://app.thegathering.com",
+      "https://api.thegathering.com",
+      "https://stripe.com",
+      "https://*.stripe.com"
+    ]
+  },
+  "android": {
+    "buildOptions": {
+      "keystorePath": "",
+      "keystorePassword": "",
+      "keystoreAlias": "",
+      "keystoreAliasPassword": "",
+      "releaseType": "APK"
+    }
+  },
+  "ios": {
+    "scheme": "The Gathering",
+    "buildOptions": {
+      "developmentTeam": "",
+      "automaticProvisioning": true
+    }
+  }
+}
