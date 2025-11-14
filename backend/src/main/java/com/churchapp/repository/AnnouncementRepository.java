@@ -73,4 +73,55 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, UUID
     
     @Query("SELECT a FROM Announcement a WHERE a.deletedAt IS NOT NULL ORDER BY a.deletedAt DESC")
     Page<Announcement> findDeletedAnnouncements(Pageable pageable);
+
+    // ========================================================================
+    // MULTI-TENANT ORGANIZATION QUERIES
+    // ========================================================================
+
+    // Find announcements by organization
+    @Query("SELECT a FROM Announcement a WHERE " +
+           "a.organization.id = :orgId " +
+           "AND a.deletedAt IS NULL " +
+           "ORDER BY a.isPinned DESC, a.createdAt DESC")
+    Page<Announcement> findByOrganizationId(@Param("orgId") UUID orgId, Pageable pageable);
+
+    // Find pinned announcements by organization
+    @Query("SELECT a FROM Announcement a WHERE " +
+           "a.organization.id = :orgId " +
+           "AND a.isPinned = true " +
+           "AND a.deletedAt IS NULL " +
+           "ORDER BY a.createdAt DESC")
+    List<Announcement> findPinnedByOrganizationId(@Param("orgId") UUID orgId);
+
+    // Find announcements by organization and category
+    @Query("SELECT a FROM Announcement a WHERE " +
+           "a.organization.id = :orgId " +
+           "AND a.category = :category " +
+           "AND a.deletedAt IS NULL " +
+           "ORDER BY a.isPinned DESC, a.createdAt DESC")
+    Page<Announcement> findByOrganizationIdAndCategory(
+        @Param("orgId") UUID orgId,
+        @Param("category") Announcement.AnnouncementCategory category,
+        Pageable pageable
+    );
+
+    // Count announcements by organization
+    @Query("SELECT COUNT(a) FROM Announcement a WHERE " +
+           "a.organization.id = :orgId AND a.deletedAt IS NULL")
+    Long countByOrganizationId(@Param("orgId") UUID orgId);
+
+    // Search announcements within organization
+    @Query("SELECT a FROM Announcement a WHERE " +
+           "a.organization.id = :orgId " +
+           "AND a.deletedAt IS NULL " +
+           "AND (" +
+           "  LOWER(a.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
+           "  OR LOWER(a.content) LIKE LOWER(CONCAT('%', :searchTerm, '%'))" +
+           ") " +
+           "ORDER BY a.isPinned DESC, a.createdAt DESC")
+    Page<Announcement> searchByOrganization(
+        @Param("orgId") UUID orgId,
+        @Param("searchTerm") String searchTerm,
+        Pageable pageable
+    );
 }

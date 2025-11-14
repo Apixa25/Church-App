@@ -96,4 +96,61 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
     // Find recent events ordered by creation date (for activity feed)
     @Query("SELECT e FROM Event e WHERE e.status = 'SCHEDULED' ORDER BY e.createdAt DESC")
     Page<Event> findRecentEventsOrderByCreatedAt(Pageable pageable);
+
+    // ========================================================================
+    // MULTI-TENANT ORGANIZATION QUERIES
+    // ========================================================================
+
+    // Find events by organization
+    @Query("SELECT e FROM Event e WHERE " +
+           "e.organization.id = :orgId " +
+           "ORDER BY e.startTime ASC")
+    Page<Event> findByOrganizationId(@Param("orgId") UUID orgId, Pageable pageable);
+
+    // Find upcoming events by organization
+    @Query("SELECT e FROM Event e WHERE " +
+           "e.organization.id = :orgId " +
+           "AND e.startTime > :now " +
+           "AND e.status = 'SCHEDULED' " +
+           "ORDER BY e.startTime ASC")
+    List<Event> findUpcomingByOrganizationId(
+        @Param("orgId") UUID orgId,
+        @Param("now") LocalDateTime now
+    );
+
+    // Find events by organization and status
+    @Query("SELECT e FROM Event e WHERE " +
+           "e.organization.id = :orgId " +
+           "AND e.status = :status " +
+           "ORDER BY e.startTime ASC")
+    Page<Event> findByOrganizationIdAndStatus(
+        @Param("orgId") UUID orgId,
+        @Param("status") Event.EventStatus status,
+        Pageable pageable
+    );
+
+    // Find events by organization and category
+    @Query("SELECT e FROM Event e WHERE " +
+           "e.organization.id = :orgId " +
+           "AND e.category = :category " +
+           "ORDER BY e.startTime ASC")
+    Page<Event> findByOrganizationIdAndCategory(
+        @Param("orgId") UUID orgId,
+        @Param("category") Event.EventCategory category,
+        Pageable pageable
+    );
+
+    // Count events by organization
+    @Query("SELECT COUNT(e) FROM Event e WHERE e.organization.id = :orgId")
+    Long countByOrganizationId(@Param("orgId") UUID orgId);
+
+    // Count upcoming events by organization
+    @Query("SELECT COUNT(e) FROM Event e WHERE " +
+           "e.organization.id = :orgId " +
+           "AND e.startTime > :now " +
+           "AND e.status = 'SCHEDULED'")
+    Long countUpcomingByOrganizationId(
+        @Param("orgId") UUID orgId,
+        @Param("now") LocalDateTime now
+    );
 }
