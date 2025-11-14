@@ -24,7 +24,7 @@ INSERT INTO organizations (
     'PREMIUM',
     'ACTIVE',
     '{"website": "https://thegathering.com", "description": "The Global Gathering Community"}'::jsonb,
-    '{"isDefault": true, "migratedAt": "' || NOW() || '"}'::jsonb,
+    jsonb_build_object('isDefault', true, 'migratedAt', NOW()::text),
     NOW(),
     NOW()
 ) ON CONFLICT (id) DO NOTHING;
@@ -46,9 +46,9 @@ SELECT
     u.id,
     '00000000-0000-0000-0000-000000000001'::uuid,
     CASE
-        WHEN u.role = 'ADMIN' THEN 'ADMIN'::org_role
-        WHEN u.role = 'MODERATOR' THEN 'MODERATOR'::org_role
-        ELSE 'MEMBER'::org_role
+        WHEN u.role = 'ADMIN' THEN 'ADMIN'
+        WHEN u.role = 'MODERATOR' THEN 'MODERATOR'
+        ELSE 'MEMBER'
     END,
     true,  -- All existing users get Global as their primary org
     u.created_at,
@@ -130,12 +130,12 @@ INSERT INTO groups (
     id,
     name,
     description,
-    visibility,
-    organization_id,
-    creator_id,
+    type,
+    created_by_org_id,
+    created_by_user_id,
     tags,
-    max_members,
     settings,
+    member_count,
     created_at,
     updated_at
 )
@@ -147,13 +147,13 @@ SELECT
     '00000000-0000-0000-0000-000000000001'::uuid,
     (SELECT id FROM users WHERE role = 'ADMIN' ORDER BY created_at LIMIT 1),
     '["general", "community", "fellowship"]'::jsonb,
-    NULL,  -- No member limit
     '{}'::jsonb,
+    0,
     NOW(),
     NOW()
 WHERE NOT EXISTS (
     SELECT 1 FROM groups
-    WHERE organization_id = '00000000-0000-0000-0000-000000000001'::uuid
+    WHERE created_by_org_id = '00000000-0000-0000-0000-000000000001'::uuid
     AND name = 'General Discussion'
 );
 
@@ -173,9 +173,9 @@ SELECT
     u.id,
     g.id,
     CASE
-        WHEN u.role = 'ADMIN' THEN 'ADMIN'::group_role
-        WHEN u.role = 'MODERATOR' THEN 'MODERATOR'::group_role
-        ELSE 'MEMBER'::group_role
+        WHEN u.role = 'ADMIN' THEN 'CREATOR'
+        WHEN u.role = 'MODERATOR' THEN 'MODERATOR'
+        ELSE 'MEMBER'
     END,
     false,  -- Not muted by default
     NOW(),
@@ -185,7 +185,7 @@ FROM
     CROSS JOIN groups g
 WHERE
     g.name = 'General Discussion'
-    AND g.organization_id = '00000000-0000-0000-0000-000000000001'::uuid
+    AND g.created_by_org_id = '00000000-0000-0000-0000-000000000001'::uuid
     AND NOT EXISTS (
         SELECT 1 FROM user_group_memberships ugm
         WHERE ugm.user_id = u.id
@@ -248,12 +248,12 @@ INSERT INTO organizations (
         'isMigrationTracker', true,
         'migrationVersion', 'V13',
         'migrationCompletedAt', NOW()::text,
-        'usersM igrated', (SELECT COUNT(*) FROM users),
-        'postsM igrated', (SELECT COUNT(*) FROM posts WHERE organization_id = '00000000-0000-0000-0000-000000000001'::uuid),
-        'prayersM igrated', (SELECT COUNT(*) FROM prayer_requests WHERE organization_id = '00000000-0000-0000-0000-000000000001'::uuid),
-        'eventsM igrated', (SELECT COUNT(*) FROM events WHERE organization_id = '00000000-0000-0000-0000-000000000001'::uuid),
-        'announcementsM igrated', (SELECT COUNT(*) FROM announcements WHERE organization_id = '00000000-0000-0000-0000-000000000001'::uuid),
-        'donationsM igrated', (SELECT COUNT(*) FROM donations WHERE organization_id = '00000000-0000-0000-0000-000000000001'::uuid)
+        'usersMigrated', (SELECT COUNT(*) FROM users),
+        'postsMigrated', (SELECT COUNT(*) FROM posts WHERE organization_id = '00000000-0000-0000-0000-000000000001'::uuid),
+        'prayersMigrated', (SELECT COUNT(*) FROM prayer_requests WHERE organization_id = '00000000-0000-0000-0000-000000000001'::uuid),
+        'eventsMigrated', (SELECT COUNT(*) FROM events WHERE organization_id = '00000000-0000-0000-0000-000000000001'::uuid),
+        'announcementsMigrated', (SELECT COUNT(*) FROM announcements WHERE organization_id = '00000000-0000-0000-0000-000000000001'::uuid),
+        'donationsMigrated', (SELECT COUNT(*) FROM donations WHERE organization_id = '00000000-0000-0000-0000-000000000001'::uuid)
     ),
     NOW(),
     NOW()

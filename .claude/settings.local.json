@@ -35,7 +35,8 @@
       "Bash(mvn clean compile:*)",
       "Bash(./mvnw.cmd:*)",
       "Bash(timeout 15 bash:*)",
-      "Bash(timeout 20 bash:*)"
+      "Bash(timeout 20 bash:*)",
+      "Bash(export PGPASSWORD=church_password:*)"
     ],
     "deny": [],
     "ask": []
