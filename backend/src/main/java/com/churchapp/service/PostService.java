@@ -29,11 +29,22 @@ public class PostService {
     private final PostCommentRepository postCommentRepository;
     private final PostShareRepository postShareRepository;
     private final PostBookmarkRepository postBookmarkRepository;
+    private final FeedFilterService feedFilterService;
+    private final GroupRepository groupRepository;
+    private final OrganizationRepository organizationRepository;
 
     @Transactional
     public Post createPost(String userEmail, String content, List<String> mediaUrls,
                           List<String> mediaTypes, Post.PostType postType,
                           String category, String location, boolean isAnonymous) {
+        return createPost(userEmail, content, mediaUrls, mediaTypes, postType, category, location, isAnonymous, null, null);
+    }
+
+    @Transactional
+    public Post createPost(String userEmail, String content, List<String> mediaUrls,
+                          List<String> mediaTypes, Post.PostType postType,
+                          String category, String location, boolean isAnonymous,
+                          UUID organizationId, UUID groupId) {
 
         User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
@@ -56,8 +67,39 @@ public class PostService {
         post.setLocation(location);
         post.setIsAnonymous(isAnonymous);
 
+        // Set organization context
+        if (organizationId != null) {
+            Organization org = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new RuntimeException("Organization not found"));
+            post.setOrganization(org);
+        } else if (user.getPrimaryOrganization() != null) {
+            // Default to user's primary organization if not specified
+            post.setOrganization(user.getPrimaryOrganization());
+        } else {
+            // User has no primary org - use global org
+            UUID globalOrgId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+            Organization globalOrg = organizationRepository.findById(globalOrgId)
+                .orElseThrow(() -> new RuntimeException("Global organization not found"));
+            post.setOrganization(globalOrg);
+        }
+
+        // Set group context (optional - posts can be in groups)
+        if (groupId != null) {
+            Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+            post.setGroup(group);
+        }
+
+        // Snapshot user's primary org at post time for analytics
+        if (user.getPrimaryOrganization() != null) {
+            post.setUserPrimaryOrgIdSnapshot(user.getPrimaryOrganization().getId());
+        }
+
         Post savedPost = postRepository.save(post);
-        log.info("Created new post with ID: {} by user: {}", savedPost.getId(), userEmail);
+        log.info("Created new post with ID: {} by user: {} in org: {} group: {}",
+            savedPost.getId(), userEmail,
+            post.getOrganization() != null ? post.getOrganization().getId() : null,
+            post.getGroup() != null ? post.getGroup().getId() : null);
 
         // Process hashtags in content
         processHashtags(savedPost);
@@ -146,11 +188,47 @@ public class PostService {
             case "following":
                 return getFollowingFeed(user.getId(), pageable);
             case "trending":
-                return getTrendingFeed(pageable);
+                return getTrendingFeed(user.getId(), pageable);
             case "chronological":
             default:
-                return postRepository.findMainPostsForFeed(pageable);
+                return getMultiTenantFeed(user.getId(), pageable);
         }
+    }
+
+    /**
+     * Get multi-tenant feed based on user's organizations and groups
+     */
+    public Page<Post> getMultiTenantFeed(UUID userId, Pageable pageable) {
+        FeedFilterService.FeedParameters params = feedFilterService.getFeedParameters(userId);
+
+        // Check if user has primary org
+        if (params.getPrimaryOrgId() == null) {
+            // Social-only user - show global org + their groups
+            UUID globalOrgId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+            return postRepository.findGlobalUserFeed(params.getGroupIds(), globalOrgId, pageable);
+        } else {
+            // User with primary org - show primary + secondary orgs (PUBLIC only) + groups
+            return postRepository.findMultiTenantFeed(
+                params.getPrimaryOrgId(),
+                params.getSecondaryOrgIds(),
+                params.getGroupIds(),
+                pageable
+            );
+        }
+    }
+
+    /**
+     * Get feed for a specific organization
+     */
+    public Page<Post> getOrganizationFeed(UUID organizationId, Pageable pageable) {
+        return postRepository.findByOrganizationId(organizationId, pageable);
+    }
+
+    /**
+     * Get feed for a specific group
+     */
+    public Page<Post> getGroupFeed(UUID groupId, Pageable pageable) {
+        return postRepository.findByGroupId(groupId, pageable);
     }
 
     private Page<Post> getFollowingFeed(UUID userId, Pageable pageable) {
@@ -171,9 +249,18 @@ public class PostService {
         return postRepository.findPostsByFollowingUsers(followingIds, pageable);
     }
 
-    private Page<Post> getTrendingFeed(Pageable pageable) {
+    private Page<Post> getTrendingFeed(UUID userId, Pageable pageable) {
+        // Get trending posts filtered by user's feed parameters
+        FeedFilterService.FeedParameters params = feedFilterService.getFeedParameters(userId);
         LocalDateTime since = LocalDateTime.now().minusDays(7);
-        return postRepository.findTrendingPosts(since, pageable);
+
+        // If user has primary org, show trending from that org
+        if (params.getPrimaryOrgId() != null) {
+            return postRepository.findTrendingPostsByOrganization(params.getPrimaryOrgId(), since, pageable);
+        } else {
+            // Social-only user - show global trending
+            return postRepository.findTrendingPosts(since, pageable);
+        }
     }
 
     public Page<Post> searchPosts(String searchTerm, Pageable pageable) {
