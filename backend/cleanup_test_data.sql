@@ -64,6 +64,8 @@ DELETE FROM worship_room_participants;
 -- ============================================================================
 \echo 'Tier 5: Deleting worship and event data...'
 
+-- Delete worship_room_settings FIRST (references worship_rooms)
+DELETE FROM worship_room_settings;
 DELETE FROM worship_rooms;
 DELETE FROM worship_play_history;
 DELETE FROM event_rsvps;
@@ -84,6 +86,23 @@ DELETE FROM feed_preferences;
 -- ============================================================================
 \echo 'Tier 7: Deleting all users...'
 
+-- Save the General Discussion group ID before deleting
+DO $$
+DECLARE
+    general_discussion_id UUID;
+BEGIN
+    -- Store the ID for later recreation
+    SELECT id INTO general_discussion_id FROM groups
+    WHERE created_by_org_id = '00000000-0000-0000-0000-000000000001'::uuid
+      AND name = 'General Discussion';
+
+    -- Delete the General Discussion group temporarily
+    DELETE FROM groups
+    WHERE created_by_org_id = '00000000-0000-0000-0000-000000000001'::uuid
+      AND name = 'General Discussion';
+END $$;
+
+-- Now we can safely delete all users
 DELETE FROM users;
 
 -- ============================================================================
@@ -130,6 +149,12 @@ DELETE FROM chat_groups;
 
 -- Delete hashtags (they'll be recreated as needed)
 DELETE FROM hashtags;
+
+-- ============================================================================
+-- NOTE: General Discussion Group
+-- ============================================================================
+-- The General Discussion group will be automatically created by the V13 migration
+-- when the first user registers. No need to recreate it here.
 
 -- ============================================================================
 -- VERIFICATION
