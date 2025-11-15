@@ -199,8 +199,13 @@ const Dashboard: React.FC = () => {
               >
                 ⚙️ Settings
               </button>
-              <PrayerNotifications />
-              <EventNotifications />
+              {/* Only show prayer and event notifications if user has primary org */}
+              {hasPrimaryOrg && (
+                <>
+                  <PrayerNotifications />
+                  <EventNotifications />
+                </>
+              )}
               <button onClick={handleLogout} className="logout-button">
                 🚪 Logout
               </button>
