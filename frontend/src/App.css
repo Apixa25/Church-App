@@ -273,7 +273,7 @@
   min-height: 180px;
   display: flex;
   align-items: center;
-  z-index: 3000;
+  z-index: 100;
 }
 
 /* Dashboard Banner Background */
@@ -328,7 +328,7 @@
 
 .header-content {
   position: relative;
-  z-index: 2500;
+  z-index: 2;
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
@@ -341,7 +341,7 @@
 
 .header-content > * {
   position: relative;
-  z-index: 2500;
+  z-index: 3;
 }
 
 .dashboard-header h1 {
@@ -350,7 +350,7 @@
   color: var(--text-primary);
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
   position: relative;
-  z-index: 2500;
+  z-index: 3;
 }
 
 .user-info {
@@ -413,7 +413,7 @@
   color: var(--text-primary) !important;
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
   position: relative;
-  z-index: 2500;
+  z-index: 3;
 }
 
 .dashboard-header .user-role {
@@ -423,7 +423,7 @@
   color: var(--text-secondary) !important;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
   position: relative;
-  z-index: 2500;
+  z-index: 3;
 }
 
 .profile-website {
