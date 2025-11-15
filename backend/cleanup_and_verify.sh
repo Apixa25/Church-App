@@ -71,13 +71,13 @@ else
     echo "❌ WARNING: Global organization missing!"
 fi
 
-# Verify General Discussion group exists
+# Verify General Discussion group (optional - will be created when first user registers)
 GENERAL_GROUP_COUNT=$(psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -t -c "SELECT COUNT(*) FROM groups WHERE created_by_org_id = '00000000-0000-0000-0000-000000000001'::uuid AND name = 'General Discussion';")
 
 if [ "$GENERAL_GROUP_COUNT" -eq 1 ]; then
     echo "✅ General Discussion group preserved"
 else
-    echo "❌ WARNING: General Discussion group missing!"
+    echo "ℹ️  General Discussion group will be created when first user registers"
 fi
 
 echo ""
