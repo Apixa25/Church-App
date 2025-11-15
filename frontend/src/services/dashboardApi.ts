@@ -430,14 +430,25 @@ const dashboardApi = {
       const dashboardResponse = await api.get('/dashboard');
       const dashboardData = dashboardResponse.data;
 
+      // Check if user has primary organization
+      let hasPrimaryOrg = false;
+      try {
+        const primaryOrgResponse = await api.get('/organizations/my-memberships/primary');
+        hasPrimaryOrg = primaryOrgResponse.data !== null && primaryOrgResponse.data !== undefined;
+      } catch (error) {
+        // If endpoint fails, assume no primary org
+        hasPrimaryOrg = false;
+      }
+
       // Get all activity items in parallel - use allSettled for resilience
+      // Only fetch organization-specific activities if user has primary org
       const results = await Promise.allSettled([
-        dashboardApi.getPrayerActivityItems(5),
-        dashboardApi.getAnnouncementActivityItems(5),
-        dashboardApi.getEventActivityItems(5),
-        dashboardApi.getRsvpActivityItems(3),
-        dashboardApi.getResourceActivityItems(3),
-        dashboardApi.getDonationActivityItems(3)
+        hasPrimaryOrg ? dashboardApi.getPrayerActivityItems(5) : Promise.resolve([]),
+        hasPrimaryOrg ? dashboardApi.getAnnouncementActivityItems(5) : Promise.resolve([]),
+        hasPrimaryOrg ? dashboardApi.getEventActivityItems(5) : Promise.resolve([]),
+        hasPrimaryOrg ? dashboardApi.getRsvpActivityItems(3) : Promise.resolve([]),
+        hasPrimaryOrg ? dashboardApi.getResourceActivityItems(3) : Promise.resolve([]),
+        hasPrimaryOrg ? dashboardApi.getDonationActivityItems(3) : Promise.resolve([])
       ]);
 
       // Extract successful results, use empty array for failures
@@ -460,29 +471,35 @@ const dashboardApi = {
       ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
        .slice(0, 25); // Keep the 25 most recent items
 
-      // Add all quick actions if not already present
-      const prayerQuickActions = dashboardApi.getPrayerQuickActions();
-      const announcementQuickActions = dashboardApi.getAnnouncementQuickActions(
-        dashboardData.userRole || localStorage.getItem('userRole')
-      );
-      const eventQuickActions = dashboardApi.getEventQuickActions();
-      const resourceQuickActions = dashboardApi.getResourceQuickActions();
-      const donationQuickActions = dashboardApi.getDonationQuickActions(
-        dashboardData.userRole || localStorage.getItem('userRole')
-      );
-      const worshipQuickActions = dashboardApi.getWorshipQuickActions();
-
+      // Add organization-specific quick actions only if user has primary org
       const existingActionUrls = (dashboardData.quickActions || []).map((action: QuickAction) => action.actionUrl);
-      const newActions = [
-        ...prayerQuickActions,
-        ...announcementQuickActions,
-        ...eventQuickActions,
-        ...resourceQuickActions,
-        ...donationQuickActions,
-        ...worshipQuickActions
-      ].filter(action =>
-        !existingActionUrls.includes(action.actionUrl)
-      );
+      
+      let newActions: QuickAction[] = [];
+      
+      if (hasPrimaryOrg) {
+        // Only add organization-specific actions if user has primary org
+        const prayerQuickActions = dashboardApi.getPrayerQuickActions();
+        const announcementQuickActions = dashboardApi.getAnnouncementQuickActions(
+          dashboardData.userRole || localStorage.getItem('userRole')
+        );
+        const eventQuickActions = dashboardApi.getEventQuickActions();
+        const resourceQuickActions = dashboardApi.getResourceQuickActions();
+        const donationQuickActions = dashboardApi.getDonationQuickActions(
+          dashboardData.userRole || localStorage.getItem('userRole')
+        );
+        const worshipQuickActions = dashboardApi.getWorshipQuickActions();
+
+        newActions = [
+          ...prayerQuickActions,
+          ...announcementQuickActions,
+          ...eventQuickActions,
+          ...resourceQuickActions,
+          ...donationQuickActions,
+          ...worshipQuickActions
+        ].filter(action =>
+          !existingActionUrls.includes(action.actionUrl)
+        );
+      }
 
       return {
         ...dashboardData,

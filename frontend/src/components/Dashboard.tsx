@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import { useNavigate } from 'react-router-dom';
 import dashboardApi, { DashboardResponse } from '../services/dashboardApi';
 import ActivityFeed from './ActivityFeed';
@@ -19,6 +20,7 @@ import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
   const { user, logout, updateUser } = useAuth();
+  const { primaryMembership } = useOrganization();
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -132,6 +134,9 @@ const Dashboard: React.FC = () => {
     if (diffInMinutes === 1) return '1 minute ago';
     return `${diffInMinutes} minutes ago`;
   };
+
+  // Check if user has primary organization
+  const hasPrimaryOrg = primaryMembership !== null;
 
   return (
     <div className="dashboard-container">
@@ -291,21 +296,24 @@ const Dashboard: React.FC = () => {
 
           {/* Right Column - Stats, Actions, Notifications */}
           <div className="dashboard-right">
-            <div className="dashboard-card">
-              <DashboardStats 
-                stats={dashboardData?.stats || {
-                  totalMembers: 0,
-                  newMembersThisWeek: 0,
-                  totalPrayerRequests: 0,
-                  activePrayerRequests: 0,
-                  answeredPrayerRequests: 0,
-                  upcomingEvents: 0,
-                  unreadAnnouncements: 0,
-                  additionalStats: {}
-                }} 
-                isLoading={isLoading} 
-              />
-            </div>
+            {/* Only show Community Stats if user has primary org */}
+            {hasPrimaryOrg && (
+              <div className="dashboard-card">
+                <DashboardStats 
+                  stats={dashboardData?.stats || {
+                    totalMembers: 0,
+                    newMembersThisWeek: 0,
+                    totalPrayerRequests: 0,
+                    activePrayerRequests: 0,
+                    answeredPrayerRequests: 0,
+                    upcomingEvents: 0,
+                    unreadAnnouncements: 0,
+                    additionalStats: {}
+                  }} 
+                  isLoading={isLoading} 
+                />
+              </div>
+            )}
 
             <div className="dashboard-card">
               <QuickActions 
@@ -313,9 +321,13 @@ const Dashboard: React.FC = () => {
                 isLoading={isLoading} 
               />
             </div>
-            <div className="dashboard-card">
-              <QuickDonationWidget />
-            </div>
+
+            {/* Only show Quick Giving if user has primary org */}
+            {hasPrimaryOrg && (
+              <div className="dashboard-card">
+                <QuickDonationWidget />
+              </div>
+            )}
           </div>
         </div>
 
