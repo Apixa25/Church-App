@@ -376,8 +376,13 @@ const PrayerNotifications: React.FC = () => {
 
         @media (max-width: 768px) {
           .notification-dropdown {
-            width: 300px;
-            right: -50px;
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            right: auto;
+            transform: translateX(-50%);
+            width: calc(100vw - 20px);
+            max-width: 350px;
           }
         }
       `}</style>
