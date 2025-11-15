@@ -59,11 +59,12 @@ const Dropdown = styled.div<{ isOpen: boolean }>`
   border: 2px solid #e0e0e0;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
+  z-index: 9999;
   opacity: ${props => props.isOpen ? 1 : 0};
   visibility: ${props => props.isOpen ? 'visible' : 'hidden'};
   transform: ${props => props.isOpen ? 'translateY(0)' : 'translateY(-10px)'};
   transition: all 0.2s;
+  isolation: isolate;
 `;
 
 const DropdownHeader = styled.div`
@@ -270,6 +271,24 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
   const [canSwitch, setCanSwitch] = useState(true);
   const [daysUntilSwitch, setDaysUntilSwitch] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Debug: Log when dropdown opens/closes
+  useEffect(() => {
+    console.log('🔍 OrganizationSelector - Dropdown isOpen:', isOpen);
+    if (isOpen && dropdownRef.current) {
+      const dropdown = dropdownRef.current.querySelector('[class*="Dropdown"]');
+      if (dropdown) {
+        const styles = window.getComputedStyle(dropdown);
+        console.log('🎨 Dropdown computed styles:', {
+          zIndex: styles.zIndex,
+          position: styles.position,
+          visibility: styles.visibility,
+          opacity: styles.opacity,
+          transform: styles.transform
+        });
+      }
+    }
+  }, [isOpen]);
 
   // Check switch eligibility
   useEffect(() => {

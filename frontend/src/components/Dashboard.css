@@ -172,6 +172,8 @@
   margin-bottom: 16px;
   overflow: hidden;
   transition: all var(--transition-base);
+  position: relative;
+  z-index: 1;
 }
 
 .dashboard-card:hover {
@@ -415,7 +417,7 @@
   gap: 8px;
   flex-wrap: wrap;
   position: relative;
-  z-index: 10;
+  z-index: 2501;
 }
 
 .search-button {
@@ -450,11 +452,11 @@
 .header-actions .prayer-notifications,
 .header-actions .event-notifications {
   position: relative;
-  z-index: 10;
+  z-index: 2501;
 }
 
 /* Ensure notification buttons don't get hidden behind other elements */
 .header-actions > * {
   position: relative;
-  z-index: 10;
+  z-index: 2501;
 }
