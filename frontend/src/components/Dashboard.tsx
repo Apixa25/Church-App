@@ -26,7 +26,8 @@ const Dashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-  const [feedView, setFeedView] = useState<'activity' | 'social'>('activity'); // Default to activity feed
+  // Default to social feed - will be adjusted based on primary org status
+  const [feedView, setFeedView] = useState<'activity' | 'social'>('social');
   const [feedType, setFeedType] = useState<FeedType>(FeedType.CHRONOLOGICAL); // Make feedType dynamic
   const [showComposer, setShowComposer] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -138,6 +139,13 @@ const Dashboard: React.FC = () => {
   // Check if user has primary organization
   const hasPrimaryOrg = primaryMembership !== null;
 
+  // Ensure social-only users default to social feed
+  useEffect(() => {
+    if (!hasPrimaryOrg && feedView === 'activity') {
+      setFeedView('social');
+    }
+  }, [hasPrimaryOrg, feedView]);
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
@@ -233,12 +241,15 @@ const Dashboard: React.FC = () => {
               >
                 🌟 Social Feed
               </button>
-              <button
-                className={`feed-toggle-btn ${feedView === 'activity' ? 'active' : ''}`}
-                onClick={() => handleFeedViewChange('activity')}
-              >
-                📊 Activity Feed
-              </button>
+              {/* Only show Activity Feed button if user has primary org */}
+              {hasPrimaryOrg && (
+                <button
+                  className={`feed-toggle-btn ${feedView === 'activity' ? 'active' : ''}`}
+                  onClick={() => handleFeedViewChange('activity')}
+                >
+                  📊 Activity Feed
+                </button>
+              )}
               {/* Multi-tenant feed filter */}
               {feedView === 'social' && <FeedFilterSelector />}
             </div>
@@ -290,10 +301,22 @@ const Dashboard: React.FC = () => {
                     console.log('Post updated in dashboard:', postId, updatedPost);
                   }}
                 />
-              ) : (
+              ) : hasPrimaryOrg ? (
                 <ActivityFeed
                   activities={dashboardData?.recentActivity || []}
                   isLoading={isLoading}
+                />
+              ) : (
+                <PostFeed
+                  feedType={feedType}
+                  showFilters={true}
+                  maxPosts={50}
+                  refreshKey={feedRefreshKey}
+                  onFeedTypeChange={handleFeedTypeChange}
+                  onPostUpdate={(postId, updatedPost) => {
+                    // Handle post updates in dashboard context
+                    console.log('Post updated in dashboard:', postId, updatedPost);
+                  }}
                 />
               )}
             </div>
