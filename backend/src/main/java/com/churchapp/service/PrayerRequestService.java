@@ -5,6 +5,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.churchapp.dto.PrayerRequestRequest;
 import com.churchapp.dto.PrayerRequestUpdateRequest;
 import com.churchapp.dto.PrayerRequestResponse;
+import com.churchapp.entity.Organization;
 import com.churchapp.entity.PrayerRequest;
 import com.churchapp.entity.User;
 import com.churchapp.repository.PrayerRequestRepository;
@@ -31,7 +32,7 @@ import java.util.stream.Collectors;
 @Transactional
 @Slf4j
 public class PrayerRequestService {
-    
+
     private final PrayerRequestRepository prayerRequestRepository;
     private final UserRepository userRepository;
     private final PrayerInteractionRepository prayerInteractionRepository;
@@ -41,18 +42,26 @@ public class PrayerRequestService {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
+    // Global Organization ID for users without a primary organization
+    private static final UUID GLOBAL_ORG_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
     public PrayerRequestResponse createPrayerRequest(UUID userId, PrayerRequestRequest request) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
-        // Prayer requests REQUIRE a primary organization
-        if (user.getPrimaryOrganization() == null) {
-            throw new RuntimeException("Cannot create prayer request without a primary organization. Please join a church first.");
+        // Set organization context - use primary org or fall back to Global Organization
+        Organization organization;
+        if (user.getPrimaryOrganization() != null) {
+            organization = user.getPrimaryOrganization();
+        } else {
+            // User has no primary org - use global org
+            organization = organizationRepository.findById(GLOBAL_ORG_ID)
+                .orElseThrow(() -> new RuntimeException("Global organization not found"));
         }
 
         PrayerRequest prayerRequest = new PrayerRequest();
         prayerRequest.setUser(user);
-        prayerRequest.setOrganization(user.getPrimaryOrganization()); // Always org-scoped
+        prayerRequest.setOrganization(organization); // Always org-scoped
         prayerRequest.setTitle(request.getTitle().trim());
         prayerRequest.setDescription(request.getDescription() != null ? request.getDescription().trim() : null);
         prayerRequest.setImageUrl(request.getImageUrl());
@@ -62,7 +71,7 @@ public class PrayerRequestService {
 
         PrayerRequest savedPrayerRequest = prayerRequestRepository.save(prayerRequest);
         log.info("Prayer request created with id: {} by user: {} in org: {}",
-            savedPrayerRequest.getId(), userId, user.getPrimaryOrganization().getId());
+            savedPrayerRequest.getId(), userId, organization.getId());
 
         // Send WebSocket notification for new prayer request
         notifyNewPrayerRequest(savedPrayerRequest);
@@ -74,9 +83,14 @@ public class PrayerRequestService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
-        // Prayer requests REQUIRE a primary organization
-        if (user.getPrimaryOrganization() == null) {
-            throw new RuntimeException("Cannot create prayer request without a primary organization. Please join a church first.");
+        // Set organization context - use primary org or fall back to Global Organization
+        Organization organization;
+        if (user.getPrimaryOrganization() != null) {
+            organization = user.getPrimaryOrganization();
+        } else {
+            // User has no primary org - use global org
+            organization = organizationRepository.findById(GLOBAL_ORG_ID)
+                .orElseThrow(() -> new RuntimeException("Global organization not found"));
         }
 
         // Upload image if provided
@@ -101,7 +115,7 @@ public class PrayerRequestService {
         // Create prayer request with image URL
         PrayerRequest prayerRequest = new PrayerRequest();
         prayerRequest.setUser(user);
-        prayerRequest.setOrganization(user.getPrimaryOrganization()); // Always org-scoped
+        prayerRequest.setOrganization(organization); // Always org-scoped
         prayerRequest.setTitle(request.getTitle().trim());
         prayerRequest.setDescription(request.getDescription() != null ? request.getDescription().trim() : null);
         prayerRequest.setImageUrl(imageUrl);
@@ -329,21 +343,21 @@ public class PrayerRequestService {
     }
     
     /**
-     * Get all prayer requests for user's primary organization
+     * Get all prayer requests for user's primary organization (or global organization if no primary org)
      */
     public Page<PrayerRequestResponse> getAllPrayerRequests(UUID requestingUserId, int page, int size) {
         User user = userRepository.findById(requestingUserId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Prayer requests require a primary organization
-        if (user.getPrimaryOrganization() == null) {
-            throw new RuntimeException("Cannot view prayer requests without a primary organization");
-        }
+        // Use primary organization or fall back to Global Organization
+        UUID organizationId = (user.getPrimaryOrganization() != null)
+            ? user.getPrimaryOrganization().getId()
+            : GLOBAL_ORG_ID;
 
         Pageable pageable = PageRequest.of(page, size);
-        // Get prayers from user's primary organization only
+        // Get prayers from user's organization (primary or global)
         Page<PrayerRequest> prayerRequests = prayerRequestRepository.findActiveByOrganizationId(
-            user.getPrimaryOrganization().getId(), pageable);
+            organizationId, pageable);
 
         return prayerRequests.map(prayerRequest -> {
             if (prayerRequest.getUser().getId().equals(requestingUserId)) {

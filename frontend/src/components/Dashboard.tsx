@@ -28,6 +28,7 @@ const Dashboard: React.FC = () => {
   const [feedType, setFeedType] = useState<FeedType>(FeedType.CHRONOLOGICAL); // Make feedType dynamic
   const [showComposer, setShowComposer] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [feedRefreshKey, setFeedRefreshKey] = useState(0); // Increment to trigger feed refresh
 
   useEffect(() => {
     fetchDashboardData();
@@ -109,10 +110,10 @@ const Dashboard: React.FC = () => {
   };
 
   const handlePostCreated = (newPost: any) => {
-    // The PostFeed component will handle refreshing itself
+    // The PostFeed component will handle refreshing itself via refreshKey
     setShowComposer(false);
-    // Could also refresh dashboard stats if needed
-    fetchDashboardData();
+    // Increment refreshKey to trigger PostFeed refresh
+    setFeedRefreshKey(prev => prev + 1);
   };
 
   const handleFeedViewChange = (view: 'activity' | 'social') => {
@@ -272,6 +273,7 @@ const Dashboard: React.FC = () => {
                   feedType={feedType}
                   showFilters={true}
                   maxPosts={50}
+                  refreshKey={feedRefreshKey}
                   onFeedTypeChange={handleFeedTypeChange}
                   onPostUpdate={(postId, updatedPost) => {
                     // Handle post updates in dashboard context
