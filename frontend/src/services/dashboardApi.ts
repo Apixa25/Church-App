@@ -430,8 +430,8 @@ const dashboardApi = {
       const dashboardResponse = await api.get('/dashboard');
       const dashboardData = dashboardResponse.data;
 
-      // Get all activity items in parallel
-      const [prayerActivityItems, announcementActivityItems, eventActivityItems, rsvpActivityItems, resourceActivityItems, donationActivityItems] = await Promise.all([
+      // Get all activity items in parallel - use allSettled for resilience
+      const results = await Promise.allSettled([
         dashboardApi.getPrayerActivityItems(5),
         dashboardApi.getAnnouncementActivityItems(5),
         dashboardApi.getEventActivityItems(5),
@@ -439,6 +439,14 @@ const dashboardApi = {
         dashboardApi.getResourceActivityItems(3),
         dashboardApi.getDonationActivityItems(3)
       ]);
+
+      // Extract successful results, use empty array for failures
+      const prayerActivityItems = results[0].status === 'fulfilled' ? results[0].value : [];
+      const announcementActivityItems = results[1].status === 'fulfilled' ? results[1].value : [];
+      const eventActivityItems = results[2].status === 'fulfilled' ? results[2].value : [];
+      const rsvpActivityItems = results[3].status === 'fulfilled' ? results[3].value : [];
+      const resourceActivityItems = results[4].status === 'fulfilled' ? results[4].value : [];
+      const donationActivityItems = results[5].status === 'fulfilled' ? results[5].value : [];
 
       // Merge all activities with existing activities
       const combinedActivity = [

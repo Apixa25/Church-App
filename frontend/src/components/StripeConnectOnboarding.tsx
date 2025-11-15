@@ -3,7 +3,7 @@ import { useOrganization } from '../contexts/OrganizationContext';
 import axios from 'axios';
 import styled from 'styled-components';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
 
 const Container = styled.div`
   max-width: 800px;

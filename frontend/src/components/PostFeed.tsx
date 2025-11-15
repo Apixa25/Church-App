@@ -13,6 +13,7 @@ interface PostFeedProps {
   showFilters?: boolean;
   onFeedTypeChange?: (feedType: FeedType) => void;
   onPostUpdate?: (postId: string, updatedPost: Post) => void;
+  refreshKey?: number; // Increment this to trigger feed refresh
 }
 
 const PostFeed: React.FC<PostFeedProps> = ({
@@ -20,7 +21,8 @@ const PostFeed: React.FC<PostFeedProps> = ({
   maxPosts,
   showFilters = true,
   onFeedTypeChange,
-  onPostUpdate
+  onPostUpdate,
+  refreshKey
 }) => {
   // State
   const [posts, setPosts] = useState<Post[]>([]);
@@ -217,10 +219,10 @@ const PostFeed: React.FC<PostFeedProps> = ({
     setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
   };
 
-  // Load initial posts
+  // Load initial posts and when refreshKey changes
   useEffect(() => {
     loadPosts(true);
-  }, [feedType, loadPosts]);
+  }, [feedType, refreshKey, loadPosts]);
 
   // Set up WebSocket subscriptions for real-time updates
   useEffect(() => {
