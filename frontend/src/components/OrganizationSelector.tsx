@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useOrganization } from '../contexts/OrganizationContext';
 import styled from 'styled-components';
 
@@ -49,22 +50,21 @@ const DropdownIcon = styled.span<{ isOpen: boolean }>`
   transform: ${props => props.isOpen ? 'rotate(180deg)' : 'rotate(0deg)'};
 `;
 
-const Dropdown = styled.div<{ isOpen: boolean }>`
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
+const DropdownPortal = styled.div<{ isOpen: boolean; top: number; left: number }>`
+  position: fixed;
+  top: ${props => props.top}px;
+  left: ${props => props.left}px;
   min-width: 280px;
   max-width: 400px;
   background: white;
   border: 2px solid #e0e0e0;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  z-index: 9999;
+  z-index: 99999;
   opacity: ${props => props.isOpen ? 1 : 0};
   visibility: ${props => props.isOpen ? 'visible' : 'hidden'};
   transform: ${props => props.isOpen ? 'translateY(0)' : 'translateY(-10px)'};
   transition: all 0.2s;
-  isolation: isolate;
 `;
 
 const DropdownHeader = styled.div`
@@ -270,23 +270,18 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
   const [switching, setSwitching] = useState<string | null>(null);
   const [canSwitch, setCanSwitch] = useState(true);
   const [daysUntilSwitch, setDaysUntilSwitch] = useState(0);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
-  // Debug: Log when dropdown opens/closes
+  // Calculate dropdown position when opening
   useEffect(() => {
-    console.log('🔍 OrganizationSelector - Dropdown isOpen:', isOpen);
-    if (isOpen && dropdownRef.current) {
-      const dropdown = dropdownRef.current.querySelector('[class*="Dropdown"]');
-      if (dropdown) {
-        const styles = window.getComputedStyle(dropdown);
-        console.log('🎨 Dropdown computed styles:', {
-          zIndex: styles.zIndex,
-          position: styles.position,
-          visibility: styles.visibility,
-          opacity: styles.opacity,
-          transform: styles.transform
-        });
-      }
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        left: rect.left
+      });
     }
   }, [isOpen]);
 
@@ -313,13 +308,20 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const isClickInsideButton = buttonRef.current?.contains(target);
+      const isClickInsideDropdown = dropdownRef.current?.contains(target);
+
+      if (!isClickInsideButton && !isClickInsideDropdown) {
         setIsOpen(false);
       }
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      // Small delay to prevent immediate closing
+      setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+      }, 0);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [isOpen]);
@@ -365,15 +367,8 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
   const displayName = primaryMembership?.organizationName || 'No Organization';
   const displayIcon = primaryMembership ? '🏛️' : '👤';
 
-  return (
-    <SelectorContainer ref={dropdownRef}>
-      <SelectorButton onClick={() => setIsOpen(!isOpen)}>
-        <OrgIcon>{displayIcon}</OrgIcon>
-        <OrgName>{displayName}</OrgName>
-        <DropdownIcon isOpen={isOpen}>▼</DropdownIcon>
-      </SelectorButton>
-
-      <Dropdown isOpen={isOpen}>
+  const dropdownContent = isOpen && (
+    <DropdownPortal ref={dropdownRef} isOpen={isOpen} top={dropdownPosition.top} left={dropdownPosition.left}>
         {primaryMembership ? (
           <>
             <DropdownHeader>
@@ -473,8 +468,20 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
             </DropdownSection>
           </>
         )}
-      </Dropdown>
-    </SelectorContainer>
+    </DropdownPortal>
+  );
+
+  return (
+    <>
+      <SelectorContainer ref={dropdownRef}>
+        <SelectorButton ref={buttonRef} onClick={() => setIsOpen(!isOpen)}>
+          <OrgIcon>{displayIcon}</OrgIcon>
+          <OrgName>{displayName}</OrgName>
+          <DropdownIcon isOpen={isOpen}>▼</DropdownIcon>
+        </SelectorButton>
+      </SelectorContainer>
+      {isOpen && createPortal(dropdownContent, document.body)}
+    </>
   );
 };
 
