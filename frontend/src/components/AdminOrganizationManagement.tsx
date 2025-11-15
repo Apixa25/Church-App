@@ -38,6 +38,9 @@ const AdminOrganizationManagement: React.FC = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
+      console.log('Raw API response:', response.data);
+      console.log('First org createdAt:', response.data[0]?.createdAt);
+
       // Sort by created date (newest first)
       const sorted = response.data.sort((a: Organization, b: Organization) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()

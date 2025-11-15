@@ -20,6 +20,8 @@ import java.time.format.DateTimeFormatter;
 @Configuration
 public class JacksonConfig {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(JacksonConfig.class);
+
     // Use ISO-8601 format for better frontend compatibility
     public static final String DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
     public static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern(DATE_TIME_FORMAT);
@@ -27,6 +29,7 @@ public class JacksonConfig {
     @Bean
     @Primary
     public ObjectMapper objectMapper() {
+        log.info("🔧 Creating custom ObjectMapper with ISO-8601 date serialization");
         JavaTimeModule javaTimeModule = new JavaTimeModule();
         
         // Custom LocalDateTime serializer and deserializer to ensure consistent ISO-8601 format

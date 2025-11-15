@@ -38,7 +38,9 @@
       "Bash(timeout 20 bash:*)",
       "Bash(export PGPASSWORD=church_password:*)",
       "Bash(timeout:*)",
-      "Bash(exit 0)"
+      "Bash(exit 0)",
+      "Bash(.\\mvnw.cmd clean compile spring-boot:run)",
+      "Bash(mvnw.cmd clean compile spring-boot:run:*)"
     ],
     "deny": [],
     "ask": []
