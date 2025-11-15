@@ -12,6 +12,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
@@ -43,11 +44,12 @@ public class OrganizationController {
     // ========================================================================
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OrganizationResponse> createOrganization(
             @Valid @RequestBody OrganizationRequest request,
             @AuthenticationPrincipal User userDetails) {
 
-        log.info("Creating organization: {}", request.getName());
+        log.info("Creating organization: {} by system admin: {}", request.getName(), userDetails.getUsername());
 
         Organization org = request.toOrganization();
         Organization created = organizationService.createOrganization(org);

@@ -3,10 +3,14 @@ package com.churchapp.config;
 import com.churchapp.entity.Announcement;
 import com.churchapp.entity.ChatGroup;
 import com.churchapp.entity.ChatGroupMember;
+import com.churchapp.entity.Organization;
 import com.churchapp.entity.User;
+import com.churchapp.entity.UserOrganizationMembership;
 import com.churchapp.repository.AnnouncementRepository;
 import com.churchapp.repository.ChatGroupRepository;
 import com.churchapp.repository.ChatGroupMemberRepository;
+import com.churchapp.repository.OrganizationRepository;
+import com.churchapp.repository.UserOrganizationMembershipRepository;
 import com.churchapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,8 +21,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Data initializer to create default chat groups for the church community
@@ -33,6 +37,8 @@ public class DataInitializer implements CommandLineRunner {
     private final ChatGroupMemberRepository chatGroupMemberRepository;
     private final UserRepository userRepository;
     private final AnnouncementRepository announcementRepository;
+    private final OrganizationRepository organizationRepository;
+    private final UserOrganizationMembershipRepository membershipRepository;
     private final PasswordEncoder passwordEncoder;
     
     @Override
@@ -42,6 +48,8 @@ public class DataInitializer implements CommandLineRunner {
         ensureAdminPassword();
         ensureUsersAreActive();
         promoteStevenSillsToAdmin();
+        ensureStevenSillsSystemAdmin();
+        initializeOrganizations();
         initializeDefaultChatGroups();
         initializeSampleAnnouncements();
     }
@@ -136,6 +144,19 @@ public class DataInitializer implements CommandLineRunner {
                 }
             });
     }
+
+    /**
+     * Ensure stevensills2@gmail.com is a system admin (ADMIN role)
+     */
+    private void ensureStevenSillsSystemAdmin() {
+        userRepository.findByEmail("stevensills2@gmail.com").ifPresent(steven -> {
+            if (steven.getRole() != User.Role.ADMIN) {
+                steven.setRole(User.Role.ADMIN);
+                userRepository.save(steven);
+                log.info("Promoted stevensills2@gmail.com to system ADMIN role");
+            }
+        });
+    }
     
     private void createDefaultMemberUser() {
         // Create default member user for testing
@@ -218,6 +239,78 @@ public class DataInitializer implements CommandLineRunner {
     }
     
     private record ChatGroupInfo(String name, ChatGroup.GroupType type, String description, boolean isPrivate) {}
+
+    /**
+     * Initialize organizations including Global Organization and sample church
+     */
+    private void initializeOrganizations() {
+        log.info("Initializing organizations...");
+
+        // Create Global Organization
+        UUID globalOrgId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        if (!organizationRepository.existsById(globalOrgId)) {
+            Organization globalOrg = new Organization();
+            globalOrg.setId(globalOrgId);
+            globalOrg.setName("Global Church Community");
+            globalOrg.setSlug("global");
+            globalOrg.setType(Organization.OrganizationType.GLOBAL);
+            globalOrg.setTier(Organization.SubscriptionTier.PREMIUM);
+            globalOrg.setStatus(Organization.OrganizationStatus.ACTIVE);
+
+            organizationRepository.save(globalOrg);
+            log.info("Created Global Organization");
+        } else {
+            log.info("Global Organization already exists");
+        }
+
+        // Create church admin user if doesn't exist
+        User churchAdmin = userRepository.findByEmail("churchadmin1@gmail.com")
+            .orElseGet(() -> {
+                User newAdmin = new User();
+                newAdmin.setEmail("churchadmin1@gmail.com");
+                newAdmin.setName("Church Admin");
+                newAdmin.setRole(User.Role.MEMBER); // Organization admin, not system admin
+                newAdmin.setIsActive(true);
+                newAdmin.setPasswordHash(passwordEncoder.encode("123456"));
+                newAdmin.setBio("Administrator of The River church");
+                User saved = userRepository.save(newAdmin);
+                log.info("Created church admin user: churchadmin1@gmail.com");
+                return saved;
+            });
+
+        // Create sample church "The River, a Vineyard Fellowship Church"
+        if (!organizationRepository.findBySlug("the-river-vineyard").isPresent()) {
+            Organization theRiver = new Organization();
+            theRiver.setName("The River, a Vineyard Fellowship Church");
+            theRiver.setSlug("the-river-vineyard");
+            theRiver.setType(Organization.OrganizationType.CHURCH);
+            theRiver.setTier(Organization.SubscriptionTier.BASIC);
+            theRiver.setStatus(Organization.OrganizationStatus.ACTIVE);
+
+            Organization savedChurch = organizationRepository.save(theRiver);
+            log.info("Created sample church: The River, a Vineyard Fellowship Church");
+
+            // Create membership for church admin
+            UserOrganizationMembership membership = new UserOrganizationMembership();
+            membership.setUser(churchAdmin);
+            membership.setOrganization(savedChurch);
+            membership.setRole(UserOrganizationMembership.OrgRole.ADMIN);
+            membership.setIsPrimary(true);
+            membership.setJoinedAt(LocalDateTime.now());
+
+            membershipRepository.save(membership);
+
+            // Set user's primary organization
+            churchAdmin.setPrimaryOrganization(savedChurch);
+            userRepository.save(churchAdmin);
+
+            log.info("Assigned churchadmin1@gmail.com as ADMIN of The River church");
+        } else {
+            log.info("Sample church already exists");
+        }
+
+        log.info("Organization initialization completed");
+    }
     
     private void initializeSampleAnnouncements() {
         log.info("Initializing sample announcements...");
