@@ -247,33 +247,39 @@ public class DashboardService {
             "Open Chats"
         ));
         
-        actions.add(QuickAction.create(
-            "announcements",
-            "Announcements",
-            "Stay updated with church news and announcements",
-            "/announcements",
-            "megaphone",
-            "View Announcements"
-        ));
+        // Check if user has primary organization
+        boolean hasPrimaryOrg = currentUser.getPrimaryOrganization() != null;
+        
+        // Organization-specific actions - only show if user has primary org
+        if (hasPrimaryOrg) {
+            actions.add(QuickAction.create(
+                "announcements",
+                "Announcements",
+                "Stay updated with church news and announcements",
+                "/announcements",
+                "megaphone",
+                "View Announcements"
+            ));
 
-        // Donation quick actions
-        actions.add(QuickAction.create(
-            "make_donation",
-            "Make Donation",
-            "Support your church through generous giving",
-            "/donations",
-            "donation",
-            "Give Now"
-        ));
+            // Donation quick actions
+            actions.add(QuickAction.create(
+                "make_donation",
+                "Make Donation",
+                "Support your church through generous giving",
+                "/donations",
+                "donation",
+                "Give Now"
+            ));
 
-        actions.add(QuickAction.create(
-            "donation_history",
-            "My Donations",
-            "View your donation history and receipts",
-            "/donations",
-            "history",
-            "View History"
-        ));
+            actions.add(QuickAction.create(
+                "donation_history",
+                "My Donations",
+                "View your donation history and receipts",
+                "/donations",
+                "history",
+                "View History"
+            ));
+        }
         
         
         // Admin-only actions
