@@ -23,7 +23,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/organizations")
+@RequestMapping("/organizations")
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "*")
@@ -98,6 +98,27 @@ public class OrganizationController {
         Page<Organization> orgs = organizationService.getAllActiveOrganizations(pageable);
 
         Page<OrganizationResponse> response = orgs.map(OrganizationResponse::publicFromOrganization);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<OrganizationResponse>> getAllOrganizationsUnpaginated(
+            @AuthenticationPrincipal User userDetails) {
+
+        // Get all organizations (admin only - no pagination)
+        Pageable pageable = PageRequest.of(0, 1000); // Large page to get all
+        Page<Organization> orgs = organizationService.getAllActiveOrganizations(pageable);
+
+        List<OrganizationResponse> response = orgs.getContent().stream()
+            .map(org -> {
+                OrganizationResponse resp = OrganizationResponse.fromOrganization(org);
+                resp.setMemberCount(organizationService.getMemberCount(org.getId()));
+                resp.setPrimaryMemberCount(organizationService.getPrimaryMemberCount(org.getId()));
+                return resp;
+            })
+            .collect(Collectors.toList());
+
         return ResponseEntity.ok(response);
     }
 

@@ -36,7 +36,9 @@
       "Bash(./mvnw.cmd:*)",
       "Bash(timeout 15 bash:*)",
       "Bash(timeout 20 bash:*)",
-      "Bash(export PGPASSWORD=church_password:*)"
+      "Bash(export PGPASSWORD=church_password:*)",
+      "Bash(timeout:*)",
+      "Bash(exit 0)"
     ],
     "deny": [],
     "ask": []

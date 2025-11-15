@@ -92,12 +92,12 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
         primaryOrgRes,
         secondaryOrgsRes,
       ] = await Promise.allSettled([
-        api.get('/api/feed-preferences'),
-        api.get('/api/feed-preferences/feed-parameters'),
-        api.get('/api/feed-preferences/visible-group-ids'),
-        api.get('/api/feed-preferences/has-primary-org'),
-        api.get('/api/feed-preferences/primary-org-id'),
-        api.get('/api/feed-preferences/secondary-org-ids'),
+        api.get('/feed-preferences'),
+        api.get('/feed-preferences/feed-parameters'),
+        api.get('/feed-preferences/visible-group-ids'),
+        api.get('/feed-preferences/has-primary-org'),
+        api.get('/feed-preferences/primary-org-id'),
+        api.get('/feed-preferences/secondary-org-ids'),
       ]);
 
       // Handle feed preference
@@ -165,7 +165,7 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
   // Set filter
   const setFilter = async (filter: FeedFilter, groupIds: string[] = []): Promise<void> => {
     try {
-      await api.post('/api/feed-preferences', {
+      await api.post('/feed-preferences', {
         activeFilter: filter,
         selectedGroupIds: filter === 'SELECTED_GROUPS' ? groupIds : [],
       });
@@ -180,7 +180,7 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
   // Reset filter to ALL
   const resetFilter = async (): Promise<void> => {
     try {
-      await api.delete('/api/feed-preferences');
+      await api.delete('/feed-preferences');
       await refreshPreference();
     } catch (error: any) {
       console.error('Error resetting feed filter:', error);

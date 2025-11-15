@@ -93,9 +93,9 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
 
       // Fetch all memberships in parallel
       const [primaryRes, secondaryRes, allRes] = await Promise.all([
-        api.get('/api/organizations/my-memberships/primary'),
-        api.get('/api/organizations/my-memberships/secondary'),
-        api.get('/api/organizations/my-memberships'),
+        api.get('/organizations/my-memberships/primary'),
+        api.get('/organizations/my-memberships/secondary'),
+        api.get('/organizations/my-memberships'),
       ]);
 
       setPrimaryMembership(primaryRes.data || null);
@@ -116,7 +116,7 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   // Join organization
   const joinOrganization = async (orgId: string, isPrimary: boolean = false): Promise<Membership> => {
     try {
-      const response = await api.post(`/api/organizations/${orgId}/join`, null, {
+      const response = await api.post(`/organizations/${orgId}/join`, null, {
         params: { isPrimary },
       });
 
@@ -131,7 +131,7 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   // Leave organization
   const leaveOrganization = async (orgId: string): Promise<void> => {
     try {
-      await api.delete(`/api/organizations/${orgId}/leave`);
+      await api.delete(`/organizations/${orgId}/leave`);
       await refreshMemberships();
     } catch (error: any) {
       console.error('Error leaving organization:', error);
@@ -142,7 +142,7 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   // Switch primary organization
   const switchPrimaryOrganization = async (orgId: string): Promise<Membership> => {
     try {
-      const response = await api.post(`/api/organizations/${orgId}/switch-primary`);
+      const response = await api.post(`/organizations/${orgId}/switch-primary`);
       await refreshMemberships();
       return response.data;
     } catch (error: any) {
@@ -154,7 +154,7 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   // Check if can switch primary
   const canSwitchPrimary = async (): Promise<boolean> => {
     try {
-      const response = await api.get('/api/organizations/switch-primary/can-switch');
+      const response = await api.get('/organizations/switch-primary/can-switch');
       return response.data;
     } catch (error) {
       console.error('Error checking switch eligibility:', error);
@@ -165,7 +165,7 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   // Get days until can switch
   const getDaysUntilCanSwitch = async (): Promise<number> => {
     try {
-      const response = await api.get('/api/organizations/switch-primary/days-until');
+      const response = await api.get('/organizations/switch-primary/days-until');
       return response.data;
     } catch (error) {
       console.error('Error getting days until switch:', error);
@@ -180,7 +180,7 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
     size: number = 20
   ): Promise<{ content: Organization[], totalElements: number }> => {
     try {
-      const response = await api.get('/api/organizations/search', {
+      const response = await api.get('/organizations/search', {
         params: { query, page, size },
       });
       return {
@@ -196,7 +196,7 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   // Get organization by ID
   const getOrganizationById = async (orgId: string): Promise<Organization> => {
     try {
-      const response = await api.get(`/api/organizations/${orgId}`);
+      const response = await api.get(`/organizations/${orgId}`);
       return response.data;
     } catch (error: any) {
       console.error('Error fetching organization:', error);
@@ -207,7 +207,7 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   // Get organization by slug
   const getOrganizationBySlug = async (slug: string): Promise<Organization> => {
     try {
-      const response = await api.get(`/api/organizations/slug/${slug}`);
+      const response = await api.get(`/organizations/slug/${slug}`);
       return response.data;
     } catch (error: any) {
       console.error('Error fetching organization:', error);
