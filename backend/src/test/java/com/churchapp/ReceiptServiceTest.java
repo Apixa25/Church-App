@@ -215,7 +215,7 @@ public class ReceiptServiceTest {
     void testReceiptGenerationWithNullValues() throws Exception {
         // Arrange - Set some fields to null
         testDonation.setPurpose(null);
-        testUser.setAddress(null);
+        // testUser.setAddress(null); // User entity doesn't have address field
 
         // Act - Should handle null values gracefully
         assertDoesNotThrow(() -> {

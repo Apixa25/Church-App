@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AdminModeration from './AdminModeration';
+import AdminOrganizationManagement from './AdminOrganizationManagement';
 import AnalyticsDashboard from './AnalyticsDashboard';
 import {
   getUsers,
@@ -21,7 +22,7 @@ import {
 import './AdminDashboard.css';
 
 interface AdminDashboardProps {
-  initialTab?: 'overview' | 'users' | 'content' | 'analytics' | 'audit' | 'settings';
+  initialTab?: 'overview' | 'users' | 'organizations' | 'content' | 'analytics' | 'audit' | 'settings';
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -227,6 +228,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             onClick={() => setActiveTab('users')}
           >
             👥 Users ({analytics?.totalUsers || 0})
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'organizations' ? 'active' : ''}`}
+            onClick={() => setActiveTab('organizations')}
+          >
+            ⛪ Organizations
           </button>
           <button
             className={`tab-btn ${activeTab === 'content' ? 'active' : ''}`}
@@ -578,6 +585,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               ))}
             </div>
           </div>
+        )}
+
+        {/* Organizations Tab */}
+        {activeTab === 'organizations' && (
+          <AdminOrganizationManagement />
         )}
 
         {/* Content Moderation Tab */}
