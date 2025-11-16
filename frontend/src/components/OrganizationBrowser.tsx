@@ -1,45 +1,67 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useOrganization, Organization } from '../contexts/OrganizationContext';
 import styled from 'styled-components';
+import '../App.css';
 
 const BrowserContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 `;
 
-const Header = styled.div`
+const HeaderSection = styled.div`
   margin-bottom: 30px;
+`;
+
+const HeaderTop = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
 `;
 
 const Title = styled.h1`
   font-size: 28px;
-  font-weight: bold;
-  color: #1a1a1a;
-  margin-bottom: 10px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 `;
 
 const Subtitle = styled.p`
   font-size: 16px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 20px;
+  margin-top: 8px;
 `;
 
 const SearchBar = styled.input`
   width: 100%;
   padding: 12px 20px;
   font-size: 16px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  transition: border-color 0.2s;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  color: var(--text-primary);
+  transition: all var(--transition-base);
 
   &:focus {
     outline: none;
-    border-color: #4a90e2;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.2),
+                0 0 20px var(--button-primary-glow);
+    background: var(--bg-elevated);
   }
 
   &::placeholder {
-    color: #999;
+    color: var(--text-disabled);
   }
 `;
 
@@ -54,42 +76,52 @@ const FilterTab = styled.button<{ active: boolean }>`
   padding: 8px 16px;
   font-size: 14px;
   font-weight: 500;
-  border: 2px solid ${props => props.active ? '#4a90e2' : '#e0e0e0'};
-  background: ${props => props.active ? '#4a90e2' : 'white'};
-  color: ${props => props.active ? 'white' : '#666'};
-  border-radius: 20px;
+  border: 1px solid ${props => props.active ? 'var(--accent-primary)' : 'var(--border-primary)'};
+  background: ${props => props.active ? 'var(--gradient-primary)' : 'var(--bg-tertiary)'};
+  color: ${props => props.active ? 'white' : 'var(--text-secondary)'};
+  border-radius: var(--border-radius-pill);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-base);
+  box-shadow: ${props => props.active ? '0 2px 8px var(--button-primary-glow)' : 'none'};
 
   &:hover {
-    border-color: #4a90e2;
-    background: ${props => props.active ? '#3a7bc8' : '#f5f5f5'};
+    border-color: var(--accent-primary);
+    background: ${props => props.active ? 'var(--gradient-primary)' : 'var(--bg-elevated)'};
+    transform: translateY(-1px);
   }
 `;
 
 const MyMembershipsSection = styled.div`
   margin-bottom: 40px;
   padding: 20px;
-  background: #f9f9f9;
-  border-radius: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
 `;
 
 const SectionTitle = styled.h2`
   font-size: 20px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-primary);
   margin-bottom: 15px;
 `;
 
 const MembershipCard = styled.div`
-  background: white;
+  background: var(--bg-elevated);
   padding: 16px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-md);
   margin-bottom: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border-primary);
+  transition: all var(--transition-base);
+
+  &:hover {
+    border-color: var(--border-glow);
+    box-shadow: var(--shadow-sm);
+  }
 `;
 
 const MembershipInfo = styled.div`
@@ -99,35 +131,38 @@ const MembershipInfo = styled.div`
 const MembershipName = styled.div`
   font-size: 18px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-primary);
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 `;
 
 const MembershipRole = styled.div`
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
 `;
 
 const PrimaryBadge = styled.span`
   display: inline-block;
   padding: 4px 12px;
-  background: #4a90e2;
+  background: var(--gradient-primary);
   color: white;
-  border-radius: 12px;
+  border-radius: var(--border-radius-pill);
   font-size: 12px;
   font-weight: 600;
-  margin-left: 8px;
+  box-shadow: 0 2px 8px var(--button-primary-glow);
 `;
 
 const SecondaryBadge = styled.span`
   display: inline-block;
   padding: 4px 12px;
-  background: #e0e0e0;
-  color: #666;
-  border-radius: 12px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-pill);
   font-size: 12px;
   font-weight: 600;
-  margin-left: 8px;
 `;
 
 const OrganizationGrid = styled.div`
@@ -138,16 +173,17 @@ const OrganizationGrid = styled.div`
 `;
 
 const OrganizationCard = styled.div`
-  background: white;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
   padding: 20px;
-  transition: all 0.2s;
+  transition: all var(--transition-base);
   cursor: pointer;
+  box-shadow: var(--shadow-sm);
 
   &:hover {
-    border-color: #4a90e2;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: var(--accent-primary);
+    box-shadow: var(--shadow-md), var(--glow-blue);
     transform: translateY(-2px);
   }
 `;
@@ -155,13 +191,13 @@ const OrganizationCard = styled.div`
 const OrgName = styled.h3`
   font-size: 20px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-primary);
   margin-bottom: 8px;
 `;
 
 const OrgType = styled.div`
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 12px;
 `;
 
@@ -170,7 +206,7 @@ const OrgStats = styled.div`
   gap: 16px;
   margin-bottom: 16px;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
 `;
 
 const OrgStat = styled.div`
@@ -191,52 +227,59 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'danger' }>`
   font-size: 14px;
   font-weight: 600;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--border-radius-md);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-base);
 
   ${props => {
     switch (props.variant) {
       case 'primary':
         return `
-          background: #4a90e2;
+          background: var(--gradient-primary);
           color: white;
+          box-shadow: 0 2px 8px var(--button-primary-glow);
           &:hover {
-            background: #3a7bc8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px var(--button-primary-glow);
           }
           &:disabled {
-            background: #ccc;
+            background: var(--bg-secondary);
+            color: var(--text-disabled);
             cursor: not-allowed;
+            box-shadow: none;
           }
         `;
       case 'secondary':
         return `
-          background: white;
-          color: #4a90e2;
-          border: 2px solid #4a90e2;
+          background: transparent;
+          color: var(--accent-primary);
+          border: 1px solid var(--accent-primary);
           &:hover {
-            background: #f0f7ff;
+            background: var(--button-secondary-hover);
+            border-color: var(--accent-primary-light);
           }
           &:disabled {
-            border-color: #ccc;
-            color: #ccc;
+            border-color: var(--border-primary);
+            color: var(--text-disabled);
             cursor: not-allowed;
           }
         `;
       case 'danger':
         return `
-          background: #e74c3c;
+          background: var(--error);
           color: white;
           &:hover {
-            background: #c0392b;
+            background: #dc2626;
+            box-shadow: 0 0 20px var(--error-glow);
           }
         `;
       default:
         return `
-          background: #e0e0e0;
-          color: #666;
+          background: var(--bg-secondary);
+          color: var(--text-secondary);
+          border: 1px solid var(--border-primary);
           &:hover {
-            background: #d0d0d0;
+            background: var(--bg-elevated);
           }
         `;
     }
@@ -249,19 +292,20 @@ const LoadingSpinner = styled.div`
   align-items: center;
   padding: 40px;
   font-size: 16px;
-  color: #666;
+  color: var(--text-secondary);
 `;
 
 const EmptyState = styled.div`
   text-align: center;
   padding: 60px 20px;
-  color: #666;
+  color: var(--text-secondary);
 `;
 
 const EmptyStateTitle = styled.div`
   font-size: 20px;
   font-weight: 600;
   margin-bottom: 8px;
+  color: var(--text-primary);
 `;
 
 const EmptyStateText = styled.div`
@@ -269,31 +313,31 @@ const EmptyStateText = styled.div`
 `;
 
 const ErrorMessage = styled.div`
-  background: #fee;
-  border: 2px solid #fcc;
-  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--error);
+  border-radius: var(--border-radius-md);
   padding: 12px 16px;
-  color: #c00;
+  color: var(--error);
   margin-top: 12px;
   font-size: 14px;
 `;
 
 const SuccessMessage = styled.div`
-  background: #efe;
-  border: 2px solid #cfc;
-  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid var(--success);
+  border-radius: var(--border-radius-md);
   padding: 12px 16px;
-  color: #090;
+  color: var(--success);
   margin-top: 12px;
   font-size: 14px;
 `;
 
 const CooldownWarning = styled.div`
-  background: #fff3cd;
-  border: 2px solid #ffc107;
-  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid var(--warning);
+  border-radius: var(--border-radius-md);
   padding: 12px 16px;
-  color: #856404;
+  color: var(--warning);
   margin-top: 12px;
   font-size: 14px;
 `;
@@ -301,6 +345,7 @@ const CooldownWarning = styled.div`
 type OrgTypeFilter = 'ALL' | 'CHURCH' | 'MINISTRY' | 'NONPROFIT';
 
 const OrganizationBrowser: React.FC = () => {
+  const navigate = useNavigate();
   const {
     primaryMembership,
     secondaryMemberships,
@@ -451,8 +496,17 @@ const OrganizationBrowser: React.FC = () => {
 
   return (
     <BrowserContainer>
-      <Header>
-        <Title>Discover Organizations</Title>
+      <HeaderSection>
+        <HeaderTop>
+          <button
+            className="back-home-button"
+            onClick={() => navigate('/dashboard')}
+            title="Back to Dashboard"
+          >
+            🏠 Back Home
+          </button>
+          <Title>Discover Organizations</Title>
+        </HeaderTop>
         <Subtitle>
           Find and join churches, ministries, and nonprofits in your community
         </Subtitle>
@@ -490,7 +544,7 @@ const OrganizationBrowser: React.FC = () => {
             Nonprofits
           </FilterTab>
         </FilterTabs>
-      </Header>
+      </HeaderSection>
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
       {success && <SuccessMessage>{success}</SuccessMessage>}
