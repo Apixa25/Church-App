@@ -62,13 +62,16 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
         WHERE u.primaryOrganization.id = :orgId
           AND u.id <> :excludeUserId
           AND (
-                :q IS NULL
-             OR LOWER(u.name) LIKE LOWER(CONCAT('%', :q, '%'))
-             OR LOWER(u.email) LIKE LOWER(CONCAT('%', :q, '%'))
+                :qLike IS NULL
+             OR LOWER(u.name) LIKE :qLike
+             OR LOWER(u.email) LIKE :qLike
           )
         """)
     Page<User> findOrgMembersForDm(@Param("orgId") UUID orgId,
                                    @Param("excludeUserId") UUID excludeUserId,
-                                   @Param("q") String q,
+                                   @Param("qLike") String qLike,
                                    Pageable pageable);
+
+    @Query("SELECT u.primaryOrganization.id FROM User u WHERE u.id = :userId")
+    UUID findPrimaryOrgIdByUserId(@Param("userId") UUID userId);
 }
