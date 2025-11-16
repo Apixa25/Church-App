@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '../contexts/OrganizationContext';
 import styled from 'styled-components';
 
@@ -241,6 +242,15 @@ const BrowseButton = styled.button`
   }
 `;
 
+const BrowseButtonSecondary = styled(BrowseButton)`
+  background: #6c757d;
+  margin-top: 8px;
+
+  &:hover {
+    background: #5a6268;
+  }
+`;
+
 const CooldownNotice = styled.div`
   padding: 8px 12px;
   background: #fff3cd;
@@ -271,6 +281,7 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
     getDaysUntilCanSwitch,
   } = useOrganization();
 
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [switching, setSwitching] = useState<string | null>(null);
   const [canSwitch, setCanSwitch] = useState(true);
@@ -368,9 +379,14 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
     if (onBrowseClick) {
       onBrowseClick();
     } else {
-      // Default behavior: navigate to organizations page
-      window.location.href = '/organizations';
+      // Use React Router navigation instead of window.location
+      navigate('/organizations');
     }
+  };
+
+  const handleBrowseGroups = () => {
+    setIsOpen(false);
+    navigate('/groups');
   };
 
   if (loading) {
@@ -443,6 +459,12 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
               <BrowseButton onClick={handleBrowse}>
                 Browse Organizations
               </BrowseButton>
+            </DropdownSection>
+
+            <DropdownSection>
+              <BrowseButtonSecondary onClick={handleBrowseGroups}>
+                Find Groups to Join
+              </BrowseButtonSecondary>
             </DropdownSection>
           </>
         ) : (
