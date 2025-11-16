@@ -264,16 +264,18 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
       ) : (
         <div className="user-groups">
           {groups.length === 0 ? (
-            <div className="empty-state">
-              <p>👋 Welcome to Church Chat!</p>
-              <p>Join a group to start chatting with your church family</p>
-              <button 
-                onClick={() => setActiveView('joinGroups')}
-                className="primary-button"
-              >
-                Find Groups to Join
-              </button>
-            </div>
+            hasAnyOrganization ? (
+              <div className="empty-state">
+                <p>👋 Welcome to Church Chat!</p>
+                <p>Join a group to start chatting with your church family</p>
+                <button 
+                  onClick={() => setActiveView('joinGroups')}
+                  className="primary-button"
+                >
+                  Find Groups to Join
+                </button>
+              </div>
+            ) : null
           ) : (
             <div className="groups-list">
               {groups.map((group) => (
