@@ -29,6 +29,7 @@ import SettingsPage from './components/SettingsPage';
 import WorshipRoomList from './components/WorshipRoomList';
 import WorshipRoom from './components/WorshipRoom';
 import './App.css';
+import { GlobalSearchProvider } from './components/global-search/GlobalSearchProvider';
 
 const App: React.FC = () => {
   return (
@@ -37,8 +38,9 @@ const App: React.FC = () => {
         <GroupProvider>
           <FeedFilterProvider>
             <Router>
-              <div className="App">
-                <Routes>
+              <GlobalSearchProvider>
+                <div className="App">
+                  <Routes>
             {/* Public routes */}
             <Route path="/login" element={<LoginForm />} />
             <Route path="/register" element={<RegisterForm />} />
@@ -318,11 +320,12 @@ const App: React.FC = () => {
               }
             />
 
-            {/* Default redirect */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-                </Routes>
-              </div>
+                  {/* Default redirect */}
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                  </Routes>
+                </div>
+              </GlobalSearchProvider>
             </Router>
           </FeedFilterProvider>
         </GroupProvider>
