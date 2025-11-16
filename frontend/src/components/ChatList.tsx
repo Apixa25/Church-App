@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import chatApi, { ChatGroup } from '../services/chatApi';
 import UserList from './UserList';
 import CreateGroup from './CreateGroup';
+import { useOrganization } from '../contexts/OrganizationContext';
 
 interface ChatListProps {
   onGroupSelect?: (group: ChatGroup) => void;
@@ -23,18 +24,23 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
   const [error, setError] = useState<string | null>(null);
   // Removed showJoinable state as we now use activeView for navigation
   const [activeView, setActiveView] = useState<'myChats' | 'joinGroups' | 'directMessages' | 'createGroup'>('myChats');
+  const { allMemberships, loading: organizationLoading } = useOrganization();
+  const hasAnyOrganization = allMemberships.length > 0;
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (organizationLoading) {
+      return;
+    }
     loadGroups();
-  }, []);
+  }, [organizationLoading, hasAnyOrganization]);
 
-  const loadGroups = async () => {
+  const loadGroups = async (shouldFetchJoinable: boolean = hasAnyOrganization) => {
     try {
       setLoading(true);
       const [userGroups, availableGroups] = await Promise.all([
         chatApi.getGroups(),
-        chatApi.getJoinableGroups()
+        shouldFetchJoinable ? chatApi.getJoinableGroups() : Promise.resolve([] as ChatGroup[])
       ]);
       setGroups(userGroups);
       setJoinableGroups(availableGroups);
@@ -139,7 +145,7 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
     return (
       <div className="chat-list error">
         <p>{error}</p>
-        <button onClick={loadGroups} className="retry-button">
+        <button onClick={() => loadGroups()} className="retry-button">
           Try Again
         </button>
       </div>
@@ -189,7 +195,18 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
       {activeView === 'joinGroups' ? (
         <div className="joinable-groups">
           <h3>Available Groups</h3>
-          {joinableGroups.length === 0 ? (
+          {!hasAnyOrganization ? (
+            <div className="empty-state">
+              <p>🙏 Join a church organization to discover its chat groups.</p>
+              <p>You can still create a new group or accept invite links anytime.</p>
+              <button
+                onClick={() => setActiveView('createGroup')}
+                className="primary-button"
+              >
+                Create a Group
+              </button>
+            </div>
+          ) : joinableGroups.length === 0 ? (
             <div className="empty-state">
               <p>🌟 No new groups to join</p>
               <p>You're part of all available public groups!</p>

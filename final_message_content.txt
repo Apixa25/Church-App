@@ -1,0 +1,12 @@
+## Fix Applied
+- 🎯 Hooked the retry button to an inline handler (() => loadGroups()) so TypeScript no longer treats our async loader as a MouseEventHandler, aligning with project-vision.md §1’s focus on smooth UX for every user flow.
+- 🏗️ Keeps our social-only gating from MULTI_TENANT_SYSTEM_GUIDE.md intact while ensuring the error-retry pathway remains additive and non-breaking.
+- 🧪 Tests not re-run (tiny UI fix); please run 
+pm run lint && npm run test inside rontend if you’d like extra assurance.
+
+## Simplified Snippet
+`rontend/src/components/ChatList.tsx
+<button onClick={() => loadGroups()} className="retry-button">
+`
+
+Counts: <<CHAR_COUNT>> chars | <<TOKEN_COUNT>> tokens
