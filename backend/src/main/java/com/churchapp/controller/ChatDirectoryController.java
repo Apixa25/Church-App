@@ -42,11 +42,8 @@ public class ChatDirectoryController {
             @AuthenticationPrincipal UserDetails userDetails
     ) {
         UUID userId = resolveUserId(userDetails);
-        User requester = userRepository.findById(userId).orElseThrow();
-        UUID primaryOrgId = requester.getPrimaryOrganization() != null ? requester.getPrimaryOrganization().getId() : null;
-
-        Page<User> results = chatDirectoryService.getDmCandidates(
-            userId, primaryOrgId, q, PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"))
+        Page<User> results = chatDirectoryService.getDmCandidatesForUser(
+            userId, q, PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"))
         );
 
         Page<UserProfileResponse> mapped = results.map(UserProfileResponse::fromUser);

@@ -27,6 +27,17 @@ public class ChatDirectoryService {
         String q = (query == null || query.isBlank()) ? null : query;
         return userRepository.findOrgMembersForDm(requesterPrimaryOrgId, requesterId, q, pageable);
     }
+
+    public Page<User> getDmCandidatesForUser(UUID requesterId,
+                                             String query,
+                                             Pageable pageable) {
+        UUID primaryOrgId = userRepository.findPrimaryOrgIdByUserId(requesterId);
+        if (primaryOrgId == null) {
+            return Page.empty(pageable);
+        }
+        String qLike = (query == null || query.isBlank()) ? null : ("%" + query.toLowerCase() + "%");
+        return userRepository.findOrgMembersForDm(primaryOrgId, requesterId, qLike, pageable);
+    }
 }
 
 
