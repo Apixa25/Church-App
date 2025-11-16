@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
+import { useOrganization } from './OrganizationContext';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
 
@@ -52,19 +53,37 @@ interface FeedFilterProviderProps {
 
 export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children }) => {
   const { token, isAuthenticated } = useAuth();
+  const { primaryMembership, secondaryMemberships } = useOrganization();
   const [preference, setPreference] = useState<FeedPreference | null>(null);
   const [feedParameters, setFeedParameters] = useState<FeedParameters | null>(null);
   const [visibleGroupIds, setVisibleGroupIds] = useState<string[]>([]);
-  const [hasPrimaryOrg, setHasPrimaryOrg] = useState(false);
   const [primaryOrgId, setPrimaryOrgId] = useState<string | null>(null);
   const [secondaryOrgIds, setSecondaryOrgIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Derive hasPrimaryOrg from OrganizationContext instead of API call
+  const hasPrimaryOrg = primaryMembership !== null;
 
   // Axios instance with auth
   const api = axios.create({
     baseURL: API_BASE_URL,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
+
+  // Update primaryOrgId and secondaryOrgIds from OrganizationContext
+  useEffect(() => {
+    if (primaryMembership) {
+      setPrimaryOrgId(primaryMembership.organizationId);
+    } else {
+      setPrimaryOrgId(null);
+    }
+
+    if (secondaryMemberships && secondaryMemberships.length > 0) {
+      setSecondaryOrgIds(secondaryMemberships.map(m => m.organizationId));
+    } else {
+      setSecondaryOrgIds([]);
+    }
+  }, [primaryMembership, secondaryMemberships]);
 
   // Fetch feed preference and parameters
   const fetchPreference = async () => {
@@ -73,7 +92,6 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
       setPreference(null);
       setFeedParameters(null);
       setVisibleGroupIds([]);
-      setHasPrimaryOrg(false);
       setPrimaryOrgId(null);
       setSecondaryOrgIds([]);
       setLoading(false);
@@ -83,21 +101,15 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
     try {
       setLoading(true);
 
-      // Fetch all data in parallel
+      // Fetch feed preference data (no longer need has-primary-org, primary-org-id, secondary-org-ids)
       const [
         preferenceRes,
         parametersRes,
         visibleGroupsRes,
-        hasPrimaryRes,
-        primaryOrgRes,
-        secondaryOrgsRes,
       ] = await Promise.allSettled([
         api.get('/feed-preferences'),
         api.get('/feed-preferences/feed-parameters'),
         api.get('/feed-preferences/visible-group-ids'),
-        api.get('/feed-preferences/has-primary-org'),
-        api.get('/feed-preferences/primary-org-id'),
-        api.get('/feed-preferences/secondary-org-ids'),
       ]);
 
       // Handle feed preference
@@ -123,23 +135,6 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
       if (visibleGroupsRes.status === 'fulfilled') {
         setVisibleGroupIds(visibleGroupsRes.value.data || []);
       }
-
-      // Handle has primary org
-      if (hasPrimaryRes.status === 'fulfilled') {
-        setHasPrimaryOrg(hasPrimaryRes.value.data || false);
-      }
-
-      // Handle primary org ID
-      if (primaryOrgRes.status === 'fulfilled' && primaryOrgRes.value.data) {
-        setPrimaryOrgId(primaryOrgRes.value.data);
-      } else {
-        setPrimaryOrgId(null);
-      }
-
-      // Handle secondary org IDs
-      if (secondaryOrgsRes.status === 'fulfilled') {
-        setSecondaryOrgIds(secondaryOrgsRes.value.data || []);
-      }
     } catch (error) {
       console.error('Error fetching feed preference:', error);
       // Set defaults on error
@@ -152,7 +147,6 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
       });
       setFeedParameters(null);
       setVisibleGroupIds([]);
-      setHasPrimaryOrg(false);
       setPrimaryOrgId(null);
       setSecondaryOrgIds([]);
     } finally {

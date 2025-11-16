@@ -21,15 +21,24 @@ public class FeedPreferenceResponse {
     private LocalDateTime updatedAt;
 
     public static FeedPreferenceResponse fromFeedPreference(FeedPreference preference) {
+        if (preference == null) {
+            return null;
+        }
+
         FeedPreferenceResponse response = new FeedPreferenceResponse();
         response.setId(preference.getId());
 
-        if (preference.getUser() != null) {
-            response.setUserId(preference.getUser().getId());
+        try {
+            if (preference.getUser() != null) {
+                response.setUserId(preference.getUser().getId());
+            }
+        } catch (Exception e) {
+            // Handle LazyInitializationException or other issues
+            // User ID might not be available, but we can still return the response
         }
 
         response.setActiveFilter(preference.getActiveFilter() != null ? preference.getActiveFilter().name() : null);
-        response.setSelectedGroupIds(preference.getSelectedGroupIds());
+        response.setSelectedGroupIds(preference.getSelectedGroupIds() != null ? preference.getSelectedGroupIds() : new java.util.ArrayList<>());
         response.setUpdatedAt(preference.getUpdatedAt());
 
         return response;
