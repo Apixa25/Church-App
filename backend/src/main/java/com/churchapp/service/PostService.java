@@ -207,7 +207,11 @@ public class PostService {
             UUID globalOrgId = UUID.fromString("00000000-0000-0000-0000-000000000001");
             return postRepository.findGlobalUserFeed(params.getGroupIds(), globalOrgId, pageable);
         } else {
-            // User with primary org - show primary + secondary orgs (PUBLIC only) + groups
+            // User with primary org - use unified query that handles:
+            // - Primary org (all visibility levels)
+            // - Secondary orgs including Global org (PUBLIC only)
+            // - Groups (based on group visibility)
+            // The getFeedParameters method now includes Global org in secondaryOrgIds when filter is ALL
             return postRepository.findMultiTenantFeed(
                 params.getPrimaryOrgId(),
                 params.getSecondaryOrgIds(),
