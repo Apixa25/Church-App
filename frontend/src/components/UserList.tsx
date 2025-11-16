@@ -26,7 +26,7 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
   const [creatingDM, setCreatingDM] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
   const { open: openGlobalSearch } = useGlobalSearch();
@@ -57,12 +57,11 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
         setLoading(true);
         setUsers([]);
         setPage(0);
-        setHasMore(true);
+        setHasMore(false);
       }
       setError(null);
 
       // Fetch org-scoped DM candidates
-      console.log('[DM] loadUsers start', { reset, query, page });
       setIsFetching(true);
       const resp = await chatApi.getDmCandidates(query, reset ? 0 : page, 20);
       const realUsers = resp.content || [];
@@ -80,7 +79,6 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
       setUsers(prev => reset ? formattedUsers : [...prev, ...formattedUsers]);
       setHasMore(!resp.last);
       setPage((reset ? 0 : page) + 1);
-      console.log('[DM] loadUsers success', { count: formattedUsers.length, hasMore: !resp.last });
 
     } catch (err) {
       setError('Failed to load church members');
@@ -93,7 +91,6 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
 
   // Debounce search so typing isn't interrupted
   useEffect(() => {
-    console.log('[DM] query changed', query);
     const t = setTimeout(() => {
       loadUsers(true);
     }, 300);
@@ -110,8 +107,6 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
     try {
       setCreatingDM(user.id);
       setError(null);
-      
-      console.log('Starting direct message with:', user.name);
       
       if (onUserSelect) {
         onUserSelect(user);
@@ -171,14 +166,12 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
             placeholder="Search church members…"
             value={query}
             onChange={(e) => {
-              console.log('[DM] input change', e.target.value);
               setQuery(e.target.value);
             }}
             style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid #ddd' }}
           />
           <button
             onClick={() => {
-              console.log('[DM] open global search modal with', query);
               openGlobalSearch({ seedQuery: query });
             }}
             className="secondary-button"
@@ -244,7 +237,7 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
         </div>
       )}
 
-      {hasMore && (
+      {users.length > 0 && hasMore && (
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
           <button onClick={() => loadUsers(false)} className="primary-button">
             Load more
