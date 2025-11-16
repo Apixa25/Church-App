@@ -197,7 +197,7 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
           <h3>Available Groups</h3>
           {!hasAnyOrganization ? (
             <div className="empty-state">
-              <p>🙏 Join a church organization to discover its chat groups.</p>
+              <p>🙏 Join an organization to discover its chat groups.</p>
               <p>You can still create a new group or accept invite links anytime.</p>
               <button
                 onClick={() => setActiveView('createGroup')}
