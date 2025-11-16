@@ -28,6 +28,8 @@ import AdminDashboard from './components/AdminDashboard';
 import SettingsPage from './components/SettingsPage';
 import WorshipRoomList from './components/WorshipRoomList';
 import WorshipRoom from './components/WorshipRoom';
+import OrganizationBrowser from './components/OrganizationBrowser';
+import GroupBrowser from './components/GroupBrowser';
 import './App.css';
 import { GlobalSearchProvider } from './components/global-search/GlobalSearchProvider';
 
@@ -318,6 +320,26 @@ const App: React.FC = () => {
                   <WorshipRoom />
                 </ProtectedRoute>
               }
+            />
+
+            {/* Organization routes */}
+            <Route 
+              path="/organizations" 
+              element={
+                <ProtectedRoute>
+                  <OrganizationBrowser />
+                </ProtectedRoute>
+              } 
+            />
+
+            {/* Group routes */}
+            <Route 
+              path="/groups" 
+              element={
+                <ProtectedRoute>
+                  <GroupBrowser />
+                </ProtectedRoute>
+              } 
             />
 
                   {/* Default redirect */}
