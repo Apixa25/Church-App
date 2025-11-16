@@ -29,6 +29,7 @@ export interface Membership {
   userAvatarUrl?: string;
   organizationId: string;
   organizationName?: string;
+  organizationType?: 'CHURCH' | 'MINISTRY' | 'NONPROFIT' | 'GLOBAL';
   organizationLogoUrl?: string;
   role: 'MEMBER' | 'ADMIN' | 'MODERATOR';
   isPrimary: boolean;
