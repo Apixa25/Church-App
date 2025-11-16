@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useGlobalSearch } from './global-search/GlobalSearchProvider';
 import chatApi from '../services/chatApi';
 
 interface User {
@@ -20,6 +21,7 @@ interface UserListProps {
 const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [creatingDM, setCreatingDM] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -27,6 +29,7 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
   const [hasMore, setHasMore] = useState(true);
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
+  const { open: openGlobalSearch } = useGlobalSearch();
 
   const formatLastSeen = (lastSeenString: string): string => {
     try {
@@ -59,6 +62,8 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
       setError(null);
 
       // Fetch org-scoped DM candidates
+      console.log('[DM] loadUsers start', { reset, query, page });
+      setIsFetching(true);
       const resp = await chatApi.getDmCandidates(query, reset ? 0 : page, 20);
       const realUsers = resp.content || [];
 
@@ -75,17 +80,24 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
       setUsers(prev => reset ? formattedUsers : [...prev, ...formattedUsers]);
       setHasMore(!resp.last);
       setPage((reset ? 0 : page) + 1);
+      console.log('[DM] loadUsers success', { count: formattedUsers.length, hasMore: !resp.last });
 
     } catch (err) {
       setError('Failed to load church members');
       console.error('Error loading users:', err);
     } finally {
       setLoading(false);
+      setIsFetching(false);
     }
   }, [currentUser?.email, query, page]);
 
+  // Debounce search so typing isn't interrupted
   useEffect(() => {
-    loadUsers(true);
+    console.log('[DM] query changed', query);
+    const t = setTimeout(() => {
+      loadUsers(true);
+    }, 300);
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
@@ -137,17 +149,6 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="user-list loading">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading church members...</p>
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="user-list error">
@@ -169,15 +170,24 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
             type="text"
             placeholder="Search church members…"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              console.log('[DM] input change', e.target.value);
+              setQuery(e.target.value);
+            }}
             style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid #ddd' }}
           />
           <button
-            onClick={() => navigate('/search?scope=users')}
+            onClick={() => {
+              console.log('[DM] open global search modal with', query);
+              openGlobalSearch({ seedQuery: query });
+            }}
             className="secondary-button"
           >
             Global search
           </button>
+          {isFetching && (
+            <span style={{ marginLeft: 8, fontSize: 12, color: '#666' }}>Searching…</span>
+          )}
         </div>
       </div>
       
