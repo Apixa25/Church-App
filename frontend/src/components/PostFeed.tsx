@@ -5,6 +5,7 @@ import webSocketService, { PostUpdate, PostInteractionUpdate, CommentUpdate } fr
 import PostCard from './PostCard';
 import FeedFilters from './FeedFilters';
 import EmptyFeedState from './EmptyFeedState';
+import { useFeedFilter } from '../contexts/FeedFilterContext';
 import './PostFeed.css';
 
 interface PostFeedProps {
@@ -24,6 +25,9 @@ const PostFeed: React.FC<PostFeedProps> = ({
   onPostUpdate,
   refreshKey
 }) => {
+  // Feed filter context - to refresh feed when filter changes
+  const { activeFilter, selectedGroupIds } = useFeedFilter();
+
   // State
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -223,6 +227,13 @@ const PostFeed: React.FC<PostFeedProps> = ({
   useEffect(() => {
     loadPosts(true);
   }, [feedType, refreshKey, loadPosts]);
+
+  // Refresh feed when filter changes
+  useEffect(() => {
+    if (loadPostsRef.current) {
+      loadPostsRef.current(true);
+    }
+  }, [activeFilter, selectedGroupIds]);
 
   // Set up WebSocket subscriptions for real-time updates
   useEffect(() => {

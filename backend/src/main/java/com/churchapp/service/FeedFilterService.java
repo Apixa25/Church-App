@@ -161,6 +161,11 @@ public class FeedFilterService {
         // Add secondary orgs unless filter is PRIMARY_ONLY
         if (preference.getActiveFilter() != FeedPreference.FeedFilter.PRIMARY_ONLY) {
             visibleOrgs.addAll(getUserSecondaryOrgIds(userId));
+            
+            // When filter is ALL, also include Global org so users can see posts from social-only users
+            if (preference.getActiveFilter() == FeedPreference.FeedFilter.ALL) {
+                visibleOrgs.add(GLOBAL_ORG_ID);
+            }
         }
 
         return visibleOrgs;
@@ -188,8 +193,16 @@ public class FeedFilterService {
      * Get complete feed parameters for a user based on their preferences
      */
     public FeedParameters getFeedParameters(UUID userId) {
+        // Use getVisibleOrgIds to respect filter preferences
+        List<UUID> visibleOrgIds = getVisibleOrgIds(userId);
         UUID primaryOrgId = getUserPrimaryOrgId(userId);
-        List<UUID> secondaryOrgIds = getUserSecondaryOrgIds(userId);
+        
+        // Extract secondary orgs (exclude primary org, but include Global org if it's in visibleOrgs)
+        // Global org should be included in secondaryOrgIds when filter is ALL so posts from social-only users are visible
+        List<UUID> secondaryOrgIds = visibleOrgIds.stream()
+            .filter(orgId -> !orgId.equals(primaryOrgId))
+            .collect(Collectors.toList());
+        
         List<UUID> groupIds = getVisibleGroupIds(userId);
 
         return new FeedParameters(primaryOrgId, secondaryOrgIds, groupIds);
