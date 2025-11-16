@@ -22,6 +22,9 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creatingDM, setCreatingDM] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
 
@@ -45,16 +48,21 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
     }
   };
 
-  const loadUsers = useCallback(async () => {
+  const loadUsers = useCallback(async (reset: boolean = false) => {
     try {
-      setLoading(true);
+      if (reset) {
+        setLoading(true);
+        setUsers([]);
+        setPage(0);
+        setHasMore(true);
+      }
       setError(null);
-      
-      // Get real users from the backend API
-      const realUsers = await chatApi.getUsers();
-      
-      // Convert to our User interface format
-      const formattedUsers: User[] = realUsers.map(user => ({
+
+      // Fetch org-scoped DM candidates
+      const resp = await chatApi.getDmCandidates(query, reset ? 0 : page, 20);
+      const realUsers = resp.content || [];
+
+      const formattedUsers: User[] = realUsers.map((user: any) => ({
         id: user.id,
         name: user.name,
         email: user.email,
@@ -63,20 +71,28 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
         isOnline: user.isOnline,
         lastSeen: user.lastSeen ? formatLastSeen(user.lastSeen) : undefined,
       }));
-      
-      setUsers(formattedUsers);
-      
+
+      setUsers(prev => reset ? formattedUsers : [...prev, ...formattedUsers]);
+      setHasMore(!resp.last);
+      setPage((reset ? 0 : page) + 1);
+
     } catch (err) {
       setError('Failed to load church members');
       console.error('Error loading users:', err);
     } finally {
       setLoading(false);
     }
-  }, [currentUser?.email]);
+  }, [currentUser?.email, query, page]);
 
   useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
+    loadUsers(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+
+  useEffect(() => {
+    loadUsers(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleUserClick = async (user: User) => {
     try {
@@ -136,7 +152,7 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
     return (
       <div className="user-list error">
         <p>{error}</p>
-        <button onClick={loadUsers} className="retry-button">
+        <button onClick={() => loadUsers(true)} className="retry-button">
           Try Again
         </button>
       </div>
@@ -146,8 +162,23 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
   return (
     <div className="user-list">
       <div className="user-list-header">
-        <h3>Church Members ({users.length})</h3>
-        <p>Start a direct conversation with any member</p>
+        <h3>Direct Messages</h3>
+        <p>Members of your church. Use search to find someone.</p>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+          <input
+            type="text"
+            placeholder="Search church members…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid #ddd' }}
+          />
+          <button
+            onClick={() => navigate('/search?scope=users')}
+            className="secondary-button"
+          >
+            Global search
+          </button>
+        </div>
       </div>
       
       {users.length === 0 ? (
@@ -200,6 +231,14 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {hasMore && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
+          <button onClick={() => loadUsers(false)} className="primary-button">
+            Load more
+          </button>
         </div>
       )}
     </div>

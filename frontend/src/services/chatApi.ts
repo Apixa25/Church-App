@@ -174,6 +174,21 @@ const chatApi = {
     return response.data;
   },
 
+  // Org-scoped DM candidates with optional search and pagination
+  getDmCandidates: async (q?: string, page: number = 0, size: number = 20): Promise<{
+    content: any[];
+    totalPages: number;
+    totalElements: number;
+    size: number;
+    number: number;
+    last: boolean;
+  }> => {
+    const response = await api.get('/chats/dm-candidates', {
+      params: { q: q || undefined, page, size }
+    });
+    return response.data;
+  },
+
   // Message management
   getMessages: async (groupId: string, page: number = 0, size: number = 50): Promise<{
     content: ChatMessage[];
