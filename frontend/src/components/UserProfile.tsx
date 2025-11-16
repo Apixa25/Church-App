@@ -5,6 +5,7 @@ import { getUserProfile, getUserPosts, getBookmarkedPosts, followUser, unfollowU
 import { useAuth, User } from '../contexts/AuthContext';
 import PostCard from './PostCard';
 import { parseEventDate } from '../utils/dateUtils';
+import OrganizationSelector from './OrganizationSelector';
 import './UserProfile.css';
 
 interface UserProfileProps {
@@ -564,6 +565,16 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
           <div className="about-section">
             <div className="about-card">
               <h3>About {profileUser.name}</h3>
+
+              {/* Organization Selector - only show for own profile */}
+              {isOwnProfile && (
+                <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: '1px solid #e0e0e0' }}>
+                  <h4 style={{ marginBottom: '12px', fontSize: '16px', fontWeight: 600 }}>My Organizations</h4>
+                  <OrganizationSelector
+                    onBrowseClick={() => navigate('/organizations')}
+                  />
+                </div>
+              )}
 
               {profileUser.bio ? (
                 <div className="about-bio">

@@ -56,6 +56,7 @@ const DropdownPortal = styled.div<{ isOpen: boolean; top: number; left: number }
   left: ${props => props.left}px;
   min-width: 280px;
   max-width: 400px;
+  width: calc(100vw - 32px);
   background: white;
   border: 2px solid #e0e0e0;
   border-radius: 12px;
@@ -65,6 +66,10 @@ const DropdownPortal = styled.div<{ isOpen: boolean; top: number; left: number }
   visibility: ${props => props.isOpen ? 'visible' : 'hidden'};
   transform: ${props => props.isOpen ? 'translateY(0)' : 'translateY(-10px)'};
   transition: all 0.2s;
+  
+  @media (min-width: 769px) {
+    width: auto;
+  }
 `;
 
 const DropdownHeader = styled.div`
@@ -278,9 +283,24 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
+      const windowWidth = window.innerWidth;
+      const isMobile = windowWidth <= 768;
+      
+      let leftPosition = rect.left;
+      
+      // On mobile, center the dropdown
+      if (isMobile) {
+        // On mobile, dropdown uses calc(100vw - 32px), so position at 16px from left (centered with margins)
+        leftPosition = 16;
+      } else {
+        // On desktop, position relative to button but ensure it doesn't go off screen
+        const desktopDropdownWidth = 400; // max-width
+        leftPosition = Math.max(16, Math.min(rect.left, windowWidth - desktopDropdownWidth - 16));
+      }
+      
       setDropdownPosition({
         top: rect.bottom + 8,
-        left: rect.left
+        left: leftPosition
       });
     }
   }, [isOpen]);

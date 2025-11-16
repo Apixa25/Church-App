@@ -13,7 +13,6 @@ import EventNotifications from './EventNotifications';
 import SearchComponent from './SearchComponent';
 import QuickDonationWidget from './QuickDonationWidget';
 import ClickableAvatar from './ClickableAvatar';
-import OrganizationSelector from './OrganizationSelector';
 import FeedFilterSelector from './FeedFilterSelector';
 import { FeedType } from '../types/Post';
 import './Dashboard.css';
@@ -166,7 +165,7 @@ const Dashboard: React.FC = () => {
         
         <div className="header-content">
           <div className="header-left">
-            <h1>🌾 The Gathering</h1>
+            <h1>🌾 {primaryMembership?.organizationName || 'The Gathering'}</h1>
             <div className="refresh-info">
               <span>Last updated: {formatLastRefresh()}</span>
               <button onClick={handleRefresh} className="refresh-btn" disabled={isLoading}>
@@ -189,10 +188,6 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
             <div className="header-actions">
-              {/* Multi-tenant organization selector */}
-              <OrganizationSelector
-                onBrowseClick={() => navigate('/organizations')}
-              />
               <button
                 onClick={() => setShowSearch(true)}
                 className="search-button"
