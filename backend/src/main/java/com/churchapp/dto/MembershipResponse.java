@@ -26,6 +26,7 @@ public class MembershipResponse {
     // Organization-specific fields
     private UUID organizationId;
     private String organizationName;
+    private String organizationLogoUrl;
     private Boolean isPrimary;
 
     // Group-specific fields
@@ -47,6 +48,7 @@ public class MembershipResponse {
         if (membership.getOrganization() != null) {
             response.setOrganizationId(membership.getOrganization().getId());
             response.setOrganizationName(membership.getOrganization().getName());
+            response.setOrganizationLogoUrl(membership.getOrganization().getLogoUrl());
         }
 
         response.setRole(membership.getRole() != null ? membership.getRole().name() : null);

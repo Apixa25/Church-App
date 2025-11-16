@@ -16,9 +16,13 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import com.churchapp.service.FileUploadService;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -31,6 +35,7 @@ public class OrganizationController {
 
     private final OrganizationService organizationService;
     private final UserRepository userRepository;
+    private final FileUploadService fileUploadService;
 
     // Helper method to get user ID from Spring Security User
     private UUID getUserId(User securityUser) {
@@ -43,13 +48,61 @@ public class OrganizationController {
     // ORGANIZATION CRUD
     // ========================================================================
 
-    @PostMapping
+    @PostMapping(consumes = {"multipart/form-data"})
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OrganizationResponse> createOrganization(
+            @RequestParam("name") String name,
+            @RequestParam("slug") String slug,
+            @RequestParam("type") String type,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam(value = "logo", required = false) MultipartFile logoFile,
+            @AuthenticationPrincipal User userDetails) {
+
+        log.info("Creating organization: {} by system admin: {}", name, userDetails.getUsername());
+
+        try {
+            // Upload logo if provided
+            String logoUrl = null;
+            if (logoFile != null && !logoFile.isEmpty()) {
+                log.info("Uploading logo for organization: {}", name);
+                logoUrl = fileUploadService.uploadFile(logoFile, "organizations/logos");
+                log.info("Logo uploaded successfully: {}", logoUrl);
+            }
+
+            // Build request object
+            OrganizationRequest request = new OrganizationRequest();
+            request.setName(name);
+            request.setSlug(slug);
+            request.setType(type);
+            request.setLogoUrl(logoUrl);
+            
+            // Add description to metadata if provided
+            if (description != null && !description.trim().isEmpty()) {
+                Map<String, Object> metadata = new HashMap<>();
+                metadata.put("description", description.trim());
+                request.setMetadata(metadata);
+            }
+
+            Organization org = request.toOrganization();
+            Organization created = organizationService.createOrganization(org);
+
+            OrganizationResponse response = OrganizationResponse.fromOrganization(created);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
+        } catch (Exception e) {
+            log.error("Error creating organization: {}", name, e);
+            throw new RuntimeException("Failed to create organization: " + e.getMessage(), e);
+        }
+    }
+
+    // Keep the existing JSON endpoint for backward compatibility
+    @PostMapping(consumes = {"application/json"})
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<OrganizationResponse> createOrganizationJson(
             @Valid @RequestBody OrganizationRequest request,
             @AuthenticationPrincipal User userDetails) {
 
-        log.info("Creating organization: {} by system admin: {}", request.getName(), userDetails.getUsername());
+        log.info("Creating organization (JSON): {} by system admin: {}", request.getName(), userDetails.getUsername());
 
         Organization org = request.toOrganization();
         Organization created = organizationService.createOrganization(org);

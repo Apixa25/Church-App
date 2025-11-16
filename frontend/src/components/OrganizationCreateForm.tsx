@@ -14,6 +14,8 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({ onSucce
   const [slug, setSlug] = useState('');
   const [type, setType] = useState<'CHURCH' | 'MINISTRY' | 'NONPROFIT'>('CHURCH');
   const [description, setDescription] = useState('');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [slugTouched, setSlugTouched] = useState(false);
@@ -43,6 +45,38 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({ onSucce
     setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''));
   };
 
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select an image file');
+        return;
+      }
+      
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image size must be less than 5MB');
+        return;
+      }
+
+      setLogoFile(file);
+      setError(null); // Clear any previous errors
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -67,18 +101,26 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({ onSucce
 
     try {
       const token = localStorage.getItem('authToken');
+      
+      // Use FormData for multipart/form-data
+      const formData = new FormData();
+      formData.append('name', name.trim());
+      formData.append('slug', slug.trim());
+      formData.append('type', type);
+      if (description.trim()) {
+        formData.append('description', description.trim());
+      }
+      if (logoFile) {
+        formData.append('logo', logoFile);
+      }
+
       const response = await axios.post(
         `${API_BASE_URL}/organizations`,
-        {
-          name: name.trim(),
-          slug: slug.trim(),
-          type,
-          metadata: description.trim() ? { description: description.trim() } : {}
-        },
+        formData,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'multipart/form-data'
           }
         }
       );
@@ -92,6 +134,8 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({ onSucce
       setSlug('');
       setType('CHURCH');
       setDescription('');
+      setLogoFile(null);
+      setLogoPreview(null);
       setSlugTouched(false);
     } catch (err: any) {
       console.error('Error creating organization:', err);
@@ -168,6 +212,37 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({ onSucce
             rows={3}
             disabled={isSubmitting}
           />
+        </FormGroup>
+
+        <FormGroup>
+          <Label htmlFor="logo">Organization Logo (Optional)</Label>
+          <LogoUploadContainer>
+            {logoPreview ? (
+              <LogoPreviewWrapper>
+                <LogoPreview src={logoPreview} alt="Logo preview" />
+                <RemoveLogoButton type="button" onClick={handleRemoveLogo} disabled={isSubmitting}>
+                  ✕
+                </RemoveLogoButton>
+              </LogoPreviewWrapper>
+            ) : (
+              <LogoUploadArea>
+                <LogoUploadInput
+                  type="file"
+                  id="logo"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  disabled={isSubmitting}
+                />
+                <LogoUploadLabel htmlFor="logo">
+                  <UploadIcon>📷</UploadIcon>
+                  <span>Click to upload logo</span>
+                  <span style={{ fontSize: '12px', color: '#666' }}>
+                    PNG, JPG, GIF up to 5MB
+                  </span>
+                </LogoUploadLabel>
+              </LogoUploadArea>
+            )}
+          </LogoUploadContainer>
         </FormGroup>
 
         <ButtonGroup>
@@ -332,6 +407,97 @@ const ErrorMessage = styled.div`
   color: #c33;
   font-size: 14px;
   margin-bottom: 16px;
+`;
+
+const LogoUploadContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const LogoUploadArea = styled.div`
+  position: relative;
+`;
+
+const LogoUploadInput = styled.input`
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+`;
+
+const LogoUploadLabel = styled.label`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fafafa;
+  gap: 8px;
+
+  &:hover {
+    border-color: #4a90e2;
+    background: #f0f7ff;
+  }
+
+  span {
+    font-size: 14px;
+    color: #666;
+  }
+`;
+
+const UploadIcon = styled.span`
+  font-size: 32px;
+  margin-bottom: 8px;
+`;
+
+const LogoPreviewWrapper = styled.div`
+  position: relative;
+  display: inline-block;
+`;
+
+const LogoPreview = styled.img`
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  object-fit: contain;
+  background: #fafafa;
+  padding: 8px;
+`;
+
+const RemoveLogoButton = styled.button`
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #ff4444;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: background-color 0.2s;
+
+  &:hover:not(:disabled) {
+    background: #cc0000;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 `;
 
 export default OrganizationCreateForm;
