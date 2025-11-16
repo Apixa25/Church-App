@@ -16,7 +16,6 @@ import ClickableAvatar from './ClickableAvatar';
 import FeedFilterSelector from './FeedFilterSelector';
 import { FeedType } from '../types/Post';
 import './Dashboard.css';
-import styled from 'styled-components';
 
 const Dashboard: React.FC = () => {
   const { user, logout, updateUser } = useAuth();
@@ -146,19 +145,33 @@ const Dashboard: React.FC = () => {
     }
   }, [hasPrimaryOrg, feedView]);
 
+  // Determine if this is "The Gathering" global organization
+  const isGatheringGlobal = primaryMembership?.organizationType === 'GLOBAL' || 
+                            primaryMembership?.organizationName?.includes('The Gathering') ||
+                            primaryMembership?.organizationName?.includes('Gathering Community');
+  
+  // Use organization logo as background if available and not The Gathering
+  const bannerImageUrl = primaryMembership?.organizationLogoUrl && !isGatheringGlobal 
+    ? primaryMembership.organizationLogoUrl 
+    : '/dashboard-banner.jpg';
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
         {/* Banner Image Background */}
         <div className="dashboard-banner-background">
           <img 
-            src="/dashboard-banner.jpg" 
-            alt="Church banner" 
+            src={bannerImageUrl} 
+            alt={primaryMembership?.organizationName || 'Church banner'} 
             className="banner-bg-image"
             onError={(e) => {
-              // Hide image if it fails to load, show gradient fallback
+              // Fallback to default banner if organization logo fails to load
               const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
+              if (target.src !== '/dashboard-banner.jpg') {
+                target.src = '/dashboard-banner.jpg';
+              } else {
+                target.style.display = 'none';
+              }
             }}
           />
           <div className="banner-overlay"></div>
@@ -167,22 +180,10 @@ const Dashboard: React.FC = () => {
         <div className="header-content">
           <div className="header-left">
             <h1>
-              {primaryMembership?.organizationLogoUrl ? (
-                <OrganizationHeader>
-                  <OrganizationLogo 
-                    src={primaryMembership.organizationLogoUrl} 
-                    alt={primaryMembership.organizationName || 'Organization'}
-                    onError={(e) => {
-                      // Hide logo and show emoji fallback if image fails to load
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                    }}
-                  />
-                  <span>{primaryMembership?.organizationName || 'The Gathering'}</span>
-                </OrganizationHeader>
-              ) : (
-                `🌾 ${primaryMembership?.organizationName || 'The Gathering'}`
-              )}
+              {isGatheringGlobal 
+                ? `🌾 ${primaryMembership?.organizationName || 'The Gathering'}`
+                : primaryMembership?.organizationName || 'The Gathering'
+              }
             </h1>
             <div className="refresh-info">
               <span>Last updated: {formatLastRefresh()}</span>
@@ -386,23 +387,5 @@ const Dashboard: React.FC = () => {
     </div>
   );
 };
-
-// Styled components for organization logo
-const OrganizationHeader = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-`;
-
-const OrganizationLogo = styled.img`
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  background: white;
-  padding: 2px;
-`;
 
 export default Dashboard;
