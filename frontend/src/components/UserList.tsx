@@ -164,7 +164,7 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
     <div className="user-list">
       <div className="user-list-header">
         <h3>Direct Messages</h3>
-        <p>Members of your church. Use search to find someone.</p>
+        <p>Use search to find someone.</p>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
           <input
             type="text"
