@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
@@ -53,4 +54,21 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
 
     @Query("SELECT SUM(u.warningCount) FROM User u WHERE u.deletedAt IS NULL")
     Long sumWarningCounts();
+
+    // Organization-scoped DM candidates with optional query and pagination
+    @Query("""
+        SELECT u
+        FROM User u
+        WHERE u.primaryOrganization.id = :orgId
+          AND u.id <> :excludeUserId
+          AND (
+                :q IS NULL
+             OR LOWER(u.name) LIKE LOWER(CONCAT('%', :q, '%'))
+             OR LOWER(u.email) LIKE LOWER(CONCAT('%', :q, '%'))
+          )
+        """)
+    Page<User> findOrgMembersForDm(@Param("orgId") UUID orgId,
+                                   @Param("excludeUserId") UUID excludeUserId,
+                                   @Param("q") String q,
+                                   Pageable pageable);
 }
