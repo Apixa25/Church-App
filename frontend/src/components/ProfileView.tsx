@@ -9,6 +9,7 @@ import { getUserPosts, getBookmarkedPosts, getUserShareStats } from '../services
 import PostCard from './PostCard';
 import { parseEventDate } from '../utils/dateUtils';
 import chatApi from '../services/chatApi';
+import OrganizationSelector from './OrganizationSelector';
 import './ProfileView.css';
 
 interface ProfileViewProps {
@@ -443,13 +444,21 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
               )}
             </div>
             {isOwnProfile && (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="edit-profile-button-x"
-                aria-label="Edit profile"
-              >
-                Edit profile
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'row', gap: '12px', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="edit-profile-button-x"
+                  aria-label="Edit profile"
+                  style={{ marginBottom: 0 }}
+                >
+                  Edit profile
+                </button>
+                <div style={{ flexShrink: 0 }}>
+                  <OrganizationSelector
+                    onBrowseClick={() => navigate('/organizations')}
+                  />
+                </div>
+              </div>
             )}
           </div>
 
