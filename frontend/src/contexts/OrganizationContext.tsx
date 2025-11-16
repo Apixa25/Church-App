@@ -15,6 +15,7 @@ export interface Organization {
   subscriptionExpiresAt?: string;
   settings?: Record<string, any>;
   metadata?: Record<string, any>;
+  logoUrl?: string;
   memberCount?: number;
   primaryMemberCount?: number;
   createdAt?: string;
@@ -28,6 +29,7 @@ export interface Membership {
   userAvatarUrl?: string;
   organizationId: string;
   organizationName?: string;
+  organizationLogoUrl?: string;
   role: 'MEMBER' | 'ADMIN' | 'MODERATOR';
   isPrimary: boolean;
   joinedAt: string;

@@ -27,6 +27,7 @@ public class OrganizationResponse {
     private UUID parentOrganizationId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String logoUrl;
 
     // Statistics (to be populated by controller)
     private Long memberCount;
@@ -37,6 +38,7 @@ public class OrganizationResponse {
         response.setId(org.getId());
         response.setName(org.getName());
         response.setSlug(org.getSlug());
+        response.setLogoUrl(org.getLogoUrl());
         response.setType(org.getType() != null ? org.getType().name() : null);
         response.setTier(org.getTier() != null ? org.getTier().name() : null);
         response.setStatus(org.getStatus() != null ? org.getStatus().name() : null);
@@ -56,6 +58,7 @@ public class OrganizationResponse {
         response.setId(org.getId());
         response.setName(org.getName());
         response.setSlug(org.getSlug());
+        response.setLogoUrl(org.getLogoUrl());
         response.setType(org.getType() != null ? org.getType().name() : null);
         response.setTier(org.getTier() != null ? org.getTier().name() : null);
         response.setCreatedAt(org.getCreatedAt());

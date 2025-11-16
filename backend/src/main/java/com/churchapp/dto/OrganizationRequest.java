@@ -33,11 +33,13 @@ public class OrganizationRequest {
     private Map<String, Object> settings;
     private Map<String, Object> metadata;
     private UUID parentOrganizationId;
+    private String logoUrl;
 
     public Organization toOrganization() {
         Organization org = new Organization();
         org.setName(this.name);
         org.setSlug(this.slug);
+        org.setLogoUrl(this.logoUrl);
 
         // Parse enums
         if (this.type != null) {

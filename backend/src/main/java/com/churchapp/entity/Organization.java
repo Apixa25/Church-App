@@ -84,6 +84,9 @@ public class Organization {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    @Column(name = "logo_url", length = 500)
+    private String logoUrl;
+
     public enum OrganizationType {
         CHURCH,
         MINISTRY,
