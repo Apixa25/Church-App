@@ -33,8 +33,8 @@ const CreateGroup: React.FC<CreateGroupProps> = ({ onGroupCreated, onCancel }) =
     { value: 'STUDY', label: 'Bible Study', description: 'For studying scripture together' },
     { value: 'MINISTRY', label: 'Ministry Team', description: 'For ministry coordination and planning' },
     { value: 'YOUTH', label: 'Youth Group', description: 'For young people and youth activities' },
-    { value: 'MENS', label: "Men's Group", description: 'For men in the church community' },
-    { value: 'WOMENS', label: "Women's Group", description: 'For women in the church community' },
+    { value: 'MENS', label: "Men's Group", description: 'For men in the community' },
+    { value: 'WOMENS', label: "Women's Group", description: 'For women in the community' },
     { value: 'PRIVATE', label: 'Private Group', description: 'Invite-only group for specific purposes' },
   ];
 
@@ -110,7 +110,7 @@ const CreateGroup: React.FC<CreateGroupProps> = ({ onGroupCreated, onCancel }) =
     <div className="create-group">
       <div className="create-group-header">
         <h3>➕ Create New Group</h3>
-        <p>Start a new conversation space for your church community</p>
+        <p>Start a new conversation space for your community</p>
       </div>
 
       {error && (
@@ -195,7 +195,7 @@ const CreateGroup: React.FC<CreateGroupProps> = ({ onGroupCreated, onCancel }) =
           <small>
             {formData.isPrivate 
               ? "Only invited members can join this group" 
-              : "Any church member can discover and join this group"
+              : "Any organization member can discover and join this group"
             }
           </small>
         </div>
