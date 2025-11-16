@@ -40,26 +40,63 @@ public class FeedFilterService {
     }
 
     public FeedPreference updateFeedPreference(UUID userId, FeedPreference.FeedFilter filter, List<UUID> selectedGroupIds) {
-        FeedPreference preference = feedPreferenceRepository.findByUserId(userId)
-            .orElseGet(() -> createDefaultPreference(userId));
+        try {
+            FeedPreference preference = feedPreferenceRepository.findByUserId(userId)
+                .orElseGet(() -> createDefaultPreference(userId));
 
-        preference.setActiveFilter(filter);
+            // Ensure user is loaded and set (in case it's a lazy proxy)
+            if (preference.getUser() == null || preference.getUser().getId() == null) {
+                log.warn("FeedPreference for user {} has null or unloaded user, reloading", userId);
+                User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                preference.setUser(user);
+            } else {
+                // Force initialization of lazy proxy by accessing ID
+                try {
+                    preference.getUser().getId();
+                } catch (Exception e) {
+                    log.warn("Failed to access user ID, reloading user for preference", e);
+                    User user = userRepository.findById(userId)
+                        .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                    preference.setUser(user);
+                }
+            }
 
-        if (selectedGroupIds != null) {
-            preference.setSelectedGroupIds(selectedGroupIds);
+            preference.setActiveFilter(filter);
+
+            // Always update selectedGroupIds - if null, set to empty list; if provided, use it
+            if (selectedGroupIds != null) {
+                preference.setSelectedGroupIds(selectedGroupIds);
+            } else {
+                // If null and filter is not SELECTED_GROUPS, clear the selection
+                if (filter != FeedPreference.FeedFilter.SELECTED_GROUPS) {
+                    preference.setSelectedGroupIds(new ArrayList<>());
+                }
+                // If null and filter is SELECTED_GROUPS, keep existing selection
+            }
+
+            preference.setUpdatedAt(LocalDateTime.now());
+
+            FeedPreference saved = feedPreferenceRepository.save(preference);
+            
+            log.info("Updated feed preference for user {} to filter: {}", userId, filter);
+
+            return saved;
+        } catch (Exception e) {
+            log.error("Error updating feed preference for user {}", userId, e);
+            throw new RuntimeException("Failed to update feed preference: " + e.getMessage(), e);
         }
-
-        preference.setUpdatedAt(LocalDateTime.now());
-
-        FeedPreference saved = feedPreferenceRepository.save(preference);
-        log.info("Updated feed preference for user {} to filter: {}", userId, filter);
-
-        return saved;
     }
 
     private FeedPreference createDefaultPreference(UUID userId) {
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+            .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        // Check if preference already exists (race condition protection)
+        FeedPreference existing = feedPreferenceRepository.findByUserId(userId).orElse(null);
+        if (existing != null) {
+            return existing;
+        }
 
         FeedPreference preference = new FeedPreference();
         preference.setUser(user);
@@ -67,7 +104,14 @@ public class FeedFilterService {
         preference.setSelectedGroupIds(new ArrayList<>());
         preference.setUpdatedAt(LocalDateTime.now());
 
-        return feedPreferenceRepository.save(preference);
+        try {
+            return feedPreferenceRepository.save(preference);
+        } catch (Exception e) {
+            log.error("Error creating default feed preference for user {}", userId, e);
+            // If save fails (e.g., unique constraint violation), try to fetch existing
+            return feedPreferenceRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Failed to create or retrieve feed preference", e));
+        }
     }
 
     // ========================================================================

@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/feed-preferences")
+@RequestMapping("/feed-preferences")
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "*")
@@ -54,20 +54,49 @@ public class FeedPreferenceController {
             @Valid @RequestBody FeedPreferenceRequest request,
             @AuthenticationPrincipal User userDetails) {
 
-        UUID userId = getUserId(userDetails);
-        log.info("User {} updating feed preference to filter: {}", userId, request.getActiveFilter());
+        try {
+            UUID userId = getUserId(userDetails);
+            log.info("User {} updating feed preference to filter: {}", userId, request.getActiveFilter());
 
-        // Parse the enum
-        FeedPreference.FeedFilter filter = FeedPreference.FeedFilter.valueOf(request.getActiveFilter().toUpperCase());
+            // Parse the enum
+            FeedPreference.FeedFilter filter;
+            try {
+                filter = FeedPreference.FeedFilter.valueOf(request.getActiveFilter().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                log.error("Invalid feed filter value: {}", request.getActiveFilter());
+                return ResponseEntity.badRequest().build();
+            }
 
-        FeedPreference updated = feedFilterService.updateFeedPreference(
-            userId,
-            filter,
-            request.getSelectedGroupIds()
-        );
+            // Handle empty array - convert to null if filter is not SELECTED_GROUPS
+            List<UUID> selectedGroupIds = request.getSelectedGroupIds();
+            if (selectedGroupIds != null && selectedGroupIds.isEmpty() && filter != FeedPreference.FeedFilter.SELECTED_GROUPS) {
+                selectedGroupIds = null;
+            }
 
-        FeedPreferenceResponse response = FeedPreferenceResponse.fromFeedPreference(updated);
-        return ResponseEntity.ok(response);
+            FeedPreference updated = feedFilterService.updateFeedPreference(
+                userId,
+                filter,
+                selectedGroupIds
+            );
+
+            // Create response with userId explicitly set to avoid lazy loading issues
+            FeedPreferenceResponse response = FeedPreferenceResponse.fromFeedPreference(updated);
+            // Ensure userId is set even if user relationship fails
+            if (response.getUserId() == null) {
+                response.setUserId(userId);
+            }
+            
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid argument when updating feed preference: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().build();
+        } catch (RuntimeException e) {
+            log.error("Error updating feed preference for user: {}", userDetails != null ? userDetails.getUsername() : "unknown", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        } catch (Exception e) {
+            log.error("Unexpected error updating feed preference", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @PutMapping
