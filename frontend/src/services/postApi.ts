@@ -362,6 +362,27 @@ export const getFollowing = async (userId: string, page: number = 0, size: numbe
   return response.data;
 };
 
+// Block/Unblock functions
+export const blockUser = async (userId: string): Promise<void> => {
+  await api.post(`/profile/users/${userId}/block`);
+};
+
+export const unblockUser = async (userId: string): Promise<void> => {
+  await api.delete(`/profile/users/${userId}/block`);
+};
+
+export const getBlockStatus = async (userId: string): Promise<{ isBlocked: boolean }> => {
+  const response = await api.get(`/profile/users/${userId}/block-status`);
+  return response.data;
+};
+
+export const getBlockedUsers = async (page: number = 0, size: number = 20): Promise<any> => {
+  const response = await api.get(`/profile/me/blocked`, {
+    params: { page, size }
+  });
+  return response.data;
+};
+
 // ========== ADMIN & MODERATION OPERATIONS ==========
 
 export interface ReportedContent {

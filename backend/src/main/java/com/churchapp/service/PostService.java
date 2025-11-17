@@ -33,6 +33,7 @@ public class PostService {
     private final GroupRepository groupRepository;
     private final OrganizationRepository organizationRepository;
     private final UserFollowService userFollowService;
+    private final UserBlockService userBlockService;
 
     @Transactional
     public Post createPost(String userEmail, String content, List<String> mediaUrls,
@@ -198,15 +199,21 @@ public class PostService {
 
     /**
      * Get multi-tenant feed based on user's organizations and groups
+     * Excludes posts from blocked users
      */
     public Page<Post> getMultiTenantFeed(UUID userId, Pageable pageable) {
         FeedFilterService.FeedParameters params = feedFilterService.getFeedParameters(userId);
+
+        // Get blocked user IDs to filter out
+        List<UUID> blockedUserIds = userBlockService.getBlockedUserIds(userId);
+        // Use empty list instead of null for better query performance
+        List<UUID> blockedIds = blockedUserIds.isEmpty() ? null : blockedUserIds;
 
         // Check if user has primary org
         if (params.getPrimaryOrgId() == null) {
             // Social-only user - show global org + their groups
             UUID globalOrgId = UUID.fromString("00000000-0000-0000-0000-000000000001");
-            return postRepository.findGlobalUserFeed(params.getGroupIds(), globalOrgId, pageable);
+            return postRepository.findGlobalUserFeed(params.getGroupIds(), globalOrgId, blockedIds, pageable);
         } else {
             // User with primary org - use unified query that handles:
             // - Primary org (all visibility levels)
@@ -217,6 +224,7 @@ public class PostService {
                 params.getPrimaryOrgId(),
                 params.getSecondaryOrgIds(),
                 params.getGroupIds(),
+                blockedIds,
                 pageable
             );
         }
@@ -245,8 +253,14 @@ public class PostService {
             return new PageImpl<>(List.of(), pageable, 0);
         }
 
+        // Get blocked user IDs to filter out
+        List<UUID> blockedUserIds = userBlockService.getBlockedUserIds(userId);
+        // Use empty list instead of null for better query performance
+        List<UUID> blockedIds = blockedUserIds.isEmpty() ? null : blockedUserIds;
+
         // Get posts from followed users (works globally across all organizations)
-        return postRepository.findPostsByFollowingUsers(followingIds, pageable);
+        // Excludes posts from blocked users
+        return postRepository.findPostsByFollowingUsers(followingIds, blockedIds, pageable);
     }
 
     public Page<Post> getTrendingFeed(UUID userId, Pageable pageable) {
@@ -254,12 +268,17 @@ public class PostService {
         FeedFilterService.FeedParameters params = feedFilterService.getFeedParameters(userId);
         LocalDateTime since = LocalDateTime.now().minusDays(7);
 
+        // Get blocked user IDs to filter out
+        List<UUID> blockedUserIds = userBlockService.getBlockedUserIds(userId);
+        // Use empty list instead of null for better query performance
+        List<UUID> blockedIds = blockedUserIds.isEmpty() ? null : blockedUserIds;
+
         // If user has primary org, show trending from that org
         if (params.getPrimaryOrgId() != null) {
-            return postRepository.findTrendingPostsByOrganization(params.getPrimaryOrgId(), since, pageable);
+            return postRepository.findTrendingPostsByOrganization(params.getPrimaryOrgId(), since, blockedIds, pageable);
         } else {
             // Social-only user - show global trending
-            return postRepository.findTrendingPosts(since, pageable);
+            return postRepository.findTrendingPosts(since, blockedIds, pageable);
         }
     }
 

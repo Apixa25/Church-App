@@ -229,6 +229,54 @@
   animation: pulse 1.5s ease-in-out infinite;
 }
 
+/* Block Button Styles */
+.block-btn-x {
+  padding: 10px 18px;
+  border-radius: var(--border-radius-pill);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all var(--transition-base);
+  border: none;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.block-btn-x:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.block-btn-x:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.block-btn-x:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.block-btn-x.blocked {
+  background: rgba(220, 38, 38, 0.1);
+  color: rgb(220, 38, 38);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+}
+
+.block-btn-x.blocked:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.15);
+}
+
+.block-spinner-x {
+  display: inline-block;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 0.3; }
   50% { opacity: 1; }

@@ -31,16 +31,30 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     Page<Post> findByUserIdAndIsAnonymousFalseOrderByCreatedAtDesc(UUID userId, Pageable pageable);
 
     // Feed queries
-    @Query("SELECT p FROM Post p WHERE p.isReply = false AND p.isAnonymous = false ORDER BY p.createdAt DESC")
-    Page<Post> findMainPostsForFeed(Pageable pageable);
+    @Query("SELECT p FROM Post p WHERE p.isReply = false AND p.isAnonymous = false " +
+           "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
+           "ORDER BY p.createdAt DESC")
+    Page<Post> findMainPostsForFeed(@Param("blockedUserIds") List<UUID> blockedUserIds, Pageable pageable);
 
-    @Query("SELECT p FROM Post p WHERE p.user.id IN :followingIds AND p.isReply = false AND p.isAnonymous = false ORDER BY p.createdAt DESC")
-    Page<Post> findPostsByFollowingUsers(@Param("followingIds") List<UUID> followingIds, Pageable pageable);
+    @Query("SELECT p FROM Post p WHERE p.user.id IN :followingIds AND p.isReply = false AND p.isAnonymous = false " +
+           "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
+           "ORDER BY p.createdAt DESC")
+    Page<Post> findPostsByFollowingUsers(
+        @Param("followingIds") List<UUID> followingIds,
+        @Param("blockedUserIds") List<UUID> blockedUserIds,
+        Pageable pageable
+    );
 
     // Trending posts (posts with high engagement in last 7 days)
+    // Excludes posts from blocked users
     @Query("SELECT p FROM Post p WHERE p.createdAt >= :since AND p.isAnonymous = false " +
+           "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
            "ORDER BY (p.likesCount + p.commentsCount + p.sharesCount) DESC")
-    Page<Post> findTrendingPosts(@Param("since") LocalDateTime since, Pageable pageable);
+    Page<Post> findTrendingPosts(
+        @Param("since") LocalDateTime since,
+        @Param("blockedUserIds") List<UUID> blockedUserIds,
+        Pageable pageable
+    );
 
     // Search posts by content, author name, category, location, and hashtags
     // Optionally filter by post type
@@ -111,6 +125,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     // 1. User's primary organization (all visibility levels)
     // 2. User's secondary organizations (PUBLIC only)
     // 3. User's unmuted groups
+    // Excludes posts from blocked users
     @Query("SELECT DISTINCT p FROM Post p WHERE " +
            "(" +
            "  (p.organization.id = :primaryOrgId) " +
@@ -118,23 +133,28 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
            "  OR (p.group.id IN :groupIds)" +
            ") " +
            "AND p.isReply = false " +
+           "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
            "ORDER BY p.createdAt DESC")
     Page<Post> findMultiTenantFeed(
         @Param("primaryOrgId") UUID primaryOrgId,
         @Param("secondaryOrgIds") List<UUID> secondaryOrgIds,
         @Param("groupIds") List<UUID> groupIds,
+        @Param("blockedUserIds") List<UUID> blockedUserIds,
         Pageable pageable
     );
 
     // Feed for users with NO primary organization (social-only users)
+    // Excludes posts from blocked users
     @Query("SELECT DISTINCT p FROM Post p WHERE " +
            "(p.group.id IN :groupIds OR p.organization.id = :globalOrgId) " +
            "AND p.isReply = false " +
            "AND p.visibility = 'PUBLIC' " +
+           "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
            "ORDER BY p.createdAt DESC")
     Page<Post> findGlobalUserFeed(
         @Param("groupIds") List<UUID> groupIds,
         @Param("globalOrgId") UUID globalOrgId,
+        @Param("blockedUserIds") List<UUID> blockedUserIds,
         Pageable pageable
     );
 
@@ -165,13 +185,16 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     Long countByGroupId(@Param("groupId") UUID groupId);
 
     // Trending posts within an organization
+    // Excludes posts from blocked users
     @Query("SELECT p FROM Post p WHERE " +
            "p.organization.id = :orgId " +
            "AND p.createdAt >= :since " +
+           "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
            "ORDER BY (p.likesCount + p.commentsCount + p.sharesCount) DESC")
     Page<Post> findTrendingPostsByOrganization(
         @Param("orgId") UUID orgId,
         @Param("since") LocalDateTime since,
+        @Param("blockedUserIds") List<UUID> blockedUserIds,
         Pageable pageable
     );
 

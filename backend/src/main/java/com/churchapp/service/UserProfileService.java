@@ -27,6 +27,7 @@ public class UserProfileService {
     private final UserRepository userRepository;
     private final FileUploadService fileUploadService;
     private final UserFollowService userFollowService;
+    private final UserBlockService userBlockService;
     
     public UserProfileResponse getUserProfile(UUID userId) {
         User user = userRepository.findById(userId)
@@ -225,18 +226,32 @@ public class UserProfileService {
     }
     
     public Page<UserProfileResponse> searchUsers(String query, Pageable pageable) {
-        Specification<User> spec = createUserSearchSpecification(query);
+        Specification<User> spec = createUserSearchSpecification(query, null);
+        Page<User> users = userRepository.findAll(spec, pageable);
+        return users.map(UserProfileResponse::fromUser);
+    }
+
+    public Page<UserProfileResponse> searchUsers(String query, UUID searcherUserId, Pageable pageable) {
+        Specification<User> spec = createUserSearchSpecification(query, searcherUserId);
         Page<User> users = userRepository.findAll(spec, pageable);
         return users.map(UserProfileResponse::fromUser);
     }
     
-    private Specification<User> createUserSearchSpecification(String query) {
+    private Specification<User> createUserSearchSpecification(String query, UUID searcherUserId) {
         return (root, criteriaQuery, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
             
             // Only show non-deleted, non-banned users
             predicates.add(criteriaBuilder.isNull(root.get("deletedAt")));
             predicates.add(criteriaBuilder.equal(root.get("isBanned"), false));
+            
+            // Exclude blocked users if searcherUserId is provided
+            if (searcherUserId != null) {
+                List<UUID> blockedUserIds = userBlockService.getBlockedUserIds(searcherUserId);
+                if (!blockedUserIds.isEmpty()) {
+                    predicates.add(criteriaBuilder.not(root.get("id").in(blockedUserIds)));
+                }
+            }
             
             if (query != null && !query.trim().isEmpty()) {
                 String searchPattern = "%" + query.toLowerCase() + "%";

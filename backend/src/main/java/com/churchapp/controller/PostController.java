@@ -434,12 +434,27 @@ public class PostController {
 
     @GetMapping("/{postId}/comments")
     public ResponseEntity<Page<CommentResponse>> getPostComments(
+            @AuthenticationPrincipal User user,
             @PathVariable UUID postId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<PostComment> comments = postInteractionService.getPostComments(postId, pageable);
+        
+        // Get viewer's user ID to filter blocked users
+        UUID viewerUserId = null;
+        if (user != null) {
+            try {
+                com.churchapp.entity.User viewer = userRepository.findByEmail(user.getUsername()).orElse(null);
+                if (viewer != null) {
+                    viewerUserId = viewer.getId();
+                }
+            } catch (Exception e) {
+                // If we can't get viewer ID, continue without filtering
+            }
+        }
+        
+        Page<PostComment> comments = postInteractionService.getPostComments(postId, viewerUserId, pageable);
         Page<CommentResponse> responses = comments.map(CommentResponse::fromEntity);
 
         return ResponseEntity.ok(responses);

@@ -3,8 +3,10 @@ package com.churchapp.controller;
 import com.churchapp.dto.FileUploadResponse;
 import com.churchapp.dto.UserProfileRequest;
 import com.churchapp.dto.UserProfileResponse;
+import com.churchapp.entity.UserBlock;
 import com.churchapp.entity.UserFollow;
 import com.churchapp.security.JwtUtil;
+import com.churchapp.service.UserBlockService;
 import com.churchapp.service.UserFollowService;
 import com.churchapp.service.UserProfileService;
 import jakarta.validation.Valid;
@@ -33,6 +35,7 @@ public class UserProfileController {
     
     private final UserProfileService userProfileService;
     private final UserFollowService userFollowService;
+    private final UserBlockService userBlockService;
     private final JwtUtil jwtUtil;
     
     @GetMapping("/me")
@@ -132,6 +135,7 @@ public class UserProfileController {
     
     @GetMapping("/search")
     public ResponseEntity<Page<UserProfileResponse>> searchUsers(
+            @AuthenticationPrincipal User user,
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -141,7 +145,9 @@ public class UserProfileController {
             }
             
             Pageable pageable = PageRequest.of(page, size);
-            Page<UserProfileResponse> users = userProfileService.searchUsers(query, pageable);
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            // Pass searcher's user ID to filter out blocked users
+            Page<UserProfileResponse> users = userProfileService.searchUsers(query, currentProfile.getUserId(), pageable);
             return ResponseEntity.ok(users);
         } catch (Exception e) {
             log.error("Error searching users: {}", e.getMessage(), e);
@@ -284,6 +290,115 @@ public class UserProfileController {
             response.put("totalPages", following.getTotalPages());
             response.put("currentPage", following.getNumber());
             response.put("size", following.getSize());
+            
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    // ========================================================================
+    // BLOCK/UNBLOCK ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Block a user
+     * POST /api/profile/users/{userId}/block
+     */
+    @PostMapping("/users/{userId}/block")
+    public ResponseEntity<?> blockUser(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID userId) {
+        try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            userBlockService.blockUser(currentProfile.getUserId(), userId);
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "User blocked successfully");
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    /**
+     * Unblock a user
+     * DELETE /api/profile/users/{userId}/block
+     */
+    @DeleteMapping("/users/{userId}/block")
+    public ResponseEntity<?> unblockUser(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID userId) {
+        try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            userBlockService.unblockUser(currentProfile.getUserId(), userId);
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "User unblocked successfully");
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    /**
+     * Check if current user blocks target user
+     * GET /api/profile/users/{userId}/block-status
+     */
+    @GetMapping("/users/{userId}/block-status")
+    public ResponseEntity<?> getBlockStatus(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID userId) {
+        try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            boolean isBlocked = userBlockService.isBlocked(currentProfile.getUserId(), userId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("isBlocked", isBlocked);
+            response.put("blockerId", currentProfile.getUserId());
+            response.put("blockedId", userId);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    /**
+     * Get list of users blocked by current user
+     * GET /api/profile/me/blocked
+     */
+    @GetMapping("/me/blocked")
+    public ResponseEntity<?> getBlockedUsers(
+            @AuthenticationPrincipal User user,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            Pageable pageable = PageRequest.of(page, size);
+            Page<UserBlock> blockedUsers = userBlockService.getBlockedUsers(currentProfile.getUserId(), pageable);
+            
+            // Convert UserBlock entities to user profile responses
+            List<UserProfileResponse> blockedProfiles = blockedUsers.getContent().stream()
+                .map(block -> {
+                    UUID blockedId = block.getId().getBlockedId();
+                    return userProfileService.getUserProfile(blockedId);
+                })
+                .toList();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("content", blockedProfiles);
+            response.put("totalElements", blockedUsers.getTotalElements());
+            response.put("totalPages", blockedUsers.getTotalPages());
+            response.put("currentPage", blockedUsers.getNumber());
+            response.put("size", blockedUsers.getSize());
             
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
