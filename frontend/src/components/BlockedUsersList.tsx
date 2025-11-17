@@ -111,9 +111,9 @@ const BlockedUsersList: React.FC<BlockedUsersListProps> = ({ isOpen, onClose }) 
                 <div key={user.userId} className="blocked-user-item">
                   <ClickableAvatar
                     userId={user.userId}
-                    src={user.profilePicUrl}
-                    alt={user.name}
-                    size={48}
+                    profilePicUrl={user.profilePicUrl}
+                    userName={user.name}
+                    size="medium"
                   />
                   <div className="blocked-user-info">
                     <div className="blocked-user-name">{user.name}</div>

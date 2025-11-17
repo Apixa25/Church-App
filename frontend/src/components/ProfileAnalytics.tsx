@@ -142,9 +142,9 @@ const ProfileAnalytics: React.FC<ProfileAnalyticsProps> = ({ userId, isOwnProfil
                 <div key={view.id} className="profile-view-item">
                   <ClickableAvatar
                     userId={view.viewer?.userId || view.viewer?.id}
-                    src={view.viewer?.profilePicUrl}
-                    alt={view.viewer?.name}
-                    size={48}
+                    profilePicUrl={view.viewer?.profilePicUrl}
+                    userName={view.viewer?.name || 'Unknown'}
+                    size="medium"
                   />
                   <div className="view-info">
                     <div className="viewer-name">{view.viewer?.name}</div>
