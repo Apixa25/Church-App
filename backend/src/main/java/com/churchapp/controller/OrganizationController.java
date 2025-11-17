@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.churchapp.service.FileUploadService;
 
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -36,6 +37,7 @@ public class OrganizationController {
     private final OrganizationService organizationService;
     private final UserRepository userRepository;
     private final FileUploadService fileUploadService;
+    private final com.churchapp.service.OrganizationMetricsService metricsService;
 
     // Helper method to get user ID from Spring Security User
     private UUID getUserId(User securityUser) {
@@ -374,6 +376,38 @@ public class OrganizationController {
         return ResponseEntity.ok(stats);
     }
 
+    // ========================================================================
+    // ORGANIZATION METRICS
+    // ========================================================================
+
+    @GetMapping("/{orgId}/metrics")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<OrganizationMetricsResponse> getOrganizationMetrics(
+            @PathVariable UUID orgId,
+            @AuthenticationPrincipal User userDetails) {
+
+        log.info("Admin {} requesting metrics for organization {}", userDetails.getUsername(), orgId);
+
+        var metrics = metricsService.getMetrics(orgId);
+        OrganizationMetricsResponse response = OrganizationMetricsResponse.fromMetrics(metrics);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{orgId}/metrics/calculate")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<OrganizationMetricsResponse> calculateOrganizationMetrics(
+            @PathVariable UUID orgId,
+            @AuthenticationPrincipal User userDetails) {
+
+        log.info("Admin {} triggering metrics calculation for organization {}", userDetails.getUsername(), orgId);
+
+        var metrics = metricsService.calculateMetrics(orgId);
+        OrganizationMetricsResponse response = OrganizationMetricsResponse.fromMetrics(metrics);
+
+        return ResponseEntity.ok(response);
+    }
+
     // Inner class for stats response
     @lombok.Data
     @lombok.NoArgsConstructor
@@ -382,5 +416,43 @@ public class OrganizationController {
         private UUID organizationId;
         private Long memberCount;
         private Long primaryMemberCount;
+    }
+
+    // Inner class for metrics response
+    @lombok.Data
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class OrganizationMetricsResponse {
+        private UUID organizationId;
+        private Long storageUsed;
+        private Long storageMediaFiles;
+        private Long storageDocuments;
+        private Long storageProfilePics;
+        private Integer apiRequestsCount;
+        private Long dataTransferBytes;
+        private Integer activeUsersCount;
+        private Integer postsCount;
+        private Integer prayerRequestsCount;
+        private Integer eventsCount;
+        private Integer announcementsCount;
+        private LocalDateTime calculatedAt;
+
+        public static OrganizationMetricsResponse fromMetrics(com.churchapp.entity.OrganizationMetrics metrics) {
+            OrganizationMetricsResponse response = new OrganizationMetricsResponse();
+            response.setOrganizationId(metrics.getOrganization().getId());
+            response.setStorageUsed(metrics.getStorageUsed());
+            response.setStorageMediaFiles(metrics.getStorageMediaFiles());
+            response.setStorageDocuments(metrics.getStorageDocuments());
+            response.setStorageProfilePics(metrics.getStorageProfilePics());
+            response.setApiRequestsCount(metrics.getApiRequestsCount());
+            response.setDataTransferBytes(metrics.getDataTransferBytes());
+            response.setActiveUsersCount(metrics.getActiveUsersCount());
+            response.setPostsCount(metrics.getPostsCount());
+            response.setPrayerRequestsCount(metrics.getPrayerRequestsCount());
+            response.setEventsCount(metrics.getEventsCount());
+            response.setAnnouncementsCount(metrics.getAnnouncementsCount());
+            response.setCalculatedAt(metrics.getCalculatedAt());
+            return response;
+        }
     }
 }
