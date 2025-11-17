@@ -12,10 +12,8 @@ import java.util.UUID;
 @Repository
 public interface OrganizationMetricsRepository extends JpaRepository<OrganizationMetrics, UUID> {
 
-    Optional<OrganizationMetrics> findByOrganizationId(UUID organizationId);
-
     @Query("SELECT m FROM OrganizationMetrics m WHERE m.organization.id = :orgId")
-    Optional<OrganizationMetrics> findByOrganization(@Param("orgId") UUID orgId);
+    Optional<OrganizationMetrics> findByOrganizationId(@Param("orgId") UUID organizationId);
 
     boolean existsByOrganizationId(UUID organizationId);
 }

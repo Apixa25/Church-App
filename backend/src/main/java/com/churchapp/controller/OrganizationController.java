@@ -388,10 +388,15 @@ public class OrganizationController {
 
         log.info("Admin {} requesting metrics for organization {}", userDetails.getUsername(), orgId);
 
-        var metrics = metricsService.getMetrics(orgId);
-        OrganizationMetricsResponse response = OrganizationMetricsResponse.fromMetrics(metrics);
+        try {
+            var metrics = metricsService.getMetrics(orgId);
+            OrganizationMetricsResponse response = OrganizationMetricsResponse.fromMetrics(metrics, orgId);
 
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error getting metrics for organization {}: {}", orgId, e.getMessage(), e);
+            throw new RuntimeException("Failed to get organization metrics: " + e.getMessage(), e);
+        }
     }
 
     @PostMapping("/{orgId}/metrics/calculate")
@@ -402,10 +407,15 @@ public class OrganizationController {
 
         log.info("Admin {} triggering metrics calculation for organization {}", userDetails.getUsername(), orgId);
 
-        var metrics = metricsService.calculateMetrics(orgId);
-        OrganizationMetricsResponse response = OrganizationMetricsResponse.fromMetrics(metrics);
+        try {
+            var metrics = metricsService.calculateMetrics(orgId);
+            OrganizationMetricsResponse response = OrganizationMetricsResponse.fromMetrics(metrics, orgId);
 
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error calculating metrics for organization {}: {}", orgId, e.getMessage(), e);
+            throw new RuntimeException("Failed to calculate organization metrics: " + e.getMessage(), e);
+        }
     }
 
     // Inner class for stats response
@@ -437,9 +447,9 @@ public class OrganizationController {
         private Integer announcementsCount;
         private LocalDateTime calculatedAt;
 
-        public static OrganizationMetricsResponse fromMetrics(com.churchapp.entity.OrganizationMetrics metrics) {
+        public static OrganizationMetricsResponse fromMetrics(com.churchapp.entity.OrganizationMetrics metrics, UUID orgId) {
             OrganizationMetricsResponse response = new OrganizationMetricsResponse();
-            response.setOrganizationId(metrics.getOrganization().getId());
+            response.setOrganizationId(orgId); // Use provided orgId to avoid lazy loading issue
             response.setStorageUsed(metrics.getStorageUsed());
             response.setStorageMediaFiles(metrics.getStorageMediaFiles());
             response.setStorageDocuments(metrics.getStorageDocuments());
@@ -451,7 +461,7 @@ public class OrganizationController {
             response.setPrayerRequestsCount(metrics.getPrayerRequestsCount());
             response.setEventsCount(metrics.getEventsCount());
             response.setAnnouncementsCount(metrics.getAnnouncementsCount());
-            response.setCalculatedAt(metrics.getCalculatedAt());
+            response.setCalculatedAt(metrics.getCalculatedAt() != null ? metrics.getCalculatedAt() : LocalDateTime.now());
             return response;
         }
     }
