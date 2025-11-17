@@ -67,31 +67,43 @@ public class SettingsService {
 
         // Update notification preferences
         if (notificationSettings.containsKey("emailNotifications")) {
-            settings.setEmailNotifications((Boolean) notificationSettings.get("emailNotifications"));
+            settings.setEmailNotifications(convertToBoolean(notificationSettings.get("emailNotifications")));
         }
         if (notificationSettings.containsKey("pushNotifications")) {
-            settings.setPushNotifications((Boolean) notificationSettings.get("pushNotifications"));
+            settings.setPushNotifications(convertToBoolean(notificationSettings.get("pushNotifications")));
         }
         if (notificationSettings.containsKey("prayerNotifications")) {
-            settings.setPrayerNotifications((Boolean) notificationSettings.get("prayerNotifications"));
+            settings.setPrayerNotifications(convertToBoolean(notificationSettings.get("prayerNotifications")));
         }
         if (notificationSettings.containsKey("announcementNotifications")) {
-            settings.setAnnouncementNotifications((Boolean) notificationSettings.get("announcementNotifications"));
+            settings.setAnnouncementNotifications(convertToBoolean(notificationSettings.get("announcementNotifications")));
         }
         if (notificationSettings.containsKey("eventNotifications")) {
-            settings.setEventNotifications((Boolean) notificationSettings.get("eventNotifications"));
+            settings.setEventNotifications(convertToBoolean(notificationSettings.get("eventNotifications")));
         }
         if (notificationSettings.containsKey("chatNotifications")) {
-            settings.setChatNotifications((Boolean) notificationSettings.get("chatNotifications"));
+            settings.setChatNotifications(convertToBoolean(notificationSettings.get("chatNotifications")));
         }
         if (notificationSettings.containsKey("donationReminders")) {
-            settings.setDonationReminders((Boolean) notificationSettings.get("donationReminders"));
+            settings.setDonationReminders(convertToBoolean(notificationSettings.get("donationReminders")));
         }
         if (notificationSettings.containsKey("weeklyDigest")) {
-            settings.setWeeklyDigest((Boolean) notificationSettings.get("weeklyDigest"));
+            settings.setWeeklyDigest(convertToBoolean(notificationSettings.get("weeklyDigest")));
         }
         if (notificationSettings.containsKey("eventRemindersHours")) {
-            settings.setEventRemindersHours((Integer) notificationSettings.get("eventRemindersHours"));
+            Object hoursValue = notificationSettings.get("eventRemindersHours");
+            if (hoursValue != null) {
+                if (hoursValue instanceof Number) {
+                    settings.setEventRemindersHours(((Number) hoursValue).intValue());
+                } else if (hoursValue instanceof String) {
+                    try {
+                        settings.setEventRemindersHours(Integer.parseInt((String) hoursValue));
+                    } catch (NumberFormatException e) {
+                        log.warn("Invalid eventRemindersHours value: {}, defaulting to 24", hoursValue);
+                        settings.setEventRemindersHours(24);
+                    }
+                }
+            }
         }
 
         userSettingsRepository.save(settings);
@@ -100,32 +112,74 @@ public class SettingsService {
 
     @Transactional
     public void updatePrivacySettings(UUID userId, Map<String, Object> privacySettings) {
-        UserSettings settings = userSettingsRepository.findByUserId(userId)
-            .orElse(createDefaultSettings(userId));
+        try {
+            UserSettings settings = userSettingsRepository.findByUserId(userId)
+                .orElse(createDefaultSettings(userId));
 
-        if (privacySettings.containsKey("profileVisibility")) {
-            String visibility = (String) privacySettings.get("profileVisibility");
-            settings.setProfileVisibility(UserSettings.ProfileVisibility.valueOf(visibility.toUpperCase()));
-        }
-        if (privacySettings.containsKey("showDonationHistory")) {
-            settings.setShowDonationHistory((Boolean) privacySettings.get("showDonationHistory"));
-        }
-        if (privacySettings.containsKey("allowDirectMessages")) {
-            settings.setAllowDirectMessages((Boolean) privacySettings.get("allowDirectMessages"));
-        }
-        if (privacySettings.containsKey("showOnlineStatus")) {
-            settings.setShowOnlineStatus((Boolean) privacySettings.get("showOnlineStatus"));
-        }
-        if (privacySettings.containsKey("prayerRequestVisibility")) {
-            String visibility = (String) privacySettings.get("prayerRequestVisibility");
-            settings.setPrayerRequestVisibility(UserSettings.PrayerVisibility.valueOf(visibility.toUpperCase()));
-        }
-        if (privacySettings.containsKey("dataSharingAnalytics")) {
-            settings.setDataSharingAnalytics((Boolean) privacySettings.get("dataSharingAnalytics"));
-        }
+            if (privacySettings.containsKey("profileVisibility")) {
+                try {
+                    String visibility = String.valueOf(privacySettings.get("profileVisibility"));
+                    settings.setProfileVisibility(UserSettings.ProfileVisibility.valueOf(visibility.toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    log.error("Invalid profileVisibility value: {}", privacySettings.get("profileVisibility"), e);
+                    throw new RuntimeException("Invalid profile visibility value: " + privacySettings.get("profileVisibility"));
+                }
+            }
+            if (privacySettings.containsKey("showDonationHistory")) {
+                settings.setShowDonationHistory(convertToBoolean(privacySettings.get("showDonationHistory")));
+            }
+            if (privacySettings.containsKey("allowDirectMessages")) {
+                settings.setAllowDirectMessages(convertToBoolean(privacySettings.get("allowDirectMessages")));
+            }
+            if (privacySettings.containsKey("showOnlineStatus")) {
+                settings.setShowOnlineStatus(convertToBoolean(privacySettings.get("showOnlineStatus")));
+            }
+            if (privacySettings.containsKey("prayerRequestVisibility")) {
+                try {
+                    String visibility = String.valueOf(privacySettings.get("prayerRequestVisibility"));
+                    settings.setPrayerRequestVisibility(UserSettings.PrayerVisibility.valueOf(visibility.toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    log.error("Invalid prayerRequestVisibility value: {}", privacySettings.get("prayerRequestVisibility"), e);
+                    throw new RuntimeException("Invalid prayer request visibility value: " + privacySettings.get("prayerRequestVisibility"));
+                }
+            }
+            if (privacySettings.containsKey("dataSharingAnalytics")) {
+                settings.setDataSharingAnalytics(convertToBoolean(privacySettings.get("dataSharingAnalytics")));
+            }
+            if (privacySettings.containsKey("autoBackupEnabled")) {
+                settings.setAutoBackupEnabled(convertToBoolean(privacySettings.get("autoBackupEnabled")));
+            }
 
-        userSettingsRepository.save(settings);
-        log.info("Updated privacy settings for user: {}", userId);
+            userSettingsRepository.save(settings);
+            log.info("Updated privacy settings for user: {}", userId);
+        } catch (RuntimeException e) {
+            log.error("Error updating privacy settings for user {}: {}", userId, e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error updating privacy settings for user {}: {}", userId, e.getMessage(), e);
+            throw new RuntimeException("Failed to update privacy settings: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Helper method to safely convert various types to boolean
+     */
+    private boolean convertToBoolean(Object value) {
+        if (value == null) {
+            return false;
+        }
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        if (value instanceof String) {
+            String str = ((String) value).trim().toLowerCase();
+            return "true".equals(str) || "1".equals(str) || "yes".equals(str);
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue() != 0;
+        }
+        log.warn("Unexpected boolean value type: {} ({}), defaulting to false", value, value.getClass().getName());
+        return false;
     }
 
     @Transactional
@@ -148,13 +202,13 @@ public class SettingsService {
             settings.setFontSize(UserSettings.FontSize.valueOf(fontSize.toUpperCase()));
         }
         if (appearanceSettings.containsKey("highContrastMode")) {
-            settings.setHighContrastMode((Boolean) appearanceSettings.get("highContrastMode"));
+            settings.setHighContrastMode(convertToBoolean(appearanceSettings.get("highContrastMode")));
         }
         if (appearanceSettings.containsKey("reduceMotion")) {
-            settings.setReduceMotion((Boolean) appearanceSettings.get("reduceMotion"));
+            settings.setReduceMotion(convertToBoolean(appearanceSettings.get("reduceMotion")));
         }
         if (appearanceSettings.containsKey("screenReaderOptimized")) {
-            settings.setScreenReaderOptimized((Boolean) appearanceSettings.get("screenReaderOptimized"));
+            settings.setScreenReaderOptimized(convertToBoolean(appearanceSettings.get("screenReaderOptimized")));
         }
 
         userSettingsRepository.save(settings);
