@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -35,9 +36,15 @@ public class PostAnalyticsService {
         }
 
         // If viewer is provided, check if already viewed today
-        if (viewerId != null && postViewRepository.hasViewedToday(postId, viewerId)) {
-            log.debug("Post view already recorded today for post {} by viewer {}", postId, viewerId);
-            return;
+        if (viewerId != null) {
+            LocalDate today = LocalDate.now();
+            LocalDateTime startOfDay = today.atStartOfDay();
+            LocalDateTime startOfNextDay = today.plusDays(1).atStartOfDay();
+            
+            if (postViewRepository.hasViewedToday(postId, viewerId, startOfDay, startOfNextDay)) {
+                log.debug("Post view already recorded today for post {} by viewer {}", postId, viewerId);
+                return;
+            }
         }
 
         // Create new post view

@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -40,7 +41,11 @@ public class ProfileAnalyticsService {
         }
 
         // Check if already viewed today
-        if (profileViewRepository.hasViewedToday(viewerId, viewedUserId)) {
+        LocalDate today = LocalDate.now();
+        LocalDateTime startOfDay = today.atStartOfDay();
+        LocalDateTime startOfNextDay = today.plusDays(1).atStartOfDay();
+        
+        if (profileViewRepository.hasViewedToday(viewerId, viewedUserId, startOfDay, startOfNextDay)) {
             log.debug("Profile view already recorded today for viewer {} viewing {}", viewerId, viewedUserId);
             return;
         }
