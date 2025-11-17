@@ -2,7 +2,6 @@ package com.churchapp;
 
 import com.churchapp.controller.DonationController;
 import com.churchapp.dto.SubscriptionRequest;
-import com.churchapp.dto.SubscriptionResponse;
 import com.churchapp.entity.DonationCategory;
 import com.churchapp.entity.DonationSubscription;
 import com.churchapp.entity.RecurringFrequency;
@@ -82,8 +81,8 @@ public class DonationSubscriptionTest {
         testSubscription.setCreatedAt(LocalDateTime.now());
 
         // Mock authentication
-        when(authentication.getName()).thenReturn(testUser.getEmail());
-        when(userRepository.findByEmail(testUser.getEmail())).thenReturn(Optional.of(testUser));
+        lenient().when(authentication.getName()).thenReturn(testUser.getEmail());
+        lenient().when(userRepository.findByEmail(testUser.getEmail())).thenReturn(Optional.of(testUser));
     }
 
     @Test

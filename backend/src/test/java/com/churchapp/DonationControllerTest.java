@@ -18,6 +18,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
@@ -88,8 +90,8 @@ public class DonationControllerTest {
         testDonation.setIsRecurring(false);
 
         // Mock authentication
-        when(authentication.getName()).thenReturn(testUser.getEmail());
-        when(userRepository.findByEmail(testUser.getEmail())).thenReturn(Optional.of(testUser));
+        lenient().when(authentication.getName()).thenReturn(testUser.getEmail());
+        lenient().when(userRepository.findByEmail(testUser.getEmail())).thenReturn(Optional.of(testUser));
     }
 
     @Test
@@ -174,9 +176,8 @@ public class DonationControllerTest {
     @Test
     void testGetDonationHistory_Success() throws Exception {
         // Arrange
-        org.springframework.data.domain.Page<Donation> mockPage =
-            mock(org.springframework.data.domain.Page.class);
-        when(mockPage.map(any())).thenReturn(mock(org.springframework.data.domain.Page.class));
+        PageRequest pageable = PageRequest.of(0, 20);
+        PageImpl<Donation> mockPage = new PageImpl<>(java.util.List.of(testDonation), pageable, 1);
 
         when(donationRepository.findByUserOrderByTimestampDesc(eq(testUser), any()))
             .thenReturn(mockPage);
