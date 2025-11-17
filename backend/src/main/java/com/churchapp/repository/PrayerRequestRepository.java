@@ -5,6 +5,7 @@ import com.churchapp.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -134,4 +135,9 @@ public interface PrayerRequestRepository extends JpaRepository<PrayerRequest, UU
         @Param("searchTerm") String searchTerm,
         Pageable pageable
     );
+
+    // Delete all prayer requests by organization
+    @Modifying
+    @Query("DELETE FROM PrayerRequest pr WHERE pr.organization.id = :orgId")
+    void deleteByOrganizationId(@Param("orgId") UUID orgId);
 }

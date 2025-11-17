@@ -4,10 +4,7 @@ import com.churchapp.entity.Organization;
 import com.churchapp.entity.User;
 import com.churchapp.entity.UserOrganizationHistory;
 import com.churchapp.entity.UserOrganizationMembership;
-import com.churchapp.repository.OrganizationRepository;
-import com.churchapp.repository.UserOrganizationHistoryRepository;
-import com.churchapp.repository.UserOrganizationMembershipRepository;
-import com.churchapp.repository.UserRepository;
+import com.churchapp.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -30,6 +27,13 @@ public class OrganizationService {
     private final UserOrganizationMembershipRepository membershipRepository;
     private final UserOrganizationHistoryRepository historyRepository;
     private final UserRepository userRepository;
+    private final PostRepository postRepository;
+    private final PrayerRequestRepository prayerRequestRepository;
+    private final EventRepository eventRepository;
+    private final AnnouncementRepository announcementRepository;
+    private final DonationRepository donationRepository;
+    private final DonationSubscriptionRepository donationSubscriptionRepository;
+    private final GroupRepository groupRepository;
 
     private static final int ORG_SWITCH_COOLDOWN_DAYS = 30;
     private static final UUID GLOBAL_ORG_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
@@ -113,6 +117,65 @@ public class OrganizationService {
         log.info("Organization {} status changed from {} to {}", orgId, oldStatus, newStatus);
         
         return updated;
+    }
+
+    // Delete organization and all related data
+    public void deleteOrganization(UUID orgId) {
+        Organization org = getOrganizationById(orgId);
+        
+        // Prevent deleting Global Organization
+        if (orgId.equals(GLOBAL_ORG_ID)) {
+            throw new RuntimeException("Cannot delete the Global Organization");
+        }
+        
+        log.warn("Starting deletion of organization: {} (ID: {})", org.getName(), orgId);
+        
+        // 1. Delete all posts
+        log.info("Deleting posts for organization: {}", orgId);
+        postRepository.deleteByOrganizationId(orgId);
+        
+        // 2. Delete all prayer requests
+        log.info("Deleting prayer requests for organization: {}", orgId);
+        prayerRequestRepository.deleteByOrganizationId(orgId);
+        
+        // 3. Delete all events
+        log.info("Deleting events for organization: {}", orgId);
+        eventRepository.deleteByOrganizationId(orgId);
+        
+        // 4. Delete all announcements
+        log.info("Deleting announcements for organization: {}", orgId);
+        announcementRepository.deleteByOrganizationId(orgId);
+        
+        // 5. Delete all donations
+        log.info("Deleting donations for organization: {}", orgId);
+        donationRepository.deleteByOrganizationId(orgId);
+        
+        // 6. Delete all donation subscriptions
+        log.info("Deleting donation subscriptions for organization: {}", orgId);
+        donationSubscriptionRepository.deleteByOrganizationId(orgId);
+        
+        // 7. Delete all groups created by organization
+        log.info("Deleting groups for organization: {}", orgId);
+        groupRepository.deleteByOrganizationId(orgId);
+        
+        // 8. Delete all user organization memberships
+        log.info("Deleting user organization memberships for organization: {}", orgId);
+        membershipRepository.deleteByOrganizationId(orgId);
+        
+        // 9. Delete user organization history (both from and to)
+        log.info("Deleting user organization history for organization: {}", orgId);
+        historyRepository.deleteByOrganizationId(orgId);
+        
+        // 10. Update users with this as primary org (set to Global)
+        log.info("Updating users' primary organization to Global for organization: {}", orgId);
+        userRepository.updatePrimaryOrganizationToGlobal(orgId, GLOBAL_ORG_ID);
+        
+        // 11. Soft delete the organization
+        org.setDeletedAt(LocalDateTime.now());
+        org.setStatus(Organization.OrganizationStatus.CANCELLED);
+        organizationRepository.save(org);
+        
+        log.warn("Organization {} deleted successfully", orgId);
     }
 
     // ========================================================================

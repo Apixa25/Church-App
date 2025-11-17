@@ -60,4 +60,9 @@ public interface UserOrganizationMembershipRepository extends JpaRepository<User
         @Param("orgId") UUID orgId,
         @Param("role") UserOrganizationMembership.OrgRole role
     );
+
+    // Delete all memberships by organization
+    @Modifying
+    @Query("DELETE FROM UserOrganizationMembership m WHERE m.organization.id = :orgId")
+    void deleteByOrganizationId(@Param("orgId") UUID orgId);
 }

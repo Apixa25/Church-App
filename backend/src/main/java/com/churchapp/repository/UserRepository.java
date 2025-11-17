@@ -74,4 +74,13 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
 
     @Query("SELECT u.primaryOrganization.id FROM User u WHERE u.id = :userId")
     UUID findPrimaryOrgIdByUserId(@Param("userId") UUID userId);
+
+    // Update users' primary organization to Global when their org is deleted
+    @Modifying
+    @Query(value = "UPDATE users SET primary_organization_id = :globalOrgId " +
+           "WHERE primary_organization_id = :orgId", nativeQuery = true)
+    void updatePrimaryOrganizationToGlobal(
+        @Param("orgId") UUID orgId,
+        @Param("globalOrgId") UUID globalOrgId
+    );
 }

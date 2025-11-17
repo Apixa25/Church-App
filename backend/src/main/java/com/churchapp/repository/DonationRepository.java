@@ -6,6 +6,7 @@ import com.churchapp.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -133,4 +134,9 @@ public interface DonationRepository extends JpaRepository<Donation, UUID> {
            "CASE WHEN COUNT(CASE WHEN d.isRecurring = true THEN 1 END) > 0 THEN true ELSE false END " +
            "FROM Donation d GROUP BY d.user.id, d.user.name ORDER BY SUM(d.amount) DESC")
     List<Object[]> findDonorStatistics();
+
+    // Delete all donations by organization
+    @Modifying
+    @Query("DELETE FROM Donation d WHERE d.organization.id = :orgId")
+    void deleteByOrganizationId(@Param("orgId") UUID orgId);
 }

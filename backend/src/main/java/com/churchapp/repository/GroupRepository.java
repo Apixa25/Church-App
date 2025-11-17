@@ -66,4 +66,9 @@ public interface GroupRepository extends JpaRepository<Group, UUID> {
 
     @Query("SELECT COUNT(g) FROM Group g WHERE g.type = 'PUBLIC' AND g.deletedAt IS NULL")
     Long countPublicGroups();
+
+    // Delete all groups created by organization
+    @Modifying
+    @Query("DELETE FROM Group g WHERE g.createdByOrg.id = :orgId")
+    void deleteByOrganizationId(@Param("orgId") UUID orgId);
 }

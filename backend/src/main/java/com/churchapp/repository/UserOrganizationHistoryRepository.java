@@ -2,6 +2,7 @@ package com.churchapp.repository;
 
 import com.churchapp.entity.UserOrganizationHistory;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -42,4 +43,10 @@ public interface UserOrganizationHistoryRepository extends JpaRepository<UserOrg
 
     @Query("SELECT h FROM UserOrganizationHistory h WHERE h.fromOrganization.id = :orgId")
     List<UserOrganizationHistory> findByFromOrganizationId(@Param("orgId") UUID orgId);
+
+    // Delete all history records by organization (both from and to)
+    @Modifying
+    @Query("DELETE FROM UserOrganizationHistory h WHERE " +
+           "h.fromOrganization.id = :orgId OR h.toOrganization.id = :orgId")
+    void deleteByOrganizationId(@Param("orgId") UUID orgId);
 }

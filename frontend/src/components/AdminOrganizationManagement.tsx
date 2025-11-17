@@ -25,6 +25,7 @@ const AdminOrganizationManagement: React.FC = () => {
   const [filterType, setFilterType] = useState<string>('ALL');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [deletingOrgId, setDeletingOrgId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOrganizations();
@@ -87,6 +88,41 @@ const AdminOrganizationManagement: React.FC = () => {
       setError(err.response?.data?.message || 'Failed to update organization status');
     } finally {
       setUpdatingStatus(null);
+    }
+  };
+
+  const handleDelete = async (orgId: string, orgName: string) => {
+    const confirmMessage = `Are you sure you want to delete "${orgName}"?\n\n` +
+      `This will permanently delete:\n` +
+      `• All posts\n` +
+      `• All prayer requests\n` +
+      `• All events\n` +
+      `• All announcements\n` +
+      `• All donations and subscriptions\n` +
+      `• All groups\n` +
+      `• All organization memberships\n\n` +
+      `This action CANNOT be undone!`;
+    
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+    
+    try {
+      setDeletingOrgId(orgId);
+      setError(null);
+      const token = localStorage.getItem('authToken');
+      
+      await axios.delete(`${API_BASE_URL}/organizations/${orgId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      // Remove from list
+      setOrganizations(prev => prev.filter(org => org.id !== orgId));
+    } catch (err: any) {
+      console.error('Error deleting organization:', err);
+      setError(err.response?.data?.message || 'Failed to delete organization');
+    } finally {
+      setDeletingOrgId(null);
     }
   };
 
@@ -185,6 +221,7 @@ const AdminOrganizationManagement: React.FC = () => {
               <Th>Tier</Th>
               <Th>Members</Th>
               <Th>Created</Th>
+              <Th>Actions</Th>
             </tr>
           </thead>
           <tbody>
@@ -226,6 +263,14 @@ const AdminOrganizationManagement: React.FC = () => {
                   )}
                 </Td>
                 <Td>{formatDate(org.createdAt)}</Td>
+                <Td>
+                  <DeleteButton 
+                    onClick={() => handleDelete(org.id, org.name)}
+                    disabled={deletingOrgId === org.id}
+                  >
+                    {deletingOrgId === org.id ? 'Deleting...' : 'Delete'}
+                  </DeleteButton>
+                </Td>
               </Tr>
             ))}
           </tbody>
@@ -452,6 +497,34 @@ const Stats = styled.div`
   font-size: 13px;
   color: #999;
   text-align: center;
+`;
+
+const DeleteButton = styled.button`
+  padding: 6px 12px;
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: #ff5252;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(255, 107, 107, 0.3);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #ccc;
+  }
 `;
 
 export default AdminOrganizationManagement;
