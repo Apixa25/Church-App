@@ -1,10 +1,9 @@
 package com.churchapp.service;
 
 import com.churchapp.dto.UserSettingsResponse;
-import com.churchapp.entity.User;
-import com.churchapp.entity.UserSettings;
-import com.churchapp.repository.UserRepository;
-import com.churchapp.repository.UserSettingsRepository;
+import com.churchapp.entity.*;
+import com.churchapp.repository.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,12 +23,24 @@ public class SettingsService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+    private final UserDataExportService userDataExportService;
+    private final FeedbackRepository feedbackRepository;
+    private final UserBackupRepository userBackupRepository;
+    private final AccountDeletionRequestRepository accountDeletionRequestRepository;
+    private final ObjectMapper objectMapper;
 
     @Value("${app.version:1.0.0}")
     private String appVersion;
 
     @Value("${app.build-date:}")
     private String buildDate;
+
+    @Value("${app.base-url:http://localhost:8083}")
+    private String baseUrl;
+
+    @Value("${account.deletion.grace-period-days:7}")
+    private int gracePeriodDays;
 
     public UserSettingsResponse getUserSettings(UUID userId) {
         UserSettings settings = userSettingsRepository.findByUserId(userId)
@@ -183,15 +194,48 @@ public class SettingsService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Verify password
-        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            throw new RuntimeException("Invalid password");
+        // Check if user already has a pending or confirmed deletion request
+        accountDeletionRequestRepository.findByUserId(userId)
+            .ifPresent(existing -> {
+                if ("PENDING".equals(existing.getStatus()) || "CONFIRMED".equals(existing.getStatus())) {
+                    throw new RuntimeException("Account deletion request already exists");
+                }
+            });
+
+        // Verify password (only if user has password set)
+        if (user.getPasswordHash() != null && !user.getPasswordHash().isEmpty()) {
+            if (password == null || !passwordEncoder.matches(password, user.getPasswordHash())) {
+                throw new RuntimeException("Invalid password");
+            }
         }
 
-        // TODO: Implement account deletion workflow
-        // - Send confirmation email
-        // - Schedule deletion after grace period
-        // - Notify admins
+        // Generate confirmation token
+        String confirmationToken = UUID.randomUUID().toString();
+
+        // Create deletion request
+        AccountDeletionRequest deletionRequest = AccountDeletionRequest.builder()
+            .user(user)
+            .reason(reason)
+            .confirmationToken(confirmationToken)
+            .status("PENDING")
+            .requestedAt(LocalDateTime.now())
+            .build();
+
+        accountDeletionRequestRepository.save(deletionRequest);
+
+        // Send confirmation email
+        String confirmationUrl = baseUrl + "/api/settings/confirm-deletion?token=" + confirmationToken;
+        try {
+            emailService.sendAccountDeletionConfirmationEmail(
+                user.getName(),
+                user.getEmail(),
+                confirmationToken,
+                confirmationUrl
+            );
+        } catch (Exception e) {
+            log.error("Failed to send deletion confirmation email: {}", e.getMessage(), e);
+            // Continue - email failure shouldn't block the request
+        }
 
         log.info("Account deletion requested for user: {} with reason: {}", userId, reason);
     }
@@ -199,16 +243,64 @@ public class SettingsService {
     @Transactional
     public String createUserBackup(UUID userId) {
         try {
-            // TODO: Implement actual backup creation
-            String backupId = UUID.randomUUID().toString();
+            log.info("Creating backup for user: {}", userId);
 
-            // Update last backup date
+            User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Generate backup ID
+            String backupId = "BKP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
+            // Collect user data
+            Map<String, Object> userData = userDataExportService.collectUserData(userId);
+
+            // Serialize to JSON
+            String dataSnapshot = objectMapper.writeValueAsString(userData);
+
+            // Calculate data size
+            long fileSizeBytes = dataSnapshot.getBytes().length;
+
+            // Create backup record
+            UserBackup backup = UserBackup.builder()
+                .user(user)
+                .backupId(backupId)
+                .dataSnapshot(dataSnapshot)
+                .backupType("MANUAL")
+                .status("COMPLETED")
+                .createdAt(LocalDateTime.now())
+                .fileSizeBytes(fileSizeBytes)
+                // Set expiration to 90 days from now (GDPR compliance)
+                .expiresAt(LocalDateTime.now().plusDays(90))
+                .build();
+
+            userBackupRepository.save(backup);
+
+            // Update last backup date in user settings
             userSettingsRepository.updateLastBackupDate(userId, LocalDateTime.now());
 
-            log.info("Created backup for user: {} with ID: {}", userId, backupId);
+            log.info("Created backup for user: {} with ID: {} (size: {} bytes)", userId, backupId, fileSizeBytes);
             return backupId;
         } catch (Exception e) {
             log.error("Failed to create backup for user: {}", userId, e);
+            // Try to save failed backup record
+            try {
+                String backupId = "BKP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+                User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+                
+                UserBackup failedBackup = UserBackup.builder()
+                    .user(user)
+                    .backupId(backupId)
+                    .backupType("MANUAL")
+                    .status("FAILED")
+                    .errorMessage(e.getMessage())
+                    .createdAt(LocalDateTime.now())
+                    .build();
+                
+                userBackupRepository.save(failedBackup);
+            } catch (Exception ex) {
+                log.error("Failed to save failed backup record: {}", ex.getMessage(), ex);
+            }
             throw new RuntimeException("Failed to create backup", e);
         }
     }
@@ -278,16 +370,63 @@ public class SettingsService {
         return helpContent;
     }
 
+    @Transactional
     public String submitFeedback(UUID userId, Map<String, String> feedback) {
-        String ticketId = "TICKET-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        try {
+            log.info("Submitting feedback from user: {}", userId);
 
-        // TODO: Implement actual feedback submission
-        // - Save to database
-        // - Send email to support team
-        // - Create support ticket
+            User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        log.info("Feedback submitted by user: {} with ticket ID: {}", userId, ticketId);
-        return ticketId;
+            // Generate ticket ID
+            String ticketId = "TICKET-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
+            // Extract feedback data
+            String type = feedback.getOrDefault("type", "other");
+            String subject = feedback.getOrDefault("subject", "No Subject");
+            String message = feedback.getOrDefault("message", "");
+            String email = feedback.getOrDefault("email", user.getEmail());
+
+            // Validate required fields
+            if (message == null || message.trim().isEmpty()) {
+                throw new RuntimeException("Feedback message is required");
+            }
+
+            // Create feedback record
+            Feedback feedbackEntity = Feedback.builder()
+                .user(user)
+                .type(type)
+                .subject(subject)
+                .message(message)
+                .email(email)
+                .ticketId(ticketId)
+                .status("PENDING")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+            feedbackRepository.save(feedbackEntity);
+
+            // Send notification email to support team
+            try {
+                emailService.sendFeedbackNotification(
+                    ticketId,
+                    user.getName(),
+                    email,
+                    type,
+                    subject,
+                    message
+                );
+            } catch (Exception e) {
+                log.error("Failed to send feedback notification email: {}", e.getMessage(), e);
+                // Continue - email failure shouldn't block feedback submission
+            }
+
+            log.info("Feedback submitted by user: {} with ticket ID: {}", userId, ticketId);
+            return ticketId;
+        } catch (Exception e) {
+            log.error("Failed to submit feedback for user: {}", userId, e);
+            throw new RuntimeException("Failed to submit feedback: " + e.getMessage(), e);
+        }
     }
 
     @Transactional
