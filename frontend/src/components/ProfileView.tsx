@@ -5,7 +5,7 @@ import { UserProfile, ProfileCompletionStatus } from '../types/Profile';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileEdit from './ProfileEdit';
 import { Post } from '../types/Post';
-import { getUserPosts, getBookmarkedPosts, getUserShareStats } from '../services/postApi';
+import { getUserPosts, getBookmarkedPosts, getUserShareStats, followUser, unfollowUser, getFollowStatus } from '../services/postApi';
 import PostCard from './PostCard';
 import { parseEventDate } from '../utils/dateUtils';
 import chatApi from '../services/chatApi';
@@ -49,6 +49,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   // Direct message state
   const [creatingDM, setCreatingDM] = useState(false);
 
+  // Follow state
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+
   const isOwnProfile = !userId || userId === user?.userId;
   const targetUserId = userId || user?.userId || '';
 
@@ -80,13 +84,23 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
       if (targetUserId) {
         await loadShareStats(targetUserId);
       }
+
+      // Check follow status if viewing another user's profile
+      if (!isOwnProfile && user?.userId && userId) {
+        try {
+          const followStatus = await getFollowStatus(userId);
+          setIsFollowing(followStatus.isFollowing);
+        } catch (err) {
+          console.error('Error checking follow status:', err);
+        }
+      }
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 'Failed to load profile';
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [userId, user?.userId, loadShareStats, targetUserId]);
+  }, [userId, user?.userId, loadShareStats, targetUserId, isOwnProfile]);
 
   const loadUserPosts = useCallback(async (reset: boolean = false) => {
     if (!targetUserId) return;
@@ -236,6 +250,31 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
     setPostsCount(prev => Math.max(0, prev - 1));
     handleBookmarkPostDelete(postId);
   }, [handleBookmarkPostDelete]);
+
+  const handleFollowToggle = async () => {
+    if (!user || !profile || followLoading || !userId) return;
+
+    try {
+      setFollowLoading(true);
+
+      if (isFollowing) {
+        await unfollowUser(userId);
+        setIsFollowing(false);
+        // Update follower counts
+        setProfile(prev => prev ? { ...prev, followerCount: (prev.followerCount || 0) - 1 } : null);
+      } else {
+        await followUser(userId);
+        setIsFollowing(true);
+        // Update follower counts
+        setProfile(prev => prev ? { ...prev, followerCount: (prev.followerCount || 0) + 1 } : null);
+      }
+    } catch (err: any) {
+      console.error('Error toggling follow:', err);
+      setError('Failed to update follow status');
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   const loadMorePosts = () => {
     if (!postsLoading && hasMorePosts) {
@@ -470,29 +509,46 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
                   {profile.role === 'ADMIN' && <span className="verified-badge-x">✓</span>}
                 </h1>
                 {!isOwnProfile && (
-                  <button
-                    onClick={handleMessageUser}
-                    disabled={creatingDM}
-                    className="message-user-button"
-                    title={`Send message to ${profile.name}`}
-                    aria-label={`Send message to ${profile.name}`}
-                  >
-                    <svg
-                      className="message-icon"
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                  <>
+                    <button
+                      onClick={handleFollowToggle}
+                      disabled={followLoading}
+                      className={`follow-btn-x ${isFollowing ? 'following' : ''}`}
+                      title={isFollowing ? 'Unfollow user' : 'Follow user'}
+                      aria-label={isFollowing ? 'Unfollow user' : 'Follow user'}
                     >
-                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                      <polyline points="22,6 12,13 2,6"></polyline>
-                    </svg>
-                    {creatingDM && <span className="message-loading">...</span>}
-                  </button>
+                      {followLoading ? (
+                        <span className="follow-spinner-x">...</span>
+                      ) : isFollowing ? (
+                        <>✓ Following</>
+                      ) : (
+                        <>👥 Follow</>
+                      )}
+                    </button>
+                    <button
+                      onClick={handleMessageUser}
+                      disabled={creatingDM}
+                      className="message-user-button"
+                      title={`Send message to ${profile.name}`}
+                      aria-label={`Send message to ${profile.name}`}
+                    >
+                      <svg
+                        className="message-icon"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
+                      </svg>
+                      {creatingDM && <span className="message-loading">...</span>}
+                    </button>
+                  </>
                 )}
               </div>
               <p className="profile-username-x">@{profile.email.split('@')[0]}</p>

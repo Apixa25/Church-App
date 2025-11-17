@@ -42,6 +42,10 @@ public class UserProfileResponse {
     private LocalDateTime updatedAt;
     private LocalDateTime lastLogin;
     
+    // Social stats
+    private Long followerCount;
+    private Long followingCount;
+    
     public static UserProfileResponse fromUser(User user) {
         return new UserProfileResponse(
             user.getId(),

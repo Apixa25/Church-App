@@ -22,6 +22,13 @@ const FeedFilters: React.FC<FeedFiltersProps> = ({
       color: '#2196f3'
     },
     {
+      type: FeedType.FOLLOWING,
+      label: 'Following',
+      description: 'People You Follow',
+      icon: '👥',
+      color: '#4caf50'
+    },
+    {
       type: FeedType.TRENDING,
       label: 'Trending',
       description: 'Popular (7 Days)',

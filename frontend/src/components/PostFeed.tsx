@@ -61,9 +61,17 @@ const PostFeed: React.FC<PostFeedProps> = ({
       }
 
       const currentPage = reset ? 0 : pageRef.current;
+      let feedTypeString = 'community';
+      if (feedType === FeedType.FOLLOWING) {
+        feedTypeString = 'following';
+      } else if (feedType === FeedType.TRENDING) {
+        feedTypeString = 'trending';
+      } else if (feedType === FeedType.CHRONOLOGICAL) {
+        feedTypeString = 'community';
+      }
+      
       const response: FeedResponse = await getFeed(
-        feedType === FeedType.CHRONOLOGICAL ? 'community' :
-        feedType === FeedType.TRENDING ? 'trending' : 'community',
+        feedTypeString,
         currentPage,
         POSTS_PER_PAGE
       );

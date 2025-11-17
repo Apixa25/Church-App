@@ -42,6 +42,7 @@ export enum ShareType {
 
 export enum FeedType {
   CHRONOLOGICAL = 'CHRONOLOGICAL',
+  FOLLOWING = 'FOLLOWING',
   TRENDING = 'TRENDING',
   FOR_YOU = 'FOR_YOU'
 }
