@@ -42,6 +42,11 @@ public interface OrganizationRepository extends JpaRepository<Organization, UUID
     @Query("SELECT COUNT(o) FROM Organization o WHERE o.status = 'ACTIVE' AND o.deletedAt IS NULL")
     Long countActiveOrganizations();
 
+    // Get all non-deleted organizations (for admin - includes TRIAL, ACTIVE, SUSPENDED, CANCELLED)
+    @Query("SELECT o FROM Organization o WHERE o.deletedAt IS NULL " +
+           "ORDER BY o.createdAt DESC")
+    Page<Organization> findAllNonDeletedOrganizations(Pageable pageable);
+
     @Query("SELECT o FROM Organization o WHERE o.parentOrganization.id = :parentId")
     List<Organization> findByParentOrganizationId(@Param("parentId") UUID parentId);
 

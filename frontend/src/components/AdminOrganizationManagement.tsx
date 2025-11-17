@@ -24,6 +24,7 @@ const AdminOrganizationManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('ALL');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOrganizations();
@@ -58,6 +59,35 @@ const AdminOrganizationManagement: React.FC = () => {
   const handleCreateSuccess = (newOrg: Organization) => {
     setOrganizations(prev => [newOrg, ...prev]);
     setShowCreateForm(false);
+  };
+
+  const handleStatusChange = async (orgId: string, newStatus: string) => {
+    try {
+      setUpdatingStatus(orgId);
+      setError(null);
+      const token = localStorage.getItem('authToken');
+      
+      await axios.patch(
+        `${API_BASE_URL}/organizations/${orgId}/status`,
+        null,
+        {
+          params: { status: newStatus },
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      // Update the organization in the list
+      setOrganizations(prev =>
+        prev.map(org =>
+          org.id === orgId ? { ...org, status: newStatus } : org
+        )
+      );
+    } catch (err: any) {
+      console.error('Error updating organization status:', err);
+      setError(err.response?.data?.message || 'Failed to update organization status');
+    } finally {
+      setUpdatingStatus(null);
+    }
   };
 
   const filteredOrganizations = organizations.filter(org => {
@@ -170,7 +200,17 @@ const AdminOrganizationManagement: React.FC = () => {
                   <Badge color={getTypeColor(org.type)}>{org.type}</Badge>
                 </Td>
                 <Td>
-                  <Badge color={getStatusColor(org.status)}>{org.status}</Badge>
+                  <StatusSelect
+                    value={org.status}
+                    onChange={(e) => handleStatusChange(org.id, e.target.value)}
+                    disabled={updatingStatus === org.id}
+                    color={getStatusColor(org.status)}
+                  >
+                    <option value="TRIAL">TRIAL</option>
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="SUSPENDED">SUSPENDED</option>
+                    <option value="CANCELLED">CANCELLED</option>
+                  </StatusSelect>
                 </Td>
                 <Td>{org.tier}</Td>
                 <Td>
@@ -331,6 +371,43 @@ const Badge = styled.span<{ color: string }>`
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+`;
+
+const StatusSelect = styled.select<{ color: string }>`
+  padding: 4px 8px;
+  border: 1px solid ${props => props.color}44;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: ${props => props.color}22;
+  color: ${props => props.color};
+  cursor: pointer;
+  min-width: 100px;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: ${props => props.color}33;
+    border-color: ${props => props.color}66;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: ${props => props.color};
+    box-shadow: 0 0 0 2px ${props => props.color}22;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  option {
+    background: white;
+    color: #333;
+    padding: 4px;
+  }
 `;
 
 const MemberCount = styled.div`
