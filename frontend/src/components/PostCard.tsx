@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Post, PostType, Comment, SharePostRequest } from '../types/Post';
-import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost, deletePost } from '../services/postApi';
+import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost, deletePost, recordPostView } from '../services/postApi';
 import CommentThread from './CommentThread';
 import { formatRelativeDate } from '../utils/dateUtils';
 import { useAuth } from '../contexts/AuthContext';
@@ -52,6 +52,19 @@ const PostCard: React.FC<PostCardProps> = ({
     post.commentsCount,
     post.sharesCount
   ]);
+
+  // Record post view when post is displayed
+  useEffect(() => {
+    const recordView = async () => {
+      try {
+        await recordPostView(post.id);
+      } catch (err) {
+        // Silently fail - don't show error for analytics
+        console.debug('Error recording post view:', err);
+      }
+    };
+    recordView();
+  }, [post.id]);
 
   // Check if current user can delete this post (owner, admin, or moderator)
   const canDelete = user && (

@@ -5,9 +5,10 @@ import { UserProfile, ProfileCompletionStatus } from '../types/Profile';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileEdit from './ProfileEdit';
 import { Post } from '../types/Post';
-import { getUserPosts, getBookmarkedPosts, getUserShareStats, followUser, unfollowUser, getFollowStatus, blockUser, unblockUser, getBlockStatus } from '../services/postApi';
+import { getUserPosts, getBookmarkedPosts, getUserShareStats, followUser, unfollowUser, getFollowStatus, blockUser, unblockUser, getBlockStatus, recordProfileView } from '../services/postApi';
 import FollowersList from './FollowersList';
 import FollowingList from './FollowingList';
+import ProfileAnalytics from './ProfileAnalytics';
 import PostCard from './PostCard';
 import { parseEventDate } from '../utils/dateUtils';
 import chatApi from '../services/chatApi';
@@ -34,7 +35,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [postsError, setPostsError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'posts' | 'replies' | 'highlights' | 'articles' | 'media' | 'bookmarks'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'replies' | 'highlights' | 'articles' | 'media' | 'bookmarks' | 'analytics'>('posts');
   const [page, setPage] = useState(0);
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [postsCount, setPostsCount] = useState(0);
@@ -100,6 +101,16 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
           setIsFollowing(followStatus.isFollowing);
         } catch (err) {
           console.error('Error checking follow status:', err);
+        }
+      }
+
+      // Record profile view if viewing another user's profile
+      if (!isOwnProfile && user?.userId && userId) {
+        try {
+          await recordProfileView(userId);
+        } catch (err) {
+          // Silently fail - don't show error for analytics
+          console.debug('Error recording profile view:', err);
         }
       }
     } catch (err: any) {
@@ -803,6 +814,14 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
           >
             Bookmarks
           </button>
+          {isOwnProfile && (
+            <button
+              className={`nav-tab-x ${activeTab === 'analytics' ? 'active' : ''}`}
+              onClick={() => setActiveTab('analytics')}
+            >
+              📊 Analytics
+            </button>
+          )}
         </div>
 
         {/* Posts Feed */}
@@ -928,8 +947,14 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
           </div>
         )}
 
+        {activeTab === 'analytics' && isOwnProfile && (
+          <div className="profile-analytics-container">
+            <ProfileAnalytics userId={targetUserId} isOwnProfile={isOwnProfile} />
+          </div>
+        )}
+
         {/* Other tabs content (placeholder for now) */}
-        {activeTab !== 'posts' && activeTab !== 'bookmarks' && (
+        {activeTab !== 'posts' && activeTab !== 'bookmarks' && activeTab !== 'analytics' && (
           <div className="profile-tab-content">
             <div className="tab-placeholder">
               <p>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} tab coming soon!</p>

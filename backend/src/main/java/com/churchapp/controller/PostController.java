@@ -7,6 +7,7 @@ import com.churchapp.repository.UserRepository;
 import com.churchapp.service.FeedService;
 import com.churchapp.service.FileUploadService;
 import com.churchapp.service.NotificationService;
+import com.churchapp.service.PostAnalyticsService;
 import com.churchapp.service.PostInteractionService;
 import com.churchapp.service.PostResponseMapper;
 import com.churchapp.service.PostService;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -41,6 +43,7 @@ public class PostController {
     private final NotificationService notificationService;
     private final FileUploadService fileUploadService;
     private final PostResponseMapper postResponseMapper;
+    private final PostAnalyticsService postAnalyticsService;
     private final UserRepository userRepository;
 
     // ========== POST CRUD OPERATIONS ==========
@@ -135,6 +138,20 @@ public class PostController {
         if (post.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
+
+        // Record post view
+        UUID viewerId = null;
+        if (user != null) {
+            try {
+                com.churchapp.entity.User viewer = userRepository.findByEmail(user.getUsername()).orElse(null);
+                if (viewer != null) {
+                    viewerId = viewer.getId();
+                }
+            } catch (Exception e) {
+                // If we can't get viewer ID, continue without recording view
+            }
+        }
+        postAnalyticsService.recordPostView(postId, viewerId);
 
         PostResponse response = postResponseMapper.mapPost(post.get(), resolveUserId(user));
         return ResponseEntity.ok(response);
@@ -579,6 +596,76 @@ public class PostController {
         } catch (Exception e) {
             log.error("Error uploading media files for user: {}", user.getUsername(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    // ========== ANALYTICS ==========
+
+    /**
+     * Get post engagement stats
+     * GET /api/posts/{postId}/analytics
+     */
+    @GetMapping("/{postId}/analytics")
+    public ResponseEntity<Map<String, Object>> getPostAnalytics(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID postId) {
+        try {
+            // Verify user owns the post or is admin
+            Optional<Post> postOpt = postService.getPost(postId);
+            if (postOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Post post = postOpt.get();
+            UUID userId = null;
+            if (user != null) {
+                com.churchapp.entity.User currentUser = userRepository.findByEmail(user.getUsername()).orElse(null);
+                if (currentUser != null) {
+                    userId = currentUser.getId();
+                }
+            }
+            
+            // Only post owner or admin can view analytics
+            if (userId == null || (!post.getUser().getId().equals(userId) && 
+                !(user != null && (user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")))))) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            
+            Map<String, Object> stats = postAnalyticsService.getPostEngagementStats(postId);
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            log.error("Error fetching post analytics: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Record a post view (called when post is displayed)
+     * POST /api/posts/{postId}/view
+     */
+    @PostMapping("/{postId}/view")
+    public ResponseEntity<Map<String, String>> recordPostView(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID postId) {
+        try {
+            UUID viewerId = null;
+            if (user != null) {
+                com.churchapp.entity.User viewer = userRepository.findByEmail(user.getUsername()).orElse(null);
+                if (viewer != null) {
+                    viewerId = viewer.getId();
+                }
+            }
+            
+            postAnalyticsService.recordPostView(postId, viewerId);
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Post view recorded");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error recording post view: {}", e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to record post view");
+            return ResponseEntity.badRequest().body(error);
         }
     }
 
