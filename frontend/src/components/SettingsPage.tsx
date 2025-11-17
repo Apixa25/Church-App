@@ -18,8 +18,11 @@ import {
   resetToDefaults,
   UserSettings,
   SystemInfo,
-  HelpContent
+  HelpContent,
+  handleApiError
 } from '../services/settingsApi';
+import AccountDeletionModal from './AccountDeletionModal';
+import ConfirmationModal from './ConfirmationModal';
 import './SettingsPage.css';
 
 interface SettingsPageProps {
@@ -42,6 +45,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedHelpCategory, setSelectedHelpCategory] = useState<string>('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -73,7 +78,9 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
       }
     } catch (err: any) {
       console.error('Error loading settings data:', err);
-      setError('Failed to load settings data');
+      const errorMessage = handleApiError(err);
+      setError(errorMessage || 'Failed to load settings. Please refresh the page or try again later.');
+      setTimeout(() => setError(''), 7000);
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +98,9 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err: any) {
       console.error('Error saving settings:', err);
-      setError('Failed to save settings');
+      const errorMessage = handleApiError(err);
+      setError(errorMessage || 'Failed to save settings. Please check your connection and try again.');
+      setTimeout(() => setError(''), 5000);
     } finally {
       setIsSaving(false);
     }
@@ -100,12 +109,15 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
   const handleNotificationUpdate = async (notificationSettings: any) => {
     try {
       setIsSaving(true);
+      setError('');
       await updateNotificationSettings(notificationSettings);
       await loadData(); // Refresh data
       setSuccessMessage('Notification settings updated! 🔔');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err: any) {
-      setError('Failed to update notification settings');
+      const errorMessage = handleApiError(err);
+      setError(errorMessage || 'Failed to update notification settings. Please try again.');
+      setTimeout(() => setError(''), 5000);
     } finally {
       setIsSaving(false);
     }
@@ -114,12 +126,15 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
   const handlePrivacyUpdate = async (privacySettings: any) => {
     try {
       setIsSaving(true);
+      setError('');
       await updatePrivacySettings(privacySettings);
       await loadData();
       setSuccessMessage('Privacy settings updated! 🔒');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err: any) {
-      setError('Failed to update privacy settings');
+      const errorMessage = handleApiError(err);
+      setError(errorMessage || 'Failed to update privacy settings. Please try again.');
+      setTimeout(() => setError(''), 5000);
     } finally {
       setIsSaving(false);
     }
@@ -128,16 +143,31 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
   const handleAppearanceUpdate = async (appearanceSettings: any) => {
     try {
       setIsSaving(true);
+      setError('');
       await updateAppearanceSettings(appearanceSettings);
       await loadData();
 
       // Apply theme immediately
-      document.documentElement.setAttribute('data-theme', appearanceSettings.theme?.toLowerCase() || 'light');
+      if (appearanceSettings.theme) {
+        const theme = appearanceSettings.theme.toLowerCase();
+        if (theme === 'auto') {
+          // Check system preference
+          if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } else {
+          document.documentElement.setAttribute('data-theme', theme);
+        }
+      }
 
       setSuccessMessage('Appearance settings updated! 🎨');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err: any) {
-      setError('Failed to update appearance settings');
+      const errorMessage = handleApiError(err);
+      setError(errorMessage || 'Failed to update appearance settings. Please try again.');
+      setTimeout(() => setError(''), 5000);
     } finally {
       setIsSaving(false);
     }
@@ -145,16 +175,31 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 
   const handleTestNotification = async () => {
     try {
+      setError('');
+      setSuccessMessage('');
       await testNotification();
       setSuccessMessage('Test notification sent! Check your device 📱');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      setTimeout(() => setSuccessMessage(''), 5000);
     } catch (err: any) {
-      setError('Failed to send test notification');
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || err.message;
+      
+      if (errorMessage?.toLowerCase().includes('fcm token')) {
+        setError('Push notifications are not set up. Please enable push notifications first, or register your device.');
+      } else if (errorMessage?.toLowerCase().includes('not enabled')) {
+        setError('Push notifications are not enabled. Please enable them in your settings first.');
+      } else {
+        setError(handleApiError(err) || 'Failed to send test notification. Please check your device settings and try again.');
+      }
+      setTimeout(() => setError(''), 7000);
     }
   };
 
   const handleExportData = async (format: string) => {
     try {
+      setError('');
+      setSuccessMessage('');
+      setIsSaving(true);
+      
       const data = await exportUserData(format);
       const blob = new Blob([data], {
         type: format === 'pdf' ? 'application/pdf' : 'application/json'
@@ -162,67 +207,113 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `church_app_data.${format}`;
+      a.download = `church_app_data_${new Date().toISOString().split('T')[0]}.${format}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      setSuccessMessage('Data exported successfully! 📥');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      setSuccessMessage(`Data exported successfully as ${format.toUpperCase()}! 📥 Check your downloads folder.`);
+      setTimeout(() => setSuccessMessage(''), 5000);
     } catch (err: any) {
-      setError('Failed to export data');
+      const errorMessage = handleApiError(err);
+      setError(errorMessage || 'Failed to export data. Please try again or contact support if the problem persists.');
+      setTimeout(() => setError(''), 7000);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleCreateBackup = async () => {
     try {
+      setError('');
+      setSuccessMessage('');
+      setIsSaving(true);
+      
       const result = await createBackup();
-      setSuccessMessage(`Backup created! ID: ${result.backupId} 💾`);
-      setTimeout(() => setSuccessMessage(''), 5000);
+      setSuccessMessage(`Backup created successfully! 💾 Backup ID: ${result.backupId}. Your data is safe for 90 days.`);
+      setTimeout(() => setSuccessMessage(''), 6000);
+      
+      // Refresh settings to update lastBackupDate
+      await loadData();
     } catch (err: any) {
-      setError('Failed to create backup');
+      const errorMessage = handleApiError(err);
+      setError(errorMessage || 'Failed to create backup. Please try again or contact support if the problem persists.');
+      setTimeout(() => setError(''), 7000);
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleAccountDeletion = async () => {
-    const password = prompt('Please enter your password to confirm account deletion:');
-    const reason = prompt('Please tell us why you\'re leaving (optional):');
-
-    if (password) {
-      try {
-        await requestAccountDeletion(reason || 'No reason provided', password);
-        setSuccessMessage('Account deletion request submitted. Check your email for confirmation.');
-        setTimeout(() => {
-          logout();
-          navigate('/login');
-        }, 3000);
-      } catch (err: any) {
-        setError('Failed to request account deletion');
+  const handleAccountDeletion = async (password: string, reason: string) => {
+    try {
+      setError('');
+      setSuccessMessage('');
+      
+      await requestAccountDeletion(reason.trim() || 'No reason provided', password);
+      
+      // Close modal on success
+      setShowDeleteModal(false);
+      
+      setSuccessMessage('Account deletion request submitted! ✅ Please check your email for a confirmation link. Your account will be deleted after a 7-day grace period.');
+      
+      setTimeout(() => {
+        logout();
+        navigate('/login');
+      }, 5000);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || err.message;
+      
+      if (errorMessage?.toLowerCase().includes('password')) {
+        throw new Error('Invalid password. Please check your password and try again.');
+      } else if (errorMessage?.toLowerCase().includes('already exists')) {
+        throw new Error('You already have a pending deletion request. Please check your email for the confirmation link.');
+      } else {
+        throw new Error(handleApiError(err) || 'Failed to submit deletion request. Please try again or contact support.');
       }
     }
   };
 
   const handleResetSettings = async () => {
-    if (window.confirm('Are you sure you want to reset all settings to defaults? This cannot be undone.')) {
-      try {
-        const defaultSettings = await resetToDefaults();
-        setSettings(defaultSettings);
-        setSuccessMessage('Settings reset to defaults! 🔄');
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } catch (err: any) {
-        setError('Failed to reset settings');
-      }
+    try {
+      setError('');
+      setSuccessMessage('');
+      setIsSaving(true);
+      
+      const defaultSettings = await resetToDefaults();
+      setSettings(defaultSettings);
+      setSuccessMessage('Settings reset to defaults! 🔄 All your preferences have been restored to their default values.');
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (err: any) {
+      const errorMessage = handleApiError(err);
+      setError(errorMessage || 'Failed to reset settings. Please try again or contact support if the problem persists.');
+      setTimeout(() => setError(''), 7000);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleFeedbackSubmit = async (feedback: any) => {
     try {
+      setError('');
+      setSuccessMessage('');
+      setIsSaving(true);
+      
       const result = await submitFeedback(feedback);
-      setSuccessMessage(`Feedback submitted! Ticket ID: ${result.ticketId} 🎫`);
-      setTimeout(() => setSuccessMessage(''), 5000);
+      setSuccessMessage(`Feedback submitted successfully! 🎫 Ticket ID: ${result.ticketId}. We'll review your feedback and get back to you soon.`);
+      setTimeout(() => setSuccessMessage(''), 6000);
+      
+      // Reset feedback form
+      const form = document.querySelector('.feedback-form form') as HTMLFormElement;
+      if (form) {
+        form.reset();
+      }
     } catch (err: any) {
-      setError('Failed to submit feedback');
+      const errorMessage = handleApiError(err);
+      setError(errorMessage || 'Failed to submit feedback. Please try again or contact support directly.');
+      setTimeout(() => setError(''), 7000);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -321,16 +412,22 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 
       {/* Success/Error Messages */}
       {successMessage && (
-        <div className="success-banner">
-          <span>{successMessage}</span>
-          <button onClick={() => setSuccessMessage('')} className="dismiss-btn">✕</button>
+        <div className="success-banner" role="alert">
+          <div className="error-banner-content">
+            <span className="error-icon">✅</span>
+            <span className="error-text">{successMessage}</span>
+          </div>
+          <button onClick={() => setSuccessMessage('')} className="dismiss-btn" aria-label="Dismiss success message">✕</button>
         </div>
       )}
 
       {error && (
-        <div className="error-banner">
-          <span>⚠️ {error}</span>
-          <button onClick={() => setError('')} className="dismiss-btn">✕</button>
+        <div className="error-banner" role="alert">
+          <div className="error-banner-content">
+            <span className="error-icon">⚠️</span>
+            <span className="error-text">{error}</span>
+          </div>
+          <button onClick={() => setError('')} className="dismiss-btn" aria-label="Dismiss error message">✕</button>
         </div>
       )}
 
@@ -1082,8 +1179,9 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                       <p>Reset all settings to their default values</p>
                     </div>
                     <button
-                      onClick={handleResetSettings}
+                      onClick={() => setShowResetModal(true)}
                       className="danger-btn reset"
+                      disabled={isSaving}
                     >
                       Reset Settings
                     </button>
@@ -1095,8 +1193,9 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                       <p>Permanently delete your account and all data</p>
                     </div>
                     <button
-                      onClick={handleAccountDeletion}
+                      onClick={() => setShowDeleteModal(true)}
                       className="danger-btn delete"
+                      disabled={isSaving}
                     >
                       Delete Account
                     </button>
@@ -1366,6 +1465,30 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
           </div>
         </div>
       )}
+
+      {/* Account Deletion Modal */}
+      <AccountDeletionModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onSubmit={handleAccountDeletion}
+        userName={user?.name}
+      />
+
+      {/* Reset Settings Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showResetModal}
+        onClose={() => setShowResetModal(false)}
+        onConfirm={async () => {
+          await handleResetSettings();
+          setShowResetModal(false);
+        }}
+        title="🔄 Reset All Settings"
+        message="Are you sure you want to reset all your settings to their default values? This action cannot be undone and will restore all preferences to factory defaults."
+        confirmText="Reset Settings"
+        cancelText="Cancel"
+        confirmButtonVariant="warning"
+        isLoading={isSaving}
+      />
     </div>
   );
 };
