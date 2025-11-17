@@ -18,9 +18,12 @@ public interface UserBackupRepository extends JpaRepository<UserBackup, UUID> {
 
     Optional<UserBackup> findByBackupId(String backupId);
 
-    List<UserBackup> findByUserIdOrderByCreatedAtDesc(UUID userId);
+    // Use user.id path since UserBackup has a @ManyToOne relationship to User
+    @Query("SELECT ub FROM UserBackup ub WHERE ub.user.id = :userId ORDER BY ub.createdAt DESC")
+    List<UserBackup> findByUserIdOrderByCreatedAtDesc(@Param("userId") UUID userId);
 
-    Page<UserBackup> findByUserIdOrderByCreatedAtDesc(UUID userId, Pageable pageable);
+    @Query("SELECT ub FROM UserBackup ub WHERE ub.user.id = :userId ORDER BY ub.createdAt DESC")
+    Page<UserBackup> findByUserIdOrderByCreatedAtDesc(@Param("userId") UUID userId, Pageable pageable);
 
     @Query("SELECT ub FROM UserBackup ub WHERE ub.status = :status")
     List<UserBackup> findByStatus(@Param("status") String status);
@@ -28,9 +31,10 @@ public interface UserBackupRepository extends JpaRepository<UserBackup, UUID> {
     @Query("SELECT ub FROM UserBackup ub WHERE ub.expiresAt IS NOT NULL AND ub.expiresAt <= :now")
     List<UserBackup> findExpiredBackups(@Param("now") LocalDateTime now);
 
-    @Query("SELECT ub FROM UserBackup ub WHERE ub.userId = :userId AND ub.status = 'COMPLETED' ORDER BY ub.createdAt DESC")
+    @Query("SELECT ub FROM UserBackup ub WHERE ub.user.id = :userId AND ub.status = 'COMPLETED' ORDER BY ub.createdAt DESC")
     List<UserBackup> findCompletedBackupsByUser(@Param("userId") UUID userId);
 
-    Optional<UserBackup> findFirstByUserIdOrderByCreatedAtDesc(UUID userId);
+    @Query("SELECT ub FROM UserBackup ub WHERE ub.user.id = :userId ORDER BY ub.createdAt DESC")
+    Optional<UserBackup> findFirstByUserIdOrderByCreatedAtDesc(@Param("userId") UUID userId);
 }
 
