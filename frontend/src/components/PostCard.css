@@ -193,6 +193,7 @@
   border: none !important;
   background: none !important;
   border-radius: 0 !important;
+  box-shadow: none !important;
   font-size: 21px !important;
   color: var(--text-secondary) !important;
   cursor: pointer !important;
@@ -205,6 +206,7 @@
 
 .action-button:hover {
   background: none !important;
+  box-shadow: none !important;
   transform: scale(1.2) !important;
   color: var(--accent-primary) !important;
 }
@@ -232,8 +234,15 @@
   background: none !important;
 }
 
+.share-button {
+  box-shadow: none !important;
+  background: none !important;
+  border: none !important;
+}
+
 .share-button:hover {
   background: none !important;
+  box-shadow: none !important;
 }
 
 /* Comment Form */
