@@ -6,6 +6,8 @@ import { useAuth } from '../contexts/AuthContext';
 import ProfileEdit from './ProfileEdit';
 import { Post } from '../types/Post';
 import { getUserPosts, getBookmarkedPosts, getUserShareStats, followUser, unfollowUser, getFollowStatus } from '../services/postApi';
+import FollowersList from './FollowersList';
+import FollowingList from './FollowingList';
 import PostCard from './PostCard';
 import { parseEventDate } from '../utils/dateUtils';
 import chatApi from '../services/chatApi';
@@ -52,6 +54,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   // Follow state
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [showFollowingModal, setShowFollowingModal] = useState(false);
 
   const isOwnProfile = !userId || userId === user?.userId;
   const targetUserId = userId || user?.userId || '';
@@ -681,11 +685,19 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
             })()}
 
             <div className="profile-stats-x">
-              <div className="stat-item-x">
+              <div 
+                className="stat-item-x clickable-stat-x"
+                onClick={() => setShowFollowingModal(true)}
+                title="View following"
+              >
                 <span className="stat-number-x">{(profile as any).followingCount || 0}</span>
                 <span className="stat-label-x">Following</span>
               </div>
-              <div className="stat-item-x">
+              <div 
+                className="stat-item-x clickable-stat-x"
+                onClick={() => setShowFollowersModal(true)}
+                title="View followers"
+              >
                 <span className="stat-number-x">{(profile as any).followerCount || 0}</span>
                 <span className="stat-label-x">Followers</span>
               </div>
@@ -871,6 +883,24 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
           </div>
         )}
       </div>
+
+      {/* Followers and Following Modals */}
+      {profile && (
+        <>
+          <FollowersList
+            userId={profile.userId}
+            userName={profile.name}
+            isOpen={showFollowersModal}
+            onClose={() => setShowFollowersModal(false)}
+          />
+          <FollowingList
+            userId={profile.userId}
+            userName={profile.name}
+            isOpen={showFollowingModal}
+            onClose={() => setShowFollowingModal(false)}
+          />
+        </>
+      )}
     </div>
   );
 };

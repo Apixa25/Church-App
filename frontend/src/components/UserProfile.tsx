@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Post } from '../types/Post';
 import { getUserProfile, getUserPosts, getBookmarkedPosts, followUser, unfollowUser, getUserShareStats } from '../services/postApi';
+import FollowersList from './FollowersList';
+import FollowingList from './FollowingList';
 import { useAuth, User } from '../contexts/AuthContext';
 import PostCard from './PostCard';
 import { parseEventDate } from '../utils/dateUtils';
@@ -27,6 +29,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [showFollowingModal, setShowFollowingModal] = useState(false);
   const [bookmarkedPosts, setBookmarkedPosts] = useState<Post[]>([]);
   const [bookmarksLoading, setBookmarksLoading] = useState(false);
   const [hasMoreBookmarks, setHasMoreBookmarks] = useState(true);
@@ -388,11 +392,19 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
                 <span className="stat-number">{profileUser.postsCount || 0}</span>
                 <span className="stat-label">Posts</span>
               </div>
-              <div className="stat-item">
+              <div 
+                className="stat-item clickable-stat"
+                onClick={() => setShowFollowersModal(true)}
+                title="View followers"
+              >
                 <span className="stat-number">{profileUser.followerCount || 0}</span>
                 <span className="stat-label">Followers</span>
               </div>
-              <div className="stat-item">
+              <div 
+                className="stat-item clickable-stat"
+                onClick={() => setShowFollowingModal(true)}
+                title="View following"
+              >
                 <span className="stat-number">{profileUser.followingCount || 0}</span>
                 <span className="stat-label">Following</span>
               </div>
@@ -637,6 +649,24 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
           </div>
         )}
       </div>
+
+      {/* Followers and Following Modals */}
+      {profileUser && (
+        <>
+          <FollowersList
+            userId={profileUser.id || profileUser.userId}
+            userName={profileUser.name}
+            isOpen={showFollowersModal}
+            onClose={() => setShowFollowersModal(false)}
+          />
+          <FollowingList
+            userId={profileUser.id || profileUser.userId}
+            userName={profileUser.name}
+            isOpen={showFollowingModal}
+            onClose={() => setShowFollowingModal(false)}
+          />
+        </>
+      )}
     </div>
   );
 };
