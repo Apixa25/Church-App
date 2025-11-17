@@ -25,6 +25,8 @@ export interface UserProfile {
   createdAt: string;
   updatedAt: string;
   lastLogin?: string;
+  followerCount?: number;
+  followingCount?: number;
 }
 
 export interface ProfileUpdateRequest {

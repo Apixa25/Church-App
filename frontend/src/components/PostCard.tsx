@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Post, PostType, Comment, SharePostRequest } from '../types/Post';
-import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost, deletePost, recordPostView } from '../services/postApi';
+import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost, deletePost, recordPostView, blockUser, unblockUser, getBlockStatus, followUser, unfollowUser, getFollowStatus, reportContent } from '../services/postApi';
 import CommentThread from './CommentThread';
 import { formatRelativeDate } from '../utils/dateUtils';
 import { useAuth } from '../contexts/AuthContext';
 import ShareModal from './ShareModal';
+import ReportModal from './ReportModal';
+import PostStatsModal from './PostStatsModal';
 import ClickableAvatar from './ClickableAvatar';
 import './PostCard.css';
 
@@ -37,6 +39,14 @@ const PostCard: React.FC<PostCardProps> = ({
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<Comment[]>([]);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [blockLoading, setBlockLoading] = useState(false);
+  const [showReportPostModal, setShowReportPostModal] = useState(false);
+  const [showReportUserModal, setShowReportUserModal] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [showPostStatsModal, setShowPostStatsModal] = useState(false);
 
   useEffect(() => {
     setIsLiked(post.isLikedByCurrentUser || false);
@@ -65,6 +75,39 @@ const PostCard: React.FC<PostCardProps> = ({
     };
     recordView();
   }, [post.id]);
+
+  // Check block/follow status when post changes
+  useEffect(() => {
+    const checkStatus = async () => {
+      if (user && post.userId && post.userId !== user.userId && post.userId !== user.id) {
+        try {
+          const [blockStatus, followStatus] = await Promise.all([
+            getBlockStatus(post.userId),
+            getFollowStatus(post.userId)
+          ]);
+          setIsBlocked(blockStatus.isBlocked);
+          setIsFollowing(followStatus.isFollowing);
+        } catch (err) {
+          console.error('Error checking status:', err);
+        }
+      }
+    };
+    checkStatus();
+  }, [post.userId, user]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showMoreMenu && !(event.target as Element).closest('.post-more-menu-container')) {
+        setShowMoreMenu(false);
+      }
+    };
+
+    if (showMoreMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showMoreMenu]);
 
   // Check if current user can delete this post (owner, admin, or moderator)
   const canDelete = user && (
@@ -184,6 +227,81 @@ const PostCard: React.FC<PostCardProps> = ({
       alert('Failed to delete post. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleBlockToggle = async () => {
+    if (!user || !post.userId || (post.userId === user.userId || post.userId === user.id) || blockLoading) return;
+
+    const action = isBlocked ? 'unblock' : 'block';
+    const confirmed = window.confirm(
+      isBlocked
+        ? `Are you sure you want to unblock ${post.userName}? You will see their posts again.`
+        : `Are you sure you want to block ${post.userName}? You will no longer see their posts, comments, or profile.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setBlockLoading(true);
+      if (isBlocked) {
+        await unblockUser(post.userId);
+        setIsBlocked(false);
+      } else {
+        await blockUser(post.userId);
+        setIsBlocked(true);
+        if (isFollowing) {
+          await unfollowUser(post.userId);
+          setIsFollowing(false);
+        }
+      }
+      setShowMoreMenu(false);
+    } catch (err: any) {
+      console.error(`Error ${action}ing user:`, err);
+      alert(`Failed to ${action} user. Please try again.`);
+    } finally {
+      setBlockLoading(false);
+    }
+  };
+
+  const handleFollowToggle = async () => {
+    if (!user || !post.userId || (post.userId === user.userId || post.userId === user.id)) return;
+
+    try {
+      if (isFollowing) {
+        await unfollowUser(post.userId);
+        setIsFollowing(false);
+      } else {
+        await followUser(post.userId);
+        setIsFollowing(true);
+      }
+      setShowMoreMenu(false);
+    } catch (err: any) {
+      console.error('Error toggling follow:', err);
+      alert('Failed to update follow status. Please try again.');
+    }
+  };
+
+  const handleReportPost = async (reason: string, description: string) => {
+    await reportContent('POST', post.id, reason, description);
+    alert('Thank you for your report. Our moderation team will review it.');
+  };
+
+  const handleReportUser = async (reason: string, description: string) => {
+    await reportContent('USER', post.userId, reason, description);
+    alert('Thank you for your report. Our moderation team will review it.');
+  };
+
+  const handleCopyLink = async () => {
+    const postUrl = `${window.location.origin}/posts/${post.id}`;
+    try {
+      await navigator.clipboard.writeText(postUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      setShowMoreMenu(false);
+    } catch (err) {
+      console.error('Failed to copy link:', err);
+      alert('Failed to copy link. Please try again.');
     }
   };
 
@@ -308,16 +426,92 @@ const PostCard: React.FC<PostCardProps> = ({
             </div>
           </div>
         </div>
-        {canDelete && (
-          <button
-            className="post-delete-button"
-            onClick={handleDelete}
-            disabled={isLoading}
-            title={user?.role === 'ADMIN' || user?.role === 'MODERATOR' ? 'Delete post (Admin)' : 'Delete post'}
-          >
-            🗑️
-          </button>
-        )}
+        <div className="post-header-actions">
+          {canDelete && (
+            <button
+              className="post-delete-button"
+              onClick={handleDelete}
+              disabled={isLoading}
+              title={user?.role === 'ADMIN' || user?.role === 'MODERATOR' ? 'Delete post (Admin)' : 'Delete post'}
+            >
+              🗑️
+            </button>
+          )}
+          <div className="post-more-menu-container">
+            <button
+              className="post-more-button"
+              onClick={() => setShowMoreMenu(!showMoreMenu)}
+              aria-label="More actions"
+            >
+              ⋯
+            </button>
+            {showMoreMenu && (
+              <div className="post-more-menu">
+                {user && post.userId && (post.userId !== user.userId && post.userId !== user.id) && (
+                  <>
+                    <button
+                      className="menu-item"
+                      onClick={handleFollowToggle}
+                      disabled={blockLoading}
+                    >
+                      {isFollowing ? '✓ Unfollow' : '👥 Follow'} {post.userName}
+                    </button>
+                    <button
+                      className="menu-item danger"
+                      onClick={handleBlockToggle}
+                      disabled={blockLoading}
+                    >
+                      {blockLoading ? (
+                        <span className="loading-spinner">...</span>
+                      ) : isBlocked ? (
+                        '🚫 Unblock'
+                      ) : (
+                        '🚫 Block'
+                      )} {post.userName}
+                    </button>
+                  </>
+                )}
+                {user && (post.userId === user.userId || post.userId === user.id) && (
+                  <button
+                    className="menu-item"
+                    onClick={() => {
+                      setShowPostStatsModal(true);
+                      setShowMoreMenu(false);
+                    }}
+                  >
+                    📊 View Stats
+                  </button>
+                )}
+                <button
+                  className="menu-item"
+                  onClick={() => {
+                    setShowReportPostModal(true);
+                    setShowMoreMenu(false);
+                  }}
+                >
+                  🚨 Report Post
+                </button>
+                {user && post.userId && (post.userId !== user.userId && post.userId !== user.id) && (
+                  <button
+                    className="menu-item danger"
+                    onClick={() => {
+                      setShowReportUserModal(true);
+                      setShowMoreMenu(false);
+                    }}
+                  >
+                    🚨 Report User
+                  </button>
+                )}
+                <button
+                  className="menu-item"
+                  onClick={handleCopyLink}
+                >
+                  {copied ? '✓ Link Copied!' : '🔗 Copy Link'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Post Content */}
@@ -395,6 +589,29 @@ const PostCard: React.FC<PostCardProps> = ({
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         onShare={handleShareSuccess}
+      />
+
+      {/* Report Modals */}
+      <ReportModal
+        isOpen={showReportPostModal}
+        onClose={() => setShowReportPostModal(false)}
+        onSubmit={handleReportPost}
+        contentType="POST"
+        contentName={post.content ? (post.content.length > 50 ? post.content.substring(0, 50) + '...' : post.content) : 'Post'}
+      />
+
+      <ReportModal
+        isOpen={showReportUserModal}
+        onClose={() => setShowReportUserModal(false)}
+        onSubmit={handleReportUser}
+        contentType="USER"
+        contentName={post.userName}
+      />
+
+      <PostStatsModal
+        postId={post.id}
+        isOpen={showPostStatsModal}
+        onClose={() => setShowPostStatsModal(false)}
       />
     </div>
   );
