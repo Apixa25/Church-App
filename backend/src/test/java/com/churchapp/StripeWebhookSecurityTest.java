@@ -1,5 +1,9 @@
 package com.churchapp;
 
+import com.churchapp.repository.DonationRepository;
+import com.churchapp.repository.DonationSubscriptionRepository;
+import com.churchapp.service.StripePaymentService;
+import com.churchapp.service.StripeSubscriptionService;
 import com.churchapp.service.StripeWebhookService;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.Event;
@@ -20,8 +24,20 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class StripeWebhookSecurityTest {
 
-    @Mock
+    @InjectMocks
     private StripeWebhookService stripeWebhookService;
+
+    @Mock
+    private StripePaymentService stripePaymentService;
+
+    @Mock
+    private StripeSubscriptionService stripeSubscriptionService;
+
+    @Mock
+    private DonationRepository donationRepository;
+
+    @Mock
+    private DonationSubscriptionRepository donationSubscriptionRepository;
 
     private String webhookSecret = "whsec_test_secret";
     private String validPayload = "{\"id\":\"evt_test\",\"object\":\"event\",\"type\":\"payment_intent.succeeded\"}";

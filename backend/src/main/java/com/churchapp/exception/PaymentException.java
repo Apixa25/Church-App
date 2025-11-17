@@ -1,8 +1,12 @@
 package com.churchapp.exception;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
 /**
  * Custom exception for payment-related errors
  */
+@ResponseStatus(HttpStatus.BAD_REQUEST)
 public class PaymentException extends RuntimeException {
 
     private final String errorCode;

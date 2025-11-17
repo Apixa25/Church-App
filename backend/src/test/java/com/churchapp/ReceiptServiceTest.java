@@ -6,6 +6,9 @@ import com.churchapp.entity.User;
 import com.churchapp.repository.DonationRepository;
 import com.churchapp.service.EmailService;
 import com.churchapp.service.ReceiptService;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfReader;
+import com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -182,7 +186,7 @@ public class ReceiptServiceTest {
         assertNotNull(pdfBytes);
 
         // Convert to string for content verification (simplified check)
-        String pdfContent = new String(pdfBytes);
+        String pdfContent = extractPdfText(pdfBytes);
 
         // Should contain church information
         assertTrue(pdfContent.contains("Test Church"));
@@ -207,7 +211,7 @@ public class ReceiptServiceTest {
         byte[] pdfBytes = receiptService.generateReceiptPdf(testDonation);
 
         // Assert - Should contain year in receipt number format
-        String pdfContent = new String(pdfBytes);
+        String pdfContent = extractPdfText(pdfBytes);
         assertTrue(pdfContent.contains("RCP-2023-"));
     }
 
@@ -263,8 +267,6 @@ public class ReceiptServiceTest {
             .doNothing() // Second attempt succeeds
             .when(emailService).sendReceiptEmail(any(Donation.class), any(byte[].class), anyString());
 
-        when(donationRepository.save(any(Donation.class))).thenReturn(testDonation);
-
         // Act - First call should fail silently, but not crash
         receiptService.generateAndEmailReceipt(testDonation);
 
@@ -282,12 +284,23 @@ public class ReceiptServiceTest {
 
         // Assert
         assertNotNull(pdfBytes);
-        String pdfContent = new String(pdfBytes);
+        String pdfContent = extractPdfText(pdfBytes);
 
         // Should contain tax-related information
         assertTrue(pdfContent.contains("Tax") || pdfContent.contains("deductible"));
 
         // Should contain church tax ID
         assertTrue(pdfContent.contains("12-3456789"));
+    }
+
+    private String extractPdfText(byte[] pdfBytes) throws Exception {
+        try (PdfReader reader = new PdfReader(new ByteArrayInputStream(pdfBytes));
+             PdfDocument pdfDoc = new PdfDocument(reader)) {
+            StringBuilder text = new StringBuilder();
+            for (int i = 1; i <= pdfDoc.getNumberOfPages(); i++) {
+                text.append(PdfTextExtractor.getTextFromPage(pdfDoc.getPage(i)));
+            }
+            return text.toString();
+        }
     }
 }
