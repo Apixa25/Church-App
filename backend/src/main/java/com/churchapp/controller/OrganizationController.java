@@ -4,6 +4,7 @@ import com.churchapp.dto.*;
 import com.churchapp.entity.Organization;
 import com.churchapp.entity.UserOrganizationMembership;
 import com.churchapp.repository.UserRepository;
+import com.churchapp.service.MetricsSnapshotService;
 import com.churchapp.service.OrganizationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,7 @@ public class OrganizationController {
     private final UserRepository userRepository;
     private final FileUploadService fileUploadService;
     private final com.churchapp.service.OrganizationMetricsService metricsService;
+    private final MetricsSnapshotService metricsSnapshotService;
 
     // Helper method to get user ID from Spring Security User
     private UUID getUserId(User securityUser) {
@@ -418,6 +420,81 @@ public class OrganizationController {
         }
     }
 
+    // ========================================================================
+    // HISTORICAL METRICS ENDPOINTS
+    // ========================================================================
+
+    @GetMapping("/{orgId}/metrics/history")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<MetricsHistoryResponse>> getOrganizationMetricsHistory(
+            @PathVariable UUID orgId,
+            @RequestParam(required = false) Integer days,
+            @AuthenticationPrincipal User userDetails) {
+
+        log.info("Admin {} requesting metrics history for organization {}", userDetails.getUsername(), orgId);
+
+        try {
+            List<com.churchapp.entity.OrganizationMetricsHistory> history;
+            
+            if (days != null && days > 0) {
+                history = metricsSnapshotService.getHistoryForLastDays(orgId, days);
+            } else {
+                history = metricsSnapshotService.getHistory(orgId);
+            }
+
+            List<MetricsHistoryResponse> response = history.stream()
+                    .map(MetricsHistoryResponse::fromHistory)
+                    .toList();
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error getting metrics history for organization {}: {}", orgId, e.getMessage(), e);
+            throw new RuntimeException("Failed to get metrics history: " + e.getMessage(), e);
+        }
+    }
+
+    @GetMapping("/{orgId}/metrics/history/latest")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<MetricsHistoryResponse> getLatestMetricsSnapshot(
+            @PathVariable UUID orgId,
+            @AuthenticationPrincipal User userDetails) {
+
+        log.info("Admin {} requesting latest metrics snapshot for organization {}", userDetails.getUsername(), orgId);
+
+        try {
+            var latest = metricsSnapshotService.getLatestSnapshot(orgId);
+            
+            if (latest == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            MetricsHistoryResponse response = MetricsHistoryResponse.fromHistory(latest);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error getting latest metrics snapshot for organization {}: {}", orgId, e.getMessage(), e);
+            throw new RuntimeException("Failed to get latest metrics snapshot: " + e.getMessage(), e);
+        }
+    }
+
+    @PostMapping("/{orgId}/metrics/snapshot")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<MetricsHistoryResponse> createMetricsSnapshot(
+            @PathVariable UUID orgId,
+            @AuthenticationPrincipal User userDetails) {
+
+        log.info("Admin {} triggering metrics snapshot creation for organization {}", userDetails.getUsername(), orgId);
+
+        try {
+            var snapshot = metricsSnapshotService.createSnapshot(orgId);
+            MetricsHistoryResponse response = MetricsHistoryResponse.fromHistory(snapshot);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error creating metrics snapshot for organization {}: {}", orgId, e.getMessage(), e);
+            throw new RuntimeException("Failed to create metrics snapshot: " + e.getMessage(), e);
+        }
+    }
+
     // Inner class for stats response
     @lombok.Data
     @lombok.NoArgsConstructor
@@ -462,6 +539,28 @@ public class OrganizationController {
             response.setEventsCount(metrics.getEventsCount());
             response.setAnnouncementsCount(metrics.getAnnouncementsCount());
             response.setCalculatedAt(metrics.getCalculatedAt() != null ? metrics.getCalculatedAt() : LocalDateTime.now());
+            return response;
+        }
+    }
+
+    // Inner class for metrics history response
+    @lombok.Data
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class MetricsHistoryResponse {
+        private UUID id;
+        private UUID organizationId;
+        private Map<String, Object> metricsSnapshot;
+        private LocalDateTime recordedAt;
+        private LocalDateTime createdAt;
+
+        public static MetricsHistoryResponse fromHistory(com.churchapp.entity.OrganizationMetricsHistory history) {
+            MetricsHistoryResponse response = new MetricsHistoryResponse();
+            response.setId(history.getId());
+            response.setOrganizationId(history.getOrganization() != null ? history.getOrganization().getId() : null);
+            response.setMetricsSnapshot(history.getMetricsSnapshot());
+            response.setRecordedAt(history.getRecordedAt());
+            response.setCreatedAt(history.getCreatedAt());
             return response;
         }
     }

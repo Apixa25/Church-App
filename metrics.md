@@ -430,44 +430,90 @@ Replace storage estimates with actual file sizes from S3.
 
 ### Enhancement #3: Historical Metrics Tracking 📈
 
-**Status:** 📋 Planned
+**Status:** ✅ **COMPLETE**
 
 **Description:**
 Store metrics history over time to enable trending and analytics.
 
-**Implementation Plan:**
-1. Create `organization_metrics_history` table
-2. Store daily snapshots of metrics
-3. Create service to query historical data
-4. Add endpoints for metrics over time
-5. Create frontend charts/graphs
+**Implementation:**
+1. ✅ Created `organization_metrics_history` table
+2. ✅ Store daily snapshots of metrics
+3. ✅ Created service to query historical data
+4. ✅ Added endpoints for metrics over time
+5. 📋 Frontend charts/graphs (future enhancement)
 
 **Database Schema:**
 ```sql
 CREATE TABLE organization_metrics_history (
-    id UUID PRIMARY KEY,
-    organization_id UUID NOT NULL,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     metrics_snapshot JSONB NOT NULL,
-    recorded_at TIMESTAMP NOT NULL,
-    -- Store full metrics as JSON for flexibility
+    recorded_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMP DEFAULT NOW()
 );
 ```
 
 **Benefits:**
-- Track growth trends
-- Identify usage patterns
-- Historical reporting
-- Capacity planning
+- ✅ Track growth trends
+- ✅ Identify usage patterns
+- ✅ Historical reporting
+- ✅ Capacity planning
 
-**Estimated Effort:** Medium (3-4 days)
+**Implementation Details:**
+- **Migration:** `V16__add_organization_metrics_history.sql`
+- **Entity:** `OrganizationMetricsHistory.java`
+- **Repository:** `OrganizationMetricsHistoryRepository.java`
+- **Service:** `MetricsSnapshotService.java`
+- **Scheduler:** Updated `MetricsScheduler` to create daily snapshots
+- **Controller:** Added historical endpoints in `OrganizationController`
 
-**Files to Create/Modify:**
-- Migration: `V16__add_metrics_history.sql`
-- Entity: `OrganizationMetricsHistory.java`
-- Repository: `OrganizationMetricsHistoryRepository.java`
-- Service: Update `MetricsScheduler` to store history
-- Controller: Add historical endpoints
-- Frontend: Add charts component
+**How It Works:**
+1. **Daily Snapshots:**
+   - Scheduled job runs daily at 2:30 AM (after metrics update at 2:00 AM)
+   - Creates a snapshot of current metrics for all active organizations
+   - Stores metrics as JSONB for flexibility
+
+2. **Data Storage:**
+   - Metrics stored as JSONB snapshot (allows schema flexibility)
+   - Includes: storage, network, activity metrics
+   - Timestamped with `recorded_at` for time-series queries
+
+3. **Query Capabilities:**
+   - Get all history for an organization
+   - Get history for last N days
+   - Get history within date range
+   - Get latest snapshot
+   - Count history records
+
+4. **Maintenance:**
+   - Monthly cleanup job (1st of month at 3:00 AM)
+   - Keeps last 365 days of history
+   - Automatically removes older records
+
+**API Endpoints:**
+- `GET /organizations/{orgId}/metrics/history` - Get all history (optional `?days=N` parameter)
+- `GET /organizations/{orgId}/metrics/history/latest` - Get latest snapshot
+- `POST /organizations/{orgId}/metrics/snapshot` - Manually create snapshot
+
+**Files Created/Modified:**
+- ✅ `backend/src/main/resources/db/migration/V16__add_organization_metrics_history.sql` (created)
+- ✅ `backend/src/main/java/com/churchapp/entity/OrganizationMetricsHistory.java` (created)
+- ✅ `backend/src/main/java/com/churchapp/repository/OrganizationMetricsHistoryRepository.java` (created)
+- ✅ `backend/src/main/java/com/churchapp/service/MetricsSnapshotService.java` (created)
+- ✅ `backend/src/main/java/com/churchapp/config/MetricsScheduler.java` (updated)
+- ✅ `backend/src/main/java/com/churchapp/controller/OrganizationController.java` (updated - added endpoints)
+
+**Indexes:**
+- `idx_metrics_history_org_id` - Fast lookup by organization
+- `idx_metrics_history_recorded_at` - Time-based queries
+- `idx_metrics_history_org_recorded` - Composite for organization + time
+- `idx_metrics_history_org_time_range` - Optimized for date range queries
+
+**Future Enhancements:**
+- Frontend charts/graphs component
+- Export historical data to CSV/Excel
+- Automated alerts based on trends
+- Comparative analytics (org vs org)
 
 ---
 
@@ -670,10 +716,14 @@ POST /api/organizations/{orgId}/metrics/calculate
 - [x] URL extraction and S3 key parsing
 - [x] Repository methods for efficient queries
 
-### Enhancement #3: Historical Metrics Tracking 📋
-- [ ] History table created
-- [ ] Snapshot service
-- [ ] Historical endpoints
+### Enhancement #3: Historical Metrics Tracking ✅
+- [x] History table created
+- [x] Snapshot service
+- [x] Historical endpoints
+- [x] Scheduled daily snapshots
+- [x] Monthly cleanup job
+- [x] Query methods for time ranges
+- [x] JSONB storage for flexibility
 - [ ] Frontend charts
 - [ ] Testing completed
 
@@ -694,6 +744,6 @@ POST /api/organizations/{orgId}/metrics/calculate
 ---
 
 **Last Updated:** January 2025  
-**Version:** 1.2  
-**Status:** Phase 2 Complete, Enhancement #1 Complete ✅, Enhancement #2 Complete ✅
+**Version:** 1.3  
+**Status:** Phase 2 Complete, Enhancement #1 Complete ✅, Enhancement #2 Complete ✅, Enhancement #3 Complete ✅
 
