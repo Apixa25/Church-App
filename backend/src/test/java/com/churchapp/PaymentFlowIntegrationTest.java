@@ -91,6 +91,8 @@ public class PaymentFlowIntegrationTest {
         testSubscription.setFrequency(RecurringFrequency.MONTHLY);
         testSubscription.setStatus(SubscriptionStatus.ACTIVE);
         testSubscription.setStripeSubscriptionId("sub_test123");
+        testSubscription.setStripeCustomerId("cus_test123");
+        testSubscription.setStripePriceId("price_test123");
         testSubscription.setCreatedAt(LocalDateTime.now());
 
         // Mock authentication
