@@ -28,11 +28,40 @@ const rangeOptions = [
   { label: '180 Days', value: 180 },
 ];
 
+const getThemeColors = () => {
+  if (typeof window === 'undefined') {
+    return {
+      accentPrimary: '#5b7fff',
+      accentSecondary: '#8b5cf6',
+      accentTertiary: '#06b6d4',
+      accentQuaternary: '#f59e0b',
+      grid: 'rgba(255, 255, 255, 0.1)',
+      axis: 'rgba(255, 255, 255, 0.4)',
+      text: '#e0e0f0',
+    };
+  }
+
+  const styles = getComputedStyle(document.documentElement);
+  const readVar = (name: string, fallback: string) =>
+    styles.getPropertyValue(name)?.trim() || fallback;
+
+  return {
+    accentPrimary: readVar('--accent-primary', '#5b7fff'),
+    accentSecondary: readVar('--accent-secondary', '#8b5cf6'),
+    accentTertiary: readVar('--accent-tertiary', '#06b6d4'),
+    accentQuaternary: readVar('--warning', '#f59e0b'),
+    grid: readVar('--border-primary', 'rgba(255, 255, 255, 0.1)'),
+    axis: readVar('--text-tertiary', 'rgba(255, 255, 255, 0.4)'),
+    text: readVar('--text-secondary', '#e0e0f0'),
+  };
+};
+
 const MetricsDashboard: React.FC = () => {
   const [metrics, setMetrics] = useState<MetricsDashboardData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [selectedRange, setSelectedRange] = useState<number>(30);
+  const themeColors = useMemo(() => getThemeColors(), []);
 
   useEffect(() => {
     loadMetrics();
@@ -192,18 +221,37 @@ const MetricsDashboard: React.FC = () => {
                 <AreaChart data={storageTrendData}>
                   <defs>
                     <linearGradient id="storageGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#0088FE" stopOpacity={0.8} />
-                      <stop offset="95%" stopColor="#0088FE" stopOpacity={0} />
+                      <stop offset="5%" stopColor={themeColors.accentPrimary} stopOpacity={0.8} />
+                      <stop offset="95%" stopColor={themeColors.accentPrimary} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="displayDate" />
-                  <YAxis tickFormatter={(value) => `${value.toFixed(0)} GB`} />
-                  <Tooltip formatter={(value: number) => `${value.toFixed(2)} GB`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={themeColors.grid} />
+                  <XAxis
+                    dataKey="displayDate"
+                    stroke={themeColors.axis}
+                    tick={{ fill: themeColors.text }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tickFormatter={(value) => `${value.toFixed(0)} GB`}
+                    stroke={themeColors.axis}
+                    tick={{ fill: themeColors.text }}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => `${value.toFixed(2)} GB`}
+                    contentStyle={{
+                      background: 'var(--bg-elevated)',
+                      border: '1px solid var(--border-primary)',
+                      borderRadius: 12,
+                      color: 'var(--text-primary)',
+                    }}
+                    labelStyle={{ color: 'var(--text-secondary)' }}
+                  />
                   <Area
                     type="monotone"
                     dataKey="valueGb"
-                    stroke="#0088FE"
+                    stroke={themeColors.accentPrimary}
                     fillOpacity={1}
                     fill="url(#storageGradient)"
                     name="Storage (GB)"
@@ -225,11 +273,37 @@ const MetricsDashboard: React.FC = () => {
             {activeUsersTrendData.length > 0 ? (
               <ResponsiveContainer width="100%" height={260}>
                 <LineChart data={activeUsersTrendData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="displayDate" />
-                  <YAxis />
-                  <Tooltip formatter={(value: number) => `${formatNumber(value)} users`} />
-                  <Line type="monotone" dataKey="value" stroke="#00C49F" strokeWidth={2} name="Active Users" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={themeColors.grid} />
+                  <XAxis
+                    dataKey="displayDate"
+                    stroke={themeColors.axis}
+                    tick={{ fill: themeColors.text }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    stroke={themeColors.axis}
+                    tick={{ fill: themeColors.text }}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => `${formatNumber(value)} users`}
+                    contentStyle={{
+                      background: 'var(--bg-elevated)',
+                      border: '1px solid var(--border-primary)',
+                      borderRadius: 12,
+                      color: 'var(--text-primary)',
+                    }}
+                    labelStyle={{ color: 'var(--text-secondary)' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke={themeColors.accentTertiary}
+                    strokeWidth={2}
+                    dot={{ stroke: themeColors.accentTertiary, fill: themeColors.accentTertiary }}
+                    activeDot={{ r: 6 }}
+                    name="Active Users"
+                  />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
@@ -251,15 +325,35 @@ const MetricsDashboard: React.FC = () => {
             {contentTrendData.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={contentTrendData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="displayDate" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="posts" stackId="a" fill="#8884d8" name="Posts" />
-                  <Bar dataKey="prayers" stackId="a" fill="#82ca9d" name="Prayers" />
-                  <Bar dataKey="events" stackId="a" fill="#ffc658" name="Events" />
-                  <Bar dataKey="announcements" stackId="a" fill="#ff8042" name="Announcements" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={themeColors.grid} />
+                  <XAxis
+                    dataKey="displayDate"
+                    stroke={themeColors.axis}
+                    tick={{ fill: themeColors.text }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    stroke={themeColors.axis}
+                    tick={{ fill: themeColors.text }}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: 'var(--bg-elevated)',
+                      border: '1px solid var(--border-primary)',
+                      borderRadius: 12,
+                      color: 'var(--text-primary)',
+                    }}
+                    labelStyle={{ color: 'var(--text-secondary)' }}
+                  />
+                  <Legend
+                    wrapperStyle={{ color: 'var(--text-secondary)' }}
+                    iconType="circle"
+                  />
+                  <Bar dataKey="posts" stackId="a" fill={themeColors.accentPrimary} name="Posts" />
+                  <Bar dataKey="prayers" stackId="a" fill={themeColors.accentSecondary} name="Prayers" />
+                  <Bar dataKey="events" stackId="a" fill={themeColors.accentTertiary} name="Events" />
+                  <Bar dataKey="announcements" stackId="a" fill={themeColors.accentQuaternary} name="Announcements" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
