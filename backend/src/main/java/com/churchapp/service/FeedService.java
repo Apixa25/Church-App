@@ -3,6 +3,7 @@ package com.churchapp.service;
 import com.churchapp.entity.Post;
 import com.churchapp.repository.PostRepository;
 import com.churchapp.repository.UserFollowRepository;
+import com.churchapp.service.UserBlockService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -25,6 +26,7 @@ public class FeedService {
 
     private final PostRepository postRepository;
     private final UserFollowRepository userFollowRepository;
+    private final UserBlockService userBlockService;
 
     public enum FeedType {
         CHRONOLOGICAL,  // Most recent posts first
@@ -43,20 +45,32 @@ public class FeedService {
             case FOLLOWING:
                 return getFollowingFeed(userId, pageable);
             case TRENDING:
-                return getTrendingFeed(pageable);
+                return getTrendingFeed(userId, pageable);
             case FOR_YOU:
                 return getForYouFeed(userId, pageable);
             case CHRONOLOGICAL:
             default:
-                return getChronologicalFeed(pageable);
+                return getChronologicalFeed(userId, pageable);
         }
     }
 
     /**
      * Get chronological feed - all posts in reverse chronological order
+     * Note: This method doesn't filter by blocked users since it's used for general feeds
+     * For user-specific feeds, use getChronologicalFeed(UUID userId, Pageable pageable)
      */
     private Page<Post> getChronologicalFeed(Pageable pageable) {
-        return postRepository.findMainPostsForFeed(pageable);
+        // Pass null for blockedUserIds to show all posts (for anonymous/public feeds)
+        return postRepository.findMainPostsForFeed(null, pageable);
+    }
+
+    /**
+     * Get chronological feed for a specific user (filters blocked users)
+     */
+    private Page<Post> getChronologicalFeed(UUID userId, Pageable pageable) {
+        List<UUID> blockedUserIds = userBlockService.getBlockedUserIds(userId);
+        List<UUID> blockedIds = blockedUserIds.isEmpty() ? null : blockedUserIds;
+        return postRepository.findMainPostsForFeed(blockedIds, pageable);
     }
 
     /**
@@ -67,17 +81,34 @@ public class FeedService {
         log.debug("User {} requesting community feed - showing all posts", userId);
         // In church community model, everyone sees everyone's posts
         // This is simpler and more appropriate for church context
-        return getChronologicalFeed(pageable);
+        // But we still filter blocked users
+        return getChronologicalFeed(userId, pageable);
     }
 
     /**
      * Get trending feed - posts with high engagement in the last 7 days
+     * Note: This method doesn't filter by blocked users since it's used for general feeds
+     * For user-specific feeds, use getTrendingFeed(UUID userId, Pageable pageable)
      */
     private Page<Post> getTrendingFeed(Pageable pageable) {
         LocalDateTime since = LocalDateTime.now().minusDays(7);
-        Page<Post> trendingPosts = postRepository.findTrendingPosts(since, pageable);
+        // Pass null for blockedUserIds to show all posts (for anonymous/public feeds)
+        Page<Post> trendingPosts = postRepository.findTrendingPosts(since, null, pageable);
 
         log.debug("Found {} trending posts since {}", trendingPosts.getTotalElements(), since);
+        return trendingPosts;
+    }
+
+    /**
+     * Get trending feed for a specific user (filters blocked users)
+     */
+    private Page<Post> getTrendingFeed(UUID userId, Pageable pageable) {
+        LocalDateTime since = LocalDateTime.now().minusDays(7);
+        List<UUID> blockedUserIds = userBlockService.getBlockedUserIds(userId);
+        List<UUID> blockedIds = blockedUserIds.isEmpty() ? null : blockedUserIds;
+        Page<Post> trendingPosts = postRepository.findTrendingPosts(since, blockedIds, pageable);
+
+        log.debug("Found {} trending posts since {} for user {}", trendingPosts.getTotalElements(), since, userId);
         return trendingPosts;
     }
 
@@ -90,7 +121,7 @@ public class FeedService {
         // In a full implementation, this would use machine learning
 
         Page<Post> followingPosts = getFollowingFeed(userId, PageRequest.of(0, pageable.getPageSize() / 2));
-        Page<Post> trendingPosts = getTrendingFeed(PageRequest.of(0, pageable.getPageSize() / 2));
+        Page<Post> trendingPosts = getTrendingFeed(userId, PageRequest.of(0, pageable.getPageSize() / 2));
 
         // Simple algorithm: alternate between following and trending posts
         // In production, you'd want a more sophisticated algorithm
@@ -218,7 +249,7 @@ public class FeedService {
         // For now, return trending posts
         // In production, this would analyze user's past interactions,
         // followed users' interests, etc.
-        return getTrendingFeed(pageable);
+        return getTrendingFeed(userId, pageable);
     }
 
     /**
@@ -240,7 +271,8 @@ public class FeedService {
     public FeedStats getFeedStats() {
         long totalPosts = postRepository.count();
         LocalDateTime yesterday = LocalDateTime.now().minusDays(1);
-        long postsLast24Hours = postRepository.findMainPostsForFeed(PageRequest.of(0, Integer.MAX_VALUE))
+        // Pass null for blockedUserIds since this is general stats
+        long postsLast24Hours = postRepository.findMainPostsForFeed(null, PageRequest.of(0, Integer.MAX_VALUE))
             .getContent().stream()
             .filter(post -> post.getCreatedAt().isAfter(yesterday))
             .count();
