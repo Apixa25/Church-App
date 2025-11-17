@@ -87,6 +87,19 @@ public class Organization {
     @Column(name = "logo_url", length = 500)
     private String logoUrl;
 
+    @Column(name = "storage_limit_bytes")
+    private Long storageLimitBytes;
+
+    @Column(name = "storage_alert_threshold")
+    private Integer storageAlertThreshold = 80;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "storage_limit_status", length = 20)
+    private StorageLimitStatus storageLimitStatus = StorageLimitStatus.OK;
+
+    @Column(name = "storage_limit_notified")
+    private Boolean storageLimitNotified = false;
+
     public enum OrganizationType {
         CHURCH,
         MINISTRY,
@@ -104,5 +117,12 @@ public class Organization {
         ACTIVE,
         SUSPENDED,
         CANCELLED
+    }
+
+    public enum StorageLimitStatus {
+        OK,
+        WARNING,
+        CRITICAL,
+        OVER_LIMIT
     }
 }

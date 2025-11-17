@@ -6,6 +6,7 @@ import com.churchapp.entity.UserOrganizationMembership;
 import com.churchapp.repository.UserRepository;
 import com.churchapp.service.MetricsSnapshotService;
 import com.churchapp.service.OrganizationService;
+import com.churchapp.service.StorageLimitService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -40,6 +41,7 @@ public class OrganizationController {
     private final FileUploadService fileUploadService;
     private final com.churchapp.service.OrganizationMetricsService metricsService;
     private final MetricsSnapshotService metricsSnapshotService;
+    private final StorageLimitService storageLimitService;
 
     // Helper method to get user ID from Spring Security User
     private UUID getUserId(User securityUser) {
@@ -495,6 +497,37 @@ public class OrganizationController {
         }
     }
 
+    // ========================================================================
+    // STORAGE LIMITS
+    // ========================================================================
+
+    @GetMapping("/{orgId}/storage-limit")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<StorageLimitResponse> getStorageLimit(
+            @PathVariable UUID orgId,
+            @AuthenticationPrincipal User userDetails) {
+
+        log.info("Admin {} requesting storage limit for organization {}", userDetails.getUsername(), orgId);
+        var info = storageLimitService.getStorageLimit(orgId);
+        return ResponseEntity.ok(StorageLimitResponse.fromInfo(info));
+    }
+
+    @PutMapping("/{orgId}/storage-limit")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<StorageLimitResponse> updateStorageLimit(
+            @PathVariable UUID orgId,
+            @RequestBody StorageLimitUpdateRequest request,
+            @AuthenticationPrincipal User userDetails) {
+
+        log.info("Admin {} updating storage limit for organization {}", userDetails.getUsername(), orgId);
+        var info = storageLimitService.updateStorageLimit(
+                orgId,
+                request.getStorageLimitBytes(),
+                request.getStorageAlertThreshold()
+        );
+        return ResponseEntity.ok(StorageLimitResponse.fromInfo(info));
+    }
+
     // Inner class for stats response
     @lombok.Data
     @lombok.NoArgsConstructor
@@ -523,6 +556,10 @@ public class OrganizationController {
         private Integer eventsCount;
         private Integer announcementsCount;
         private LocalDateTime calculatedAt;
+        private Long storageLimitBytes;
+        private Integer storageAlertThreshold;
+        private Integer storageLimitPercent;
+        private String storageLimitStatus;
 
         public static OrganizationMetricsResponse fromMetrics(com.churchapp.entity.OrganizationMetrics metrics, UUID orgId) {
             OrganizationMetricsResponse response = new OrganizationMetricsResponse();
@@ -539,6 +576,21 @@ public class OrganizationController {
             response.setEventsCount(metrics.getEventsCount());
             response.setAnnouncementsCount(metrics.getAnnouncementsCount());
             response.setCalculatedAt(metrics.getCalculatedAt() != null ? metrics.getCalculatedAt() : LocalDateTime.now());
+            Organization org = metrics.getOrganization();
+            Long limitBytes = org != null ? org.getStorageLimitBytes() : null;
+            Integer alertThreshold = org != null ? org.getStorageAlertThreshold() : null;
+            Integer percent = null;
+            if (limitBytes != null && limitBytes > 0 && metrics.getStorageUsed() != null) {
+                percent = (int) Math.min(100, Math.round((metrics.getStorageUsed() * 100.0) / limitBytes));
+            }
+
+            response.setStorageLimitBytes(limitBytes);
+            response.setStorageAlertThreshold(alertThreshold);
+            response.setStorageLimitPercent(percent);
+            response.setStorageLimitStatus(org != null && org.getStorageLimitStatus() != null
+                    ? org.getStorageLimitStatus().name()
+                    : Organization.StorageLimitStatus.OK.name());
+
             return response;
         }
     }
@@ -562,6 +614,36 @@ public class OrganizationController {
             response.setRecordedAt(history.getRecordedAt());
             response.setCreatedAt(history.getCreatedAt());
             return response;
+        }
+    }
+
+    @lombok.Data
+    public static class StorageLimitUpdateRequest {
+        private Long storageLimitBytes;
+        private Integer storageAlertThreshold;
+    }
+
+    @lombok.Data
+    @lombok.Builder
+    public static class StorageLimitResponse {
+        private UUID organizationId;
+        private Long storageLimitBytes;
+        private Integer storageAlertThreshold;
+        private Long storageUsed;
+        private Integer storageLimitPercent;
+        private String storageLimitStatus;
+        private Boolean alertTriggered;
+
+        public static StorageLimitResponse fromInfo(StorageLimitService.StorageLimitInfo info) {
+            return StorageLimitResponse.builder()
+                    .organizationId(info.getOrganizationId())
+                    .storageLimitBytes(info.getStorageLimitBytes())
+                    .storageAlertThreshold(info.getStorageAlertThreshold())
+                    .storageUsed(info.getStorageUsed())
+                    .storageLimitPercent(info.getUsagePercent())
+                    .storageLimitStatus(info.getStatus() != null ? info.getStatus().name() : null)
+                    .alertTriggered(info.getAlertTriggered())
+                    .build();
         }
     }
 }
