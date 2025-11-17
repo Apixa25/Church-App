@@ -82,6 +82,8 @@ public class DonationSystemIntegrationTest {
         subscription.setFrequency(RecurringFrequency.MONTHLY);
         subscription.setStatus(SubscriptionStatus.ACTIVE);
         subscription.setStripeSubscriptionId("sub_integration_test_456");
+        subscription.setStripeCustomerId("cus_integration_test_123");
+        subscription.setStripePriceId("price_integration_test_123");
         subscription.setCreatedAt(LocalDateTime.now());
 
         DonationSubscription savedSubscription = subscriptionRepository.save(subscription);
@@ -137,6 +139,8 @@ public class DonationSystemIntegrationTest {
         secondSubscription.setFrequency(RecurringFrequency.WEEKLY);
         secondSubscription.setStatus(SubscriptionStatus.ACTIVE);
         secondSubscription.setStripeSubscriptionId("sub_integration_test_789");
+        secondSubscription.setStripeCustomerId("cus_integration_test_123");
+        secondSubscription.setStripePriceId("price_integration_test_789");
         secondSubscription.setCreatedAt(LocalDateTime.now());
 
         DonationSubscription savedSecondSubscription = subscriptionRepository.save(secondSubscription);
