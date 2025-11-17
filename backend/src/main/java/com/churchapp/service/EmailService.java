@@ -318,4 +318,128 @@ public class EmailService {
             donorName, amount, frequency, category, churchName
         );
     }
+
+    /**
+     * Send feedback notification to support team
+     */
+    public void sendFeedbackNotification(String ticketId, String userName, String userEmail,
+                                        String type, String subject, String message) {
+        try {
+            log.info("Sending feedback notification for ticket {} to support team", ticketId);
+
+            MimeMessage emailMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(emailMessage, false, "UTF-8");
+
+            helper.setFrom(fromEmail, churchName);
+            helper.setTo(churchEmail);
+            helper.setSubject(String.format("[%s] New Feedback: %s", ticketId, subject));
+            helper.setText(buildFeedbackEmailBody(ticketId, userName, userEmail, type, subject, message), true);
+
+            mailSender.send(emailMessage);
+
+            log.info("Feedback notification sent successfully for ticket {}", ticketId);
+
+        } catch (Exception e) {
+            log.error("Failed to send feedback notification for ticket {}: {}",
+                ticketId, e.getMessage(), e);
+            // Don't throw - feedback should still be saved
+        }
+    }
+
+    /**
+     * Send account deletion confirmation email
+     */
+    public void sendAccountDeletionConfirmationEmail(String userName, String userEmail,
+                                                    String confirmationToken, String confirmationUrl) {
+        try {
+            log.info("Sending account deletion confirmation email to {}", userEmail);
+
+            MimeMessage emailMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(emailMessage, false, "UTF-8");
+
+            helper.setFrom(fromEmail, churchName);
+            helper.setTo(userEmail);
+            helper.setSubject("Confirm Account Deletion - " + churchName);
+            helper.setText(buildDeletionConfirmationEmailBody(userName, confirmationUrl), true);
+
+            mailSender.send(emailMessage);
+
+            log.info("Account deletion confirmation email sent successfully to {}", userEmail);
+
+        } catch (Exception e) {
+            log.error("Failed to send account deletion confirmation email to {}: {}",
+                userEmail, e.getMessage(), e);
+            throw new RuntimeException("Failed to send confirmation email", e);
+        }
+    }
+
+    private String buildFeedbackEmailBody(String ticketId, String userName, String userEmail,
+                                         String type, String subject, String message) {
+        return String.format("""
+            <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #4682B4;">New Feedback Received</h2>
+
+                    <div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #4682B4; margin: 20px 0;">
+                        <p><strong>Ticket ID:</strong> %s</p>
+                        <p><strong>Type:</strong> %s</p>
+                        <p><strong>From:</strong> %s (%s)</p>
+                        <p><strong>Subject:</strong> %s</p>
+                    </div>
+
+                    <h3>Message:</h3>
+                    <div style="background-color: #f9f9f9; padding: 15px; margin: 20px 0;">
+                        <p style="white-space: pre-wrap;">%s</p>
+                    </div>
+
+                    <p>Please review this feedback and respond appropriately.</p>
+                </div>
+            </body>
+            </html>
+            """,
+            ticketId, type, userName, userEmail, subject, message
+        );
+    }
+
+    private String buildDeletionConfirmationEmailBody(String userName, String confirmationUrl) {
+        return String.format("""
+            <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #4682B4;">Confirm Account Deletion</h2>
+
+                    <p>Dear %s,</p>
+
+                    <p>We received a request to delete your account with %s. To proceed with this request,
+                    please click the confirmation link below.</p>
+
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="%s" style="background-color: #dc3545; color: white; padding: 12px 24px;
+                        text-decoration: none; border-radius: 5px; display: inline-block;">
+                            Confirm Account Deletion
+                        </a>
+                    </div>
+
+                    <p style="color: #dc3545;"><strong>⚠️ Warning:</strong> This action cannot be undone.
+                    Once confirmed, your account and all associated data will be permanently deleted after a 7-day grace period.</p>
+
+                    <p>If you did not request this deletion, please ignore this email or contact support immediately.</p>
+
+                    <p>This confirmation link will expire in 24 hours.</p>
+
+                    <p>If you have any questions or concerns, please contact us at <a href="mailto:%s">%s</a>.</p>
+
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                    <p style="font-size: 12px; color: #666;">
+                        This is an automated message. Please do not reply to this email.
+                        If you need assistance, please contact us directly.
+                    </p>
+                </div>
+            </body>
+            </html>
+            """,
+            userName, churchName, confirmationUrl, churchEmail, churchEmail
+        );
+    }
 }
