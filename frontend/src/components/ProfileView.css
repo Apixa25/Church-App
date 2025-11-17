@@ -395,12 +395,24 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  cursor: pointer;
   transition: opacity 0.2s;
 }
 
-.stat-item-x:hover {
-  opacity: 0.7;
+.stat-item-x.clickable-stat-x {
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--border-radius-md);
+  transition: all var(--transition-fast);
+}
+
+.stat-item-x.clickable-stat-x:hover {
+  background: var(--bg-secondary);
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.stat-item-x.clickable-stat-x:active {
+  transform: translateY(0);
 }
 
 .stat-number-x {
@@ -697,4 +709,5 @@
     font-size: 14px;
   }
 }
+
 

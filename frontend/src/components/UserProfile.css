@@ -277,6 +277,22 @@
   text-align: center;
 }
 
+.stat-item.clickable-stat {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  padding: 4px 8px;
+  border-radius: var(--border-radius-md);
+}
+
+.stat-item.clickable-stat:hover {
+  background: var(--bg-secondary);
+  transform: translateY(-1px);
+}
+
+.stat-item.clickable-stat:active {
+  transform: translateY(0);
+}
+
 .stat-number {
   display: block;
   font-size: 20px;
