@@ -159,9 +159,10 @@ public class OrganizationController {
     public ResponseEntity<List<OrganizationResponse>> getAllOrganizationsUnpaginated(
             @AuthenticationPrincipal User userDetails) {
 
-        // Get all organizations (admin only - no pagination)
+        // Get all non-deleted organizations (admin only - no pagination)
+        // This includes ACTIVE, TRIAL, SUSPENDED, and CANCELLED statuses
         Pageable pageable = PageRequest.of(0, 1000); // Large page to get all
-        Page<Organization> orgs = organizationService.getAllActiveOrganizations(pageable);
+        Page<Organization> orgs = organizationService.getAllNonDeletedOrganizations(pageable);
 
         List<OrganizationResponse> response = orgs.getContent().stream()
             .map(org -> {
@@ -202,6 +203,31 @@ public class OrganizationController {
 
         OrganizationResponse response = OrganizationResponse.fromOrganization(updated);
         return ResponseEntity.ok(response);
+    }
+
+    // Update organization status (admin only)
+    @PatchMapping("/{orgId}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<OrganizationResponse> updateOrganizationStatus(
+            @PathVariable UUID orgId,
+            @RequestParam("status") String statusStr,
+            @AuthenticationPrincipal User userDetails) {
+
+        log.info("Updating organization {} status to {} by admin: {}", orgId, statusStr, userDetails.getUsername());
+
+        try {
+            Organization.OrganizationStatus newStatus = Organization.OrganizationStatus.valueOf(statusStr.toUpperCase());
+            Organization updated = organizationService.updateOrganizationStatus(orgId, newStatus);
+
+            OrganizationResponse response = OrganizationResponse.fromOrganization(updated);
+            response.setMemberCount(organizationService.getMemberCount(orgId));
+            response.setPrimaryMemberCount(organizationService.getPrimaryMemberCount(orgId));
+
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid status value: {}", statusStr);
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     // ========================================================================

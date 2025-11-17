@@ -73,6 +73,11 @@ public class OrganizationService {
         return organizationRepository.findAllActiveOrganizations(pageable);
     }
 
+    // Get all non-deleted organizations regardless of status (for admin)
+    public Page<Organization> getAllNonDeletedOrganizations(Pageable pageable) {
+        return organizationRepository.findAllNonDeletedOrganizations(pageable);
+    }
+
     public Organization updateOrganization(UUID orgId, Organization updates) {
         Organization org = getOrganizationById(orgId);
 
@@ -85,9 +90,29 @@ public class OrganizationService {
         if (updates.getMetadata() != null) {
             org.setMetadata(updates.getMetadata());
         }
+        if (updates.getStatus() != null) {
+            org.setStatus(updates.getStatus());
+            log.info("Organization {} status updated to {}", orgId, updates.getStatus());
+        }
+        if (updates.getTier() != null) {
+            org.setTier(updates.getTier());
+        }
 
         org.setUpdatedAt(LocalDateTime.now());
         return organizationRepository.save(org);
+    }
+
+    // Update organization status specifically
+    public Organization updateOrganizationStatus(UUID orgId, Organization.OrganizationStatus newStatus) {
+        Organization org = getOrganizationById(orgId);
+        Organization.OrganizationStatus oldStatus = org.getStatus();
+        org.setStatus(newStatus);
+        org.setUpdatedAt(LocalDateTime.now());
+        
+        Organization updated = organizationRepository.save(org);
+        log.info("Organization {} status changed from {} to {}", orgId, oldStatus, newStatus);
+        
+        return updated;
     }
 
     // ========================================================================
