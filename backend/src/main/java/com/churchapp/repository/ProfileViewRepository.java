@@ -31,8 +31,9 @@ public interface ProfileViewRepository extends JpaRepository<ProfileView, UUID> 
     long countByViewedUserIdAndViewedAtAfter(@Param("viewedUserId") UUID viewedUserId, @Param("since") LocalDateTime since);
 
     // Check if viewer already viewed today (to prevent duplicates)
-    @Query("SELECT COUNT(pv) > 0 FROM ProfileView pv WHERE pv.viewerId = :viewerId AND pv.viewedUserId = :viewedUserId AND DATE(pv.viewedAt) = CURRENT_DATE")
-    boolean hasViewedToday(@Param("viewerId") UUID viewerId, @Param("viewedUserId") UUID viewedUserId);
+    // Use date range comparison instead of DATE() function for JPQL compatibility
+    @Query("SELECT COUNT(pv) > 0 FROM ProfileView pv WHERE pv.viewerId = :viewerId AND pv.viewedUserId = :viewedUserId AND pv.viewedAt >= :startOfDay AND pv.viewedAt < :startOfNextDay")
+    boolean hasViewedToday(@Param("viewerId") UUID viewerId, @Param("viewedUserId") UUID viewedUserId, @Param("startOfDay") LocalDateTime startOfDay, @Param("startOfNextDay") LocalDateTime startOfNextDay);
 
     // Get unique viewers count
     @Query("SELECT COUNT(DISTINCT pv.viewerId) FROM ProfileView pv WHERE pv.viewedUserId = :viewedUserId")

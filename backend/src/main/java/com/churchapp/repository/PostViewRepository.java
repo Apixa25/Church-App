@@ -35,15 +35,17 @@ public interface PostViewRepository extends JpaRepository<PostView, UUID> {
     long countUniqueViewersSince(@Param("postId") UUID postId, @Param("since") LocalDateTime since);
 
     // Check if user already viewed today (to prevent duplicates)
-    @Query("SELECT COUNT(pv) > 0 FROM PostView pv WHERE pv.postId = :postId AND pv.viewerId = :viewerId AND DATE(pv.viewedAt) = CURRENT_DATE")
-    boolean hasViewedToday(@Param("postId") UUID postId, @Param("viewerId") UUID viewerId);
+    // Use date range comparison instead of DATE() function for JPQL compatibility
+    @Query("SELECT COUNT(pv) > 0 FROM PostView pv WHERE pv.postId = :postId AND pv.viewerId = :viewerId AND pv.viewedAt >= :startOfDay AND pv.viewedAt < :startOfNextDay")
+    boolean hasViewedToday(@Param("postId") UUID postId, @Param("viewerId") UUID viewerId, @Param("startOfDay") LocalDateTime startOfDay, @Param("startOfNextDay") LocalDateTime startOfNextDay);
 
     // Get views for multiple posts (for user's posts analytics)
     @Query("SELECT pv.postId, COUNT(pv) as viewCount FROM PostView pv WHERE pv.postId IN :postIds GROUP BY pv.postId")
     List<Object[]> countViewsByPostIds(@Param("postIds") List<UUID> postIds);
 
     // Get views grouped by date for a post
-    @Query("SELECT DATE(pv.viewedAt) as viewDate, COUNT(pv) as viewCount FROM PostView pv WHERE pv.postId = :postId GROUP BY DATE(pv.viewedAt) ORDER BY viewDate DESC")
+    // Use native query for DATE() function support
+    @Query(value = "SELECT DATE(pv.viewed_at) as viewDate, COUNT(pv.id) as viewCount FROM post_views pv WHERE pv.post_id = :postId GROUP BY DATE(pv.viewed_at) ORDER BY viewDate DESC", nativeQuery = true)
     List<Object[]> getViewsByDate(@Param("postId") UUID postId);
 }
 
