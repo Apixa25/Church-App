@@ -519,44 +519,50 @@ CREATE TABLE organization_metrics_history (
 
 ### Enhancement #4: Metrics Dashboard 📊
 
-**Status:** 📋 Planned
+**Status:** ✅ **COMPLETE**
 
 **Description:**
-Create a dedicated metrics dashboard with visualizations and detailed analytics.
+Create a dedicated metrics dashboard with visualizations and detailed analytics powered by historical data.
 
-**Implementation Plan:**
-1. Create new dashboard component/page
-2. Add charts using library (e.g., Chart.js, Recharts)
-3. Display:
-   - Storage trends over time
-   - Active users over time
-   - Content creation trends
-   - Top organizations by usage
-   - Comparison charts
-4. Add filtering (date range, organization selection)
-5. Export functionality (CSV, PDF)
+**Implementation:**
+1. ✅ New admin tab "Metrics" with `MetricsDashboard.tsx`
+2. ✅ Added backend aggregation endpoint `/metrics/dashboard`
+3. ✅ Introduced `MetricsDashboardService` with summary + trends
+4. ✅ Visualized storage, active users, and content trends with Recharts
+5. ✅ Display top organizations by storage usage and activity
+
+**Backend:**
+- DTO: `MetricsDashboardResponse`
+- Service: `MetricsDashboardService`
+- Controller: `MetricsDashboardController` (`GET /metrics/dashboard?days=30`)
+- Repository update: history queries by date range
+
+**Frontend:**
+- Component: `frontend/src/components/MetricsDashboard.tsx`
+- Styles: `MetricsDashboard.css`
+- Service: `dashboardApi.getMetricsDashboard()`
+- Dependency: Added `recharts` for charting
+- Integrated as new tab within `AdminDashboard`
+
+**Dashboard Features:**
+- Summary cards (organizations, storage, API usage, content totals)
+- Storage trend area chart (GB over time)
+- Active users line chart
+- Content creation stacked bar (posts, prayers, events, announcements)
+- Top organization table with storage percent + content breakdown
+- Range selector (30/60/90/180 days) + last updated timestamp
 
 **Benefits:**
-- Visual insights
-- Better decision-making
-- Executive reporting
-- Identify optimization opportunities
+- Visual insights into multi-tenant resource consumption
+- Highlights heavy storage consumers for cost planning
+- Shows engagement trends for growth/retention decisions
+- Gives exec reporting-ready view with minimal clicks
 
-**Estimated Effort:** High (5-7 days)
-
-**Files to Create/Modify:**
-- Frontend: `frontend/src/components/MetricsDashboard.tsx`
-- Add chart library dependency
-- Create chart components
-- Add routing for dashboard page
-- Backend: Add aggregation endpoints
-
-**Features:**
-- Line charts for trends
-- Bar charts for comparisons
-- Pie charts for distribution
-- Tables with sorting/filtering
-- Export buttons
+**Future Enhancements (optional):**
+- Export (CSV/PDF) from dashboard
+- Filter by specific organization(s)
+- Add comparative charts & alerts
+- Frontend chart unit tests
 
 ---
 
@@ -724,14 +730,15 @@ POST /api/organizations/{orgId}/metrics/calculate
 - [x] Monthly cleanup job
 - [x] Query methods for time ranges
 - [x] JSONB storage for flexibility
-- [ ] Frontend charts
+- [x] Frontend charts (surfaced via Metrics Dashboard)
 - [ ] Testing completed
 
-### Enhancement #4: Metrics Dashboard 📋
-- [ ] Dashboard component
-- [ ] Chart library integration
-- [ ] Visualization components
-- [ ] Filtering/export
+### Enhancement #4: Metrics Dashboard ✅
+- [x] Dashboard component/page
+- [x] Chart library integration (Recharts)
+- [x] Visualization components (storage, activity, content)
+- [x] Filtering (date range) & top organization table
+- [ ] Export + PDF/CSV (future)
 - [ ] Testing completed
 
 ### Enhancement #5: Storage Alerts & Limits 📋
@@ -745,5 +752,5 @@ POST /api/organizations/{orgId}/metrics/calculate
 
 **Last Updated:** January 2025  
 **Version:** 1.3  
-**Status:** Phase 2 Complete, Enhancement #1 Complete ✅, Enhancement #2 Complete ✅, Enhancement #3 Complete ✅
+**Status:** Phase 2 Complete, Enhancement #1 ✅, #2 ✅, #3 ✅, #4 ✅
 
