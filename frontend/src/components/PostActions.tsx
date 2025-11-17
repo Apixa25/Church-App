@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Post, SharePostRequest } from '../types/Post';
-import { likePost, unlikePost, bookmarkPost, unbookmarkPost } from '../services/postApi';
+import { likePost, unlikePost, bookmarkPost, unbookmarkPost, blockUser, unblockUser, getBlockStatus, followUser, unfollowUser, getFollowStatus } from '../services/postApi';
+import { useAuth } from '../contexts/AuthContext';
 import LikeButton from './LikeButton';
 import ShareModal from './ShareModal';
 import CommentForm from './CommentForm';
@@ -25,6 +26,11 @@ const PostActions: React.FC<PostActionsProps> = ({
 }) => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isCommentFormOpen, setIsCommentFormOpen] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [blockLoading, setBlockLoading] = useState(false);
+  const { user } = useAuth();
 
   const handleLike = async () => {
     try {
@@ -95,6 +101,92 @@ const PostActions: React.FC<PostActionsProps> = ({
 
   const handleCommentCancel = () => {
     setIsCommentFormOpen(false);
+  };
+
+  // Check block/follow status when post changes
+  useEffect(() => {
+    const checkStatus = async () => {
+      if (user && post.userId && post.userId !== user.userId && post.userId !== user.id) {
+        try {
+          const [blockStatus, followStatus] = await Promise.all([
+            getBlockStatus(post.userId),
+            getFollowStatus(post.userId)
+          ]);
+          setIsBlocked(blockStatus.isBlocked);
+          setIsFollowing(followStatus.isFollowing);
+        } catch (err) {
+          console.error('Error checking status:', err);
+        }
+      }
+    };
+    checkStatus();
+  }, [post.userId, user]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showMoreMenu && !(event.target as Element).closest('.quick-actions')) {
+        setShowMoreMenu(false);
+      }
+    };
+
+    if (showMoreMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showMoreMenu]);
+
+  const handleBlockToggle = async () => {
+    if (!user || !post.userId || (post.userId === user.userId || post.userId === user.id) || blockLoading) return;
+
+    const action = isBlocked ? 'unblock' : 'block';
+    const confirmed = window.confirm(
+      isBlocked
+        ? `Are you sure you want to unblock ${post.userName}? You will see their posts again.`
+        : `Are you sure you want to block ${post.userName}? You will no longer see their posts, comments, or profile.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setBlockLoading(true);
+      if (isBlocked) {
+        await unblockUser(post.userId);
+        setIsBlocked(false);
+      } else {
+        await blockUser(post.userId);
+        setIsBlocked(true);
+        // If blocking, also unfollow if following
+        if (isFollowing) {
+          await unfollowUser(post.userId);
+          setIsFollowing(false);
+        }
+      }
+      setShowMoreMenu(false);
+    } catch (err: any) {
+      console.error(`Error ${action}ing user:`, err);
+      alert(`Failed to ${action} user. Please try again.`);
+    } finally {
+      setBlockLoading(false);
+    }
+  };
+
+  const handleFollowToggle = async () => {
+    if (!user || !post.userId || (post.userId === user.userId || post.userId === user.id)) return;
+
+    try {
+      if (isFollowing) {
+        await unfollowUser(post.userId);
+        setIsFollowing(false);
+      } else {
+        await followUser(post.userId);
+        setIsFollowing(true);
+      }
+      setShowMoreMenu(false);
+    } catch (err: any) {
+      console.error('Error toggling follow:', err);
+      alert('Failed to update follow status. Please try again.');
+    }
   };
 
   return (
@@ -185,12 +277,36 @@ const PostActions: React.FC<PostActionsProps> = ({
         <div className="action-group quick-actions">
           <button
             className="action-button more-button"
-            onClick={() => {/* TODO: Implement more actions menu */}}
+            onClick={() => setShowMoreMenu(!showMoreMenu)}
             disabled={disabled}
             aria-label="More actions"
           >
             <span className="action-icon">⋯</span>
           </button>
+          {showMoreMenu && user && post.userId && (post.userId !== user.userId && post.userId !== user.id) && (
+            <div className="more-actions-menu">
+              <button
+                className="menu-item"
+                onClick={handleFollowToggle}
+                disabled={blockLoading}
+              >
+                {isFollowing ? '✓ Unfollow' : '👥 Follow'} {post.userName}
+              </button>
+              <button
+                className="menu-item danger"
+                onClick={handleBlockToggle}
+                disabled={blockLoading}
+              >
+                {blockLoading ? (
+                  <span className="loading-spinner">...</span>
+                ) : isBlocked ? (
+                  '🚫 Unblock'
+                ) : (
+                  '🚫 Block'
+                )} {post.userName}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
