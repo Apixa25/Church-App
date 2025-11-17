@@ -2,6 +2,7 @@ package com.churchapp.config;
 
 import com.churchapp.service.MetricsSnapshotService;
 import com.churchapp.service.OrganizationMetricsService;
+import com.churchapp.service.StorageLimitService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Component;
 public class MetricsScheduler {
 
     private final OrganizationMetricsService metricsService;
+    private final StorageLimitService storageLimitService;
     private final MetricsSnapshotService metricsSnapshotService;
 
     /**
@@ -30,6 +32,7 @@ public class MetricsScheduler {
         log.info("Starting scheduled metrics update for all organizations");
         try {
             metricsService.updateAllOrganizationsMetrics();
+            storageLimitService.evaluateStorageLimits();
             log.info("Scheduled metrics update completed successfully");
         } catch (Exception e) {
             log.error("Error during scheduled metrics update", e);

@@ -31,6 +31,10 @@ interface OrganizationMetrics {
   eventsCount: number;
   announcementsCount: number;
   calculatedAt: string;
+  storageLimitBytes?: number;
+  storageAlertThreshold?: number;
+  storageLimitPercent?: number;
+  storageLimitStatus?: string;
 }
 
 const AdminOrganizationManagement: React.FC = () => {
@@ -44,6 +48,7 @@ const AdminOrganizationManagement: React.FC = () => {
   const [deletingOrgId, setDeletingOrgId] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<Record<string, OrganizationMetrics>>({});
   const [loadingMetrics, setLoadingMetrics] = useState<Record<string, boolean>>({});
+  const [updatingLimitId, setUpdatingLimitId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchOrganizations();
@@ -81,6 +86,63 @@ const AdminOrganizationManagement: React.FC = () => {
       setError('Failed to load organizations');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleStorageLimitUpdate = async (orgId: string, orgName: string) => {
+    const currentMetrics = metrics[orgId];
+    const currentLimitGb = currentMetrics?.storageLimitBytes
+      ? (currentMetrics.storageLimitBytes / Math.pow(1024, 3)).toFixed(2)
+      : '0';
+    const limitInput = prompt(
+      `Set storage limit for "${orgName}" (in GB). Enter 0 for unlimited:`,
+      currentLimitGb || '0'
+    );
+
+    if (limitInput === null) {
+      return;
+    }
+
+    const parsedLimit = parseFloat(limitInput);
+    if (isNaN(parsedLimit) || parsedLimit < 0) {
+      alert('Please enter a valid number for the storage limit.');
+      return;
+    }
+
+    const thresholdInput = prompt(
+      'Alert threshold percentage (80-99). Alerts trigger when usage exceeds this value:',
+      (currentMetrics?.storageAlertThreshold ?? 80).toString()
+    );
+
+    if (thresholdInput === null) {
+      return;
+    }
+
+    const parsedThreshold = parseInt(thresholdInput, 10);
+    if (isNaN(parsedThreshold) || parsedThreshold < 50 || parsedThreshold > 99) {
+      alert('Please enter a valid threshold between 50 and 99.');
+      return;
+    }
+
+    try {
+      setUpdatingLimitId(orgId);
+      const token = localStorage.getItem('authToken');
+      const payload = {
+        storageLimitBytes: parsedLimit > 0 ? Math.round(parsedLimit * Math.pow(1024, 3)) : null,
+        storageAlertThreshold: parsedThreshold
+      };
+
+      await axios.put(`${API_BASE_URL}/organizations/${orgId}/storage-limit`, payload, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      await fetchMetrics(orgId);
+      alert('Storage limit updated successfully.');
+    } catch (err: any) {
+      console.error('Error updating storage limit:', err);
+      alert(err.response?.data?.message || 'Failed to update storage limit');
+    } finally {
+      setUpdatingLimitId(null);
     }
   };
 
@@ -140,6 +202,57 @@ const AdminOrganizationManagement: React.FC = () => {
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const getLimitStatusColor = (status?: string) => {
+    switch (status) {
+      case 'CRITICAL':
+      case 'OVER_LIMIT':
+        return '#dc2626';
+      case 'WARNING':
+        return '#d97706';
+      default:
+        return '#16a34a';
+    }
+  };
+
+  const renderStorageLimitInfo = (org: Organization) => {
+    const metric = metrics[org.id];
+    if (!metric) return null;
+
+    const limitBytes = metric.storageLimitBytes ?? null;
+    const percent = metric.storageLimitPercent ?? null;
+    const status = metric.storageLimitStatus ?? 'OK';
+
+    return (
+      <StorageLimitSection>
+        {limitBytes ? (
+          <>
+            <LimitBar>
+              <LimitProgress
+                percent={percent ?? 0}
+                status={status}
+                style={{ width: `${Math.min(percent ?? 0, 100)}%` }}
+              />
+            </LimitBar>
+            <LimitMeta>
+              Limit: {formatBytes(limitBytes)} · {percent ?? 0}% used
+              <LimitBadge style={{ color: getLimitStatusColor(status) }}>
+                {status.replace('_', ' ')}
+              </LimitBadge>
+            </LimitMeta>
+          </>
+        ) : (
+          <LimitMeta>Limit: Unlimited</LimitMeta>
+        )}
+        <LimitButton
+          onClick={() => handleStorageLimitUpdate(org.id, org.name)}
+          disabled={updatingLimitId === org.id}
+        >
+          {updatingLimitId === org.id ? 'Saving...' : limitBytes ? 'Adjust Limit' : 'Set Limit'}
+        </LimitButton>
+      </StorageLimitSection>
+    );
   };
 
   const handleDelete = async (orgId: string, orgName: string) => {
@@ -326,6 +439,7 @@ const AdminOrganizationManagement: React.FC = () => {
                         Media: {formatBytes(metrics[org.id].storageMediaFiles)} | 
                         Docs: {formatBytes(metrics[org.id].storageDocuments)}
                       </StorageBreakdown>
+                      {renderStorageLimitInfo(org)}
                     </StorageInfo>
                   ) : (
                     <span style={{ color: '#999' }}>N/A</span>
@@ -630,6 +744,67 @@ const StorageValue = styled.div`
 const StorageBreakdown = styled.div`
   font-size: 10px;
   color: #666;
+`;
+
+const StorageLimitSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+`;
+
+const LimitBar = styled.div`
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+`;
+
+const LimitProgress = styled.div<{ percent: number; status?: string }>`
+  height: 100%;
+  border-radius: 999px;
+  background: ${({ status }) => {
+    switch (status) {
+      case 'CRITICAL':
+      case 'OVER_LIMIT':
+        return '#dc2626';
+      case 'WARNING':
+        return '#d97706';
+      default:
+        return '#16a34a';
+    }
+  }};
+`;
+
+const LimitMeta = styled.div`
+  font-size: 10px;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const LimitBadge = styled.span`
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 10px;
+`;
+
+const LimitButton = styled.button`
+  align-self: flex-start;
+  padding: 4px 8px;
+  font-size: 10px;
+  border-radius: 6px;
+  border: 1px solid #cbd5f5;
+  background: white;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 `;
 
 const ActiveUsers = styled.div`

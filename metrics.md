@@ -568,44 +568,41 @@ Create a dedicated metrics dashboard with visualizations and detailed analytics 
 
 ### Enhancement #5: Storage Alerts & Limits ⚠️
 
-**Status:** 📋 Planned
+**Status:** ✅ **COMPLETE**
 
 **Description:**
-Implement alerts and storage limits to prevent unexpected costs and manage resources.
+Storage quotas with automated monitoring, alerts, and admin configuration UI.
 
-**Implementation Plan:**
-1. Add storage limit configuration per organization tier
-2. Create alert thresholds (e.g., 80%, 90%, 100%)
-3. Implement notification system
-4. Add storage quota enforcement
-5. Create admin interface for limit management
+**Implementation:**
+1. ✅ Migration `V17__add_storage_limits.sql` (org columns + `storage_limit_alerts` table)
+2. ✅ Extended `Organization` with limit/threshold/status fields
+3. ✅ `StorageLimitService` evaluates usage, persists alerts, and exposes limit info
+4. ✅ Metrics scheduler now runs storage checks after nightly calculations
+5. ✅ Organization API endpoints to view/update limits (`GET/PUT /organizations/{id}/storage-limit`)
+6. ✅ Admin UI (Organizations tab) shows limit progress + button to adjust limits
+7. ✅ Organization metrics response now includes limit status + percent for frontend display
 
-**Database Schema Addition:**
-```sql
-ALTER TABLE organizations ADD COLUMN storage_limit_bytes BIGINT;
-ALTER TABLE organizations ADD COLUMN storage_alert_threshold INTEGER DEFAULT 80;
-```
+**Service Details:**
+- Statuses: `OK`, `WARNING` (>= threshold), `CRITICAL` (>= threshold+10), `OVER_LIMIT` (>=100%)
+- Alerts stored in `storage_limit_alerts` (prevents duplicate spam)
+- `storage_limit_notified` flag used to avoid re-alerting until usage drops back to OK
+- Defaults: No limit (unlimited) unless configured; threshold defaults to 80%
+
+**Admin UX:**
+- Storage column now shows usage + breakdown + limit pill
+- Color-coded status badge and progress bar
+- “Set/Adjust Limit” prompt (GB + threshold) calls new API
+- Immediate refresh of metrics after saving
+
+**Endpoints:**
+- `GET /organizations/{orgId}/storage-limit` → limit details
+- `PUT /organizations/{orgId}/storage-limit` → update limit/threshold (0 = unlimited)
 
 **Benefits:**
-- Cost control
-- Prevent storage abuse
-- Proactive management
-- Tier-based limits
-
-**Estimated Effort:** Medium (3-4 days)
-
-**Files to Create/Modify:**
-- Migration: Add storage limit fields
-- Service: `StorageLimitService.java`
-- Notification service integration
-- Frontend: Alert display component
-- Admin: Limit configuration UI
-
-**Alert Types:**
-- Email notifications
-- In-app notifications
-- Dashboard warnings
-- API rate limiting (if exceeded)
+- Predictable cloud spend (limits per tenant/tier)
+- Early warnings when high-usage orgs approach quota
+- Operators can throttle or upsell before hitting hard limits
+- Historical alerts preserved for audit
 
 ---
 
@@ -741,16 +738,17 @@ POST /api/organizations/{orgId}/metrics/calculate
 - [ ] Export + PDF/CSV (future)
 - [ ] Testing completed
 
-### Enhancement #5: Storage Alerts & Limits 📋
-- [ ] Limit configuration
-- [ ] Alert system
-- [ ] Notification integration
-- [ ] Admin UI
+### Enhancement #5: Storage Alerts & Limits ✅
+- [x] Limit configuration (org fields + API)
+- [x] Alert system & persistence
+- [x] Scheduler integration
+- [x] Admin UI & display
+- [ ] Email/push notification integration (future)
 - [ ] Testing completed
 
 ---
 
 **Last Updated:** January 2025  
 **Version:** 1.3  
-**Status:** Phase 2 Complete, Enhancement #1 ✅, #2 ✅, #3 ✅, #4 ✅
+**Status:** Phase 2 Complete, Enhancement #1-#5 ✅
 
