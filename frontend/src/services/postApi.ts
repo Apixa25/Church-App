@@ -383,6 +383,19 @@ export const getBlockedUsers = async (page: number = 0, size: number = 20): Prom
   return response.data;
 };
 
+// Report content function
+export const reportContent = async (
+  contentType: string,
+  contentId: string,
+  reason: string,
+  description?: string
+): Promise<void> => {
+  await api.post(`/moderation/content/${contentType}/${contentId}/report`, {
+    reason,
+    description: description || ''
+  });
+};
+
 // ========== ADMIN & MODERATION OPERATIONS ==========
 
 export interface ReportedContent {

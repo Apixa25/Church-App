@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Post, SharePostRequest } from '../types/Post';
-import { likePost, unlikePost, bookmarkPost, unbookmarkPost, blockUser, unblockUser, getBlockStatus, followUser, unfollowUser, getFollowStatus } from '../services/postApi';
+import { likePost, unlikePost, bookmarkPost, unbookmarkPost, blockUser, unblockUser, getBlockStatus, followUser, unfollowUser, getFollowStatus, reportContent } from '../services/postApi';
 import { useAuth } from '../contexts/AuthContext';
 import LikeButton from './LikeButton';
 import ShareModal from './ShareModal';
 import CommentForm from './CommentForm';
+import ReportModal from './ReportModal';
 import './PostActions.css';
 
 interface PostActionsProps {
@@ -30,6 +31,9 @@ const PostActions: React.FC<PostActionsProps> = ({
   const [isBlocked, setIsBlocked] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
+  const [showReportPostModal, setShowReportPostModal] = useState(false);
+  const [showReportUserModal, setShowReportUserModal] = useState(false);
+  const [copied, setCopied] = useState(false);
   const { user } = useAuth();
 
   const handleLike = async () => {
@@ -189,6 +193,29 @@ const PostActions: React.FC<PostActionsProps> = ({
     }
   };
 
+  const handleReportPost = async (reason: string, description: string) => {
+    await reportContent('POST', post.id, reason, description);
+    alert('Thank you for your report. Our moderation team will review it.');
+  };
+
+  const handleReportUser = async (reason: string, description: string) => {
+    await reportContent('USER', post.userId, reason, description);
+    alert('Thank you for your report. Our moderation team will review it.');
+  };
+
+  const handleCopyLink = async () => {
+    const postUrl = `${window.location.origin}/posts/${post.id}`;
+    try {
+      await navigator.clipboard.writeText(postUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      setShowMoreMenu(false);
+    } catch (err) {
+      console.error('Failed to copy link:', err);
+      alert('Failed to copy link. Please try again.');
+    }
+  };
+
   return (
     <div className={`post-actions ${compact ? 'compact' : ''}`}>
       {/* Like Button */}
@@ -283,27 +310,57 @@ const PostActions: React.FC<PostActionsProps> = ({
           >
             <span className="action-icon">⋯</span>
           </button>
-          {showMoreMenu && user && post.userId && (post.userId !== user.userId && post.userId !== user.id) && (
+          {showMoreMenu && (
             <div className="more-actions-menu">
+              {user && post.userId && (post.userId !== user.userId && post.userId !== user.id) && (
+                <>
+                  <button
+                    className="menu-item"
+                    onClick={handleFollowToggle}
+                    disabled={blockLoading}
+                  >
+                    {isFollowing ? '✓ Unfollow' : '👥 Follow'} {post.userName}
+                  </button>
+                  <button
+                    className="menu-item danger"
+                    onClick={handleBlockToggle}
+                    disabled={blockLoading}
+                  >
+                    {blockLoading ? (
+                      <span className="loading-spinner">...</span>
+                    ) : isBlocked ? (
+                      '🚫 Unblock'
+                    ) : (
+                      '🚫 Block'
+                    )} {post.userName}
+                  </button>
+                </>
+              )}
               <button
                 className="menu-item"
-                onClick={handleFollowToggle}
-                disabled={blockLoading}
+                onClick={() => {
+                  setShowReportPostModal(true);
+                  setShowMoreMenu(false);
+                }}
               >
-                {isFollowing ? '✓ Unfollow' : '👥 Follow'} {post.userName}
+                🚨 Report Post
               </button>
+              {user && post.userId && (post.userId !== user.userId && post.userId !== user.id) && (
+                <button
+                  className="menu-item danger"
+                  onClick={() => {
+                    setShowReportUserModal(true);
+                    setShowMoreMenu(false);
+                  }}
+                >
+                  🚨 Report User
+                </button>
+              )}
               <button
-                className="menu-item danger"
-                onClick={handleBlockToggle}
-                disabled={blockLoading}
+                className="menu-item"
+                onClick={handleCopyLink}
               >
-                {blockLoading ? (
-                  <span className="loading-spinner">...</span>
-                ) : isBlocked ? (
-                  '🚫 Unblock'
-                ) : (
-                  '🚫 Block'
-                )} {post.userName}
+                {copied ? '✓ Link Copied!' : '🔗 Copy Link'}
               </button>
             </div>
           )}
@@ -329,6 +386,23 @@ const PostActions: React.FC<PostActionsProps> = ({
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         onShare={handleShare}
+      />
+
+      {/* Report Modals */}
+      <ReportModal
+        isOpen={showReportPostModal}
+        onClose={() => setShowReportPostModal(false)}
+        onSubmit={handleReportPost}
+        contentType="POST"
+        contentName={post.content ? (post.content.length > 50 ? post.content.substring(0, 50) + '...' : post.content) : 'Post'}
+      />
+
+      <ReportModal
+        isOpen={showReportUserModal}
+        onClose={() => setShowReportUserModal(false)}
+        onSubmit={handleReportUser}
+        contentType="USER"
+        contentName={post.userName}
       />
 
       {/* Action Stats (for detailed view) */}

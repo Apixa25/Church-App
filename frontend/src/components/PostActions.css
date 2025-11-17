@@ -60,6 +60,12 @@
   animation: pulse 1.5s ease-in-out infinite;
 }
 
+.menu-item + .menu-item.danger:not(:first-of-type) {
+  border-top: 1px solid var(--border-primary);
+  margin-top: 4px;
+  padding-top: 12px;
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 0.3; }
   50% { opacity: 1; }
