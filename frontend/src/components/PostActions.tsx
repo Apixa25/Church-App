@@ -6,6 +6,7 @@ import LikeButton from './LikeButton';
 import ShareModal from './ShareModal';
 import CommentForm from './CommentForm';
 import ReportModal from './ReportModal';
+import PostStatsModal from './PostStatsModal';
 import './PostActions.css';
 
 interface PostActionsProps {
@@ -34,6 +35,7 @@ const PostActions: React.FC<PostActionsProps> = ({
   const [showReportPostModal, setShowReportPostModal] = useState(false);
   const [showReportUserModal, setShowReportUserModal] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showPostStatsModal, setShowPostStatsModal] = useState(false);
   const { user } = useAuth();
 
   const handleLike = async () => {
@@ -336,32 +338,43 @@ const PostActions: React.FC<PostActionsProps> = ({
                   </button>
                 </>
               )}
-              <button
-                className="menu-item"
-                onClick={() => {
-                  setShowReportPostModal(true);
-                  setShowMoreMenu(false);
-                }}
-              >
-                🚨 Report Post
-              </button>
-              {user && post.userId && (post.userId !== user.userId && post.userId !== user.id) && (
-                <button
-                  className="menu-item danger"
-                  onClick={() => {
-                    setShowReportUserModal(true);
-                    setShowMoreMenu(false);
-                  }}
-                >
-                  🚨 Report User
-                </button>
-              )}
-              <button
-                className="menu-item"
-                onClick={handleCopyLink}
-              >
-                {copied ? '✓ Link Copied!' : '🔗 Copy Link'}
-              </button>
+                  {user && (post.userId === user.userId || post.userId === user.id) && (
+                    <button
+                      className="menu-item"
+                      onClick={() => {
+                        setShowPostStatsModal(true);
+                        setShowMoreMenu(false);
+                      }}
+                    >
+                      📊 View Stats
+                    </button>
+                  )}
+                  <button
+                    className="menu-item"
+                    onClick={() => {
+                      setShowReportPostModal(true);
+                      setShowMoreMenu(false);
+                    }}
+                  >
+                    🚨 Report Post
+                  </button>
+                  {user && post.userId && (post.userId !== user.userId && post.userId !== user.id) && (
+                    <button
+                      className="menu-item danger"
+                      onClick={() => {
+                        setShowReportUserModal(true);
+                        setShowMoreMenu(false);
+                      }}
+                    >
+                      🚨 Report User
+                    </button>
+                  )}
+                  <button
+                    className="menu-item"
+                    onClick={handleCopyLink}
+                  >
+                    {copied ? '✓ Link Copied!' : '🔗 Copy Link'}
+                  </button>
             </div>
           )}
         </div>
@@ -403,6 +416,12 @@ const PostActions: React.FC<PostActionsProps> = ({
         onSubmit={handleReportUser}
         contentType="USER"
         contentName={post.userName}
+      />
+
+      <PostStatsModal
+        postId={post.id}
+        isOpen={showPostStatsModal}
+        onClose={() => setShowPostStatsModal(false)}
       />
 
       {/* Action Stats (for detailed view) */}

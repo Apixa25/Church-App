@@ -396,6 +396,37 @@ export const reportContent = async (
   });
 };
 
+// ========== ANALYTICS FUNCTIONS ==========
+
+// Profile Analytics
+export const recordProfileView = async (userId: string): Promise<void> => {
+  await api.post(`/profile/users/${userId}/view`);
+};
+
+export const getProfileViews = async (page: number = 0, size: number = 20): Promise<any> => {
+  const response = await api.get(`/profile/me/views`, {
+    params: { page, size }
+  });
+  return response.data;
+};
+
+export const getFollowerGrowth = async (days: number = 30): Promise<any> => {
+  const response = await api.get(`/profile/me/follower-growth`, {
+    params: { days }
+  });
+  return response.data;
+};
+
+// Post Analytics
+export const recordPostView = async (postId: string): Promise<void> => {
+  await api.post(`/posts/${postId}/view`);
+};
+
+export const getPostAnalytics = async (postId: string): Promise<any> => {
+  const response = await api.get(`/posts/${postId}/analytics`);
+  return response.data;
+};
+
 // ========== ADMIN & MODERATION OPERATIONS ==========
 
 export interface ReportedContent {

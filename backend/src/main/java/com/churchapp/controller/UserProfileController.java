@@ -3,9 +3,12 @@ package com.churchapp.controller;
 import com.churchapp.dto.FileUploadResponse;
 import com.churchapp.dto.UserProfileRequest;
 import com.churchapp.dto.UserProfileResponse;
+import com.churchapp.entity.ProfileView;
 import com.churchapp.entity.UserBlock;
 import com.churchapp.entity.UserFollow;
 import com.churchapp.security.JwtUtil;
+import com.churchapp.service.ProfileAnalyticsService;
+import com.churchapp.service.FollowerAnalyticsService;
 import com.churchapp.service.UserBlockService;
 import com.churchapp.service.UserFollowService;
 import com.churchapp.service.UserProfileService;
@@ -36,6 +39,8 @@ public class UserProfileController {
     private final UserProfileService userProfileService;
     private final UserFollowService userFollowService;
     private final UserBlockService userBlockService;
+    private final ProfileAnalyticsService profileAnalyticsService;
+    private final FollowerAnalyticsService followerAnalyticsService;
     private final JwtUtil jwtUtil;
     
     @GetMapping("/me")
@@ -404,6 +409,85 @@ public class UserProfileController {
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    // ========================================================================
+    // ANALYTICS ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Get profile views for current user (only visible to profile owner)
+     * GET /api/profile/me/views
+     */
+    @GetMapping("/me/views")
+    public ResponseEntity<?> getMyProfileViews(
+            @AuthenticationPrincipal User user,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            Pageable pageable = PageRequest.of(page, size);
+            Page<ProfileView> profileViews = profileAnalyticsService.getProfileViews(currentProfile.getUserId(), pageable);
+            
+            // Convert to response with viewer profile info
+            List<Map<String, Object>> viewsList = profileViews.getContent().stream()
+                .map(view -> {
+                    UserProfileResponse viewerProfile = userProfileService.getUserProfile(view.getViewerId());
+                    Map<String, Object> viewData = new HashMap<>();
+                    viewData.put("id", view.getId());
+                    viewData.put("viewer", viewerProfile);
+                    viewData.put("viewedAt", view.getViewedAt());
+                    return viewData;
+                })
+                .toList();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("content", viewsList);
+            response.put("totalElements", profileViews.getTotalElements());
+            response.put("totalPages", profileViews.getTotalPages());
+            response.put("currentPage", profileViews.getNumber());
+            response.put("size", profileViews.getSize());
+            
+            // Add summary stats
+            Map<String, Object> stats = new HashMap<>();
+            stats.put("totalViews", profileAnalyticsService.getTotalProfileViews(currentProfile.getUserId()));
+            stats.put("viewsToday", profileAnalyticsService.getProfileViewsInPeriod(currentProfile.getUserId(), 1));
+            stats.put("viewsThisWeek", profileAnalyticsService.getProfileViewsInPeriod(currentProfile.getUserId(), 7));
+            stats.put("viewsThisMonth", profileAnalyticsService.getProfileViewsInPeriod(currentProfile.getUserId(), 30));
+            stats.put("uniqueViewers", profileAnalyticsService.getUniqueViewersCount(currentProfile.getUserId()));
+            response.put("stats", stats);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error fetching profile views: {}", e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to fetch profile views");
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    /**
+     * Get follower growth analytics
+     * GET /api/profile/me/follower-growth
+     */
+    @GetMapping("/me/follower-growth")
+    public ResponseEntity<?> getFollowerGrowth(
+            @AuthenticationPrincipal User user,
+            @RequestParam(defaultValue = "30") int days) {
+        try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            
+            // Create snapshot if it doesn't exist for today
+            followerAnalyticsService.createSnapshot(currentProfile.getUserId());
+            
+            Map<String, Object> growthData = followerAnalyticsService.getFollowerGrowth(currentProfile.getUserId(), days);
+            return ResponseEntity.ok(growthData);
+        } catch (Exception e) {
+            log.error("Error fetching follower growth: {}", e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to fetch follower growth");
             return ResponseEntity.badRequest().body(error);
         }
     }
