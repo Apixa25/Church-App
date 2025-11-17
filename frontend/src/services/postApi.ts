@@ -336,11 +336,30 @@ export const uploadBannerImage = async (file: File): Promise<string> => {
 };
 
 export const followUser = async (userId: string): Promise<void> => {
-  await api.post(`/users/${userId}/follow`);
+  await api.post(`/profile/users/${userId}/follow`);
 };
 
 export const unfollowUser = async (userId: string): Promise<void> => {
-  await api.delete(`/users/${userId}/follow`);
+  await api.delete(`/profile/users/${userId}/follow`);
+};
+
+export const getFollowStatus = async (userId: string): Promise<{ isFollowing: boolean }> => {
+  const response = await api.get(`/profile/users/${userId}/follow-status`);
+  return response.data;
+};
+
+export const getFollowers = async (userId: string, page: number = 0, size: number = 20): Promise<any> => {
+  const response = await api.get(`/profile/users/${userId}/followers`, {
+    params: { page, size }
+  });
+  return response.data;
+};
+
+export const getFollowing = async (userId: string, page: number = 0, size: number = 20): Promise<any> => {
+  const response = await api.get(`/profile/users/${userId}/following`, {
+    params: { page, size }
+  });
+  return response.data;
 };
 
 // ========== ADMIN & MODERATION OPERATIONS ==========

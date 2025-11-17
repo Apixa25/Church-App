@@ -26,19 +26,28 @@ public class UserProfileService {
     
     private final UserRepository userRepository;
     private final FileUploadService fileUploadService;
+    private final UserFollowService userFollowService;
     
     public UserProfileResponse getUserProfile(UUID userId) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         
-        return UserProfileResponse.fromUser(user);
+        UserProfileResponse response = UserProfileResponse.fromUser(user);
+        // Add follower/following counts
+        response.setFollowerCount(userFollowService.getFollowerCount(userId));
+        response.setFollowingCount(userFollowService.getFollowingCount(userId));
+        return response;
     }
     
     public UserProfileResponse getUserProfileByEmail(String email) {
         User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
         
-        return UserProfileResponse.fromUser(user);
+        UserProfileResponse response = UserProfileResponse.fromUser(user);
+        // Add follower/following counts
+        response.setFollowerCount(userFollowService.getFollowerCount(user.getId()));
+        response.setFollowingCount(userFollowService.getFollowingCount(user.getId()));
+        return response;
     }
     
     public UserProfileResponse updateUserProfile(UUID userId, UserProfileRequest request) {

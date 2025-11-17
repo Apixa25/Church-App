@@ -5,7 +5,7 @@ import com.churchapp.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +32,7 @@ public class PostService {
     private final FeedFilterService feedFilterService;
     private final GroupRepository groupRepository;
     private final OrganizationRepository organizationRepository;
+    private final UserFollowService userFollowService;
 
     @Transactional
     public Post createPost(String userEmail, String content, List<String> mediaUrls,
@@ -236,20 +237,15 @@ public class PostService {
     }
 
     private Page<Post> getFollowingFeed(UUID userId, Pageable pageable) {
-        // Get users that this user follows
-        List<UUID> followingIds = userRepository.findById(userId)
-            .map(user -> {
-                // This would need to be implemented in UserRepository
-                // For now, return empty list - we'll implement this later
-                return List.<UUID>of();
-            })
-            .orElse(List.of());
+        // Get users that this user follows (across all organizations)
+        List<UUID> followingIds = userFollowService.getFollowingIds(userId);
 
         if (followingIds.isEmpty()) {
-            // If user follows no one, return general feed
-            return postRepository.findMainPostsForFeed(pageable);
+            // If user follows no one, return empty page
+            return new PageImpl<>(List.of(), pageable, 0);
         }
 
+        // Get posts from followed users (works globally across all organizations)
         return postRepository.findPostsByFollowingUsers(followingIds, pageable);
     }
 
