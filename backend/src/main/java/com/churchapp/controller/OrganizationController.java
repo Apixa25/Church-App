@@ -230,6 +230,24 @@ public class OrganizationController {
         }
     }
 
+    // Delete organization (admin only) - deletes all related data
+    @DeleteMapping("/{orgId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteOrganization(
+            @PathVariable UUID orgId,
+            @AuthenticationPrincipal User userDetails) {
+
+        log.warn("Admin {} deleting organization {}", userDetails.getUsername(), orgId);
+
+        try {
+            organizationService.deleteOrganization(orgId);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            log.error("Error deleting organization {}: {}", orgId, e.getMessage());
+            throw e;
+        }
+    }
+
     // ========================================================================
     // MEMBERSHIP MANAGEMENT
     // ========================================================================
