@@ -73,7 +73,9 @@ public class UserProfileResponse {
             user.getBannerImageUrl(),
             user.getCreatedAt(),
             user.getUpdatedAt(),
-            user.getLastLogin()
+            user.getLastLogin(),
+            null, // followerCount will be set by service
+            null  // followingCount will be set by service
         );
     }
 }

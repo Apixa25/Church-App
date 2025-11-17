@@ -21,6 +21,7 @@ public class PostInteractionService {
     private final PostLikeRepository postLikeRepository;
     private final PostCommentRepository postCommentRepository;
     private final PostShareRepository postShareRepository;
+    private final UserBlockService userBlockService;
     private final PostBookmarkRepository postBookmarkRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
@@ -167,6 +168,32 @@ public class PostInteractionService {
 
     public Page<PostComment> getPostComments(UUID postId, Pageable pageable) {
         return postCommentRepository.findByPostIdOrderByCreatedAtAsc(postId, pageable);
+    }
+
+    public Page<PostComment> getPostComments(UUID postId, UUID viewerUserId, Pageable pageable) {
+        Page<PostComment> allComments = postCommentRepository.findByPostIdOrderByCreatedAtAsc(postId, pageable);
+        
+        // If no viewer user ID provided, return all comments
+        if (viewerUserId == null) {
+            return allComments;
+        }
+        
+        // Filter out comments from blocked users
+        List<UUID> blockedUserIds = userBlockService.getBlockedUserIds(viewerUserId);
+        if (blockedUserIds.isEmpty()) {
+            return allComments;
+        }
+        
+        // Filter comments in memory (since we already have the page)
+        List<PostComment> filteredComments = allComments.getContent().stream()
+            .filter(comment -> !blockedUserIds.contains(comment.getUser().getId()))
+            .collect(java.util.stream.Collectors.toList());
+        
+        return new org.springframework.data.domain.PageImpl<>(
+            filteredComments,
+            pageable,
+            filteredComments.size()
+        );
     }
 
     public List<PostComment> getCommentReplies(UUID commentId) {

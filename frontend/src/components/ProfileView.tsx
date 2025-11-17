@@ -5,7 +5,7 @@ import { UserProfile, ProfileCompletionStatus } from '../types/Profile';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileEdit from './ProfileEdit';
 import { Post } from '../types/Post';
-import { getUserPosts, getBookmarkedPosts, getUserShareStats, followUser, unfollowUser, getFollowStatus } from '../services/postApi';
+import { getUserPosts, getBookmarkedPosts, getUserShareStats, followUser, unfollowUser, getFollowStatus, blockUser, unblockUser, getBlockStatus } from '../services/postApi';
 import FollowersList from './FollowersList';
 import FollowingList from './FollowingList';
 import PostCard from './PostCard';
@@ -56,6 +56,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const [followLoading, setFollowLoading] = useState(false);
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [showFollowingModal, setShowFollowingModal] = useState(false);
+  
+  // Block state
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [blockLoading, setBlockLoading] = useState(false);
 
   const isOwnProfile = !userId || userId === user?.userId;
   const targetUserId = userId || user?.userId || '';
@@ -277,6 +281,41 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
       setError('Failed to update follow status');
     } finally {
       setFollowLoading(false);
+    }
+  };
+
+  const handleBlockToggle = async () => {
+    if (!user || !profile || blockLoading || !userId || isOwnProfile) return;
+
+    const action = isBlocked ? 'unblock' : 'block';
+    const confirmed = window.confirm(
+      isBlocked 
+        ? `Are you sure you want to unblock ${profile.name}? You will see their posts again.`
+        : `Are you sure you want to block ${profile.name}? You will no longer see their posts, comments, or profile.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setBlockLoading(true);
+
+      if (isBlocked) {
+        await unblockUser(userId);
+        setIsBlocked(false);
+      } else {
+        await blockUser(userId);
+        setIsBlocked(true);
+        // If blocking, also unfollow if following
+        if (isFollowing) {
+          await unfollowUser(userId);
+          setIsFollowing(false);
+        }
+      }
+    } catch (err: any) {
+      console.error(`Error ${action}ing user:`, err);
+      setError(`Failed to ${action} user`);
+    } finally {
+      setBlockLoading(false);
     }
   };
 
@@ -514,29 +553,29 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
                 </h1>
                 {!isOwnProfile && (
                   <>
-                    <button
-                      onClick={handleFollowToggle}
-                      disabled={followLoading}
-                      className={`follow-btn-x ${isFollowing ? 'following' : ''}`}
-                      title={isFollowing ? 'Unfollow user' : 'Follow user'}
-                      aria-label={isFollowing ? 'Unfollow user' : 'Follow user'}
-                    >
-                      {followLoading ? (
+                <button
+                    onClick={handleFollowToggle}
+                    disabled={followLoading || isBlocked}
+                    className={`follow-btn-x ${isFollowing ? 'following' : ''}`}
+                    title={isFollowing ? 'Unfollow user' : 'Follow user'}
+                    aria-label={isFollowing ? 'Unfollow user' : 'Follow user'}
+                >
+                    {followLoading ? (
                         <span className="follow-spinner-x">...</span>
-                      ) : isFollowing ? (
+                    ) : isFollowing ? (
                         <>✓ Following</>
-                      ) : (
+                    ) : (
                         <>👥 Follow</>
-                      )}
-                    </button>
-                    <button
-                      onClick={handleMessageUser}
-                      disabled={creatingDM}
-                      className="message-user-button"
-                      title={`Send message to ${profile.name}`}
-                      aria-label={`Send message to ${profile.name}`}
-                    >
-                      <svg
+                    )}
+                </button>
+                <button
+                    onClick={handleMessageUser}
+                    disabled={creatingDM || isBlocked}
+                    className="message-user-button"
+                    title={`Send message to ${profile.name}`}
+                    aria-label={`Send message to ${profile.name}`}
+                >
+                    <svg
                         className="message-icon"
                         width="20"
                         height="20"
@@ -546,12 +585,27 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                      >
+                    >
                         <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                         <polyline points="22,6 12,13 2,6"></polyline>
-                      </svg>
-                      {creatingDM && <span className="message-loading">...</span>}
-                    </button>
+                    </svg>
+                    {creatingDM && <span className="message-loading">...</span>}
+                </button>
+                <button
+                    onClick={handleBlockToggle}
+                    disabled={blockLoading}
+                    className={`block-btn-x ${isBlocked ? 'blocked' : ''}`}
+                    title={isBlocked ? 'Unblock user' : 'Block user'}
+                    aria-label={isBlocked ? 'Unblock user' : 'Block user'}
+                >
+                    {blockLoading ? (
+                        <span className="block-spinner-x">...</span>
+                    ) : isBlocked ? (
+                        <>🚫 Blocked</>
+                    ) : (
+                        <>🚫 Block</>
+                    )}
+                </button>
                   </>
                 )}
               </div>

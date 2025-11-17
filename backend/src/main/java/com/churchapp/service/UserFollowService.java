@@ -1,6 +1,5 @@
 package com.churchapp.service;
 
-import com.churchapp.entity.User;
 import com.churchapp.entity.UserFollow;
 import com.churchapp.repository.UserFollowRepository;
 import com.churchapp.repository.UserRepository;
