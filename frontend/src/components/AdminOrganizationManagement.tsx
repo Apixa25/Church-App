@@ -17,6 +17,22 @@ interface Organization {
   primaryMemberCount?: number;
 }
 
+interface OrganizationMetrics {
+  organizationId: string;
+  storageUsed: number;
+  storageMediaFiles: number;
+  storageDocuments: number;
+  storageProfilePics: number;
+  apiRequestsCount: number;
+  dataTransferBytes: number;
+  activeUsersCount: number;
+  postsCount: number;
+  prayerRequestsCount: number;
+  eventsCount: number;
+  announcementsCount: number;
+  calculatedAt: string;
+}
+
 const AdminOrganizationManagement: React.FC = () => {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,10 +42,21 @@ const AdminOrganizationManagement: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [deletingOrgId, setDeletingOrgId] = useState<string | null>(null);
+  const [metrics, setMetrics] = useState<Record<string, OrganizationMetrics>>({});
+  const [loadingMetrics, setLoadingMetrics] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchOrganizations();
   }, []);
+
+  useEffect(() => {
+    // Fetch metrics for all organizations after they're loaded
+    if (organizations.length > 0) {
+      organizations.forEach(org => {
+        fetchMetrics(org.id);
+      });
+    }
+  }, [organizations]);
 
   const fetchOrganizations = async () => {
     try {
@@ -89,6 +116,30 @@ const AdminOrganizationManagement: React.FC = () => {
     } finally {
       setUpdatingStatus(null);
     }
+  };
+
+  const fetchMetrics = async (orgId: string) => {
+    try {
+      setLoadingMetrics(prev => ({ ...prev, [orgId]: true }));
+      const token = localStorage.getItem('authToken');
+      const response = await axios.get(`${API_BASE_URL}/organizations/${orgId}/metrics`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setMetrics(prev => ({ ...prev, [orgId]: response.data }));
+    } catch (err: any) {
+      console.error(`Error fetching metrics for organization ${orgId}:`, err);
+      // Don't show error to user, just log it
+    } finally {
+      setLoadingMetrics(prev => ({ ...prev, [orgId]: false }));
+    }
+  };
+
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
   const handleDelete = async (orgId: string, orgName: string) => {
@@ -220,6 +271,9 @@ const AdminOrganizationManagement: React.FC = () => {
               <Th>Status</Th>
               <Th>Tier</Th>
               <Th>Members</Th>
+              <Th>Storage</Th>
+              <Th>Active Users</Th>
+              <Th>Content</Th>
               <Th>Created</Th>
               <Th>Actions</Th>
             </tr>
@@ -260,6 +314,40 @@ const AdminOrganizationManagement: React.FC = () => {
                     </MemberCount>
                   ) : (
                     '-'
+                  )}
+                </Td>
+                <Td>
+                  {loadingMetrics[org.id] ? (
+                    <span style={{ color: '#999' }}>Loading...</span>
+                  ) : metrics[org.id] ? (
+                    <StorageInfo>
+                      <StorageValue>{formatBytes(metrics[org.id].storageUsed)}</StorageValue>
+                      <StorageBreakdown>
+                        Media: {formatBytes(metrics[org.id].storageMediaFiles)} | 
+                        Docs: {formatBytes(metrics[org.id].storageDocuments)}
+                      </StorageBreakdown>
+                    </StorageInfo>
+                  ) : (
+                    <span style={{ color: '#999' }}>N/A</span>
+                  )}
+                </Td>
+                <Td>
+                  {metrics[org.id] ? (
+                    <ActiveUsers>{metrics[org.id].activeUsersCount} active</ActiveUsers>
+                  ) : (
+                    <span style={{ color: '#999' }}>-</span>
+                  )}
+                </Td>
+                <Td>
+                  {metrics[org.id] ? (
+                    <ContentStats>
+                      <StatItem>📝 {metrics[org.id].postsCount}</StatItem>
+                      <StatItem>🙏 {metrics[org.id].prayerRequestsCount}</StatItem>
+                      <StatItem>📅 {metrics[org.id].eventsCount}</StatItem>
+                      <StatItem>📢 {metrics[org.id].announcementsCount}</StatItem>
+                    </ContentStats>
+                  ) : (
+                    <span style={{ color: '#999' }}>-</span>
                   )}
                 </Td>
                 <Td>{formatDate(org.createdAt)}</Td>
@@ -525,6 +613,41 @@ const DeleteButton = styled.button`
     cursor: not-allowed;
     background: #ccc;
   }
+`;
+
+const StorageInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`;
+
+const StorageValue = styled.div`
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 13px;
+`;
+
+const StorageBreakdown = styled.div`
+  font-size: 10px;
+  color: #666;
+`;
+
+const ActiveUsers = styled.div`
+  font-weight: 500;
+  color: #4a90e2;
+  font-size: 13px;
+`;
+
+const ContentStats = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+`;
+
+const StatItem = styled.div`
+  color: #666;
+  white-space: nowrap;
 `;
 
 export default AdminOrganizationManagement;
