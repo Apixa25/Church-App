@@ -67,6 +67,53 @@ export interface DashboardResponse {
   lastUpdated: string;
 }
 
+export interface MetricsSummary {
+  totalOrganizations: number;
+  totalStorageUsed: number;
+  averageStoragePerOrganization: number;
+  totalActiveUsers: number;
+  totalApiRequests: number;
+  totalDataTransferBytes: number;
+  totalPosts: number;
+  totalPrayerRequests: number;
+  totalEvents: number;
+  totalAnnouncements: number;
+}
+
+export interface MetricsTrendPoint {
+  date: string;
+  value: number;
+}
+
+export interface ContentTrendPoint {
+  date: string;
+  posts: number;
+  prayerRequests: number;
+  events: number;
+  announcements: number;
+}
+
+export interface TopOrganizationMetric {
+  organizationId: string;
+  organizationName: string;
+  storageUsed: number;
+  storagePercent: number;
+  activeUsers: number;
+  dataTransferBytes: number;
+  postsCount: number;
+  prayerRequestsCount: number;
+  announcementsCount: number;
+}
+
+export interface MetricsDashboardData {
+  summary: MetricsSummary;
+  storageTrend: MetricsTrendPoint[];
+  activeUsersTrend: MetricsTrendPoint[];
+  contentTrend: ContentTrendPoint[];
+  topOrganizations: TopOrganizationMetric[];
+  lastUpdated: string;
+}
+
 const dashboardApi = {
   getDashboard: async (): Promise<DashboardResponse> => {
     const response = await api.get('/dashboard');
@@ -90,6 +137,13 @@ const dashboardApi = {
 
   getQuickActions: async (): Promise<{ quickActions: QuickAction[]; lastUpdated: string }> => {
     const response = await api.get('/dashboard/quick-actions');
+    return response.data;
+  },
+
+  getMetricsDashboard: async (days: number = 30): Promise<MetricsDashboardData> => {
+    const response = await api.get('/metrics/dashboard', {
+      params: { days }
+    });
     return response.data;
   },
 

@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import AdminModeration from './AdminModeration';
 import AdminOrganizationManagement from './AdminOrganizationManagement';
 import AnalyticsDashboard from './AnalyticsDashboard';
+import MetricsDashboard from './MetricsDashboard';
 import {
   getUsers,
   updateUserRole,
@@ -22,7 +23,7 @@ import {
 import './AdminDashboard.css';
 
 interface AdminDashboardProps {
-  initialTab?: 'overview' | 'users' | 'organizations' | 'content' | 'analytics' | 'audit' | 'settings';
+  initialTab?: 'overview' | 'users' | 'organizations' | 'content' | 'analytics' | 'metrics' | 'audit' | 'settings';
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -68,6 +69,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           break;
         case 'analytics':
           await loadAnalytics();
+          break;
+        case 'metrics':
+          // Metrics dashboard fetches its own data
           break;
         case 'audit':
           await loadAuditLogs();
@@ -246,6 +250,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             onClick={() => setActiveTab('analytics')}
           >
             📈 Analytics
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'metrics' ? 'active' : ''}`}
+            onClick={() => setActiveTab('metrics')}
+          >
+            🚀 Metrics
           </button>
           {currentUser.role === 'ADMIN' && (
             <button
@@ -600,6 +610,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {/* Analytics Tab */}
         {activeTab === 'analytics' && (
           <AnalyticsDashboard timeRange={timeRange as any} />
+        )}
+
+        {/* Metrics Dashboard Tab */}
+        {activeTab === 'metrics' && (
+          <MetricsDashboard />
         )}
 
         {/* Audit Logs Tab */}
