@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
 import OrganizationCreateForm from './OrganizationCreateForm';
+import OrganizationEditForm from './OrganizationEditForm';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
 
@@ -13,6 +14,7 @@ interface Organization {
   status: string;
   tier: string;
   createdAt: string;
+  logoUrl?: string;
   memberCount?: number;
   primaryMemberCount?: number;
 }
@@ -44,6 +46,7 @@ const AdminOrganizationManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('ALL');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [deletingOrgId, setDeletingOrgId] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<Record<string, OrganizationMetrics>>({});
@@ -149,6 +152,17 @@ const AdminOrganizationManagement: React.FC = () => {
   const handleCreateSuccess = (newOrg: Organization) => {
     setOrganizations(prev => [newOrg, ...prev]);
     setShowCreateForm(false);
+  };
+
+  const handleEditSuccess = (updatedOrg: Organization) => {
+    setOrganizations(prev =>
+      prev.map(org => org.id === updatedOrg.id ? updatedOrg : org)
+    );
+    setEditingOrg(null);
+    // Refresh metrics for the updated organization
+    if (updatedOrg.id) {
+      fetchMetrics(updatedOrg.id);
+    }
   };
 
   const handleStatusChange = async (orgId: string, newStatus: string) => {
@@ -339,6 +353,18 @@ const AdminOrganizationManagement: React.FC = () => {
     );
   }
 
+  if (editingOrg) {
+    return (
+      <Container>
+        <OrganizationEditForm
+          organization={editingOrg}
+          onSuccess={handleEditSuccess}
+          onCancel={() => setEditingOrg(null)}
+        />
+      </Container>
+    );
+  }
+
   return (
     <Container>
       <Header>
@@ -466,12 +492,19 @@ const AdminOrganizationManagement: React.FC = () => {
                 </Td>
                 <Td>{formatDate(org.createdAt)}</Td>
                 <Td>
-                  <DeleteButton 
-                    onClick={() => handleDelete(org.id, org.name)}
-                    disabled={deletingOrgId === org.id}
-                  >
-                    {deletingOrgId === org.id ? 'Deleting...' : 'Delete'}
-                  </DeleteButton>
+                  <ActionsGroup>
+                    <EditButton 
+                      onClick={() => setEditingOrg(org)}
+                    >
+                      Edit
+                    </EditButton>
+                    <DeleteButton 
+                      onClick={() => handleDelete(org.id, org.name)}
+                      disabled={deletingOrgId === org.id}
+                    >
+                      {deletingOrgId === org.id ? 'Deleting...' : 'Delete'}
+                    </DeleteButton>
+                  </ActionsGroup>
                 </Td>
               </Tr>
             ))}
@@ -729,6 +762,35 @@ const Stats = styled.div`
   font-size: 13px;
   color: var(--text-tertiary);
   text-align: center;
+`;
+
+const ActionsGroup = styled.div`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+`;
+
+const EditButton = styled.button`
+  padding: 6px 12px;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-xs);
+
+  &:hover {
+    background: linear-gradient(135deg, var(--accent-primary-dark) 0%, var(--accent-secondary-dark) 100%);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm), var(--glow-blue);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
 `;
 
 const DeleteButton = styled.button`

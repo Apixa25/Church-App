@@ -101,6 +101,9 @@ public class OrganizationService {
         if (updates.getTier() != null) {
             org.setTier(updates.getTier());
         }
+        if (updates.getLogoUrl() != null) {
+            org.setLogoUrl(updates.getLogoUrl());
+        }
 
         org.setUpdatedAt(LocalDateTime.now());
         return organizationRepository.save(org);

@@ -196,7 +196,7 @@ public class OrganizationController {
         return ResponseEntity.ok(response);
     }
 
-    @PutMapping("/{orgId}")
+    @PutMapping(value = "/{orgId}", consumes = {"application/json"})
     public ResponseEntity<OrganizationResponse> updateOrganization(
             @PathVariable UUID orgId,
             @Valid @RequestBody OrganizationRequest request,
@@ -209,6 +209,61 @@ public class OrganizationController {
 
         OrganizationResponse response = OrganizationResponse.fromOrganization(updated);
         return ResponseEntity.ok(response);
+    }
+
+    // Update organization with logo upload (multipart/form-data)
+    @PutMapping(value = "/{orgId}", consumes = {"multipart/form-data"})
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<OrganizationResponse> updateOrganizationWithLogo(
+            @PathVariable UUID orgId,
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "logo", required = false) MultipartFile logoFile,
+            @AuthenticationPrincipal User userDetails) {
+
+        log.info("Updating organization {} logo by admin: {}", orgId, userDetails.getUsername());
+
+        try {
+            Organization org = organizationService.getOrganizationById(orgId);
+            
+            // Upload new logo if provided
+            String logoUrl = null;
+            if (logoFile != null && !logoFile.isEmpty()) {
+                // Delete old logo if exists
+                if (org.getLogoUrl() != null && !org.getLogoUrl().isEmpty()) {
+                    try {
+                        fileUploadService.deleteFile(org.getLogoUrl());
+                        log.info("Deleted old logo for organization: {}", orgId);
+                    } catch (Exception e) {
+                        log.warn("Could not delete old logo for organization: {}", orgId, e);
+                        // Continue with upload even if deletion fails
+                    }
+                }
+                
+                log.info("Uploading new logo for organization: {}", orgId);
+                logoUrl = fileUploadService.uploadFile(logoFile, "organizations/logos");
+                log.info("Logo uploaded successfully: {}", logoUrl);
+            }
+
+            // Update organization
+            Organization updates = new Organization();
+            if (name != null && !name.trim().isEmpty()) {
+                updates.setName(name.trim());
+            }
+            if (logoUrl != null) {
+                updates.setLogoUrl(logoUrl);
+            }
+
+            Organization updated = organizationService.updateOrganization(orgId, updates);
+
+            OrganizationResponse response = OrganizationResponse.fromOrganization(updated);
+            response.setMemberCount(organizationService.getMemberCount(orgId));
+            response.setPrimaryMemberCount(organizationService.getPrimaryMemberCount(orgId));
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error updating organization {}: {}", orgId, e.getMessage(), e);
+            throw new RuntimeException("Failed to update organization: " + e.getMessage(), e);
+        }
     }
 
     // Update organization status (admin only)
