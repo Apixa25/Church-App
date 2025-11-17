@@ -86,6 +86,10 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, UUID
            "ORDER BY a.isPinned DESC, a.createdAt DESC")
     Page<Announcement> findByOrganizationId(@Param("orgId") UUID orgId, Pageable pageable);
 
+    // Get all announcements for an organization (for metrics calculation)
+    @Query("SELECT a FROM Announcement a WHERE a.organization.id = :orgId AND a.deletedAt IS NULL")
+    List<Announcement> findAllByOrganizationId(@Param("orgId") UUID orgId);
+
     // Find pinned announcements by organization
     @Query("SELECT a FROM Announcement a WHERE " +
            "a.organization.id = :orgId " +
