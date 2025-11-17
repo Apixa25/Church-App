@@ -84,6 +84,10 @@ public interface PrayerRequestRepository extends JpaRepository<PrayerRequest, UU
            "ORDER BY pr.createdAt DESC")
     Page<PrayerRequest> findByOrganizationId(@Param("orgId") UUID orgId, Pageable pageable);
 
+    // Get all prayer requests for an organization (for metrics calculation)
+    @Query("SELECT pr FROM PrayerRequest pr WHERE pr.organization.id = :orgId")
+    List<PrayerRequest> findAllByOrganizationId(@Param("orgId") UUID orgId);
+
     // Find active prayers by organization
     @Query("SELECT pr FROM PrayerRequest pr WHERE " +
            "pr.organization.id = :orgId " +

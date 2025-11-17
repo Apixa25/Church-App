@@ -27,6 +27,7 @@ public class OrganizationMetricsService {
     private final AnnouncementRepository announcementRepository;
     private final ResourceRepository resourceRepository;
     private final UserOrganizationMembershipRepository membershipRepository;
+    private final S3StorageCalculator s3StorageCalculator;
 
     // Average file size estimates (in bytes) for storage calculation
     private static final long AVG_MEDIA_FILE_SIZE = 2_000_000L; // 2MB average for images/videos
@@ -66,10 +67,27 @@ public class OrganizationMetricsService {
         int activeUsersCount = countActiveUsers(organizationId, activeSince);
         metrics.setActiveUsersCount(activeUsersCount);
 
-        // Calculate storage metrics (estimated based on file counts)
-        long storageMediaFiles = calculateMediaStorage(organizationId);
-        long storageDocuments = calculateDocumentStorage(organizationId);
-        long storageProfilePics = calculateProfilePicStorage(organizationId);
+        // Calculate storage metrics (actual S3 file sizes)
+        // Fallback to estimates if S3 queries fail
+        long storageMediaFiles;
+        long storageDocuments;
+        long storageProfilePics;
+        
+        try {
+            storageMediaFiles = s3StorageCalculator.calculateMediaStorage(organizationId);
+            storageDocuments = s3StorageCalculator.calculateDocumentStorage(organizationId);
+            storageProfilePics = s3StorageCalculator.calculateProfilePicStorage(organizationId);
+            log.info("Calculated actual S3 storage for organization {}: media={} bytes, docs={} bytes, pics={} bytes", 
+                organizationId, storageMediaFiles, storageDocuments, storageProfilePics);
+        } catch (Exception e) {
+            log.warn("Error calculating S3 storage for organization {}, falling back to estimates: {}", 
+                organizationId, e.getMessage());
+            // Fallback to estimates
+            storageMediaFiles = calculateMediaStorage(organizationId);
+            storageDocuments = calculateDocumentStorage(organizationId);
+            storageProfilePics = calculateProfilePicStorage(organizationId);
+        }
+        
         long totalStorage = storageMediaFiles + storageDocuments + storageProfilePics;
 
         metrics.setStorageMediaFiles(storageMediaFiles);

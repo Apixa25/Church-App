@@ -21,6 +21,9 @@ public interface ResourceRepository extends JpaRepository<Resource, UUID> {
     
     List<Resource> findByUploadedByIdOrderByCreatedAtDesc(UUID uploadedById);
     
+    // Get all resources by uploader (for metrics calculation)
+    List<Resource> findByUploadedBy(User uploadedBy);
+    
     // Find by category
     Page<Resource> findByCategoryOrderByCreatedAtDesc(Resource.ResourceCategory category, Pageable pageable);
     

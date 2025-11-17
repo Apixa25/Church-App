@@ -145,6 +145,10 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
            "ORDER BY p.createdAt DESC")
     Page<Post> findByOrganizationId(@Param("orgId") UUID orgId, Pageable pageable);
 
+    // Get all posts for an organization (for metrics calculation)
+    @Query("SELECT p FROM Post p WHERE p.organization.id = :orgId")
+    List<Post> findAllByOrganizationId(@Param("orgId") UUID orgId);
+
     // Group-scoped feed
     @Query("SELECT p FROM Post p WHERE " +
            "p.group.id = :groupId " +
