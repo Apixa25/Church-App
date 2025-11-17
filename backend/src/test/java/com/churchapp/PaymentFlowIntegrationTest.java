@@ -3,20 +3,30 @@ package com.churchapp;
 import com.churchapp.controller.DonationController;
 import com.churchapp.dto.*;
 import com.churchapp.entity.*;
-import com.churchapp.repository.*;
-import com.churchapp.service.*;
+import com.churchapp.repository.DonationRepository;
+import com.churchapp.repository.DonationSubscriptionRepository;
+import com.churchapp.repository.UserRepository;
+import com.churchapp.service.EmailService;
+import com.churchapp.service.ReceiptService;
+import com.churchapp.service.StripePaymentService;
+import com.churchapp.service.StripeSubscriptionService;
+import com.churchapp.service.StripeWebhookService;
+import com.churchapp.exception.DonationExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stripe.model.PaymentIntent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -25,39 +35,46 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(SpringExtension.class)
-@WebMvcTest(DonationController.class)
+@ExtendWith(MockitoExtension.class)
 public class PaymentFlowIntegrationTest {
 
-    @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @MockBean
+    @Mock
     private StripePaymentService stripePaymentService;
 
-    @MockBean
+    @Mock
     private StripeSubscriptionService stripeSubscriptionService;
 
-    @MockBean
+    @Mock
     private ReceiptService receiptService;
 
-    @MockBean
+    @Mock
     private DonationRepository donationRepository;
 
-    @MockBean
+    @Mock
     private UserRepository userRepository;
 
-    @MockBean
+    @Mock
     private DonationSubscriptionRepository subscriptionRepository;
 
-    @MockBean
+    @Mock
+    private StripeWebhookService stripeWebhookService;
+
+    @Mock
+    private EmailService emailService;
+
+    @Mock
     private Authentication authentication;
+
+    @InjectMocks
+    private DonationController donationController;
 
     private User testUser;
     private Donation testDonation;
@@ -65,6 +82,11 @@ public class PaymentFlowIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        mockMvc = MockMvcBuilders.standaloneSetup(donationController)
+            .setControllerAdvice(new DonationExceptionHandler())
+            .build();
+        ReflectionTestUtils.setField(donationController, "stripePublicKey", "pk_test_mock");
+
         // Create test user
         testUser = new User();
         testUser.setId(UUID.randomUUID());
@@ -96,8 +118,8 @@ public class PaymentFlowIntegrationTest {
         testSubscription.setCreatedAt(LocalDateTime.now());
 
         // Mock authentication
-        when(authentication.getName()).thenReturn(testUser.getEmail());
-        when(userRepository.findByEmail(testUser.getEmail())).thenReturn(Optional.of(testUser));
+        lenient().when(authentication.getName()).thenReturn(testUser.getEmail());
+        lenient().when(userRepository.findByEmail(testUser.getEmail())).thenReturn(Optional.of(testUser));
     }
 
     @Test
@@ -296,6 +318,7 @@ public class PaymentFlowIntegrationTest {
         when(stripePaymentService.confirmPayment("pi_test789", testUser))
             .thenReturn(testDonation);
         doNothing().when(receiptService).generateAndEmailReceipt(testDonation);
+        when(donationRepository.findById(testDonation.getId())).thenReturn(Optional.of(testDonation));
 
         mockMvc.perform(post("/donations/confirm-payment")
                 .param("paymentIntentId", "pi_test789")
@@ -306,7 +329,6 @@ public class PaymentFlowIntegrationTest {
         byte[] mockReceiptPdf = "Mock PDF content".getBytes();
         when(receiptService.downloadReceipt(testDonation.getId(), testUser))
             .thenReturn(mockReceiptPdf);
-
         mockMvc.perform(get("/donations/receipt/" + testDonation.getId())
                 .principal(authentication))
                 .andExpect(status().isOk())
@@ -323,15 +345,20 @@ public class PaymentFlowIntegrationTest {
         donation1.setId(UUID.randomUUID());
         donation1.setAmount(BigDecimal.valueOf(25.00));
         donation1.setCategory(DonationCategory.TITHES);
+        donation1.setUser(testUser);
 
         Donation donation2 = new Donation();
         donation2.setId(UUID.randomUUID());
         donation2.setAmount(BigDecimal.valueOf(50.00));
         donation2.setCategory(DonationCategory.OFFERINGS);
+        donation2.setUser(testUser);
 
         // Step 2: Retrieve donation history
-        org.springframework.data.domain.Page<Donation> mockPage = mock(org.springframework.data.domain.Page.class);
-        when(mockPage.map(any())).thenReturn(mock(org.springframework.data.domain.Page.class));
+        PageImpl<Donation> mockPage = new PageImpl<>(
+            java.util.List.of(donation1, donation2),
+            PageRequest.of(0, 20),
+            2
+        );
 
         when(donationRepository.findByUserOrderByTimestampDesc(eq(testUser), any()))
             .thenReturn(mockPage);
@@ -367,6 +394,4 @@ public class PaymentFlowIntegrationTest {
         verify(stripeWebhookService).processWebhook(webhookPayload, stripeSignature);
     }
 
-    @MockBean
-    private StripeWebhookService stripeWebhookService;
 }
