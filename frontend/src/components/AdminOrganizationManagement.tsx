@@ -208,11 +208,11 @@ const AdminOrganizationManagement: React.FC = () => {
     switch (status) {
       case 'CRITICAL':
       case 'OVER_LIMIT':
-        return '#dc2626';
+        return '#ef4444'; // --error
       case 'WARNING':
-        return '#d97706';
+        return '#f59e0b'; // --warning
       default:
-        return '#16a34a';
+        return '#10b981'; // --success
     }
   };
 
@@ -310,21 +310,21 @@ const AdminOrganizationManagement: React.FC = () => {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'CHURCH': return '#4a90e2';
-      case 'MINISTRY': return '#7b68ee';
-      case 'NONPROFIT': return '#50c878';
-      case 'GLOBAL': return '#ff6b6b';
-      default: return '#999';
+      case 'CHURCH': return '#5b7fff'; // --accent-primary
+      case 'MINISTRY': return '#8b5cf6'; // --accent-secondary
+      case 'NONPROFIT': return '#10b981'; // --success
+      case 'GLOBAL': return '#ef4444'; // --error
+      default: return '#8a8a9c'; // --text-tertiary
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'ACTIVE': return '#50c878';
-      case 'TRIAL': return '#ffa500';
-      case 'SUSPENDED': return '#ff6b6b';
-      case 'CANCELLED': return '#999';
-      default: return '#999';
+      case 'ACTIVE': return '#10b981'; // --success
+      case 'TRIAL': return '#f59e0b'; // --warning
+      case 'SUSPENDED': return '#ef4444'; // --error
+      case 'CANCELLED': return '#8a8a9c'; // --text-tertiary
+      default: return '#8a8a9c'; // --text-tertiary
     }
   };
 
@@ -431,7 +431,7 @@ const AdminOrganizationManagement: React.FC = () => {
                 </Td>
                 <Td>
                   {loadingMetrics[org.id] ? (
-                    <span style={{ color: '#999' }}>Loading...</span>
+                    <span style={{ color: 'var(--text-tertiary)' }}>Loading...</span>
                   ) : metrics[org.id] ? (
                     <StorageInfo>
                       <StorageValue>{formatBytes(metrics[org.id].storageUsed)}</StorageValue>
@@ -442,14 +442,14 @@ const AdminOrganizationManagement: React.FC = () => {
                       {renderStorageLimitInfo(org)}
                     </StorageInfo>
                   ) : (
-                    <span style={{ color: '#999' }}>N/A</span>
+                    <span style={{ color: 'var(--text-tertiary)' }}>N/A</span>
                   )}
                 </Td>
                 <Td>
                   {metrics[org.id] ? (
                     <ActiveUsers>{metrics[org.id].activeUsersCount} active</ActiveUsers>
                   ) : (
-                    <span style={{ color: '#999' }}>-</span>
+                    <span style={{ color: 'var(--text-tertiary)' }}>-</span>
                   )}
                 </Td>
                 <Td>
@@ -461,7 +461,7 @@ const AdminOrganizationManagement: React.FC = () => {
                       <StatItem>📢 {metrics[org.id].announcementsCount}</StatItem>
                     </ContentStats>
                   ) : (
-                    <span style={{ color: '#999' }}>-</span>
+                    <span style={{ color: 'var(--text-tertiary)' }}>-</span>
                   )}
                 </Td>
                 <Td>{formatDate(org.createdAt)}</Td>
@@ -490,6 +490,8 @@ const Container = styled.div`
   padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 `;
 
 const Header = styled.div`
@@ -503,22 +505,25 @@ const Title = styled.h1`
   margin: 0;
   font-size: 28px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-primary);
 `;
 
 const CreateButton = styled.button`
   padding: 10px 20px;
-  background: #4a90e2;
+  background: var(--gradient-primary);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--border-radius-md);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
 
   &:hover {
-    background: #357abd;
+    background: linear-gradient(135deg, var(--accent-primary-dark) 0%, var(--accent-secondary-dark) 100%);
+    box-shadow: var(--shadow-md), var(--glow-blue);
+    transform: translateY(-1px);
   }
 `;
 
@@ -531,81 +536,103 @@ const Controls = styled.div`
 const SearchInput = styled.input`
   flex: 1;
   padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-sm);
   font-size: 14px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+
+  &::placeholder {
+    color: var(--text-disabled);
+  }
 
   &:focus {
     outline: none;
-    border-color: #4a90e2;
+    border-color: var(--accent-primary);
+    background: var(--bg-secondary);
+    box-shadow: 0 0 0 3px var(--button-primary-glow);
   }
 `;
 
 const FilterSelect = styled.select`
   padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-sm);
   font-size: 14px;
-  background: white;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
   cursor: pointer;
   min-width: 150px;
+  transition: all var(--transition-fast);
 
   &:focus {
     outline: none;
-    border-color: #4a90e2;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--button-primary-glow);
+  }
+
+  option {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
   }
 `;
 
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
-  background: white;
-  border-radius: 8px;
+  background: var(--bg-elevated);
+  border-radius: var(--border-radius-md);
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-primary);
 `;
 
 const Th = styled.th`
   padding: 12px 16px;
   text-align: left;
-  background: #f8f9fa;
+  background: var(--bg-tertiary);
   font-size: 13px;
   font-weight: 600;
-  color: #666;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-primary);
 `;
 
 const Tr = styled.tr`
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-primary);
+  transition: all var(--transition-fast);
 
   &:last-child {
     border-bottom: none;
   }
 
   &:hover {
-    background: #f8f9fa;
+    background: var(--bg-tertiary);
+    box-shadow: 0 0 0 1px var(--border-glow);
   }
 `;
 
 const Td = styled.td`
   padding: 14px 16px;
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
 `;
 
 const OrgName = styled.div`
   font-weight: 500;
-  color: #1a1a1a;
+  color: var(--text-primary);
 `;
 
 const Code = styled.code`
   padding: 2px 6px;
-  background: #f5f5f5;
-  border-radius: 3px;
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-sm);
   font-size: 12px;
   font-family: 'Monaco', 'Courier New', monospace;
-  color: #666;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-primary);
 `;
 
 const Badge = styled.span<{ color: string }>`
@@ -623,7 +650,7 @@ const Badge = styled.span<{ color: string }>`
 const StatusSelect = styled.select<{ color: string }>`
   padding: 4px 8px;
   border: 1px solid ${props => props.color}44;
-  border-radius: 6px;
+  border-radius: var(--border-radius-sm);
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
@@ -632,17 +659,18 @@ const StatusSelect = styled.select<{ color: string }>`
   color: ${props => props.color};
   cursor: pointer;
   min-width: 100px;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
 
   &:hover:not(:disabled) {
     background: ${props => props.color}33;
     border-color: ${props => props.color}66;
+    box-shadow: 0 0 0 2px ${props => props.color}22;
   }
 
   &:focus {
     outline: none;
     border-color: ${props => props.color};
-    box-shadow: 0 0 0 2px ${props => props.color}22;
+    box-shadow: 0 0 0 3px ${props => props.color}22;
   }
 
   &:disabled {
@@ -651,17 +679,18 @@ const StatusSelect = styled.select<{ color: string }>`
   }
 
   option {
-    background: white;
-    color: #333;
+    background: var(--bg-elevated);
+    color: var(--text-primary);
     padding: 4px;
   }
 `;
 
 const MemberCount = styled.div`
   font-weight: 500;
+  color: var(--text-primary);
 
   span {
-    color: #999;
+    color: var(--text-tertiary);
     font-weight: 400;
     font-size: 12px;
   }
@@ -669,53 +698,55 @@ const MemberCount = styled.div`
 
 const ErrorMessage = styled.div`
   padding: 12px;
-  background: #fee;
-  border: 1px solid #fcc;
-  border-radius: 6px;
-  color: #c33;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid var(--error);
+  border-radius: var(--border-radius-sm);
+  color: var(--error);
   font-size: 14px;
   margin-bottom: 16px;
+  box-shadow: 0 0 10px var(--error-glow);
 `;
 
 const LoadingMessage = styled.div`
   padding: 40px;
   text-align: center;
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 14px;
 `;
 
 const EmptyState = styled.div`
   padding: 60px 20px;
   text-align: center;
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 14px;
-  background: white;
-  border-radius: 8px;
-  border: 2px dashed #e0e0e0;
+  background: var(--bg-elevated);
+  border-radius: var(--border-radius-md);
+  border: 2px dashed var(--border-primary);
 `;
 
 const Stats = styled.div`
   margin-top: 16px;
   font-size: 13px;
-  color: #999;
+  color: var(--text-tertiary);
   text-align: center;
 `;
 
 const DeleteButton = styled.button`
   padding: 6px 12px;
-  background: #ff6b6b;
+  background: var(--error);
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--border-radius-sm);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-xs);
 
   &:hover:not(:disabled) {
-    background: #ff5252;
+    background: #dc2626;
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(255, 107, 107, 0.3);
+    box-shadow: var(--shadow-sm), 0 0 10px var(--error-glow);
   }
 
   &:active:not(:disabled) {
@@ -725,7 +756,7 @@ const DeleteButton = styled.button`
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
-    background: #ccc;
+    background: var(--text-disabled);
   }
 `;
 
@@ -737,13 +768,13 @@ const StorageInfo = styled.div`
 
 const StorageValue = styled.div`
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-primary);
   font-size: 13px;
 `;
 
 const StorageBreakdown = styled.div`
   font-size: 10px;
-  color: #666;
+  color: var(--text-tertiary);
 `;
 
 const StorageLimitSection = styled.div`
@@ -757,8 +788,9 @@ const LimitBar = styled.div`
   width: 100%;
   height: 6px;
   border-radius: 999px;
-  background: #e2e8f0;
+  background: var(--bg-tertiary);
   overflow: hidden;
+  border: 1px solid var(--border-primary);
 `;
 
 const LimitProgress = styled.div<{ percent: number; status?: string }>`
@@ -768,18 +800,29 @@ const LimitProgress = styled.div<{ percent: number; status?: string }>`
     switch (status) {
       case 'CRITICAL':
       case 'OVER_LIMIT':
-        return '#dc2626';
+        return '#ef4444';
       case 'WARNING':
-        return '#d97706';
+        return '#f59e0b';
       default:
-        return '#16a34a';
+        return '#10b981';
+    }
+  }};
+  box-shadow: 0 0 4px ${({ status }) => {
+    switch (status) {
+      case 'CRITICAL':
+      case 'OVER_LIMIT':
+        return 'rgba(239, 68, 68, 0.3)';
+      case 'WARNING':
+        return 'rgba(245, 158, 11, 0.3)';
+      default:
+        return 'rgba(16, 185, 129, 0.3)';
     }
   }};
 `;
 
 const LimitMeta = styled.div`
   font-size: 10px;
-  color: #475569;
+  color: var(--text-tertiary);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -796,10 +839,17 @@ const LimitButton = styled.button`
   align-self: flex-start;
   padding: 4px 8px;
   font-size: 10px;
-  border-radius: 6px;
-  border: 1px solid #cbd5f5;
-  background: white;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--accent-primary);
+  background: var(--bg-tertiary);
+  color: var(--accent-primary);
   cursor: pointer;
+  transition: all var(--transition-fast);
+
+  &:hover:not(:disabled) {
+    background: rgba(91, 127, 255, 0.1);
+    box-shadow: var(--shadow-xs);
+  }
 
   &:disabled {
     opacity: 0.6;
@@ -809,7 +859,7 @@ const LimitButton = styled.button`
 
 const ActiveUsers = styled.div`
   font-weight: 500;
-  color: #4a90e2;
+  color: var(--accent-primary);
   font-size: 13px;
 `;
 
@@ -821,7 +871,7 @@ const ContentStats = styled.div`
 `;
 
 const StatItem = styled.div`
-  color: #666;
+  color: var(--text-secondary);
   white-space: nowrap;
 `;
 
