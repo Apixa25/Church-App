@@ -33,7 +33,7 @@ export interface StripeAccountBalance {
 }
 
 export interface OnboardingLink {
-  url: string;
+  onboardingUrl: string;
   expiresAt: number;
 }
 
@@ -61,7 +61,7 @@ export const getAccountStatus = async (organizationId: string): Promise<StripeAc
  * Used when the original link expires or user needs to complete more info
  */
 export const createOnboardingLink = async (organizationId: string): Promise<OnboardingLink> => {
-  const response = await api.post(`/stripe-connect/create-onboarding-link/${organizationId}`);
+  const response = await api.post(`/stripe-connect/create-account-link/${organizationId}`);
   return response.data;
 };
 
