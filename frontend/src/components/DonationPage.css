@@ -18,23 +18,43 @@
 
 /* Header */
 .donation-header {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  color: white;
-  text-align: center;
-  padding: 3rem 2rem;
   position: relative;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
+  color: var(--text-primary);
+  text-align: center;
+  padding: 2rem 2rem 2.5rem;
   overflow: hidden;
 }
 
 .donation-header::before {
   content: '';
   position: absolute;
-  top: -50%;
-  right: -20%;
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.1), transparent);
-  border-radius: 50%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 30% 30%, rgba(91, 127, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 70% 70%, rgba(139, 92, 246, 0.15) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.donation-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--accent-primary),
+    transparent
+  );
+  z-index: 2;
 }
 
 .donation-header-top {
@@ -46,26 +66,26 @@
 }
 
 .back-home-btn {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--gradient-primary);
   color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  padding: 0.5rem 1rem;
-  border-radius: var(--border-radius-md);
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--border-radius-pill);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-base);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px var(--button-primary-glow);
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  position: relative;
+  z-index: 1;
 }
 
 .back-home-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.5);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--glow-blue);
 }
 
 .back-home-btn:active {
@@ -73,67 +93,76 @@
 }
 
 .donation-header h1 {
-  margin: 0 0 1rem 0;
-  font-size: 2.5rem;
+  margin: 0 0 0.75rem 0;
+  font-size: 2.25rem;
   font-weight: 700;
   position: relative;
   z-index: 1;
+  color: var(--text-primary);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .donation-header p {
   margin: 0;
-  font-size: 1.2rem;
-  opacity: 0.9;
+  font-size: 1.1rem;
+  opacity: 0.95;
   position: relative;
   z-index: 1;
+  color: var(--text-secondary);
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 /* Tab Navigation */
 .tab-navigation {
   display: flex;
-  background: var(--bg-secondary);
-  border-bottom: 2px solid var(--border-primary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  padding: 4px;
+  margin: 1rem;
+  gap: 4px;
+  box-shadow: var(--shadow-sm);
 }
 
 .tab-button {
   flex: 1;
-  padding: 1rem 1.5rem;
+  padding: 0.85rem 1.25rem;
   background: transparent;
   border: none;
-  font-size: 1rem;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.95rem;
   font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
   transition: all var(--transition-base);
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .tab-button:hover {
-  background: var(--bg-tertiary);
-  color: var(--accent-primary);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
 }
 
 .tab-button.active {
-  background: var(--bg-tertiary);
-  color: var(--accent-primary);
-  border-bottom: 3px solid var(--accent-primary);
+  background: var(--gradient-primary);
+  color: white;
+  box-shadow: 0 2px 8px var(--button-primary-glow);
 }
 
-.tab-button.active::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--accent-primary);
-  box-shadow: 0 0 8px var(--button-primary-glow);
+.tab-button.active:hover {
+  background: linear-gradient(135deg, var(--accent-primary-dark), var(--accent-secondary-dark));
+  box-shadow: var(--glow-blue);
 }
 
 /* Tab Content */
 .tab-content {
   min-height: 400px;
   background: var(--bg-primary);
+  padding: 1rem;
 }
 
 .donate-tab,
@@ -194,21 +223,49 @@
 
 /* Form Styles */
 .donation-form {
-  padding: 2rem;
+  padding: 1.5rem;
   background: var(--bg-primary);
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 .form-section {
   margin-bottom: 2.5rem;
+  padding: 1.5rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
+}
+
+.form-section:hover {
+  border-color: var(--border-glow);
+  box-shadow: var(--shadow-md), 0 0 12px var(--button-primary-glow);
 }
 
 .form-section h3 {
   margin: 0 0 1.5rem 0;
-  font-size: 1.4rem;
+  font-size: 1.35rem;
   color: var(--text-primary);
-  font-weight: 600;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
   border-bottom: 2px solid var(--border-primary);
-  padding-bottom: 0.5rem;
+  position: relative;
+}
+
+.form-section h3::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 80px;
+  height: 2px;
+  background: var(--gradient-primary);
+  box-shadow: 0 0 8px var(--button-primary-glow);
 }
 
 .form-group {
@@ -278,13 +335,15 @@
   gap: 0.5rem;
   padding: 1rem 2rem;
   border: none;
-  border-radius: var(--border-radius-md);
+  border-radius: var(--border-radius-pill);
   font-size: 1rem;
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
   transition: all var(--transition-base);
   min-height: 3rem;
+  position: relative;
+  overflow: hidden;
 }
 
 .btn:disabled {
@@ -304,10 +363,14 @@
   box-shadow: var(--glow-blue);
 }
 
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
 .btn-secondary {
   background: var(--bg-secondary);
   color: var(--text-primary);
-  border: 1px solid var(--border-primary);
+  border: 2px solid var(--border-primary);
   box-shadow: var(--shadow-sm);
 }
 
@@ -315,18 +378,35 @@
   background: var(--bg-elevated);
   border-color: var(--border-glow);
   transform: translateY(-2px);
+  box-shadow: var(--shadow-md), 0 0 12px var(--button-primary-glow);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--text-primary);
+  border: 2px solid var(--border-primary);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  box-shadow: 0 0 12px var(--button-primary-glow);
 }
 
 .btn-large {
   padding: 1.25rem 2.5rem;
   font-size: 1.1rem;
   min-height: 3.5rem;
+  border-radius: var(--border-radius-pill);
 }
 
 /* Payment Section */
 .payment-section {
-  padding: 2rem;
+  padding: 1.5rem;
   background: var(--bg-primary);
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 /* Success Styles */
@@ -334,36 +414,69 @@
   padding: 3rem 2rem;
   text-align: center;
   background: var(--bg-primary);
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .success-icon {
-  font-size: 4rem;
+  font-size: 5rem;
   margin-bottom: 1.5rem;
-  color: var(--success);
+  animation: successBounce 0.6s ease-out;
+  filter: drop-shadow(0 0 20px var(--success-glow));
+}
+
+@keyframes successBounce {
+  0% {
+    transform: scale(0) rotate(-180deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2) rotate(10deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
 }
 
 .donation-success h2 {
   margin: 0 0 2rem 0;
   font-size: 2rem;
-  color: var(--success);
   font-weight: 700;
+  background: linear-gradient(135deg, var(--success), var(--accent-tertiary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .success-details {
   max-width: 600px;
   margin: 0 auto 2.5rem auto;
-  color: var(--text-secondary);
-  line-height: 1.6;
+  padding: 2rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
 }
 
 .success-details p {
   margin-bottom: 1rem;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.success-details p:last-child {
+  margin-bottom: 0;
 }
 
 .success-details strong {
   color: var(--text-primary);
-  font-weight: 600;
+  font-weight: 700;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .success-actions {

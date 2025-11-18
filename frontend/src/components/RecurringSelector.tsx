@@ -1,5 +1,6 @@
 import React from 'react';
 import { RecurringFrequency, FREQUENCY_LABELS } from '../config/stripe';
+import './RecurringSelector.css';
 
 interface RecurringSelectorProps {
   isRecurring: boolean;

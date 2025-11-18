@@ -1,0 +1,447 @@
+/* RecurringSelector Component - Dark Modern Theme */
+
+.recurring-selector {
+  width: 100%;
+}
+
+/* Toggle Section */
+.recurring-toggle {
+  margin-bottom: 2rem;
+}
+
+.toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  position: relative;
+}
+
+.toggle-container:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-glow);
+  box-shadow: var(--shadow-md), 0 0 12px var(--button-primary-glow);
+}
+
+.toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: relative;
+  width: 56px;
+  height: 32px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-primary);
+  border-radius: var(--border-radius-pill);
+  transition: all var(--transition-base);
+  flex-shrink: 0;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  height: 24px;
+  width: 24px;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--text-tertiary);
+  border-radius: 50%;
+  transition: all var(--transition-base);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-input:checked + .toggle-slider {
+  background: var(--gradient-primary);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 16px var(--button-primary-glow);
+}
+
+.toggle-input:checked + .toggle-slider::before {
+  transform: translateY(-50%) translateX(24px);
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.toggle-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+/* One Time Info */
+.one-time-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.info-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+/* Frequency Section */
+.frequency-section {
+  margin-top: 2rem;
+  animation: fadeSlideIn 0.4s ease-out;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.frequency-title {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+/* Frequency Grid */
+.frequency-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.frequency-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-align: center;
+  overflow: hidden;
+}
+
+.frequency-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--accent-primary),
+    transparent
+  );
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.frequency-card:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-glow);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg), 0 0 16px var(--button-primary-glow);
+}
+
+.frequency-card:hover::before {
+  opacity: 1;
+}
+
+.frequency-card.selected {
+  background: var(--bg-elevated);
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-lg), var(--glow-blue);
+  transform: translateY(-4px);
+}
+
+.frequency-card.selected::before {
+  opacity: 1;
+  background: var(--gradient-primary);
+}
+
+/* Recommended Badge */
+.recommended-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  padding: 0.35rem 0.75rem;
+  background: var(--gradient-primary);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-radius: var(--border-radius-pill);
+  box-shadow: 0 2px 8px var(--button-primary-glow);
+  letter-spacing: 0.5px;
+}
+
+/* Frequency Icon */
+.frequency-icon {
+  font-size: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: 4rem;
+  border-radius: var(--border-radius-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  transition: all var(--transition-base);
+}
+
+.frequency-card:hover .frequency-icon {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 0 12px var(--button-primary-glow);
+}
+
+.frequency-card.selected .frequency-icon {
+  background: var(--gradient-primary);
+  border-color: var(--accent-primary);
+  transform: scale(1.1);
+  box-shadow: 0 0 16px var(--button-primary-glow);
+}
+
+/* Frequency Content */
+.frequency-content {
+  width: 100%;
+}
+
+.frequency-label {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  transition: color var(--transition-fast);
+}
+
+.frequency-card.selected .frequency-label {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.frequency-description {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  transition: color var(--transition-fast);
+}
+
+.frequency-card:hover .frequency-description {
+  color: var(--text-primary);
+}
+
+/* Selection Indicator */
+.frequency-selector-indicator {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0);
+  transition: all var(--transition-bounce);
+}
+
+.frequency-card.selected .frequency-selector-indicator {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.frequency-selector-indicator .selected-indicator {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gradient-primary);
+  border-radius: 50%;
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px var(--button-primary-glow);
+  animation: checkmark 0.4s ease-out;
+}
+
+@keyframes checkmark {
+  0% {
+    transform: scale(0) rotate(-180deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2) rotate(10deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+/* Recurring Info */
+.recurring-info {
+  margin-top: 2rem;
+}
+
+.info-card {
+  padding: 1.5rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.info-card h5 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.info-card h5::before {
+  content: 'ℹ️';
+  font-size: 1.3rem;
+}
+
+.info-card ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  list-style: none;
+}
+
+.info-card li {
+  position: relative;
+  margin-bottom: 0.75rem;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  padding-left: 0.5rem;
+}
+
+.info-card li::before {
+  content: '✓';
+  position: absolute;
+  left: -1.25rem;
+  color: var(--success);
+  font-weight: 700;
+}
+
+.info-card li:last-child {
+  margin-bottom: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .frequency-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .frequency-card {
+    padding: 1.25rem;
+  }
+
+  .frequency-icon {
+    font-size: 2rem;
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+
+  .frequency-label {
+    font-size: 1rem;
+  }
+
+  .recommended-badge {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.6rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .frequency-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .toggle-container {
+    padding: 1rem;
+  }
+
+  .toggle-label {
+    font-size: 1rem;
+  }
+
+  .frequency-card {
+    padding: 1rem;
+  }
+
+  .frequency-icon {
+    font-size: 1.75rem;
+    width: 3rem;
+    height: 3rem;
+  }
+
+  .info-card {
+    padding: 1.25rem;
+  }
+
+  .info-card li {
+    font-size: 0.9rem;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .toggle-container {
+    border-width: 3px;
+  }
+
+  .frequency-card {
+    border-width: 3px;
+  }
+
+  .frequency-card.selected {
+    border-width: 4px;
+  }
+}
+
+/* Accessibility */
+.frequency-card:focus {
+  outline: 3px solid var(--accent-primary);
+  outline-offset: 3px;
+}
+
+.toggle-input:focus + .toggle-slider {
+  box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.3);
+}
+

@@ -1,0 +1,262 @@
+/* AmountSelector Component - Dark Modern Theme */
+
+.amount-selector {
+  width: 100%;
+}
+
+/* Preset Amount Buttons */
+.preset-amounts {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.preset-btn {
+  padding: 1rem 0.5rem;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.preset-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--accent-primary),
+    transparent
+  );
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.preset-btn:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-glow);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md), 0 0 12px var(--button-primary-glow);
+}
+
+.preset-btn:hover::before {
+  opacity: 1;
+}
+
+.preset-btn.selected {
+  background: var(--gradient-primary);
+  border-color: var(--accent-primary);
+  color: white;
+  box-shadow: 0 4px 16px var(--button-primary-glow);
+  transform: translateY(-2px);
+}
+
+.preset-btn.selected::before {
+  opacity: 1;
+}
+
+/* Custom Amount Section */
+.custom-amount-section {
+  margin-bottom: 1.5rem;
+}
+
+.custom-amount-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  padding: 0.5rem 1rem;
+  transition: all var(--transition-base);
+}
+
+.custom-amount-input:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.2),
+              0 0 20px var(--button-primary-glow);
+}
+
+.currency-symbol {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-right: 0.5rem;
+}
+
+.custom-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  outline: none;
+  padding: 0.5rem;
+}
+
+.custom-input::placeholder {
+  color: var(--text-tertiary);
+  font-size: 1.2rem;
+}
+
+.custom-input.error {
+  color: var(--error);
+}
+
+/* Amount Preview */
+.amount-preview {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  text-align: center;
+}
+
+.amount-display {
+  font-size: 2rem;
+  font-weight: 700;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Amount Info */
+.amount-info {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.selected-amount {
+  font-size: 1.2rem;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
+.selected-amount strong {
+  font-size: 1.5rem;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.fee-info {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+/* Error Message */
+.error-message {
+  color: var(--error);
+  font-size: 0.9rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid var(--error);
+  border-radius: var(--border-radius-md);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.error-message::before {
+  content: '⚠️';
+  font-size: 1.2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .preset-amounts {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+
+  .preset-btn {
+    padding: 0.85rem 0.4rem;
+    font-size: 1rem;
+  }
+
+  .custom-input {
+    font-size: 1.25rem;
+  }
+
+  .amount-display {
+    font-size: 1.75rem;
+  }
+
+  .selected-amount {
+    font-size: 1.1rem;
+  }
+
+  .selected-amount strong {
+    font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .preset-amounts {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.4rem;
+  }
+
+  .preset-btn {
+    padding: 0.75rem 0.3rem;
+    font-size: 0.95rem;
+  }
+
+  .custom-input {
+    font-size: 1.1rem;
+  }
+
+  .amount-info {
+    padding: 1rem;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .preset-btn {
+    border-width: 3px;
+  }
+
+  .custom-amount-input {
+    border-width: 3px;
+  }
+
+  .amount-info {
+    border-width: 2px;
+  }
+}
+
+/* Animation for selection */
+@keyframes selectBounce {
+  0% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-4px) scale(1.05); }
+  100% { transform: translateY(-2px) scale(1); }
+}
+
+.preset-btn.selected {
+  animation: selectBounce 0.3s ease-out;
+}
+
