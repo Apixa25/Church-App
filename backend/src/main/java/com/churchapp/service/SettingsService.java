@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.hibernate.LazyInitializationException;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -152,46 +151,21 @@ public class SettingsService {
     @Transactional
     public void updatePrivacySettings(UUID userId, Map<String, Object> privacySettings) {
         try {
-            // Load UserSettings with user relationship (EntityGraph ensures user is loaded eagerly)
+            // Load UserSettings with user relationship (@EntityGraph eagerly loads user)
             UserSettings settings = userSettingsRepository.findByUserId(userId)
                 .orElseGet(() -> {
-                    // For new settings, load the user fully to ensure @MapsId works correctly
-                    User user = userRepository.findById(userId)
-                        .orElseThrow(() -> new RuntimeException("User not found: " + userId));
-                    UserSettings newSettings = createDefaultSettings(userId);
-                    // Set user - @MapsId will automatically derive userId from user.getId()
-                    newSettings.setUser(user);
-                    return newSettings;
+                    // For new settings, use createDefaultSettings which sets both user and userId
+                    return createDefaultSettings(userId);
                 });
             
-            // For existing settings, ensure user relationship is properly initialized
-            // @EntityGraph should have loaded it, but initialize if it's a lazy proxy
-            if (settings.getUser() == null) {
-                // Load user fully to ensure it's managed in the persistence context
-                User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found: " + userId));
-                settings.setUser(user);
-            } else {
-                // User relationship exists, but ensure it's initialized (not a lazy proxy)
-                // Access getId() to force initialization if it's a proxy
-                try {
-                    UUID userEntityId = settings.getUser().getId();
-                    if (userEntityId == null || !userEntityId.equals(userId)) {
-                        // User relationship is not properly set, reload it
-                        User user = userRepository.findById(userId)
-                            .orElseThrow(() -> new RuntimeException("User not found: " + userId));
-                        settings.setUser(user);
-                    }
-                } catch (LazyInitializationException e) {
-                    // If it's an uninitialized proxy, load the user
-                    User user = userRepository.findById(userId)
-                        .orElseThrow(() -> new RuntimeException("User not found: " + userId));
-                    settings.setUser(user);
-                }
-            }
+            // Ensure user relationship is properly set (@EntityGraph should have loaded it eagerly)
+            // Load user to ensure it's a managed entity in the persistence context
+            User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
             
-            // IMPORTANT: Never manually set userId when using @MapsId
-            // Hibernate will derive it from settings.getUser().getId() automatically
+            // Always set both user and userId to ensure @MapsId works correctly
+            settings.setUser(user);
+            settings.setUserId(userId);
 
             if (privacySettings.containsKey("profileVisibility")) {
                 try {
