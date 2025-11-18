@@ -341,16 +341,22 @@
 
 /* Form Controls */
 .toggle-switch {
-  width: 50px;
+  width: 24px;
   height: 24px;
   background: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
-  border-radius: 24px;
+  border: 2px solid var(--border-primary);
+  border-radius: 6px;
   cursor: pointer;
   outline: none;
   position: relative;
   transition: all var(--transition-base);
   appearance: none;
+  flex-shrink: 0;
+}
+
+.toggle-switch:hover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 8px rgba(91, 127, 255, 0.3);
 }
 
 .toggle-switch:checked {
@@ -359,21 +365,26 @@
   box-shadow: 0 0 12px var(--button-primary-glow);
 }
 
-.toggle-switch::before {
-  content: '';
+.toggle-switch:checked::after {
+  content: '✓';
   position: absolute;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: white;
-  top: 3px;
-  left: 3px;
-  transition: all var(--transition-base);
-  box-shadow: var(--shadow-sm);
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  line-height: 1;
 }
 
-.toggle-switch:checked::before {
-  transform: translateX(26px);
+.toggle-switch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle-switch:disabled:hover {
+  border-color: var(--border-primary);
+  box-shadow: none;
 }
 
 .setting-select, .form-select {
