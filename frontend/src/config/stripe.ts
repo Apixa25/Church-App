@@ -24,18 +24,20 @@ export const STRIPE_CONFIG = {
 };
 
 // Donation categories matching backend enum
+// Using uppercase for consistency with backend enum names
 export enum DonationCategory {
-  TITHES = 'tithes',
-  OFFERINGS = 'offerings',
-  MISSIONS = 'missions'
+  TITHES = 'TITHES',
+  OFFERINGS = 'OFFERINGS',
+  MISSIONS = 'MISSIONS'
 }
 
 // Recurring frequency options matching backend enum
+// Using uppercase for consistency with backend enum names
 export enum RecurringFrequency {
-  WEEKLY = 'week',
-  MONTHLY = 'month',
-  QUARTERLY = 'quarter',
-  YEARLY = 'year'
+  WEEKLY = 'WEEKLY',
+  MONTHLY = 'MONTHLY',
+  QUARTERLY = 'QUARTERLY',
+  YEARLY = 'YEARLY'
 }
 
 // Preset donation amounts
