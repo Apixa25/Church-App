@@ -1,5 +1,6 @@
 import React from 'react';
 import { DonationCategory, CATEGORY_LABELS } from '../config/stripe';
+import './CategorySelector.css';
 
 interface CategorySelectorProps {
   category: DonationCategory;

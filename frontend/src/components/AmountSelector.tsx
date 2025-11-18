@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DONATION_PRESETS } from '../config/stripe';
+import './AmountSelector.css';
 
 interface AmountSelectorProps {
   amount: number;
