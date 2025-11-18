@@ -351,6 +351,9 @@
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
   position: relative;
   z-index: 3;
+  font-family: 'Merriweather', serif;
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
 .user-info {
