@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.hibernate.LazyInitializationException;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -50,19 +51,30 @@ public class SettingsService {
 
     @Transactional
     public UserSettingsResponse updateUserSettings(UUID userId, Map<String, Object> updates) {
-        UserSettings settings = userSettingsRepository.findByUserId(userId)
-            .orElseGet(() -> createDefaultSettings(userId));
+        // Always get a reference to the user first - this ensures it's in the persistence context
+        User user = userRepository.getReferenceById(userId);
         
-        // Ensure user relationship is loaded and attached
-        if (settings.getUser() == null || settings.getUser().getId() == null) {
-            User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        UserSettings settings = userSettingsRepository.findByUserId(userId)
+            .orElseGet(() -> {
+                UserSettings newSettings = createDefaultSettings(userId);
+                newSettings.setUser(user);
+                newSettings.setUserId(userId);
+                return newSettings;
+            });
+        
+        // Always ensure user relationship is set
+        if (settings.getUser() == null) {
             settings.setUser(user);
+        }
+        if (settings.getUserId() == null) {
             settings.setUserId(userId);
         }
+        
+        // Explicitly set the user reference to ensure it's attached
+        settings.setUser(user);
 
         updateSettingsFromMap(settings, updates);
-        settings = userSettingsRepository.save(settings);
+        settings = userSettingsRepository.saveAndFlush(settings);
 
         log.info("Updated settings for user: {}", userId);
         return UserSettingsResponse.fromEntity(settings);
@@ -70,16 +82,27 @@ public class SettingsService {
 
     @Transactional
     public void updateNotificationSettings(UUID userId, Map<String, Object> notificationSettings) {
-        UserSettings settings = userSettingsRepository.findByUserId(userId)
-            .orElseGet(() -> createDefaultSettings(userId));
+        // Always get a reference to the user first - this ensures it's in the persistence context
+        User user = userRepository.getReferenceById(userId);
         
-        // Ensure user relationship is loaded and attached
-        if (settings.getUser() == null || settings.getUser().getId() == null) {
-            User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        UserSettings settings = userSettingsRepository.findByUserId(userId)
+            .orElseGet(() -> {
+                UserSettings newSettings = createDefaultSettings(userId);
+                newSettings.setUser(user);
+                newSettings.setUserId(userId);
+                return newSettings;
+            });
+        
+        // Always ensure user relationship is set
+        if (settings.getUser() == null) {
             settings.setUser(user);
+        }
+        if (settings.getUserId() == null) {
             settings.setUserId(userId);
         }
+        
+        // Explicitly set the user reference to ensure it's attached
+        settings.setUser(user);
 
         // Update notification preferences
         if (notificationSettings.containsKey("emailNotifications")) {
@@ -122,24 +145,53 @@ public class SettingsService {
             }
         }
 
-        userSettingsRepository.save(settings);
+        userSettingsRepository.saveAndFlush(settings);
         log.info("Updated notification settings for user: {}", userId);
     }
 
     @Transactional
     public void updatePrivacySettings(UUID userId, Map<String, Object> privacySettings) {
         try {
+            // Load UserSettings with user relationship (EntityGraph ensures user is loaded eagerly)
             UserSettings settings = userSettingsRepository.findByUserId(userId)
-                .orElseGet(() -> createDefaultSettings(userId));
+                .orElseGet(() -> {
+                    // For new settings, load the user fully to ensure @MapsId works correctly
+                    User user = userRepository.findById(userId)
+                        .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                    UserSettings newSettings = createDefaultSettings(userId);
+                    // Set user - @MapsId will automatically derive userId from user.getId()
+                    newSettings.setUser(user);
+                    return newSettings;
+                });
             
-            // Ensure user relationship is loaded and attached
-            // This is critical because UserSettings uses @MapsId with @OneToOne
-            if (settings.getUser() == null || settings.getUser().getId() == null) {
+            // For existing settings, ensure user relationship is properly initialized
+            // @EntityGraph should have loaded it, but initialize if it's a lazy proxy
+            if (settings.getUser() == null) {
+                // Load user fully to ensure it's managed in the persistence context
                 User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found: " + userId));
                 settings.setUser(user);
-                settings.setUserId(userId);
+            } else {
+                // User relationship exists, but ensure it's initialized (not a lazy proxy)
+                // Access getId() to force initialization if it's a proxy
+                try {
+                    UUID userEntityId = settings.getUser().getId();
+                    if (userEntityId == null || !userEntityId.equals(userId)) {
+                        // User relationship is not properly set, reload it
+                        User user = userRepository.findById(userId)
+                            .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                        settings.setUser(user);
+                    }
+                } catch (LazyInitializationException e) {
+                    // If it's an uninitialized proxy, load the user
+                    User user = userRepository.findById(userId)
+                        .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                    settings.setUser(user);
+                }
             }
+            
+            // IMPORTANT: Never manually set userId when using @MapsId
+            // Hibernate will derive it from settings.getUser().getId() automatically
 
             if (privacySettings.containsKey("profileVisibility")) {
                 try {
@@ -175,7 +227,8 @@ public class SettingsService {
                 settings.setAutoBackupEnabled(convertToBoolean(privacySettings.get("autoBackupEnabled")));
             }
 
-            userSettingsRepository.save(settings);
+            // Save and flush to ensure entity is persisted immediately
+            userSettingsRepository.saveAndFlush(settings);
             log.info("Updated privacy settings for user: {}", userId);
         } catch (RuntimeException e) {
             log.error("Error updating privacy settings for user {}: {}", userId, e.getMessage(), e);
@@ -209,16 +262,27 @@ public class SettingsService {
 
     @Transactional
     public void updateAppearanceSettings(UUID userId, Map<String, Object> appearanceSettings) {
-        UserSettings settings = userSettingsRepository.findByUserId(userId)
-            .orElseGet(() -> createDefaultSettings(userId));
+        // Always get a reference to the user first - this ensures it's in the persistence context
+        User user = userRepository.getReferenceById(userId);
         
-        // Ensure user relationship is loaded and attached
-        if (settings.getUser() == null || settings.getUser().getId() == null) {
-            User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        UserSettings settings = userSettingsRepository.findByUserId(userId)
+            .orElseGet(() -> {
+                UserSettings newSettings = createDefaultSettings(userId);
+                newSettings.setUser(user);
+                newSettings.setUserId(userId);
+                return newSettings;
+            });
+        
+        // Always ensure user relationship is set
+        if (settings.getUser() == null) {
             settings.setUser(user);
+        }
+        if (settings.getUserId() == null) {
             settings.setUserId(userId);
         }
+        
+        // Explicitly set the user reference to ensure it's attached
+        settings.setUser(user);
 
         if (appearanceSettings.containsKey("theme")) {
             String theme = (String) appearanceSettings.get("theme");
@@ -244,7 +308,7 @@ public class SettingsService {
             settings.setScreenReaderOptimized(convertToBoolean(appearanceSettings.get("screenReaderOptimized")));
         }
 
-        userSettingsRepository.save(settings);
+        userSettingsRepository.saveAndFlush(settings);
         log.info("Updated appearance settings for user: {}", userId);
     }
 

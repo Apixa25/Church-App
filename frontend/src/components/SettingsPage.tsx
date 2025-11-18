@@ -52,6 +52,15 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
     loadData();
   }, [activeTab]);
 
+  // Debug: Log when settings state changes
+  useEffect(() => {
+    if (settings) {
+      console.log('🔄 [Settings Debug] Settings state updated:', settings);
+      console.log('🔄 [Settings Debug] showOnlineStatus in state:', settings.showOnlineStatus);
+      console.log('🔄 [Settings Debug] allowDirectMessages in state:', settings.allowDirectMessages);
+    }
+  }, [settings]);
+
   // Update activeTab when route parameter changes
   useEffect(() => {
     if (tab && tab !== activeTab) {
@@ -60,29 +69,45 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
   }, [tab]);
 
   const loadData = async () => {
+    console.log('🟢 [Settings Debug] loadData called...');
     try {
       setIsLoading(true);
       setError('');
 
+      console.log('🟢 [Settings Debug] Fetching settings and system info...');
       const [settingsData, systemData] = await Promise.all([
         getUserSettings(),
         getSystemInfo()
       ]);
 
+      console.log('🟢 [Settings Debug] Settings data received:', settingsData);
+      console.log('🟢 [Settings Debug] showOnlineStatus value:', settingsData?.showOnlineStatus);
+      console.log('🟢 [Settings Debug] allowDirectMessages value:', settingsData?.allowDirectMessages);
+      console.log('🟢 [Settings Debug] System info received:', systemData);
+
       setSettings(settingsData);
       setSystemInfo(systemData);
+      console.log('🟢 [Settings Debug] State updated with new settings');
 
       if (activeTab === 'help') {
+        console.log('🟢 [Settings Debug] Loading help content...');
         const helpData = await getHelpContent(selectedHelpCategory, searchQuery);
         setHelpContent(helpData);
+        console.log('🟢 [Settings Debug] Help content loaded:', helpData);
       }
+      console.log('✅ [Settings Debug] loadData completed successfully');
     } catch (err: any) {
-      console.error('Error loading settings data:', err);
+      console.error('❌ [Settings Debug] Error loading settings data:', err);
+      console.error('❌ [Settings Debug] Error type:', typeof err);
+      console.error('❌ [Settings Debug] Error response:', err?.response);
+      console.error('❌ [Settings Debug] Error response data:', err?.response?.data);
+      console.error('❌ [Settings Debug] Error message:', err?.message);
       const errorMessage = handleApiError(err);
       setError(errorMessage || 'Failed to load settings. Please refresh the page or try again later.');
       setTimeout(() => setError(''), 7000);
     } finally {
       setIsLoading(false);
+      console.log('🟢 [Settings Debug] loadData finished. isLoading set to false.');
     }
   };
 
@@ -124,19 +149,41 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
   };
 
   const handlePrivacyUpdate = async (privacySettings: any) => {
+    console.log('🔵 [Settings Debug] handlePrivacyUpdate called with:', privacySettings);
+    console.log('🔵 [Settings Debug] Current settings before update:', settings);
+    console.log('🔵 [Settings Debug] isSaving state:', isSaving);
+    
     try {
       setIsSaving(true);
       setError('');
-      await updatePrivacySettings(privacySettings);
+      
+      console.log('🔵 [Settings Debug] Calling updatePrivacySettings API...');
+      const response = await updatePrivacySettings(privacySettings);
+      console.log('🔵 [Settings Debug] API response received:', response);
+      
+      console.log('🔵 [Settings Debug] Reloading data from server...');
       await loadData();
+      console.log('🔵 [Settings Debug] Data reloaded. Settings after load:', settings);
+      
       setSuccessMessage('Privacy settings updated! 🔒');
       setTimeout(() => setSuccessMessage(''), 3000);
+      console.log('✅ [Settings Debug] Privacy update completed successfully');
     } catch (err: any) {
+      console.error('❌ [Settings Debug] Error in handlePrivacyUpdate:', err);
+      console.error('❌ [Settings Debug] Error type:', typeof err);
+      console.error('❌ [Settings Debug] Error response:', err?.response);
+      console.error('❌ [Settings Debug] Error response data:', err?.response?.data);
+      console.error('❌ [Settings Debug] Error response status:', err?.response?.status);
+      console.error('❌ [Settings Debug] Error message:', err?.message);
+      console.error('❌ [Settings Debug] Error stack:', err?.stack);
+      
       const errorMessage = handleApiError(err);
+      console.error('❌ [Settings Debug] Formatted error message:', errorMessage);
       setError(errorMessage || 'Failed to update privacy settings. Please try again.');
       setTimeout(() => setError(''), 5000);
     } finally {
       setIsSaving(false);
+      console.log('🔵 [Settings Debug] handlePrivacyUpdate completed. isSaving set to false.');
     }
   };
 
@@ -677,10 +724,17 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                     <input
                       type="checkbox"
                       checked={settings.showOnlineStatus}
-                      onChange={(e) => handlePrivacyUpdate({
-                        showOnlineStatus: e.target.checked
-                      })}
+                      onChange={(e) => {
+                        console.log('🔄 [Toggle Debug] Show Online Status toggle clicked');
+                        console.log('🔄 [Toggle Debug] Previous value:', settings.showOnlineStatus);
+                        console.log('🔄 [Toggle Debug] New value:', e.target.checked);
+                        console.log('🔄 [Toggle Debug] Event target:', e.target);
+                        handlePrivacyUpdate({
+                          showOnlineStatus: e.target.checked
+                        });
+                      }}
                       className="toggle-switch"
+                      disabled={isSaving}
                     />
                   </div>
                 </div>
@@ -700,10 +754,16 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                     <input
                       type="checkbox"
                       checked={settings.allowDirectMessages}
-                      onChange={(e) => handlePrivacyUpdate({
-                        allowDirectMessages: e.target.checked
-                      })}
+                      onChange={(e) => {
+                        console.log('🔄 [Toggle Debug] Allow Direct Messages toggle clicked');
+                        console.log('🔄 [Toggle Debug] Previous value:', settings.allowDirectMessages);
+                        console.log('🔄 [Toggle Debug] New value:', e.target.checked);
+                        handlePrivacyUpdate({
+                          allowDirectMessages: e.target.checked
+                        });
+                      }}
                       className="toggle-switch"
+                      disabled={isSaving}
                     />
                   </div>
                 </div>

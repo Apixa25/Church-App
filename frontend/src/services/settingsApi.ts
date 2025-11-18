@@ -110,8 +110,46 @@ export const updateNotificationSettings = async (
 export const updatePrivacySettings = async (
   privacySettings: Partial<UserSettings>
 ): Promise<{ message: string }> => {
-  const response = await api.put('/settings/privacy', privacySettings);
-  return response.data;
+  console.log('📡 [API Debug] updatePrivacySettings called');
+  console.log('📡 [API Debug] Request payload:', privacySettings);
+  console.log('📡 [API Debug] Making PUT request to /settings/privacy');
+  console.log('📡 [API Debug] API base URL:', api.defaults.baseURL);
+  
+  try {
+    const startTime = Date.now();
+    const response = await api.put('/settings/privacy', privacySettings);
+    const duration = Date.now() - startTime;
+    
+    console.log('📡 [API Debug] Response received in', duration, 'ms');
+    console.log('📡 [API Debug] Response status:', response.status);
+    console.log('📡 [API Debug] Response status text:', response.statusText);
+    console.log('📡 [API Debug] Response headers:', response.headers);
+    console.log('📡 [API Debug] Response data:', response.data);
+    console.log('✅ [API Debug] API call successful');
+    
+    return response.data;
+  } catch (error: any) {
+    console.error('📡 [API Debug] API Error occurred');
+    console.error('📡 [API Debug] Error type:', typeof error);
+    console.error('📡 [API Debug] Error object:', error);
+    console.error('📡 [API Debug] Error message:', error?.message);
+    console.error('📡 [API Debug] Error response exists:', !!error?.response);
+    
+    if (error?.response) {
+      console.error('📡 [API Debug] Response status:', error.response.status);
+      console.error('📡 [API Debug] Response status text:', error.response.statusText);
+      console.error('📡 [API Debug] Response data:', error.response.data);
+      console.error('📡 [API Debug] Response headers:', error.response.headers);
+    }
+    
+    if (error?.request) {
+      console.error('📡 [API Debug] Request was made but no response received');
+      console.error('📡 [API Debug] Request config:', error.config);
+    }
+    
+    console.error('❌ [API Debug] API call failed');
+    throw error;
+  }
 };
 
 export const updateAppearanceSettings = async (
