@@ -89,7 +89,7 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({
       const result = await createOnboardingLink(organizationId);
       
       // Redirect to Stripe's onboarding page
-      window.location.href = result.url;
+      window.location.href = result.onboardingUrl;
 
     } catch (err: any) {
       console.error('Error creating onboarding link:', err);
