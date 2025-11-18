@@ -43,7 +43,15 @@ public class StripeConnectController {
 
     @PostConstruct
     public void init() {
-        Stripe.apiKey = stripeApiKey;
+        // Only set Stripe API key if it's not a placeholder
+        if (stripeApiKey != null && !stripeApiKey.equals("sk_test_your-stripe-secret-key")) {
+            Stripe.apiKey = stripeApiKey;
+            System.out.println("✅ Stripe Connect Controller initialized with API key");
+        } else {
+            System.out.println("⚠️ Stripe Connect Controller initialized WITHOUT API key (placeholder detected)");
+            System.out.println("⚠️ Stripe Connect endpoints will be available but Stripe API calls will fail");
+            System.out.println("⚠️ Set STRIPE_SECRET_KEY environment variable or update application.properties");
+        }
     }
 
     private boolean isUserAdminOfOrganization(User user, UUID organizationId) {

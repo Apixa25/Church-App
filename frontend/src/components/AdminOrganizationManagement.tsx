@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import axios from 'axios';
 import OrganizationCreateForm from './OrganizationCreateForm';
 import OrganizationEditForm from './OrganizationEditForm';
+import StripeConnectSetup from './StripeConnectSetup';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
 
@@ -52,6 +53,7 @@ const AdminOrganizationManagement: React.FC = () => {
   const [metrics, setMetrics] = useState<Record<string, OrganizationMetrics>>({});
   const [loadingMetrics, setLoadingMetrics] = useState<Record<string, boolean>>({});
   const [updatingLimitId, setUpdatingLimitId] = useState<string | null>(null);
+  const [stripeConnectOrg, setStripeConnectOrg] = useState<Organization | null>(null);
 
   useEffect(() => {
     fetchOrganizations();
@@ -353,6 +355,22 @@ const AdminOrganizationManagement: React.FC = () => {
     );
   }
 
+  if (stripeConnectOrg) {
+    return (
+      <Container>
+        <StripeConnectSetup
+          organizationId={stripeConnectOrg.id}
+          organizationName={stripeConnectOrg.name}
+          onSuccess={() => {
+            setStripeConnectOrg(null);
+            fetchOrganizations();
+          }}
+          onClose={() => setStripeConnectOrg(null)}
+        />
+      </Container>
+    );
+  }
+
   if (editingOrg) {
     return (
       <Container>
@@ -493,6 +511,12 @@ const AdminOrganizationManagement: React.FC = () => {
                 <Td>{formatDate(org.createdAt)}</Td>
                 <Td>
                   <ActionsGroup>
+                    <DonationButton 
+                      onClick={() => setStripeConnectOrg(org)}
+                      title="Setup Stripe Connect for donations"
+                    >
+                      💳 Donations
+                    </DonationButton>
                     <EditButton 
                       onClick={() => setEditingOrg(org)}
                     >
@@ -768,6 +792,29 @@ const ActionsGroup = styled.div`
   display: flex;
   gap: 8px;
   align-items: center;
+`;
+
+const DonationButton = styled.button`
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-xs);
+
+  &:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    box-shadow: var(--shadow-sm), 0 0 15px rgba(16, 185, 129, 0.3);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
 `;
 
 const EditButton = styled.button`
