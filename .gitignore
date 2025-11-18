@@ -2,6 +2,11 @@
 backend/.env
 frontend/.env
 .env
+.env.*
+!.env.example
+
+# IMPORTANT: application.properties should only have placeholders, never actual API keys!
+# Always use environment variables for secrets (STRIPE_SECRET_KEY, STRIPE_PUBLIC_KEY, etc.)
 
 # Backend specific
 backend/target/

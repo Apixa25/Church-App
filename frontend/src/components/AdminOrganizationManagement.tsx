@@ -18,6 +18,16 @@ interface Organization {
   logoUrl?: string;
   memberCount?: number;
   primaryMemberCount?: number;
+  stripeConnectAccountId?: string;
+}
+
+interface StripeAccountStatus {
+  hasAccount: boolean;
+  accountId?: string;
+  chargesEnabled?: boolean;
+  payoutsEnabled?: boolean;
+  detailsSubmitted?: boolean;
+  requirementsCurrentlyDue?: string[];
 }
 
 interface OrganizationMetrics {
@@ -54,19 +64,37 @@ const AdminOrganizationManagement: React.FC = () => {
   const [loadingMetrics, setLoadingMetrics] = useState<Record<string, boolean>>({});
   const [updatingLimitId, setUpdatingLimitId] = useState<string | null>(null);
   const [stripeConnectOrg, setStripeConnectOrg] = useState<Organization | null>(null);
+  const [stripeStatuses, setStripeStatuses] = useState<Record<string, StripeAccountStatus>>({});
 
   useEffect(() => {
     fetchOrganizations();
   }, []);
 
   useEffect(() => {
-    // Fetch metrics for all organizations after they're loaded
+    // Fetch metrics and Stripe status for all organizations after they're loaded
     if (organizations.length > 0) {
       organizations.forEach(org => {
         fetchMetrics(org.id);
+        // Only fetch Stripe status if they have an account ID
+        if (org.stripeConnectAccountId) {
+          fetchStripeStatus(org.id);
+        }
       });
     }
   }, [organizations]);
+
+  const fetchStripeStatus = async (organizationId: string) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await axios.get(
+        `${API_BASE_URL}/stripe-connect/account-status/${organizationId}`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      setStripeStatuses(prev => ({ ...prev, [organizationId]: response.data }));
+    } catch (err: any) {
+      console.error(`Error fetching Stripe status for org ${organizationId}:`, err);
+    }
+  };
 
   const fetchOrganizations = async () => {
     try {
@@ -511,12 +539,37 @@ const AdminOrganizationManagement: React.FC = () => {
                 <Td>{formatDate(org.createdAt)}</Td>
                 <Td>
                   <ActionsGroup>
-                    <DonationButton 
-                      onClick={() => setStripeConnectOrg(org)}
-                      title="Setup Stripe Connect for donations"
-                    >
-                      💳 Donations
-                    </DonationButton>
+                    {(() => {
+                      const stripeStatus = stripeStatuses[org.id];
+                      const isFullyConfigured = stripeStatus?.chargesEnabled && stripeStatus?.payoutsEnabled;
+                      const hasAccount = org.stripeConnectAccountId;
+                      const needsOnboarding = hasAccount && !isFullyConfigured;
+                      
+                      let title = "Setup Stripe Connect for donations";
+                      let statusBadge = "⚠";
+                      let buttonStatus: 'not-configured' | 'pending' | 'configured' = 'not-configured';
+                      
+                      if (isFullyConfigured) {
+                        title = `Stripe ready ✓ (${org.stripeConnectAccountId?.substring(0, 15)}...)`;
+                        statusBadge = "✓";
+                        buttonStatus = 'configured';
+                      } else if (needsOnboarding) {
+                        title = "Complete Stripe onboarding to accept donations";
+                        statusBadge = "⏳";
+                        buttonStatus = 'pending';
+                      }
+                      
+                      return (
+                        <DonationButton 
+                          onClick={() => setStripeConnectOrg(org)}
+                          title={title}
+                          $status={buttonStatus}
+                        >
+                          <StripeStatusBadge $status={buttonStatus}>{statusBadge}</StripeStatusBadge>
+                          💳 Donations
+                        </DonationButton>
+                      );
+                    })()}
                     <EditButton 
                       onClick={() => setEditingOrg(org)}
                     >
@@ -794,9 +847,15 @@ const ActionsGroup = styled.div`
   align-items: center;
 `;
 
-const DonationButton = styled.button`
+const DonationButton = styled.button<{ $status?: 'not-configured' | 'pending' | 'configured' }>`
   padding: 6px 12px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: ${props => {
+    switch (props.$status) {
+      case 'configured': return 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+      case 'pending': return 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)';
+      default: return 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+    }
+  }};
   color: white;
   border: none;
   border-radius: var(--border-radius-sm);
@@ -805,16 +864,64 @@ const DonationButton = styled.button`
   cursor: pointer;
   transition: all var(--transition-base);
   box-shadow: var(--shadow-xs);
+  display: flex;
+  align-items: center;
+  gap: 4px;
 
   &:hover {
-    background: linear-gradient(135deg, #059669 0%, #047857 100%);
-    box-shadow: var(--shadow-sm), 0 0 15px rgba(16, 185, 129, 0.3);
+    background: ${props => {
+      switch (props.$status) {
+        case 'configured': return 'linear-gradient(135deg, #059669 0%, #047857 100%)';
+        case 'pending': return 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)';
+        default: return 'linear-gradient(135deg, #d97706 0%, #b45309 100%)';
+      }
+    }};
+    box-shadow: ${props => {
+      switch (props.$status) {
+        case 'configured': return 'var(--shadow-sm), 0 0 15px rgba(16, 185, 129, 0.3)';
+        case 'pending': return 'var(--shadow-sm), 0 0 15px rgba(59, 130, 246, 0.3)';
+        default: return 'var(--shadow-sm), 0 0 15px rgba(245, 158, 11, 0.3)';
+      }
+    }};
     transform: translateY(-1px);
   }
 
   &:active {
     transform: translateY(0);
   }
+`;
+
+const StripeStatusBadge = styled.span<{ $status?: 'not-configured' | 'pending' | 'configured' }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: ${props => {
+    switch (props.$status) {
+      case 'configured': return '#ffffff';
+      case 'pending': return '#dbeafe';
+      default: return '#fffbeb';
+    }
+  }};
+  color: ${props => {
+    switch (props.$status) {
+      case 'configured': return '#10b981';
+      case 'pending': return '#2563eb';
+      default: return '#d97706';
+    }
+  }};
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 0 0 2px ${props => {
+    switch (props.$status) {
+      case 'configured': return '#ffffff22';
+      case 'pending': return '#dbeafe22';
+      default: return '#fffbeb22';
+    }
+  }};
 `;
 
 const EditButton = styled.button`
