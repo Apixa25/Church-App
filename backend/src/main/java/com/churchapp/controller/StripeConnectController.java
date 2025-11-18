@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/stripe-connect")
+@RequestMapping("/stripe-connect")
 @RequiredArgsConstructor
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8100", "capacitor://localhost"})
 public class StripeConnectController {
@@ -78,8 +78,11 @@ public class StripeConnectController {
             Organization organization = organizationRepository.findById(organizationId)
                     .orElseThrow(() -> new RuntimeException("Organization not found"));
 
-            // Check if user is admin of this organization
-            if (!isUserAdminOfOrganization(currentUser, organizationId)) {
+            // Check if user is admin of this organization OR a global admin
+            boolean isOrgAdmin = isUserAdminOfOrganization(currentUser, organizationId);
+            boolean isGlobalAdmin = currentUser.getRole() == User.Role.ADMIN;
+            
+            if (!isOrgAdmin && !isGlobalAdmin) {
                 return ResponseEntity.status(403).body(Map.of(
                     "error", "Only organization administrators can set up Stripe Connect"
                 ));
@@ -236,8 +239,11 @@ public class StripeConnectController {
             Organization organization = organizationRepository.findById(organizationId)
                     .orElseThrow(() -> new RuntimeException("Organization not found"));
 
-            // Check if user is admin of this organization
-            if (!isUserAdminOfOrganization(currentUser, organizationId)) {
+            // Check if user is admin of this organization OR a global admin
+            boolean isOrgAdmin = isUserAdminOfOrganization(currentUser, organizationId);
+            boolean isGlobalAdmin = currentUser.getRole() == User.Role.ADMIN;
+            
+            if (!isOrgAdmin && !isGlobalAdmin) {
                 return ResponseEntity.status(403).body(Map.of(
                     "error", "Only organization administrators can manage Stripe Connect"
                 ));
@@ -295,8 +301,11 @@ public class StripeConnectController {
             Organization organization = organizationRepository.findById(organizationId)
                     .orElseThrow(() -> new RuntimeException("Organization not found"));
 
-            // Check if user is admin of this organization
-            if (!isUserAdminOfOrganization(currentUser, organizationId)) {
+            // Check if user is admin of this organization OR a global admin
+            boolean isOrgAdmin = isUserAdminOfOrganization(currentUser, organizationId);
+            boolean isGlobalAdmin = currentUser.getRole() == User.Role.ADMIN;
+            
+            if (!isOrgAdmin && !isGlobalAdmin) {
                 return ResponseEntity.status(403).body(Map.of(
                     "error", "Only organization administrators can access the dashboard"
                 ));
