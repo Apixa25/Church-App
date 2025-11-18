@@ -1,6 +1,7 @@
 package com.churchapp.repository;
 
 import com.churchapp.entity.UserSettings;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -15,6 +16,7 @@ import java.util.UUID;
 @Repository
 public interface UserSettingsRepository extends JpaRepository<UserSettings, UUID> {
 
+    @EntityGraph(attributePaths = {"user"})
     Optional<UserSettings> findByUserId(UUID userId);
 
     @Query("SELECT us FROM UserSettings us WHERE us.pushNotifications = true AND us.fcmToken IS NOT NULL")

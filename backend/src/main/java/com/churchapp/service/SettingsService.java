@@ -51,7 +51,15 @@ public class SettingsService {
     @Transactional
     public UserSettingsResponse updateUserSettings(UUID userId, Map<String, Object> updates) {
         UserSettings settings = userSettingsRepository.findByUserId(userId)
-            .orElse(createDefaultSettings(userId));
+            .orElseGet(() -> createDefaultSettings(userId));
+        
+        // Ensure user relationship is loaded and attached
+        if (settings.getUser() == null || settings.getUser().getId() == null) {
+            User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+            settings.setUser(user);
+            settings.setUserId(userId);
+        }
 
         updateSettingsFromMap(settings, updates);
         settings = userSettingsRepository.save(settings);
@@ -63,7 +71,15 @@ public class SettingsService {
     @Transactional
     public void updateNotificationSettings(UUID userId, Map<String, Object> notificationSettings) {
         UserSettings settings = userSettingsRepository.findByUserId(userId)
-            .orElse(createDefaultSettings(userId));
+            .orElseGet(() -> createDefaultSettings(userId));
+        
+        // Ensure user relationship is loaded and attached
+        if (settings.getUser() == null || settings.getUser().getId() == null) {
+            User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+            settings.setUser(user);
+            settings.setUserId(userId);
+        }
 
         // Update notification preferences
         if (notificationSettings.containsKey("emailNotifications")) {
@@ -114,7 +130,16 @@ public class SettingsService {
     public void updatePrivacySettings(UUID userId, Map<String, Object> privacySettings) {
         try {
             UserSettings settings = userSettingsRepository.findByUserId(userId)
-                .orElse(createDefaultSettings(userId));
+                .orElseGet(() -> createDefaultSettings(userId));
+            
+            // Ensure user relationship is loaded and attached
+            // This is critical because UserSettings uses @MapsId with @OneToOne
+            if (settings.getUser() == null || settings.getUser().getId() == null) {
+                User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+                settings.setUser(user);
+                settings.setUserId(userId);
+            }
 
             if (privacySettings.containsKey("profileVisibility")) {
                 try {
@@ -185,7 +210,15 @@ public class SettingsService {
     @Transactional
     public void updateAppearanceSettings(UUID userId, Map<String, Object> appearanceSettings) {
         UserSettings settings = userSettingsRepository.findByUserId(userId)
-            .orElse(createDefaultSettings(userId));
+            .orElseGet(() -> createDefaultSettings(userId));
+        
+        // Ensure user relationship is loaded and attached
+        if (settings.getUser() == null || settings.getUser().getId() == null) {
+            User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+            settings.setUser(user);
+            settings.setUserId(userId);
+        }
 
         if (appearanceSettings.containsKey("theme")) {
             String theme = (String) appearanceSettings.get("theme");
