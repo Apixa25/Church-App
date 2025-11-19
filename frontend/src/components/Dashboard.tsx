@@ -181,8 +181,8 @@ const Dashboard: React.FC = () => {
           <div className="header-left">
             <h1>
               {isGatheringGlobal 
-                ? `🌾 ${primaryMembership?.organizationName || 'The Gathering'}`
-                : primaryMembership?.organizationName || 'The Gathering'
+                ? `🌾 ${primaryMembership?.organizationName || 'The Gathrd'}`
+                : primaryMembership?.organizationName || 'The Gathrd'
               }
             </h1>
             <div className="refresh-info">
