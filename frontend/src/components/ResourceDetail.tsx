@@ -31,7 +31,7 @@ const ResourceDetail: React.FC<ResourceDetailProps> = ({
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
 
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'PLATFORM_ADMIN' || user?.role === 'MODERATOR';
   const isModerator = user?.role === 'MODERATOR';
 
   const loadResource = useCallback(async () => {

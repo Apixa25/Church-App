@@ -42,7 +42,7 @@ const ResourceList: React.FC<ResourceListProps> = ({
   const [approvalFilter, setApprovalFilter] = useState<boolean | undefined>(undefined);
 
   const pageSize = 12;
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'PLATFORM_ADMIN' || user?.role === 'MODERATOR';
   const isModerator = user?.role === 'MODERATOR';
 
 

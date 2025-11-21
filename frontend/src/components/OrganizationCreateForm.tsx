@@ -154,6 +154,15 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({ onSucce
   return (
     <FormContainer>
       <FormTitle>Create New Organization</FormTitle>
+      
+      <InfoMessage>
+        <InfoIcon>💡</InfoIcon>
+        <div>
+          <strong>You will become the Organization Admin</strong>
+          <p>As the creator, you'll automatically receive full administrative control over this organization. 
+          You can manage members, content, donations, and all organization settings.</p>
+        </div>
+      </InfoMessage>
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
 
@@ -397,6 +406,39 @@ const CancelButton = styled(Button)`
   &:hover:not(:disabled) {
     background: #e5e5e5;
   }
+`;
+
+const InfoMessage = styled.div`
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: #e8f4fd;
+  border: 1px solid #b3d9f2;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  
+  div {
+    flex: 1;
+    
+    strong {
+      display: block;
+      color: #1565c0;
+      font-size: 15px;
+      margin-bottom: 6px;
+    }
+    
+    p {
+      margin: 0;
+      font-size: 13px;
+      color: #555;
+      line-height: 1.5;
+    }
+  }
+`;
+
+const InfoIcon = styled.span`
+  font-size: 28px;
+  line-height: 1;
 `;
 
 const ErrorMessage = styled.div`

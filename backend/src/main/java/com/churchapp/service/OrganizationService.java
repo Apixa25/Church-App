@@ -42,8 +42,16 @@ public class OrganizationService {
     // ORGANIZATION CRUD
     // ========================================================================
 
-    public Organization createOrganization(Organization organization) {
-        log.info("Creating new organization: {}", organization.getName());
+    /**
+     * Create a new organization
+     * The creator automatically becomes an ORG_ADMIN with full control
+     * 
+     * @param organization The organization to create
+     * @param creator The user creating the organization (becomes ORG_ADMIN)
+     * @return The created organization
+     */
+    public Organization createOrganization(Organization organization, User creator) {
+        log.info("Creating new organization: {} by user {}", organization.getName(), creator.getId());
 
         // Validate slug uniqueness
         if (organizationRepository.existsBySlug(organization.getSlug())) {
@@ -56,7 +64,36 @@ public class OrganizationService {
         Organization saved = organizationRepository.save(organization);
         log.info("Organization created successfully: {} (ID: {})", saved.getName(), saved.getId());
 
+        // Automatically make creator an ORG_ADMIN with full powers
+        UserOrganizationMembership membership = new UserOrganizationMembership();
+        membership.setUser(creator);
+        membership.setOrganization(saved);
+        membership.setRole(UserOrganizationMembership.OrgRole.ORG_ADMIN); // 👑 Full admin access!
+        membership.setIsPrimary(true); // Set as their primary org
+        membership.setJoinedAt(LocalDateTime.now());
+        membership.setCreatedAt(LocalDateTime.now());
+        membershipRepository.save(membership);
+
+        // Update user's primary org
+        creator.setPrimaryOrganization(saved);
+        userRepository.save(creator);
+
+        log.info("User {} automatically set as ORG_ADMIN of organization {}", creator.getId(), saved.getId());
+
         return saved;
+    }
+    
+    /**
+     * Legacy method for backward compatibility (without creator)
+     * @deprecated Use createOrganization(Organization, User) instead
+     */
+    @Deprecated
+    public Organization createOrganization(Organization organization) {
+        log.warn("Using deprecated createOrganization without creator - organization will have no admin!");
+        
+        organization.setCreatedAt(LocalDateTime.now());
+        organization.setUpdatedAt(LocalDateTime.now());
+        return organizationRepository.save(organization);
     }
 
     public Organization getOrganizationById(UUID orgId) {
@@ -231,6 +268,123 @@ public class OrganizationService {
 
         membershipRepository.delete(membership);
         log.info("User {} left organization {}", userId, orgId);
+    }
+    
+    // ========================================================================
+    // ORG ADMIN MANAGEMENT
+    // ========================================================================
+    
+    /**
+     * Promote a member to ORG_ADMIN role
+     * Can have multiple ORG_ADMINs per organization
+     * 
+     * @param userId The user to promote
+     * @param orgId The organization ID
+     */
+    public void promoteToOrgAdmin(UUID userId, UUID orgId) {
+        UserOrganizationMembership membership = membershipRepository
+            .findByUserIdAndOrganizationId(userId, orgId)
+            .orElseThrow(() -> new RuntimeException("User is not a member of this organization"));
+            
+        if (membership.getRole() == UserOrganizationMembership.OrgRole.ORG_ADMIN) {
+            throw new RuntimeException("User is already an ORG_ADMIN");
+        }
+        
+        membership.setRole(UserOrganizationMembership.OrgRole.ORG_ADMIN);
+        membership.setUpdatedAt(LocalDateTime.now());
+        membershipRepository.save(membership);
+        
+        log.info("User {} promoted to ORG_ADMIN of organization {}", userId, orgId);
+    }
+    
+    /**
+     * Demote an ORG_ADMIN to regular MEMBER role
+     * Must always have at least 1 ORG_ADMIN per organization
+     * 
+     * @param userId The user to demote
+     * @param orgId The organization ID
+     */
+    public void demoteOrgAdmin(UUID userId, UUID orgId) {
+        UserOrganizationMembership membership = membershipRepository
+            .findByUserIdAndOrganizationId(userId, orgId)
+            .orElseThrow(() -> new RuntimeException("User is not a member of this organization"));
+        
+        if (membership.getRole() != UserOrganizationMembership.OrgRole.ORG_ADMIN) {
+            throw new RuntimeException("User is not an ORG_ADMIN");
+        }
+        
+        // Count remaining admins
+        long adminCount = membershipRepository.countByOrganizationIdAndRole(
+            orgId, UserOrganizationMembership.OrgRole.ORG_ADMIN
+        );
+        
+        if (adminCount <= 1) {
+            throw new RuntimeException(
+                "Cannot remove the last admin. Promote another member to ORG_ADMIN first."
+            );
+        }
+        
+        membership.setRole(UserOrganizationMembership.OrgRole.MEMBER);
+        membership.setUpdatedAt(LocalDateTime.now());
+        membershipRepository.save(membership);
+        
+        log.info("User {} demoted from ORG_ADMIN to MEMBER of organization {}", userId, orgId);
+    }
+    
+    /**
+     * Update a member's role within the organization
+     * 
+     * @param userId The user whose role to update
+     * @param orgId The organization ID
+     * @param newRole The new role to assign
+     */
+    public void updateMemberRole(UUID userId, UUID orgId, UserOrganizationMembership.OrgRole newRole) {
+        UserOrganizationMembership membership = membershipRepository
+            .findByUserIdAndOrganizationId(userId, orgId)
+            .orElseThrow(() -> new RuntimeException("User is not a member of this organization"));
+        
+        UserOrganizationMembership.OrgRole oldRole = membership.getRole();
+        
+        // If demoting from ORG_ADMIN, check we're not removing the last admin
+        if (oldRole == UserOrganizationMembership.OrgRole.ORG_ADMIN && 
+            newRole != UserOrganizationMembership.OrgRole.ORG_ADMIN) {
+            
+            long adminCount = membershipRepository.countByOrganizationIdAndRole(
+                orgId, UserOrganizationMembership.OrgRole.ORG_ADMIN
+            );
+            
+            if (adminCount <= 1) {
+                throw new RuntimeException(
+                    "Cannot remove the last admin. Promote another member to ORG_ADMIN first."
+                );
+            }
+        }
+        
+        membership.setRole(newRole);
+        membership.setUpdatedAt(LocalDateTime.now());
+        membershipRepository.save(membership);
+        
+        log.info("User {} role updated from {} to {} in organization {}", 
+            userId, oldRole, newRole, orgId);
+    }
+    
+    /**
+     * Get list of all ORG_ADMINs for an organization
+     */
+    public List<UserOrganizationMembership> getOrgAdmins(UUID orgId) {
+        return membershipRepository.findByOrganizationIdAndRole(
+            orgId, UserOrganizationMembership.OrgRole.ORG_ADMIN
+        );
+    }
+    
+    /**
+     * Check if user is an ORG_ADMIN of the organization
+     */
+    public boolean isOrgAdmin(UUID userId, UUID orgId) {
+        return membershipRepository
+            .findByUserIdAndOrganizationId(userId, orgId)
+            .map(membership -> membership.getRole() == UserOrganizationMembership.OrgRole.ORG_ADMIN)
+            .orElse(false);
     }
 
     // ========================================================================

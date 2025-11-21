@@ -37,7 +37,7 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
 
   // Fix owner check: only compare UUIDs (not email to UUID)
   const isOwner = user?.userId === prayer.userId;
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'PLATFORM_ADMIN' || user?.role === 'MODERATOR';
   const isModerator = user?.role === 'MODERATOR';
   const canDelete = isOwner || isAdmin || isModerator;
   const categoryColor = PRAYER_CATEGORY_COLORS[prayer.category];

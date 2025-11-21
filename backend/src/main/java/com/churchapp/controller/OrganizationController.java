@@ -55,7 +55,7 @@ public class OrganizationController {
     // ========================================================================
 
     @PostMapping(consumes = {"multipart/form-data"})
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<OrganizationResponse> createOrganization(
             @RequestParam("name") String name,
             @RequestParam("slug") String slug,
@@ -103,7 +103,7 @@ public class OrganizationController {
 
     // Keep the existing JSON endpoint for backward compatibility
     @PostMapping(consumes = {"application/json"})
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<OrganizationResponse> createOrganizationJson(
             @Valid @RequestBody OrganizationRequest request,
             @AuthenticationPrincipal User userDetails) {
@@ -161,7 +161,7 @@ public class OrganizationController {
     }
 
     @GetMapping("/all")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<List<OrganizationResponse>> getAllOrganizationsUnpaginated(
             @AuthenticationPrincipal User userDetails) {
 
@@ -213,7 +213,7 @@ public class OrganizationController {
 
     // Update organization with logo upload (multipart/form-data)
     @PutMapping(value = "/{orgId}", consumes = {"multipart/form-data"})
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<OrganizationResponse> updateOrganizationWithLogo(
             @PathVariable UUID orgId,
             @RequestParam(value = "name", required = false) String name,
@@ -268,7 +268,7 @@ public class OrganizationController {
 
     // Update organization status (admin only)
     @PatchMapping("/{orgId}/status")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<OrganizationResponse> updateOrganizationStatus(
             @PathVariable UUID orgId,
             @RequestParam("status") String statusStr,
@@ -293,7 +293,7 @@ public class OrganizationController {
 
     // Delete organization (admin only) - deletes all related data
     @DeleteMapping("/{orgId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<Void> deleteOrganization(
             @PathVariable UUID orgId,
             @AuthenticationPrincipal User userDetails) {
@@ -440,7 +440,7 @@ public class OrganizationController {
     // ========================================================================
 
     @GetMapping("/{orgId}/metrics")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<OrganizationMetricsResponse> getOrganizationMetrics(
             @PathVariable UUID orgId,
             @AuthenticationPrincipal User userDetails) {
@@ -459,7 +459,7 @@ public class OrganizationController {
     }
 
     @PostMapping("/{orgId}/metrics/calculate")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<OrganizationMetricsResponse> calculateOrganizationMetrics(
             @PathVariable UUID orgId,
             @AuthenticationPrincipal User userDetails) {
@@ -482,7 +482,7 @@ public class OrganizationController {
     // ========================================================================
 
     @GetMapping("/{orgId}/metrics/history")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<List<MetricsHistoryResponse>> getOrganizationMetricsHistory(
             @PathVariable UUID orgId,
             @RequestParam(required = false) Integer days,
@@ -511,7 +511,7 @@ public class OrganizationController {
     }
 
     @GetMapping("/{orgId}/metrics/history/latest")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<MetricsHistoryResponse> getLatestMetricsSnapshot(
             @PathVariable UUID orgId,
             @AuthenticationPrincipal User userDetails) {
@@ -534,7 +534,7 @@ public class OrganizationController {
     }
 
     @PostMapping("/{orgId}/metrics/snapshot")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<MetricsHistoryResponse> createMetricsSnapshot(
             @PathVariable UUID orgId,
             @AuthenticationPrincipal User userDetails) {
@@ -557,7 +557,7 @@ public class OrganizationController {
     // ========================================================================
 
     @GetMapping("/{orgId}/storage-limit")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<StorageLimitResponse> getStorageLimit(
             @PathVariable UUID orgId,
             @AuthenticationPrincipal User userDetails) {
@@ -568,7 +568,7 @@ public class OrganizationController {
     }
 
     @PutMapping("/{orgId}/storage-limit")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<StorageLimitResponse> updateStorageLimit(
             @PathVariable UUID orgId,
             @RequestBody StorageLimitUpdateRequest request,

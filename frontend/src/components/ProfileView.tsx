@@ -560,7 +560,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
               <div className="profile-name-row">
                 <h1 className="profile-name-x">
                   {profile.name}
-                  {profile.role === 'ADMIN' && <span className="verified-badge-x">✓</span>}
+                  {profile.role === 'PLATFORM_ADMIN' && <span className="verified-badge-x">✓</span>}
                 </h1>
                 {!isOwnProfile && (
                   <>

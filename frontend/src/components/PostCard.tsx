@@ -113,7 +113,7 @@ const PostCard: React.FC<PostCardProps> = ({
   const canDelete = user && (
     user.userId === post.userId || 
     user.id === post.userId || 
-    user.role === 'ADMIN' || 
+    user.role === 'PLATFORM_ADMIN' || 
     user.role === 'MODERATOR'
   );
 

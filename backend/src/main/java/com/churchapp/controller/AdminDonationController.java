@@ -23,7 +23,7 @@ import java.time.format.DateTimeFormatter;
 @RequestMapping("/admin/donations")
 @RequiredArgsConstructor
 @Slf4j
-@PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR')")
+@PreAuthorize("hasRole('PLATFORM_ADMIN') or hasRole('MODERATOR')")
 public class AdminDonationController {
 
     private final DonationAnalyticsService donationAnalyticsService;

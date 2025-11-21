@@ -56,8 +56,8 @@ public class UserOrganizationMembership {
     private LocalDateTime updatedAt;
 
     public enum OrgRole {
-        MEMBER,
-        MODERATOR,
-        ADMIN
+        MEMBER,         // Regular organization member
+        MODERATOR,      // Organization content moderator
+        ORG_ADMIN       // Organization administrator - full control of their org
     }
 }
