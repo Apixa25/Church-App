@@ -4,12 +4,12 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface AdminRouteProps {
   children: React.ReactNode;
-  requireAdmin?: boolean; // If true, require ADMIN role; if false, allow MODERATOR too
+  requirePlatformAdmin?: boolean; // If true, require PLATFORM_ADMIN role; if false, allow MODERATOR too
 }
 
 const AdminRoute: React.FC<AdminRouteProps> = ({
   children,
-  requireAdmin = false
+  requirePlatformAdmin = false
 }) => {
   const { user } = useAuth();
 
@@ -17,9 +17,9 @@ const AdminRoute: React.FC<AdminRouteProps> = ({
     return <Navigate to="/login" replace />;
   }
 
-  const hasAccess = requireAdmin
-    ? user.role === 'ADMIN'
-    : user.role === 'ADMIN' || user.role === 'MODERATOR';
+  const hasAccess = requirePlatformAdmin
+    ? user.role === 'PLATFORM_ADMIN'
+    : user.role === 'PLATFORM_ADMIN' || user.role === 'MODERATOR';
 
   if (!hasAccess) {
     return (

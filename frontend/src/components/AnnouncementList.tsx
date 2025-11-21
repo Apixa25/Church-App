@@ -49,7 +49,7 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<AnnouncementCategory | ''>('');
   const [searchText, setSearchText] = useState('');
 
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'PLATFORM_ADMIN' || user?.role === 'MODERATOR';
   const isModerator = user?.role === 'MODERATOR';
   const canManageAnnouncements = isAdmin || isModerator;
 

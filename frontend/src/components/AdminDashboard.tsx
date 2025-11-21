@@ -170,7 +170,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  if (!currentUser || (currentUser.role !== 'ADMIN' && currentUser.role !== 'MODERATOR')) {
+  // Check if user has any admin access (Platform Admin or Moderator)
+  const isPlatformAdmin = currentUser?.role === 'PLATFORM_ADMIN';
+  const isModerator = currentUser?.role === 'MODERATOR';
+  const hasAdminAccess = isPlatformAdmin || isModerator;
+
+  if (!currentUser || !hasAdminAccess) {
     return (
       <div className="admin-dashboard unauthorized">
         <div className="unauthorized-content">
@@ -257,7 +262,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           >
             🚀 Metrics
           </button>
-          {currentUser.role === 'ADMIN' && (
+          {/* Organizations Tab - Platform Admin only */}
+          {isPlatformAdmin && (
+            <button
+              className={`tab-btn ${activeTab === 'organizations' ? 'active' : ''}`}
+              onClick={() => setActiveTab('organizations')}
+            >
+              🏛️ Organizations
+            </button>
+          )}
+          
+          {/* Audit Logs - Platform Admin only */}
+          {isPlatformAdmin && (
             <button
               className={`tab-btn ${activeTab === 'audit' ? 'active' : ''}`}
               onClick={() => setActiveTab('audit')}
@@ -440,9 +456,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   className="role-filter"
                 >
                   <option value="">All Roles</option>
-                  <option value="MEMBER">Member</option>
+                  <option value="USER">User</option>
                   <option value="MODERATOR">Moderator</option>
-                  <option value="ADMIN">Admin</option>
+                  <option value="PLATFORM_ADMIN">Platform Admin</option>
                 </select>
                 <select
                   value={bannedFilter === null ? '' : bannedFilter.toString()}
@@ -549,7 +565,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </>
                       )}
 
-                      {user.role !== 'ADMIN' && (
+                      {user.role !== 'PLATFORM_ADMIN' && (
                         <select
                           className="role-selector"
                           value={user.role}
@@ -561,13 +577,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           }}
                           disabled={actionLoading === user.id}
                         >
-                          <option value="MEMBER">Member</option>
+                          <option value="USER">User</option>
                           <option value="MODERATOR">Moderator</option>
-                          <option value="ADMIN">Admin</option>
+                          <option value="PLATFORM_ADMIN">Platform Admin</option>
                         </select>
                       )}
 
-                      {currentUser.role === 'ADMIN' && user.id !== currentUser.id && (
+                      {isPlatformAdmin && user.id !== currentUser.id && (
                         <button
                           className="action-btn delete"
                           onClick={() => {
@@ -597,8 +613,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         )}
 
-        {/* Organizations Tab */}
-        {activeTab === 'organizations' && (
+        {/* Organizations Tab - Platform Admin only */}
+        {activeTab === 'organizations' && isPlatformAdmin && (
           <AdminOrganizationManagement />
         )}
 
@@ -617,8 +633,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <MetricsDashboard />
         )}
 
-        {/* Audit Logs Tab */}
-        {activeTab === 'audit' && currentUser.role === 'ADMIN' && (
+        {/* Audit Logs Tab - Platform Admin only */}
+        {activeTab === 'audit' && isPlatformAdmin && (
           <div className="audit-section">
             <div className="section-header">
               <h2>📋 Audit Logs</h2>

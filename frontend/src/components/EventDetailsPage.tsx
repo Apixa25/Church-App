@@ -43,7 +43,7 @@ const EventDetailsPage: React.FC = () => {
     if (event.creatorId === user.userId) {
       return true;
     }
-    return user.role === 'ADMIN' || user.role === 'MODERATOR';
+    return user.role === 'PLATFORM_ADMIN' || user.role === 'MODERATOR';
   }, [event, user]);
 
   const handleBringItemsUpdated = (items: EventBringItem[]) => {

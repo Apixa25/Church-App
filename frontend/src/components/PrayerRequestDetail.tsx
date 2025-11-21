@@ -47,7 +47,7 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
 
   // Fix owner check: only compare UUIDs (not email to UUID)
   const isOwner = user && prayer && (user.userId === prayer.userId);
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'PLATFORM_ADMIN' || user?.role === 'MODERATOR';
   const isModerator = user?.role === 'MODERATOR';
   const canDelete = isOwner || isAdmin || isModerator;
 

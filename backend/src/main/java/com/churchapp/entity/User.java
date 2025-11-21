@@ -101,7 +101,7 @@ public class User {
     
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
-    private Role role = Role.MEMBER;
+    private Role role = Role.USER;
     
     @Column(name = "google_id", length = 255)
     private String googleId;
@@ -158,6 +158,8 @@ public class User {
     private List<DonationSubscription> donationSubscriptions = new ArrayList<>();
 
     public enum Role {
-        MEMBER, MODERATOR, ADMIN
+        USER,           // Regular user (renamed from MEMBER for clarity)
+        MODERATOR,      // Platform-level content moderator
+        PLATFORM_ADMIN  // System administrator - Master of Everything!
     }
 }

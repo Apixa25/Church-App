@@ -350,7 +350,7 @@ public class DonationController {
      * Get donation analytics (Admin only)
      */
     @GetMapping("/analytics")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<DonationAnalyticsResponse> getDonationAnalytics(
             @RequestParam(required = false) LocalDateTime startDate,
             @RequestParam(required = false) LocalDateTime endDate) {

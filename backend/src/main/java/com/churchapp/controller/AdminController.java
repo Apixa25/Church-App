@@ -29,7 +29,7 @@ import java.util.UUID;
 @RequestMapping("/admin")
 @RequiredArgsConstructor
 @Slf4j
-@PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR')")
+@PreAuthorize("hasRole('PLATFORM_ADMIN') or hasRole('MODERATOR')")
 public class AdminController {
 
     private final UserManagementService userManagementService;
@@ -85,10 +85,10 @@ public class AdminController {
     }
 
     /**
-     * Update user role
+     * Update user role (Platform Admin only)
      */
     @PutMapping("/users/{userId}/role")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<Map<String, String>> updateUserRole(
             @PathVariable UUID userId,
             @RequestBody Map<String, String> request,
@@ -246,10 +246,10 @@ public class AdminController {
     }
 
     /**
-     * Delete user account (admin only)
+     * Delete user account (Platform Admin only)
      */
     @DeleteMapping("/users/{userId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<Map<String, String>> deleteUser(
             @PathVariable UUID userId,
             @RequestBody Map<String, String> request,
@@ -343,10 +343,10 @@ public class AdminController {
     // =============== AUDIT LOGS ===============
 
     /**
-     * Get audit logs with pagination and filtering
+     * Get audit logs with pagination and filtering (Platform Admin only)
      */
     @GetMapping("/audit-logs")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<Page<AuditLog>> getAuditLogs(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
@@ -381,10 +381,10 @@ public class AdminController {
     }
 
     /**
-     * Get audit statistics
+     * Get audit statistics (Platform Admin only)
      */
     @GetMapping("/audit-logs/stats")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<Map<String, Object>> getAuditStats(
             @RequestParam(defaultValue = "30d") String timeRange) {
 

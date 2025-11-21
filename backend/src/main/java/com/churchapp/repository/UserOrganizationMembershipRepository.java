@@ -60,6 +60,20 @@ public interface UserOrganizationMembershipRepository extends JpaRepository<User
         @Param("orgId") UUID orgId,
         @Param("role") UserOrganizationMembership.OrgRole role
     );
+    
+    @Query("SELECT COUNT(m) FROM UserOrganizationMembership m WHERE " +
+           "m.organization.id = :orgId AND m.role = :role")
+    Long countByOrganizationIdAndRole(
+        @Param("orgId") UUID orgId,
+        @Param("role") UserOrganizationMembership.OrgRole role
+    );
+    
+    @Query("SELECT m FROM UserOrganizationMembership m WHERE " +
+           "m.user.id = :userId AND m.role = :role")
+    List<UserOrganizationMembership> findByUserIdAndRole(
+        @Param("userId") UUID userId,
+        @Param("role") UserOrganizationMembership.OrgRole role
+    );
 
     // Delete all memberships by organization
     @Modifying

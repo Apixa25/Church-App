@@ -22,7 +22,7 @@ import java.util.UUID;
 @RequestMapping("/admin/moderation")
 @RequiredArgsConstructor
 @Slf4j
-@PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR')")
+@PreAuthorize("hasRole('PLATFORM_ADMIN') or hasRole('MODERATOR')")
 public class ContentModerationController {
 
     private final ContentModerationService contentModerationService;

@@ -34,7 +34,7 @@ const AnnouncementDetail: React.FC<AnnouncementDetailProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'PLATFORM_ADMIN' || user?.role === 'MODERATOR';
   const canEdit = isAdmin || announcement?.userId === user?.userId;
 
   const loadAnnouncement = useCallback(async () => {

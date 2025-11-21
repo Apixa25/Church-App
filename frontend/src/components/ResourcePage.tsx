@@ -20,7 +20,7 @@ const ResourcePage: React.FC = () => {
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'PLATFORM_ADMIN' || user?.role === 'MODERATOR';
   const isModerator = user?.role === 'MODERATOR';
   const canManageResources = isAdmin || isModerator;
 

@@ -20,7 +20,7 @@ public class MetricsDashboardController {
     private final MetricsDashboardService metricsDashboardService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<MetricsDashboardResponse> getDashboardMetrics(
             @RequestParam(name = "days", defaultValue = "30") int days
     ) {
