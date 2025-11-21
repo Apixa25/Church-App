@@ -4,6 +4,7 @@ import axios from 'axios';
 import OrganizationCreateForm from './OrganizationCreateForm';
 import OrganizationEditForm from './OrganizationEditForm';
 import StripeConnectSetup from './StripeConnectSetup';
+import OrganizationMembers from './OrganizationMembers';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
 
@@ -65,6 +66,7 @@ const AdminOrganizationManagement: React.FC = () => {
   const [updatingLimitId, setUpdatingLimitId] = useState<string | null>(null);
   const [stripeConnectOrg, setStripeConnectOrg] = useState<Organization | null>(null);
   const [stripeStatuses, setStripeStatuses] = useState<Record<string, StripeAccountStatus>>({});
+  const [membersOrg, setMembersOrg] = useState<Organization | null>(null);
 
   useEffect(() => {
     fetchOrganizations();
@@ -383,6 +385,26 @@ const AdminOrganizationManagement: React.FC = () => {
     );
   }
 
+  if (membersOrg) {
+    return (
+      <>
+        <Container>
+          <Header>
+            <Title>Organizations</Title>
+            <CreateButton onClick={() => setShowCreateForm(true)}>
+              + Create Organization
+            </CreateButton>
+          </Header>
+        </Container>
+        <OrganizationMembers
+          organizationId={membersOrg.id}
+          organizationName={membersOrg.name}
+          onClose={() => setMembersOrg(null)}
+        />
+      </>
+    );
+  }
+
   if (stripeConnectOrg) {
     return (
       <Container>
@@ -539,6 +561,12 @@ const AdminOrganizationManagement: React.FC = () => {
                 <Td>{formatDate(org.createdAt)}</Td>
                 <Td>
                   <ActionsGroup>
+                    <MembersButton 
+                      onClick={() => setMembersOrg(org)}
+                      title="View and manage organization members"
+                    >
+                      👥 Members
+                    </MembersButton>
                     {(() => {
                       const stripeStatus = stripeStatuses[org.id];
                       const isFullyConfigured = stripeStatus?.chargesEnabled && stripeStatus?.payoutsEnabled;
@@ -1089,6 +1117,32 @@ const ContentStats = styled.div`
 const StatItem = styled.div`
   color: var(--text-secondary);
   white-space: nowrap;
+`;
+
+const MembersButton = styled.button`
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  &:hover {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm), 0 0 15px rgba(139, 92, 246, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
 `;
 
 export default AdminOrganizationManagement;

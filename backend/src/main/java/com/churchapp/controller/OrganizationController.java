@@ -340,6 +340,64 @@ public class OrganizationController {
         return ResponseEntity.noContent().build();
     }
 
+    // Get all members of an organization (PLATFORM_ADMIN only)
+    @GetMapping("/{orgId}/members")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    public ResponseEntity<List<MembershipResponse>> getOrganizationMembers(
+            @PathVariable UUID orgId,
+            @AuthenticationPrincipal User userDetails) {
+
+        log.info("Admin {} requesting members of organization {}", userDetails.getUsername(), orgId);
+
+        List<UserOrganizationMembership> memberships = organizationService.getOrganizationMembers(orgId);
+
+        List<MembershipResponse> response = memberships.stream()
+            .map(MembershipResponse::fromOrgMembership)
+            .collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
+    }
+
+    // Promote user to ORG_ADMIN (PLATFORM_ADMIN only)
+    @PostMapping("/{orgId}/members/{userId}/promote")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    public ResponseEntity<MembershipResponse> promoteToOrgAdmin(
+            @PathVariable UUID orgId,
+            @PathVariable UUID userId,
+            @AuthenticationPrincipal User userDetails) {
+
+        log.info("Admin {} promoting user {} to ORG_ADMIN in organization {}", 
+                userDetails.getUsername(), userId, orgId);
+
+        organizationService.promoteToOrgAdmin(userId, orgId);
+
+        // Fetch updated membership
+        UserOrganizationMembership membership = organizationService.getMembership(userId, orgId);
+        MembershipResponse response = MembershipResponse.fromOrgMembership(membership);
+
+        return ResponseEntity.ok(response);
+    }
+
+    // Demote ORG_ADMIN to MEMBER (PLATFORM_ADMIN only)
+    @PostMapping("/{orgId}/members/{userId}/demote")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    public ResponseEntity<MembershipResponse> demoteOrgAdmin(
+            @PathVariable UUID orgId,
+            @PathVariable UUID userId,
+            @AuthenticationPrincipal User userDetails) {
+
+        log.info("Admin {} demoting user {} from ORG_ADMIN in organization {}", 
+                userDetails.getUsername(), userId, orgId);
+
+        organizationService.demoteOrgAdmin(userId, orgId);
+
+        // Fetch updated membership
+        UserOrganizationMembership membership = organizationService.getMembership(userId, orgId);
+        MembershipResponse response = MembershipResponse.fromOrgMembership(membership);
+
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/{orgId}/switch-primary")
     public ResponseEntity<MembershipResponse> switchPrimaryOrganization(
             @PathVariable UUID orgId,

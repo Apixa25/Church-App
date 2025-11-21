@@ -332,6 +332,29 @@ public class OrganizationService {
     }
     
     /**
+     * Get all members of an organization
+     * 
+     * @param orgId The organization ID
+     * @return List of all memberships for this organization
+     */
+    public List<UserOrganizationMembership> getOrganizationMembers(UUID orgId) {
+        return membershipRepository.findByOrganizationId(orgId);
+    }
+    
+    /**
+     * Get a specific user's membership in an organization
+     * 
+     * @param userId The user ID
+     * @param orgId The organization ID
+     * @return The membership
+     */
+    public UserOrganizationMembership getMembership(UUID userId, UUID orgId) {
+        return membershipRepository
+            .findByUserIdAndOrganizationId(userId, orgId)
+            .orElseThrow(() -> new RuntimeException("User is not a member of this organization"));
+    }
+    
+    /**
      * Update a member's role within the organization
      * 
      * @param userId The user whose role to update
