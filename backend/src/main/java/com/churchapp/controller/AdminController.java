@@ -29,7 +29,7 @@ import java.util.UUID;
 @RequestMapping("/admin")
 @RequiredArgsConstructor
 @Slf4j
-@PreAuthorize("hasRole('PLATFORM_ADMIN') or hasRole('MODERATOR')")
+@PreAuthorize("@adminAuthorizationService.hasAnyAdminAccess(#authentication.principal)")
 public class AdminController {
 
     private final UserManagementService userManagementService;
