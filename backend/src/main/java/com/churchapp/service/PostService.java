@@ -300,7 +300,7 @@ public class PostService {
 
         // Check if user owns the post or is an admin/moderator
         boolean isOwner = post.getUser().getId().equals(user.getId());
-        boolean isAdmin = user.getRole() == User.Role.ADMIN;
+        boolean isAdmin = user.getRole() == User.Role.PLATFORM_ADMIN;
         boolean isModerator = user.getRole() == User.Role.MODERATOR;
 
         log.info("Delete authorization check - Post: {} | Owner: {} | Current User: {} | User Role: {} | Is Owner: {} | Is Admin: {} | Is Moderator: {}", 

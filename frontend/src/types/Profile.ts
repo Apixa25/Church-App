@@ -19,7 +19,7 @@ export interface UserProfile {
   birthday?: string;
   spiritualGift?: string;
   equippingGifts?: string;
-  role: 'MEMBER' | 'MODERATOR' | 'ADMIN';
+  role: 'USER' | 'MODERATOR' | 'PLATFORM_ADMIN';
   profilePicUrl?: string;
   bannerImageUrl?: string;
   createdAt: string;

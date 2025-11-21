@@ -43,7 +43,7 @@ public class DonationSystemIntegrationTest {
         testUser.setId(UUID.randomUUID());
         testUser.setEmail("integration@test.com");
         testUser.setName("Integration Test User");
-        testUser.setRole(User.Role.MEMBER);
+        testUser.setRole(User.Role.USER);
         testUser.setCreatedAt(LocalDateTime.now());
         testUser.setLastLogin(LocalDateTime.now());
 
@@ -278,7 +278,7 @@ public class DonationSystemIntegrationTest {
         user.setId(UUID.randomUUID());
         user.setEmail(email);
         user.setName("Test User");
-        user.setRole(User.Role.MEMBER);
+        user.setRole(User.Role.USER);
         user.setCreatedAt(LocalDateTime.now());
         user.setLastLogin(LocalDateTime.now());
         return userRepository.save(user);

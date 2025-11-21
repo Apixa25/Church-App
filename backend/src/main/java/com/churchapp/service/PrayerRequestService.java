@@ -299,7 +299,7 @@ public class PrayerRequestService {
         
         // Allow deletion if user is the owner OR if user is an admin/moderator
         boolean isOwner = prayerRequest.getUser().getId().equals(userId);
-        boolean isAdmin = requestingUser.getRole() == User.Role.ADMIN;
+        boolean isAdmin = requestingUser.getRole() == User.Role.PLATFORM_ADMIN;
         boolean isModerator = requestingUser.getRole() == User.Role.MODERATOR;
         
         if (!isOwner && !isAdmin && !isModerator) {

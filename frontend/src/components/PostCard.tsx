@@ -207,7 +207,7 @@ const PostCard: React.FC<PostCardProps> = ({
     if (!canDelete) return;
     
     const confirmed = window.confirm(
-      user?.role === 'ADMIN' || user?.role === 'MODERATOR'
+      user?.role === 'PLATFORM_ADMIN' || user?.role === 'MODERATOR'
         ? 'Are you sure you want to delete this post as an administrator?'
         : 'Are you sure you want to delete this post?'
     );
@@ -432,7 +432,7 @@ const PostCard: React.FC<PostCardProps> = ({
               className="post-delete-button"
               onClick={handleDelete}
               disabled={isLoading}
-              title={user?.role === 'ADMIN' || user?.role === 'MODERATOR' ? 'Delete post (Admin)' : 'Delete post'}
+              title={user?.role === 'PLATFORM_ADMIN' || user?.role === 'MODERATOR' ? 'Delete post (Admin)' : 'Delete post'}
             >
               🗑️
             </button>

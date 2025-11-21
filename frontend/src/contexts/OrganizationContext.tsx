@@ -31,7 +31,7 @@ export interface Membership {
   organizationName?: string;
   organizationType?: 'CHURCH' | 'MINISTRY' | 'NONPROFIT' | 'GLOBAL';
   organizationLogoUrl?: string;
-  role: 'MEMBER' | 'ADMIN' | 'MODERATOR';
+  role: 'MEMBER' | 'ORG_ADMIN' | 'MODERATOR';
   isPrimary: boolean;
   joinedAt: string;
   createdAt: string;

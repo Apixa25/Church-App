@@ -49,7 +49,7 @@ public class EventBringListService {
 
         boolean canManageAll = currentUser != null && (
             event.getCreator().getId().equals(currentUserId) ||
-            currentUser.getRole() == User.Role.ADMIN ||
+            currentUser.getRole() == User.Role.PLATFORM_ADMIN ||
             currentUser.getRole() == User.Role.MODERATOR
         );
 
@@ -276,7 +276,7 @@ public class EventBringListService {
 
     private boolean canManageAll(Event event, User user) {
         return event.getCreator().getId().equals(user.getId()) ||
-            user.getRole() == User.Role.ADMIN ||
+            user.getRole() == User.Role.PLATFORM_ADMIN ||
             user.getRole() == User.Role.MODERATOR;
     }
 

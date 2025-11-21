@@ -120,7 +120,7 @@ public class EventService {
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         
         if (!existingEvent.getCreator().getId().equals(userId) && 
-            user.getRole() != User.Role.ADMIN && 
+            user.getRole() != User.Role.PLATFORM_ADMIN && 
             user.getRole() != User.Role.MODERATOR) {
             throw new RuntimeException("Not authorized to update this event");
         }
@@ -183,7 +183,7 @@ public class EventService {
                 eventId, event.getCreator().getId(), userId, user.getRole());
         
         boolean isCreator = event.getCreator().getId().equals(userId);
-        boolean isAdmin = user.getRole() == User.Role.ADMIN;
+        boolean isAdmin = user.getRole() == User.Role.PLATFORM_ADMIN;
         
         log.info("Authorization result - Is Creator: {} | Is Admin: {} | Can Delete: {}", 
                 isCreator, isAdmin, (isCreator || isAdmin));
