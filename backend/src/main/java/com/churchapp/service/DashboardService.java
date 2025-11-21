@@ -7,9 +7,11 @@ import com.churchapp.dto.DashboardResponse.QuickAction;
 import com.churchapp.dto.DashboardResponse.NotificationSummary;
 import com.churchapp.dto.DashboardResponse.NotificationSummary.NotificationPreview;
 import com.churchapp.entity.User;
+import com.churchapp.entity.UserOrganizationMembership;
 import com.churchapp.repository.UserRepository;
 import com.churchapp.repository.EventRepository;
 import com.churchapp.repository.DonationRepository;
+import com.churchapp.repository.UserOrganizationMembershipRepository;
 import com.churchapp.entity.Donation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -33,6 +35,7 @@ public class DashboardService {
     private final AnnouncementService announcementService;
     private final EventRepository eventRepository;
     private final DonationRepository donationRepository;
+    private final UserOrganizationMembershipRepository membershipRepository;
     
     public DashboardResponse getDashboardData(String currentUserEmail) {
         User currentUser = userRepository.findByEmail(currentUserEmail)
@@ -282,15 +285,24 @@ public class DashboardService {
         }
         
         
-        // Admin-only actions
-        if (currentUser.getRole() == User.Role.PLATFORM_ADMIN) {
+        // Admin-only actions (PLATFORM_ADMIN or ORG_ADMIN)
+        boolean isPlatformAdmin = currentUser.getRole() == User.Role.PLATFORM_ADMIN;
+        boolean isOrgAdmin = membershipRepository
+            .findByUserIdAndRole(currentUser.getId(), UserOrganizationMembership.OrgRole.ORG_ADMIN)
+            .stream()
+            .findAny()
+            .isPresent();
+        
+        if (isPlatformAdmin || isOrgAdmin) {
             actions.add(QuickAction.createForRole(
                 "admin_tools",
-                "Admin Tools",
-                "Manage users and moderate content",
+                "Admin Dashboard",
+                isOrgAdmin && !isPlatformAdmin 
+                    ? "Manage your organization" 
+                    : "Manage users and moderate content",
                 "/admin",
                 "shield",
-                "Manage",
+                "Open Dashboard",
                 "ADMIN"
             ));
 

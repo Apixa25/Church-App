@@ -165,5 +165,30 @@ public class AdminAuthorizationService {
             )
             .orElse(false);
     }
+    
+    /**
+     * Check if user has ANY admin access
+     * Returns true if user is:
+     *  - Platform Admin
+     *  - Platform Moderator
+     *  - Org Admin of at least one organization
+     * 
+     * This is used for @PreAuthorize annotations to grant access to the admin dashboard
+     * 
+     * @param user The user to check
+     * @return true if user has any admin-level access
+     */
+    public boolean hasAnyAdminAccess(User user) {
+        // Platform admins and moderators always have access
+        if (user.getRole() == User.Role.PLATFORM_ADMIN || user.getRole() == User.Role.MODERATOR) {
+            return true;
+        }
+        
+        // Check if user is ORG_ADMIN of at least one organization
+        return membershipRepository
+            .findByUserId(user.getId())
+            .stream()
+            .anyMatch(membership -> membership.getRole() == UserOrganizationMembership.OrgRole.ORG_ADMIN);
+    }
 }
 
