@@ -3,6 +3,7 @@ package com.churchapp.service;
 import com.churchapp.entity.User;
 import com.churchapp.entity.UserOrganizationMembership;
 import com.churchapp.repository.UserOrganizationMembershipRepository;
+import com.churchapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 public class AdminAuthorizationService {
     
     private final UserOrganizationMembershipRepository membershipRepository;
+    private final UserRepository userRepository;
     
     /**
      * Check if user is Platform Admin (can see/do everything across all organizations)
@@ -179,6 +181,10 @@ public class AdminAuthorizationService {
      * @return true if user has any admin-level access
      */
     public boolean hasAnyAdminAccess(User user) {
+        if (user == null) {
+            return false;
+        }
+        
         // Platform admins and moderators always have access
         if (user.getRole() == User.Role.PLATFORM_ADMIN || user.getRole() == User.Role.MODERATOR) {
             return true;
@@ -189,6 +195,34 @@ public class AdminAuthorizationService {
             .findByUserId(user.getId())
             .stream()
             .anyMatch(membership -> membership.getRole() == UserOrganizationMembership.OrgRole.ORG_ADMIN);
+    }
+    
+    /**
+     * Check if authenticated user (by email) has ANY admin access
+     * This overload is for use in @PreAuthorize SpEL expressions
+     * 
+     * @param principal The Spring Security principal (can be UserDetails or our User entity)
+     * @return true if user has any admin-level access
+     */
+    public boolean hasAnyAdminAccess(Object principal) {
+        if (principal == null) {
+            return false;
+        }
+        
+        // If it's already our User entity, use it directly
+        if (principal instanceof User) {
+            return hasAnyAdminAccess((User) principal);
+        }
+        
+        // If it's Spring's UserDetails, get the username and look up our User
+        if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
+            String email = ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername();
+            return userRepository.findByEmail(email)
+                .map(this::hasAnyAdminAccess)
+                .orElse(false);
+        }
+        
+        return false;
     }
 }
 

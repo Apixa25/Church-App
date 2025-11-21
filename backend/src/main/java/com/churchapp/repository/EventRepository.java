@@ -159,4 +159,9 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
     @Modifying
     @Query("DELETE FROM Event e WHERE e.organization.id = :orgId")
     void deleteByOrganizationId(@Param("orgId") UUID orgId);
+
+    // ========== ORGANIZATION-FILTERED QUERIES (for ORG_ADMIN analytics) ==========
+    
+    @Query("SELECT COUNT(e) FROM Event e WHERE e.organization.id IN :orgIds")
+    long countByOrganizationIdIn(@Param("orgIds") List<UUID> orgIds);
 }

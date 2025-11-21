@@ -144,4 +144,12 @@ public interface PrayerRequestRepository extends JpaRepository<PrayerRequest, UU
     @Modifying
     @Query("DELETE FROM PrayerRequest pr WHERE pr.organization.id = :orgId")
     void deleteByOrganizationId(@Param("orgId") UUID orgId);
+
+    // ========== ORGANIZATION-FILTERED QUERIES (for ORG_ADMIN analytics) ==========
+    
+    @Query("SELECT COUNT(pr) FROM PrayerRequest pr WHERE pr.organization.id IN :orgIds")
+    long countByOrganizationIdIn(@Param("orgIds") List<UUID> orgIds);
+    
+    @Query("SELECT COUNT(pr) FROM PrayerRequest pr WHERE pr.organization.id IN :orgIds AND pr.createdAt >= :since")
+    long countByOrganizationIdInAndCreatedAtAfter(@Param("orgIds") List<UUID> orgIds, @Param("since") LocalDateTime since);
 }

@@ -139,4 +139,18 @@ public interface DonationRepository extends JpaRepository<Donation, UUID> {
     @Modifying
     @Query("DELETE FROM Donation d WHERE d.organization.id = :orgId")
     void deleteByOrganizationId(@Param("orgId") UUID orgId);
+
+    // ========== ORGANIZATION-FILTERED QUERIES (for ORG_ADMIN analytics) ==========
+    
+    @Query("SELECT SUM(d.amount) FROM Donation d WHERE d.organization.id IN :orgIds")
+    Double sumAmountsByOrganizationIdIn(@Param("orgIds") List<UUID> orgIds);
+    
+    @Query("SELECT SUM(d.amount) FROM Donation d WHERE d.organization.id IN :orgIds AND d.timestamp >= :since")
+    Double sumAmountsByOrganizationIdInAndTimestampAfter(@Param("orgIds") List<UUID> orgIds, @Param("since") LocalDateTime since);
+    
+    @Query("SELECT COUNT(DISTINCT d.user.id) FROM Donation d WHERE d.organization.id IN :orgIds")
+    Long countDistinctDonorsInOrganizations(@Param("orgIds") List<UUID> orgIds);
+    
+    @Query("SELECT AVG(d.amount) FROM Donation d WHERE d.organization.id IN :orgIds")
+    Double averageDonationAmountInOrganizations(@Param("orgIds") List<UUID> orgIds);
 }
