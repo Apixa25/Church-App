@@ -9,7 +9,7 @@ interface User {
   name: string;
   email: string;
   profilePicUrl?: string;
-  role: 'MEMBER' | 'MODERATOR' | 'ADMIN';
+  role: 'USER' | 'MODERATOR' | 'PLATFORM_ADMIN';
   isOnline?: boolean;
   lastSeen?: string;
 }
@@ -71,7 +71,7 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
         name: user.name,
         email: user.email,
         profilePicUrl: user.profilePicUrl,
-        role: user.role as 'MEMBER' | 'MODERATOR' | 'ADMIN',
+        role: user.role as 'USER' | 'MODERATOR' | 'PLATFORM_ADMIN',
         isOnline: user.isOnline,
         lastSeen: user.lastSeen ? formatLastSeen(user.lastSeen) : undefined,
       }));
@@ -128,7 +128,7 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'ADMIN': return '👑';
+      case 'PLATFORM_ADMIN': return '👑';
       case 'MODERATOR': return '🛡️';
       default: return '👤';
     }
@@ -211,7 +211,7 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
               <div className="user-info">
                 <div className="user-name">
                   {user.name}
-                  {user.role !== 'MEMBER' && (
+                  {user.role !== 'USER' && (
                     <span className="role-badge">{user.role}</span>
                   )}
                 </div>

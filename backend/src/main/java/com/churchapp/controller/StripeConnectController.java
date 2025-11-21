@@ -56,7 +56,7 @@ public class StripeConnectController {
 
     private boolean isUserAdminOfOrganization(User user, UUID organizationId) {
         return membershipRepository.findByUserIdAndOrganizationId(user.getId(), organizationId)
-                .map(membership -> membership.getRole() == UserOrganizationMembership.OrgRole.ADMIN)
+                .map(membership -> membership.getRole() == UserOrganizationMembership.OrgRole.ORG_ADMIN)
                 .orElse(false);
     }
 
@@ -80,7 +80,7 @@ public class StripeConnectController {
 
             // Check if user is admin of this organization OR a global admin
             boolean isOrgAdmin = isUserAdminOfOrganization(currentUser, organizationId);
-            boolean isGlobalAdmin = currentUser.getRole() == User.Role.ADMIN;
+            boolean isGlobalAdmin = currentUser.getRole() == User.Role.PLATFORM_ADMIN;
             
             if (!isOrgAdmin && !isGlobalAdmin) {
                 return ResponseEntity.status(403).body(Map.of(
@@ -241,7 +241,7 @@ public class StripeConnectController {
 
             // Check if user is admin of this organization OR a global admin
             boolean isOrgAdmin = isUserAdminOfOrganization(currentUser, organizationId);
-            boolean isGlobalAdmin = currentUser.getRole() == User.Role.ADMIN;
+            boolean isGlobalAdmin = currentUser.getRole() == User.Role.PLATFORM_ADMIN;
             
             if (!isOrgAdmin && !isGlobalAdmin) {
                 return ResponseEntity.status(403).body(Map.of(
@@ -303,7 +303,7 @@ public class StripeConnectController {
 
             // Check if user is admin of this organization OR a global admin
             boolean isOrgAdmin = isUserAdminOfOrganization(currentUser, organizationId);
-            boolean isGlobalAdmin = currentUser.getRole() == User.Role.ADMIN;
+            boolean isGlobalAdmin = currentUser.getRole() == User.Role.PLATFORM_ADMIN;
             
             if (!isOrgAdmin && !isGlobalAdmin) {
                 return ResponseEntity.status(403).body(Map.of(

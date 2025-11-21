@@ -66,7 +66,7 @@ public class DataInitializer implements CommandLineRunner {
         // Check if admin user already exists
         List<User> allUsers = userRepository.findAllActiveUsers();
         boolean adminExists = allUsers.stream()
-            .anyMatch(user -> user.getRole() == User.Role.ADMIN);
+            .anyMatch(user -> user.getRole() == User.Role.PLATFORM_ADMIN);
         
         if (adminExists) {
             log.info("Admin user already exists, skipping admin user initialization");
@@ -87,7 +87,7 @@ public class DataInitializer implements CommandLineRunner {
         User adminUser = new User();
         adminUser.setEmail("admin@church.local");
         adminUser.setName("Church Administrator");
-        adminUser.setRole(User.Role.ADMIN);
+        adminUser.setRole(User.Role.PLATFORM_ADMIN);
         adminUser.setIsActive(true);
         adminUser.setBio("Default church administrator account");
         // Set default password: admin123
@@ -143,8 +143,8 @@ public class DataInitializer implements CommandLineRunner {
         userRepository.findAllActiveUsers().stream()
             .filter(user -> "Steven Sills II".equals(user.getName()))
             .forEach(steven -> {
-                if (steven.getRole() != User.Role.ADMIN) {
-                    steven.setRole(User.Role.ADMIN);
+                if (steven.getRole() != User.Role.PLATFORM_ADMIN) {
+                    steven.setRole(User.Role.PLATFORM_ADMIN);
                     userRepository.save(steven);
                     log.info("Promoted Steven Sills II to ADMIN role");
                 }
@@ -156,8 +156,8 @@ public class DataInitializer implements CommandLineRunner {
      */
     private void ensureStevenSillsSystemAdmin() {
         userRepository.findByEmail("stevensills2@gmail.com").ifPresent(steven -> {
-            if (steven.getRole() != User.Role.ADMIN) {
-                steven.setRole(User.Role.ADMIN);
+            if (steven.getRole() != User.Role.PLATFORM_ADMIN) {
+                steven.setRole(User.Role.PLATFORM_ADMIN);
                 userRepository.save(steven);
                 log.info("Promoted stevensills2@gmail.com to system ADMIN role");
             }
@@ -169,7 +169,7 @@ public class DataInitializer implements CommandLineRunner {
         User memberUser = new User();
         memberUser.setEmail("member@church.local");
         memberUser.setName("John Doe");
-        memberUser.setRole(User.Role.MEMBER);
+        memberUser.setRole(User.Role.USER);
         memberUser.setIsActive(true);
         memberUser.setBio("Sample church member account");
         memberUser.setCreatedAt(LocalDateTime.now());
@@ -191,7 +191,7 @@ public class DataInitializer implements CommandLineRunner {
         // Get any active user as the creator (preferably admin if available)
         List<User> allUsers = userRepository.findAllActiveUsers();
         User creator = allUsers.stream()
-            .filter(user -> user.getRole() == User.Role.ADMIN)
+            .filter(user -> user.getRole() == User.Role.PLATFORM_ADMIN)
             .findFirst()
             .orElse(allUsers.stream().findFirst().orElse(null));
         
@@ -275,7 +275,7 @@ public class DataInitializer implements CommandLineRunner {
                 User newAdmin = new User();
                 newAdmin.setEmail("churchadmin1@gmail.com");
                 newAdmin.setName("Church Admin");
-                newAdmin.setRole(User.Role.MEMBER); // Organization admin, not system admin
+                newAdmin.setRole(User.Role.USER); // Organization admin, not system admin
                 newAdmin.setIsActive(true);
                 newAdmin.setPasswordHash(passwordEncoder.encode("123456"));
                 newAdmin.setBio("Administrator of The River church");
@@ -300,7 +300,7 @@ public class DataInitializer implements CommandLineRunner {
             UserOrganizationMembership membership = new UserOrganizationMembership();
             membership.setUser(churchAdmin);
             membership.setOrganization(savedChurch);
-            membership.setRole(UserOrganizationMembership.OrgRole.ADMIN);
+            membership.setRole(UserOrganizationMembership.OrgRole.ORG_ADMIN);
             membership.setIsPrimary(true);
             membership.setJoinedAt(LocalDateTime.now());
 
@@ -330,7 +330,7 @@ public class DataInitializer implements CommandLineRunner {
         // Get admin user to create announcements
         List<User> allUsers = userRepository.findAllActiveUsers();
         User admin = allUsers.stream()
-            .filter(user -> user.getRole() == User.Role.ADMIN)
+            .filter(user -> user.getRole() == User.Role.PLATFORM_ADMIN)
             .findFirst()
             .orElse(null);
             

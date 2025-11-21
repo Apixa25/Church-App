@@ -64,7 +64,7 @@ public class PaymentSecurityAuditTest {
         testUser.setId(UUID.randomUUID());
         testUser.setEmail("test@church.com");
         testUser.setName("Test User");
-        testUser.setRole(User.Role.MEMBER);
+        testUser.setRole(User.Role.USER);
 
         when(authentication.getName()).thenReturn(testUser.getEmail());
         when(userRepository.findByEmail(testUser.getEmail())).thenReturn(Optional.of(testUser));

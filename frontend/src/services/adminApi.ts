@@ -46,7 +46,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'MEMBER' | 'MODERATOR' | 'ADMIN';
+  role: 'USER' | 'MODERATOR' | 'PLATFORM_ADMIN';
   profilePicUrl?: string;
   bio?: string;
   isActive: boolean;

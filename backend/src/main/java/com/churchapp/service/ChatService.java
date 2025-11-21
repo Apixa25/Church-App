@@ -466,7 +466,7 @@ public class ChatService {
     
     private boolean canCreateGroup(User user, ChatGroup.GroupType type) {
         // Admin/Moderator can create any type
-        if (user.getRole() == User.Role.ADMIN || user.getRole() == User.Role.MODERATOR) {
+        if (user.getRole() == User.Role.PLATFORM_ADMIN || user.getRole() == User.Role.MODERATOR) {
             return true;
         }
         

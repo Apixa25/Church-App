@@ -35,7 +35,7 @@ public class WorshipPermissionService {
         }
 
         // Administrators can always join rooms for moderation or cleanup
-        if (user.getRole() == User.Role.ADMIN) {
+        if (user.getRole() == User.Role.PLATFORM_ADMIN) {
             return true;
         }
 
@@ -97,7 +97,7 @@ public class WorshipPermissionService {
         }
 
         // Admins can always add songs once they have joined the room
-        if (user.getRole() == User.Role.ADMIN) {
+        if (user.getRole() == User.Role.PLATFORM_ADMIN) {
             return true;
         }
 
@@ -169,7 +169,7 @@ public class WorshipPermissionService {
         }
 
         // Only room creator or admin can delete room
-        return room.isCreator(user) || user.getRole() == User.Role.ADMIN;
+        return room.isCreator(user) || user.getRole() == User.Role.PLATFORM_ADMIN;
     }
 
     /**

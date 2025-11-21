@@ -67,7 +67,7 @@ public class DonationSubscriptionTest {
         testUser.setId(UUID.randomUUID());
         testUser.setEmail("test@church.com");
         testUser.setName("Test User");
-        testUser.setRole(User.Role.MEMBER);
+        testUser.setRole(User.Role.USER);
 
         // Create test subscription
         testSubscription = new DonationSubscription();

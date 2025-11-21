@@ -247,8 +247,8 @@ public class AdminAnalyticsService {
 
     private Map<String, Long> getUsersByRole() {
         Map<String, Long> usersByRole = new HashMap<>();
-        usersByRole.put("MEMBER", userRepository.countByRole(com.churchapp.entity.User.Role.MEMBER));
-        usersByRole.put("ADMIN", userRepository.countByRole(com.churchapp.entity.User.Role.ADMIN));
+        usersByRole.put("MEMBER", userRepository.countByRole(com.churchapp.entity.User.Role.USER));
+        usersByRole.put("ADMIN", userRepository.countByRole(com.churchapp.entity.User.Role.PLATFORM_ADMIN));
         usersByRole.put("MODERATOR", userRepository.countByRole(com.churchapp.entity.User.Role.MODERATOR));
         return usersByRole;
     }
