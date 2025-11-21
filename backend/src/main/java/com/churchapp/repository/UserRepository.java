@@ -55,6 +55,48 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
     @Query("SELECT SUM(u.warningCount) FROM User u WHERE u.deletedAt IS NULL")
     Long sumWarningCounts();
 
+    // ========== ORGANIZATION-FILTERED QUERIES (for ORG_ADMIN) ==========
+    
+    @Query("""
+        SELECT COUNT(DISTINCT u) FROM User u 
+        JOIN u.organizationMemberships m 
+        WHERE m.organization.id IN :orgIds
+        """)
+    long countUsersInOrganizations(@Param("orgIds") List<UUID> orgIds);
+    
+    @Query("""
+        SELECT COUNT(DISTINCT u) FROM User u 
+        JOIN u.organizationMemberships m 
+        WHERE m.organization.id IN :orgIds 
+        AND u.isActive = true 
+        AND u.deletedAt IS NULL
+        """)
+    long countActiveUsersInOrganizations(@Param("orgIds") List<UUID> orgIds);
+    
+    @Query("""
+        SELECT COUNT(DISTINCT u) FROM User u 
+        JOIN u.organizationMemberships m 
+        WHERE m.organization.id IN :orgIds 
+        AND u.createdAt > :since
+        """)
+    long countNewUsersInOrganizationsSince(@Param("orgIds") List<UUID> orgIds, @Param("since") LocalDateTime since);
+    
+    @Query("""
+        SELECT COUNT(DISTINCT u) FROM User u 
+        JOIN u.organizationMemberships m 
+        WHERE m.organization.id IN :orgIds 
+        AND u.isBanned = true
+        """)
+    long countBannedUsersInOrganizations(@Param("orgIds") List<UUID> orgIds);
+    
+    @Query("""
+        SELECT SUM(u.warningCount) FROM User u 
+        JOIN u.organizationMemberships m 
+        WHERE m.organization.id IN :orgIds 
+        AND u.deletedAt IS NULL
+        """)
+    Long sumWarningCountsInOrganizations(@Param("orgIds") List<UUID> orgIds);
+
     // Organization-scoped DM candidates with optional query and pagination
     @Query("""
         SELECT u

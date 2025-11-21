@@ -3,6 +3,7 @@ package com.churchapp.service;
 import com.churchapp.dto.UserManagementResponse;
 import com.churchapp.entity.User;
 import com.churchapp.entity.User.Role;
+import com.churchapp.entity.UserOrganizationMembership;
 import com.churchapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +13,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -25,8 +27,12 @@ public class UserManagementService {
 
     private final UserRepository userRepository;
 
-    public Page<UserManagementResponse> getUsers(Pageable pageable, String search, String role, Boolean banned) {
-        Specification<User> spec = createUserSpecification(search, role, banned);
+    /**
+     * Get users with optional organization filtering
+     * @param organizationIds null for PLATFORM_ADMIN (all users), List<UUID> for ORG_ADMIN (users in those orgs)
+     */
+    public Page<UserManagementResponse> getUsers(Pageable pageable, String search, String role, Boolean banned, List<UUID> organizationIds) {
+        Specification<User> spec = createUserSpecification(search, role, banned, organizationIds);
         Page<User> users = userRepository.findAll(spec, pageable);
 
         return users.map(user -> {
@@ -126,12 +132,23 @@ public class UserManagementService {
         log.info("Soft deleted user {}", userId);
     }
 
-    private Specification<User> createUserSpecification(String search, String role, Boolean banned) {
+    private Specification<User> createUserSpecification(String search, String role, Boolean banned, List<UUID> organizationIds) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
             // Only show non-deleted users by default
             predicates.add(criteriaBuilder.isNull(root.get("deletedAt")));
+
+            // 🔒 ORGANIZATION FILTERING: If organizationIds is provided (ORG_ADMIN), only show users in those orgs
+            if (organizationIds != null && !organizationIds.isEmpty()) {
+                Join<User, UserOrganizationMembership> memberships = root.join("organizationMemberships");
+                predicates.add(memberships.get("organization").get("id").in(organizationIds));
+                
+                // Ensure distinct results when joining
+                query.distinct(true);
+                
+                log.debug("🔒 Filtering users by {} organization(s)", organizationIds.size());
+            }
 
             if (search != null && !search.trim().isEmpty()) {
                 String searchPattern = "%" + search.toLowerCase() + "%";

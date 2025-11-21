@@ -4,8 +4,6 @@ import com.churchapp.dto.AdminAnalyticsResponse;
 import com.churchapp.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.actuate.health.Health;
-import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -13,6 +11,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -30,42 +29,49 @@ public class AdminAnalyticsService {
     private final DonationRepository donationRepository;
     private final AuditLogRepository auditLogRepository;
 
-    public AdminAnalyticsResponse getAnalytics(String timeRange) {
+    /**
+     * Get analytics with optional organization filtering
+     * @param organizationIds null for PLATFORM_ADMIN (all data), List<UUID> for ORG_ADMIN (org-specific data)
+     */
+    public AdminAnalyticsResponse getAnalytics(String timeRange, List<UUID> organizationIds) {
         LocalDateTime since = calculateSinceDate(timeRange);
         LocalDateTime now = LocalDateTime.now();
 
-        log.info("Generating admin analytics for time range: {} (since: {})", timeRange, since);
+        boolean isPlatformAdmin = (organizationIds == null);
+        
+        log.info("🔒 Generating admin analytics for time range: {} (since: {}), scope: {}", 
+            timeRange, since, isPlatformAdmin ? "PLATFORM (ALL)" : organizationIds.size() + " org(s)");
 
         return AdminAnalyticsResponse.builder()
-            // User metrics
-            .totalUsers(userRepository.count())
-            .activeUsers(userRepository.countByIsActiveAndDeletedAtIsNull(true))
-            .newUsersToday(userRepository.countByCreatedAtAfter(now.truncatedTo(ChronoUnit.DAYS)))
-            .newUsersThisWeek(userRepository.countByCreatedAtAfter(now.minusWeeks(1)))
-            .newUsersThisMonth(userRepository.countByCreatedAtAfter(now.minusMonths(1)))
-            .bannedUsers(userRepository.countByIsBannedTrue())
+            // User metrics (filtered by org for ORG_ADMIN)
+            .totalUsers(countUsers(organizationIds))
+            .activeUsers(countActiveUsers(organizationIds))
+            .newUsersToday(countNewUsersSince(now.truncatedTo(ChronoUnit.DAYS), organizationIds))
+            .newUsersThisWeek(countNewUsersSince(now.minusWeeks(1), organizationIds))
+            .newUsersThisMonth(countNewUsersSince(now.minusMonths(1), organizationIds))
+            .bannedUsers(countBannedUsers(organizationIds))
 
-            // Content metrics
-            .totalPosts(postRepository.count())
-            .totalComments(getCommentsCount()) // TODO: Implement if comments are separate
-            .totalPrayers(prayerRequestRepository.count())
-            .totalAnnouncements(announcementRepository.count())
-            .totalEvents(eventRepository.count())
-            .totalResources(resourceRepository.count())
+            // Content metrics (filtered by org for ORG_ADMIN)
+            .totalPosts(countPosts(organizationIds))
+            .totalComments(getCommentsCount()) // TODO: Filter by org
+            .totalPrayers(countPrayers(organizationIds))
+            .totalAnnouncements(countAnnouncements(organizationIds))
+            .totalEvents(countEvents(organizationIds))
+            .totalResources(countResources(organizationIds))
 
-            // Activity metrics
-            .postsToday(postRepository.countByCreatedAtAfter(now.truncatedTo(ChronoUnit.DAYS)))
+            // Activity metrics (filtered by org for ORG_ADMIN)
+            .postsToday(countPostsSince(now.truncatedTo(ChronoUnit.DAYS), organizationIds))
             .commentsToday(0L) // TODO: Implement
-            .prayersToday(prayerRequestRepository.countByCreatedAtAfter(now.truncatedTo(ChronoUnit.DAYS)))
-            .activeChats(chatGroupRepository.count())
-            .messagesThisWeek(messageRepository.countAllMessagesSince(now.minusWeeks(1)))
+            .prayersToday(countPrayersSince(now.truncatedTo(ChronoUnit.DAYS), organizationIds))
+            .activeChats(countChats(organizationIds))
+            .messagesThisWeek(countMessagesSince(now.minusWeeks(1), organizationIds))
 
-            // Moderation metrics
+            // Moderation metrics (filtered by org for ORG_ADMIN)
             .totalReports(0L) // TODO: Implement reports table
             .activeReports(0L)
             .resolvedReports(0L)
             .contentRemoved(0L) // TODO: Track from audit logs
-            .warningsIssued(userRepository.sumWarningCounts())
+            .warningsIssued(sumWarnings(organizationIds))
 
             // Engagement metrics
             .averageUserActivity(calculateAverageUserActivity(since))
@@ -73,14 +79,14 @@ public class AdminAnalyticsService {
             .eventAttendanceRate(calculateEventAttendanceRate())
             .topCategories(getTopCategories())
 
-            // Financial metrics
-            .totalDonations(getTotalDonations())
-            .donationsThisMonth(getDonationsThisMonth())
-            .uniqueDonors(getUniqueDonors())
-            .averageDonation(getAverageDonation())
+            // Financial metrics (filtered by org for ORG_ADMIN)
+            .totalDonations(getTotalDonations(organizationIds))
+            .donationsThisMonth(getDonationsThisMonth(organizationIds))
+            .uniqueDonors(getUniqueDonors(organizationIds))
+            .averageDonation(getAverageDonation(organizationIds))
 
-            // System metrics
-            .totalAuditLogs(auditLogRepository.count())
+            // System metrics (Platform Admin only gets ALL audit logs, ORG_ADMIN gets filtered)
+            .totalAuditLogs(isPlatformAdmin ? auditLogRepository.count() : 0L)
             .auditActionCounts(getAuditActionCounts(since))
             .popularContent(getPopularContent())
             .topContributors(getTopContributors())
@@ -137,7 +143,129 @@ public class AdminAnalyticsService {
         return health;
     }
 
-    // Helper methods
+    // =============== ORGANIZATION-AWARE COUNTING METHODS ===============
+    // These methods filter by organization for ORG_ADMINs
+
+    private long countUsers(List<UUID> orgIds) {
+        if (orgIds == null) return userRepository.count(); // Platform Admin
+        return userRepository.countUsersInOrganizations(orgIds);
+    }
+
+    private long countActiveUsers(List<UUID> orgIds) {
+        if (orgIds == null) return userRepository.countByIsActiveAndDeletedAtIsNull(true);
+        return userRepository.countActiveUsersInOrganizations(orgIds);
+    }
+
+    private long countNewUsersSince(LocalDateTime since, List<UUID> orgIds) {
+        if (orgIds == null) return userRepository.countByCreatedAtAfter(since);
+        return userRepository.countNewUsersInOrganizationsSince(orgIds, since);
+    }
+
+    private long countBannedUsers(List<UUID> orgIds) {
+        if (orgIds == null) return userRepository.countByIsBannedTrue();
+        return userRepository.countBannedUsersInOrganizations(orgIds);
+    }
+
+    private long countPosts(List<UUID> orgIds) {
+        if (orgIds == null) return postRepository.count();
+        return postRepository.countByOrganizationIdIn(orgIds);
+    }
+
+    private long countPostsSince(LocalDateTime since, List<UUID> orgIds) {
+        if (orgIds == null) return postRepository.countByCreatedAtAfter(since);
+        return postRepository.countByOrganizationIdInAndCreatedAtAfter(orgIds, since);
+    }
+
+    private long countPrayers(List<UUID> orgIds) {
+        if (orgIds == null) return prayerRequestRepository.count();
+        return prayerRequestRepository.countByOrganizationIdIn(orgIds);
+    }
+
+    private long countPrayersSince(LocalDateTime since, List<UUID> orgIds) {
+        if (orgIds == null) return prayerRequestRepository.countByCreatedAtAfter(since);
+        return prayerRequestRepository.countByOrganizationIdInAndCreatedAtAfter(orgIds, since);
+    }
+
+    private long countAnnouncements(List<UUID> orgIds) {
+        if (orgIds == null) return announcementRepository.count();
+        return announcementRepository.countByOrganizationIdIn(orgIds);
+    }
+
+    private long countEvents(List<UUID> orgIds) {
+        if (orgIds == null) return eventRepository.count();
+        return eventRepository.countByOrganizationIdIn(orgIds);
+    }
+
+    private long countResources(List<UUID> orgIds) {
+        // Resources are currently global, not org-scoped
+        return resourceRepository.count();
+    }
+
+    private long countChats(List<UUID> orgIds) {
+        // Chat groups are currently global, not org-scoped
+        return chatGroupRepository.count();
+    }
+
+    private long countMessagesSince(LocalDateTime since, List<UUID> orgIds) {
+        // Messages are currently global, not org-scoped
+        return messageRepository.countAllMessagesSince(since);
+    }
+
+    private Long sumWarnings(List<UUID> orgIds) {
+        if (orgIds == null) return userRepository.sumWarningCounts();
+        return userRepository.sumWarningCountsInOrganizations(orgIds);
+    }
+
+    private double getTotalDonations(List<UUID> orgIds) {
+        try {
+            Double total = orgIds == null ? 
+                donationRepository.sumAllAmounts() : 
+                donationRepository.sumAmountsByOrganizationIdIn(orgIds);
+            return total != null ? total : 0.0;
+        } catch (Exception e) {
+            log.warn("Error calculating total donations: {}", e.getMessage());
+            return 0.0;
+        }
+    }
+
+    private double getDonationsThisMonth(List<UUID> orgIds) {
+        try {
+            LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
+            Double total = orgIds == null ? 
+                donationRepository.sumAmountsByTimestampAfter(startOfMonth) :
+                donationRepository.sumAmountsByOrganizationIdInAndTimestampAfter(orgIds, startOfMonth);
+            return total != null ? total : 0.0;
+        } catch (Exception e) {
+            log.warn("Error calculating this month's donations: {}", e.getMessage());
+            return 0.0;
+        }
+    }
+
+    private long getUniqueDonors(List<UUID> orgIds) {
+        try {
+            return orgIds == null ? 
+                donationRepository.countDistinctDonors() :
+                donationRepository.countDistinctDonorsInOrganizations(orgIds);
+        } catch (Exception e) {
+            log.warn("Error counting unique donors: {}", e.getMessage());
+            return 0L;
+        }
+    }
+
+    private double getAverageDonation(List<UUID> orgIds) {
+        try {
+            Double avg = orgIds == null ? 
+                donationRepository.averageDonationAmount() :
+                donationRepository.averageDonationAmountInOrganizations(orgIds);
+            return avg != null ? avg : 0.0;
+        } catch (Exception e) {
+            log.warn("Error calculating average donation: {}", e.getMessage());
+            return 0.0;
+        }
+    }
+
+    // =============== HELPER METHODS ===============
+    
     private LocalDateTime calculateSinceDate(String timeRange) {
         LocalDateTime now = LocalDateTime.now();
         switch (timeRange.toLowerCase()) {
@@ -173,46 +301,6 @@ public class AdminAnalyticsService {
     private Map<String, Long> getTopCategories() {
         // TODO: Implement based on prayer categories, announcement categories, etc.
         return new HashMap<>();
-    }
-
-    private double getTotalDonations() {
-        try {
-            Double total = donationRepository.sumAllAmounts();
-            return total != null ? total : 0.0;
-        } catch (Exception e) {
-            log.warn("Error calculating total donations: {}", e.getMessage());
-            return 0.0;
-        }
-    }
-
-    private double getDonationsThisMonth() {
-        try {
-            LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
-            Double total = donationRepository.sumAmountsByTimestampAfter(startOfMonth);
-            return total != null ? total : 0.0;
-        } catch (Exception e) {
-            log.warn("Error calculating this month's donations: {}", e.getMessage());
-            return 0.0;
-        }
-    }
-
-    private long getUniqueDonors() {
-        try {
-            return donationRepository.countDistinctDonors();
-        } catch (Exception e) {
-            log.warn("Error counting unique donors: {}", e.getMessage());
-            return 0L;
-        }
-    }
-
-    private double getAverageDonation() {
-        try {
-            Double avg = donationRepository.averageDonationAmount();
-            return avg != null ? avg : 0.0;
-        } catch (Exception e) {
-            log.warn("Error calculating average donation: {}", e.getMessage());
-            return 0.0;
-        }
     }
 
     private Map<String, Long> getAuditActionCounts(LocalDateTime since) {

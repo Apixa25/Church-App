@@ -134,4 +134,9 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, UUID
     @Modifying
     @Query("DELETE FROM Announcement a WHERE a.organization.id = :orgId")
     void deleteByOrganizationId(@Param("orgId") UUID orgId);
+
+    // ========== ORGANIZATION-FILTERED QUERIES (for ORG_ADMIN analytics) ==========
+    
+    @Query("SELECT COUNT(a) FROM Announcement a WHERE a.organization.id IN :orgIds AND a.deletedAt IS NULL")
+    long countByOrganizationIdIn(@Param("orgIds") List<UUID> orgIds);
 }

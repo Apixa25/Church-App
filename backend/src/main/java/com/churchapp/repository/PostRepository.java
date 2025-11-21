@@ -211,4 +211,12 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     @Modifying
     @Query("DELETE FROM Post p WHERE p.organization.id = :orgId")
     void deleteByOrganizationId(@Param("orgId") UUID orgId);
+
+    // ========== ORGANIZATION-FILTERED QUERIES (for ORG_ADMIN analytics) ==========
+    
+    @Query("SELECT COUNT(p) FROM Post p WHERE p.organization.id IN :orgIds")
+    long countByOrganizationIdIn(@Param("orgIds") List<UUID> orgIds);
+    
+    @Query("SELECT COUNT(p) FROM Post p WHERE p.organization.id IN :orgIds AND p.createdAt >= :since")
+    long countByOrganizationIdInAndCreatedAtAfter(@Param("orgIds") List<UUID> orgIds, @Param("since") LocalDateTime since);
 }

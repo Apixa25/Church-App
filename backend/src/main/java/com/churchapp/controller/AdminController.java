@@ -5,8 +5,10 @@ import com.churchapp.dto.UserManagementResponse;
 import com.churchapp.entity.AuditLog;
 import com.churchapp.entity.User;
 import com.churchapp.service.AdminAnalyticsService;
+import com.churchapp.service.AdminAuthorizationService;
 import com.churchapp.service.AuditLogService;
 import com.churchapp.service.UserManagementService;
+import com.churchapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -29,17 +31,20 @@ import java.util.UUID;
 @RequestMapping("/admin")
 @RequiredArgsConstructor
 @Slf4j
-@PreAuthorize("@adminAuthorizationService.hasAnyAdminAccess(#authentication.principal)")
+@PreAuthorize("@adminAuthorizationService.hasAnyAdminAccess(authentication.principal)")
 public class AdminController {
 
     private final UserManagementService userManagementService;
     private final AdminAnalyticsService adminAnalyticsService;
     private final AuditLogService auditLogService;
+    private final AdminAuthorizationService adminAuthService;
+    private final UserRepository userRepository;
 
     // =============== USER MANAGEMENT ===============
 
     /**
      * Get all users with pagination and filtering
+     * PLATFORM_ADMIN sees all users, ORG_ADMIN sees only users in their organization(s)
      */
     @GetMapping("/users")
     public ResponseEntity<Page<UserManagementResponse>> getUsers(
@@ -49,18 +54,24 @@ public class AdminController {
             @RequestParam(defaultValue = "desc") String sortDirection,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String role,
-            @RequestParam(required = false) Boolean banned) {
+            @RequestParam(required = false) Boolean banned,
+            Authentication auth) {
 
         try {
-            log.info("Fetching users: page={}, size={}, search={}, role={}, banned={}",
-                page, size, search, role, banned);
+            // Get current user and their admin organization scope
+            User currentUser = getCurrentUser(auth);
+            List<UUID> orgIds = adminAuthService.getAdminOrganizationIds(currentUser);
+            
+            log.info("Fetching users: page={}, size={}, search={}, role={}, banned={}, orgScope={}",
+                page, size, search, role, banned, 
+                orgIds == null ? "ALL" : orgIds.size() + " orgs");
 
             Sort.Direction direction = sortDirection.equalsIgnoreCase("desc") ?
                 Sort.Direction.DESC : Sort.Direction.ASC;
             Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
             Page<UserManagementResponse> users = userManagementService.getUsers(
-                pageable, search, role, banned);
+                pageable, search, role, banned, orgIds);
 
             return ResponseEntity.ok(users);
 
@@ -288,15 +299,22 @@ public class AdminController {
 
     /**
      * Get comprehensive admin analytics
+     * PLATFORM_ADMIN sees platform-wide analytics, ORG_ADMIN sees only their organization(s) analytics
      */
     @GetMapping("/analytics")
     public ResponseEntity<AdminAnalyticsResponse> getAnalytics(
-            @RequestParam(defaultValue = "30d") String timeRange) {
+            @RequestParam(defaultValue = "30d") String timeRange,
+            Authentication auth) {
 
         try {
-            log.info("Fetching admin analytics for time range: {}", timeRange);
+            // Get current user and their admin organization scope
+            User currentUser = getCurrentUser(auth);
+            List<UUID> orgIds = adminAuthService.getAdminOrganizationIds(currentUser);
+            
+            log.info("Fetching admin analytics for time range: {}, orgScope={}",
+                timeRange, orgIds == null ? "ALL (Platform Admin)" : orgIds.size() + " org(s)");
 
-            AdminAnalyticsResponse analytics = adminAnalyticsService.getAnalytics(timeRange);
+            AdminAnalyticsResponse analytics = adminAnalyticsService.getAnalytics(timeRange, orgIds);
 
             return ResponseEntity.ok(analytics);
 
@@ -424,6 +442,27 @@ public class AdminController {
     }
 
     // =============== HELPER METHODS ===============
+
+    /**
+     * Get the current authenticated user from the Authentication principal
+     */
+    private User getCurrentUser(Authentication auth) {
+        if (auth == null || auth.getPrincipal() == null) {
+            throw new RuntimeException("No authenticated user found");
+        }
+        
+        String email;
+        if (auth.getPrincipal() instanceof User) {
+            return (User) auth.getPrincipal();
+        } else if (auth.getPrincipal() instanceof org.springframework.security.core.userdetails.UserDetails) {
+            email = ((org.springframework.security.core.userdetails.UserDetails) auth.getPrincipal()).getUsername();
+        } else {
+            email = auth.getName();
+        }
+        
+        return userRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("User not found: " + email));
+    }
 
     private LocalDateTime calculateSinceDate(String timeRange) {
         LocalDateTime now = LocalDateTime.now();
