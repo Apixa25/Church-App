@@ -24,6 +24,7 @@ interface AnnouncementFormData {
   imageUrl?: string;
   category: AnnouncementCategory;
   isPinned?: boolean;
+  isSystemWide?: boolean;
 }
 
 const CATEGORY_LABELS: Record<AnnouncementCategory, string> = {
@@ -73,7 +74,8 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
       content: existingAnnouncement?.content || '',
       imageUrl: existingAnnouncement?.imageUrl || '',
       category: existingAnnouncement?.category || 'GENERAL',
-      isPinned: existingAnnouncement?.isPinned || false
+      isPinned: existingAnnouncement?.isPinned || false,
+      isSystemWide: false // Default to org-scoped, PLATFORM_ADMIN can change
     }
   });
 
@@ -92,11 +94,12 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
   const isOrgAdmin = allMemberships.some(m => m.role === 'ORG_ADMIN');
   const canPin = isPlatformAdmin || isModerator || isOrgAdmin;
   
-  // Check if user has primary organization (required to create)
+  // Check if user has primary organization (required to create, except for PLATFORM_ADMIN system-wide)
   const hasPrimaryOrg = primaryMembership !== null;
 
   const watchedImageUrl = watch('imageUrl');
   const watchedCategory = watch('category');
+  const watchedIsSystemWide = watch('isSystemWide');
 
   useEffect(() => {
     if (watchedImageUrl && watchedImageUrl !== imagePreview) {
@@ -104,12 +107,16 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
     }
   }, [watchedImageUrl, imagePreview]);
 
-  // Check if user has primary organization
+  // Check if user has primary organization (PLATFORM_ADMIN can create system-wide without primary org)
   useEffect(() => {
-    if (mode === 'create' && !hasPrimaryOrg) {
+    if (mode === 'create' && !hasPrimaryOrg && !isPlatformAdmin) {
       setError('You must have a primary organization to create announcements. Please join a church first.');
+    } else if (mode === 'create' && !hasPrimaryOrg && isPlatformAdmin && !watchedIsSystemWide) {
+      setError('Please check "Make this announcement system-wide" to create an announcement without a primary organization.');
+    } else {
+      setError(null); // Clear error if conditions are met
     }
-  }, [mode, hasPrimaryOrg]);
+  }, [mode, hasPrimaryOrg, isPlatformAdmin, watchedIsSystemWide]);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -153,8 +160,15 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
   };
 
   const onSubmit = async (data: AnnouncementFormData) => {
-    if (mode === 'create' && !hasPrimaryOrg) {
+    // PLATFORM_ADMIN can create system-wide announcements without primary org
+    if (mode === 'create' && !hasPrimaryOrg && !isPlatformAdmin) {
       setError('You must have a primary organization to create announcements. Please join a church first.');
+      return;
+    }
+    
+    // If PLATFORM_ADMIN doesn't have primary org, they must create system-wide announcement
+    if (mode === 'create' && !hasPrimaryOrg && isPlatformAdmin && !data.isSystemWide) {
+      setError('Please check "Make this announcement system-wide" to create an announcement without a primary organization.');
       return;
     }
 
@@ -171,7 +185,8 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
           content: data.content.trim(),
           imageUrl: data.imageUrl?.trim() || undefined,
           category: data.category,
-          isPinned: canPin ? data.isPinned : false // Only admins/org admins can pin during creation
+          isPinned: canPin ? data.isPinned : false, // Only admins/org admins can pin during creation
+          isSystemWide: isPlatformAdmin ? (data.isSystemWide || false) : false // Only PLATFORM_ADMIN can create system-wide
         };
 
         // Use with-image endpoint if an image file was selected
@@ -234,8 +249,8 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
     }
   };
 
-  // Show error if user doesn't have primary org (only for create mode)
-  if (mode === 'create' && !hasPrimaryOrg) {
+  // Show error if user doesn't have primary org (only for create mode, but PLATFORM_ADMIN can create system-wide)
+  if (mode === 'create' && !hasPrimaryOrg && !isPlatformAdmin) {
     return (
       <div className="announcement-form-error">
         <div className="error-container">
@@ -399,6 +414,25 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
             </div>
           </div>
         </div>
+
+        {/* System-Wide Option (PLATFORM_ADMIN Only) */}
+        {isPlatformAdmin && mode === 'create' && (
+          <div className="form-group">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                {...register('isSystemWide')}
+                className="form-checkbox"
+              />
+              <span className="checkbox-text">
+                🌍 Make this announcement system-wide
+              </span>
+            </label>
+            <div className="form-hint">
+              System-wide announcements are visible to all organizations in the platform
+            </div>
+          </div>
+        )}
 
         {/* Pin Option (Admin Only) */}
         {canPin && (

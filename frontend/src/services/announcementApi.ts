@@ -54,6 +54,9 @@ export const announcementAPI = {
     if (data.isPinned !== undefined) {
       formData.append('isPinned', data.isPinned.toString());
     }
+    if (data.isSystemWide !== undefined) {
+      formData.append('isSystemWide', data.isSystemWide.toString());
+    }
     if (imageFile) {
       formData.append('image', imageFile);
     }

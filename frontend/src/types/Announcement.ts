@@ -31,6 +31,7 @@ export interface AnnouncementCreateRequest {
   imageUrl?: string;
   category: AnnouncementCategory;
   isPinned?: boolean;
+  isSystemWide?: boolean; // For PLATFORM_ADMIN: create system-wide announcement visible to all organizations
 }
 
 export interface AnnouncementUpdateRequest {
@@ -39,6 +40,7 @@ export interface AnnouncementUpdateRequest {
   imageUrl?: string;
   category: AnnouncementCategory;
   isPinned?: boolean;
+  isSystemWide?: boolean; // For PLATFORM_ADMIN: update to system-wide announcement
 }
 
 export interface AnnouncementResponse {
