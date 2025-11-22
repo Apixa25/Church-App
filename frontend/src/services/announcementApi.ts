@@ -43,7 +43,26 @@ api.interceptors.response.use(
 export const announcementAPI = {
   // Create announcement
   createAnnouncement: (data: AnnouncementCreateRequest) => 
-    api.post<Announcement>('/', data),
+    api.post<Announcement>('', data),
+
+  // Create announcement with image
+  createAnnouncementWithImage: (data: AnnouncementCreateRequest, imageFile: File) => {
+    const formData = new FormData();
+    formData.append('title', data.title);
+    formData.append('content', data.content);
+    formData.append('category', data.category);
+    if (data.isPinned !== undefined) {
+      formData.append('isPinned', data.isPinned.toString());
+    }
+    if (imageFile) {
+      formData.append('image', imageFile);
+    }
+    return api.post<Announcement>('/with-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  },
 
   // Get single announcement
   getAnnouncement: (id: string) => 
