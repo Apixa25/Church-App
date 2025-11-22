@@ -96,6 +96,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       role: userRole,
       banned: bannedFilter
     });
+    console.log('🔍 DEBUG: Loaded users from API:', userData.content);
+    console.log('🔍 DEBUG: First user isActive value:', userData.content[0]?.isActive, 'Type:', typeof userData.content[0]?.isActive);
     setUsers(userData.content);
   };
 
@@ -243,12 +245,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             onClick={() => setActiveTab('users')}
           >
             👥 Users ({analytics?.totalUsers || 0})
-          </button>
-          <button
-            className={`tab-btn ${activeTab === 'organizations' ? 'active' : ''}`}
-            onClick={() => setActiveTab('organizations')}
-          >
-            ⛪ Organizations
           </button>
           <button
             className={`tab-btn ${activeTab === 'content' ? 'active' : ''}`}

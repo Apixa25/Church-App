@@ -2,10 +2,12 @@ package com.churchapp.dto;
 
 import com.churchapp.entity.User;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -14,6 +16,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Slf4j
 public class UserManagementResponse {
     private UUID id;
     private String name;
@@ -21,8 +24,13 @@ public class UserManagementResponse {
     private String role;
     private String profilePicUrl;
     private String bio;
+    
+    @JsonProperty("isActive")
     private boolean isActive;
+    
+    @JsonProperty("isBanned")
     private boolean isBanned;
+    
     private int warningCount;
 
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
@@ -43,17 +51,30 @@ public class UserManagementResponse {
     private long totalDonations;
 
     public static UserManagementResponse fromUser(User user) {
-        // A user is active if:
-        // 1. They are not banned
-        // 2. They are not soft-deleted
-        // 3. Their isActive field is not explicitly false
-        // Note: By default, all non-banned, non-deleted users are considered active
-        // This handles existing users that may have is_active = false in the database
-        // The ensureUsersAreActive() method in DataInitializer will update the database on next startup
-        // to ensure isActive = true for all non-banned, non-deleted users
-        // For now, we treat users as active if they're not banned/deleted, even if isActive = false
-        // This is because existing users may have is_active = false due to database initialization issues
-        boolean isActive = !user.isBanned() && user.getDeletedAt() == null;
+        // Activity-based status calculation
+        // A user is considered ACTIVE if:
+        // 1. They are not banned and not soft-deleted
+        // 2. AND they meet one of these activity criteria:
+        //    - Last login within 30 days, OR
+        //    - Never logged in but account created within 30 days (new users)
+        //
+        // This provides real, meaningful activity data for admin monitoring
+        
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime thirtyDaysAgo = now.minusDays(30);
+        
+        boolean notBannedOrDeleted = !user.isBanned() && user.getDeletedAt() == null;
+        boolean hasRecentLogin = user.getLastLogin() != null && user.getLastLogin().isAfter(thirtyDaysAgo);
+        boolean isNewUser = user.getLastLogin() == null && user.getCreatedAt().isAfter(thirtyDaysAgo);
+        
+        boolean isActive = notBannedOrDeleted && (hasRecentLogin || isNewUser);
+        
+        // Debug logging to understand status calculation
+        log.debug("User {} ({}) status calculation: notBanned={}, notDeleted={}, lastLogin={}, createdAt={}, thirtyDaysAgo={}, hasRecentLogin={}, isNewUser={}, FINAL_STATUS={}",
+            user.getEmail(), user.getName(),
+            !user.isBanned(), user.getDeletedAt() == null,
+            user.getLastLogin(), user.getCreatedAt(), thirtyDaysAgo,
+            hasRecentLogin, isNewUser, isActive ? "ACTIVE" : "INACTIVE");
         
         return UserManagementResponse.builder()
             .id(user.getId())
