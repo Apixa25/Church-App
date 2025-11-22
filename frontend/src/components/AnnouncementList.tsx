@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Announcement, AnnouncementCategory } from '../types/Announcement';
@@ -44,6 +44,10 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  
+  // Use refs to track values without causing re-renders
+  const pageRef = useRef(0);
+  const searchTextRef = useRef('');
 
   // Filter states
   const [selectedCategory, setSelectedCategory] = useState<AnnouncementCategory | ''>('');
@@ -67,16 +71,19 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
       if (reset) {
         setLoading(true);
         setPage(0);
+        pageRef.current = 0;
       } else {
         setIsLoadingMore(true);
       }
 
-      const currentPage = reset ? 0 : page;
+      // Use ref values to avoid dependency issues
+      const currentPage = reset ? 0 : pageRef.current;
       const size = limit || 10;
+      const currentSearchText = searchTextRef.current.trim();
 
       let response;
-      if (searchText.trim()) {
-        response = await announcementAPI.searchAnnouncements(searchText.trim(), currentPage, size);
+      if (currentSearchText) {
+        response = await announcementAPI.searchAnnouncements(currentSearchText, currentPage, size);
       } else if (selectedCategory) {
         response = await announcementAPI.getAnnouncementsByCategory(selectedCategory, currentPage, size);
       } else {
@@ -92,7 +99,9 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
       }
 
       setHasMore(!response.data.last);
-      setPage(currentPage + 1);
+      const nextPage = currentPage + 1;
+      setPage(nextPage);
+      pageRef.current = nextPage;
       setError(null);
     } catch (err: any) {
       console.error('Error loading announcements:', err);
@@ -101,7 +110,7 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
       setLoading(false);
       setIsLoadingMore(false);
     }
-  }, [page, limit, searchText, selectedCategory]);
+  }, [limit, selectedCategory]);
 
   useEffect(() => {
     loadAnnouncements(true);
@@ -110,12 +119,15 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    // Update ref with current search text before loading
+    searchTextRef.current = searchText;
     loadAnnouncements(true);
   };
 
   const handleCategoryFilter = (category: AnnouncementCategory | '') => {
     setSelectedCategory(category);
     setPage(0);
+    pageRef.current = 0;
   };
 
   const handleLoadMore = () => {
@@ -296,7 +308,10 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
               type="text"
               placeholder="Search announcements..."
               value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
+              onChange={(e) => {
+                setSearchText(e.target.value);
+                searchTextRef.current = e.target.value;
+              }}
               className="search-input"
             />
             <button type="submit" className="search-btn">🔍</button>
