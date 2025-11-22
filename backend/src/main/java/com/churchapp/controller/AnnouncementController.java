@@ -7,6 +7,7 @@ import com.churchapp.entity.Announcement;
 import com.churchapp.service.AnnouncementService;
 import com.churchapp.service.UserProfileService;
 import jakarta.validation.Valid;
+import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -47,6 +48,54 @@ public class AnnouncementController {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @PostMapping(value = "/with-image", consumes = {"multipart/form-data"})
+    public ResponseEntity<?> createAnnouncementWithImage(
+            @AuthenticationPrincipal User user,
+            @RequestParam("title") String title,
+            @RequestParam("content") String content,
+            @RequestParam(value = "category", required = false) String category,
+            @RequestParam(value = "isPinned", required = false, defaultValue = "false") Boolean isPinned,
+            @RequestParam(value = "image", required = false) MultipartFile imageFile) {
+        try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            
+            // Build request object
+            AnnouncementRequest request = new AnnouncementRequest();
+            request.setTitle(title);
+            request.setContent(content);
+            request.setIsPinned(isPinned != null ? isPinned : false);
+            
+            // Parse category
+            if (category != null && !category.trim().isEmpty()) {
+                try {
+                    request.setCategory(Announcement.AnnouncementCategory.valueOf(category.toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    request.setCategory(Announcement.AnnouncementCategory.GENERAL);
+                }
+            } else {
+                request.setCategory(Announcement.AnnouncementCategory.GENERAL);
+            }
+            
+            // Create announcement with image
+            AnnouncementResponse announcement = announcementService.createAnnouncementWithImage(
+                currentProfile.getUserId(), request, imageFile);
+            return ResponseEntity.ok(announcement);
+        } catch (AccessDeniedException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Insufficient permissions: " + e.getMessage());
+            return ResponseEntity.status(403).body(error);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        } catch (Exception e) {
+            log.error("Error creating announcement with image: {}", e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create announcement: " + e.getMessage());
+            return ResponseEntity.status(500).body(error);
         }
     }
     

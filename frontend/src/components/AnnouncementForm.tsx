@@ -83,6 +83,7 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
   const [imagePreview, setImagePreview] = useState<string | null>(
     existingAnnouncement?.imageUrl || null
   );
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
 
   // Check admin roles for pinning permissions
@@ -130,21 +131,16 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
     setError(null);
 
     try {
-      // In a real app, you would upload to S3 here
-      // For now, we'll create a local URL for preview
+      // Create a local URL for preview
       const previewUrl = URL.createObjectURL(file);
       setImagePreview(previewUrl);
       
-      // TODO: Implement actual S3 upload
-      // const uploadedUrl = await uploadToS3(file);
-      // setValue('imageUrl', uploadedUrl);
-      
-      // For demo purposes, set a placeholder URL
-      setValue('imageUrl', `https://demo-s3-bucket.com/announcements/${Date.now()}-${file.name}`);
+      // Store the file - it will be uploaded when the form is submitted
+      setSelectedImageFile(file);
       
     } catch (err: any) {
-      console.error('Error uploading image:', err);
-      setError('Failed to upload image. Please try again.');
+      console.error('Error processing image:', err);
+      setError('Failed to process image. Please try again.');
     } finally {
       setUploadingImage(false);
     }
@@ -152,6 +148,7 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
 
   const removeImage = () => {
     setImagePreview(null);
+    setSelectedImageFile(null);
     setValue('imageUrl', '');
   };
 
@@ -177,7 +174,14 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
           isPinned: canPin ? data.isPinned : false // Only admins/org admins can pin during creation
         };
 
-        const response = await announcementAPI.createAnnouncement(createRequest);
+        // Use with-image endpoint if an image file was selected
+        let response;
+        if (selectedImageFile) {
+          response = await announcementAPI.createAnnouncementWithImage(createRequest, selectedImageFile);
+        } else {
+          response = await announcementAPI.createAnnouncement(createRequest);
+        }
+        
         result = response.data;
         setSuccess('Announcement created successfully!');
       } else {
@@ -202,6 +206,7 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
       if (mode === 'create') {
         reset();
         setImagePreview(null);
+        setSelectedImageFile(null);
       }
 
       // Call success callback

@@ -9,6 +9,8 @@ import com.churchapp.repository.UserRepository;
 import com.churchapp.repository.OrganizationRepository;
 import com.churchapp.repository.UserOrganizationMembershipRepository;
 import com.churchapp.entity.UserOrganizationMembership;
+import com.churchapp.service.FileUploadService;
+import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -33,6 +35,7 @@ public class AnnouncementService {
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
     private final UserOrganizationMembershipRepository membershipRepository;
+    private final FileUploadService fileUploadService;
 
     public AnnouncementResponse createAnnouncement(UUID userId, AnnouncementRequest request) {
         User user = userRepository.findById(userId)
@@ -57,6 +60,51 @@ public class AnnouncementService {
 
         Announcement savedAnnouncement = announcementRepository.save(announcement);
         log.info("Announcement created with id: {} by user: {} in org: {}",
+            savedAnnouncement.getId(), userId, user.getPrimaryOrganization().getId());
+
+        return AnnouncementResponse.fromAnnouncement(savedAnnouncement);
+    }
+    
+    public AnnouncementResponse createAnnouncementWithImage(UUID userId, AnnouncementRequest request, MultipartFile imageFile) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        // Announcements REQUIRE a primary organization
+        if (user.getPrimaryOrganization() == null) {
+            throw new RuntimeException("Cannot create announcement without a primary organization. Please join a church first.");
+        }
+
+        // Upload image if provided
+        String imageUrl = null;
+        if (imageFile != null && !imageFile.isEmpty()) {
+            try {
+                // Validate that it's an image
+                String contentType = imageFile.getContentType();
+                if (contentType == null || !contentType.startsWith("image/")) {
+                    throw new RuntimeException("File must be an image");
+                }
+
+                // Upload image to S3
+                imageUrl = fileUploadService.uploadFile(imageFile, "announcements");
+                log.info("Image uploaded for announcement: {}", imageUrl);
+            } catch (Exception e) {
+                log.error("Error uploading image for announcement: {}", e.getMessage(), e);
+                throw new RuntimeException("Failed to upload image: " + e.getMessage(), e);
+            }
+        }
+
+        // Create announcement with image URL
+        Announcement announcement = new Announcement();
+        announcement.setUser(user);
+        announcement.setOrganization(user.getPrimaryOrganization()); // Always org-scoped
+        announcement.setTitle(request.getTitle().trim());
+        announcement.setContent(request.getContent().trim());
+        announcement.setImageUrl(imageUrl);
+        announcement.setCategory(request.getCategory() != null ? request.getCategory() : Announcement.AnnouncementCategory.GENERAL);
+        announcement.setIsPinned(request.getIsPinned() != null ? request.getIsPinned() : false);
+
+        Announcement savedAnnouncement = announcementRepository.save(announcement);
+        log.info("Announcement created with image with id: {} by user: {} in org: {}",
             savedAnnouncement.getId(), userId, user.getPrimaryOrganization().getId());
 
         return AnnouncementResponse.fromAnnouncement(savedAnnouncement);
