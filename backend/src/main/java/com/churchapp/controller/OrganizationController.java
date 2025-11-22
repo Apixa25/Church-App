@@ -480,6 +480,25 @@ public class OrganizationController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Get organization memberships for a specific user
+     * This endpoint allows viewing another user's public organization memberships
+     * GET /api/organizations/users/{userId}/memberships
+     */
+    @GetMapping("/users/{userId}/memberships")
+    public ResponseEntity<List<MembershipResponse>> getUserMemberships(
+            @PathVariable UUID userId) {
+
+        log.info("Requesting memberships for user {}", userId);
+        List<UserOrganizationMembership> memberships = organizationService.getAllMemberships(userId);
+
+        List<MembershipResponse> response = memberships.stream()
+            .map(MembershipResponse::fromOrgMembership)
+            .collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
+    }
+
     // ========================================================================
     // ORGANIZATION STATISTICS
     // ========================================================================

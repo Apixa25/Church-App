@@ -204,7 +204,6 @@ const Dashboard: React.FC = () => {
               />
               <div>
                 <p className="user-name">👋 Welcome, {user?.name}!</p>
-                <p className="user-role">Role: {user?.role}</p>
               </div>
             </div>
             <div className="header-actions">

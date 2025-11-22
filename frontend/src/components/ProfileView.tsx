@@ -13,6 +13,8 @@ import PostCard from './PostCard';
 import { parseEventDate } from '../utils/dateUtils';
 import chatApi from '../services/chatApi';
 import OrganizationSelector from './OrganizationSelector';
+import { useOrganization } from '../contexts/OrganizationContext';
+import { Membership } from '../contexts/OrganizationContext';
 import './ProfileView.css';
 
 interface ProfileViewProps {
@@ -62,8 +64,15 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
 
+  // Organization memberships state (for viewing other users' profiles)
+  const [organizationMemberships, setOrganizationMemberships] = useState<Membership[]>([]);
+  const [membershipsLoading, setMembershipsLoading] = useState(false);
+
   const isOwnProfile = !userId || userId === user?.userId;
   const targetUserId = userId || user?.userId || '';
+  
+  // Get memberships from context for own profile
+  const { allMemberships } = useOrganization();
 
   const loadShareStats = useCallback(async (targetId: string) => {
     try {
@@ -102,6 +111,30 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
         } catch (err) {
           console.error('Error checking follow status:', err);
         }
+
+        // Check block status
+        try {
+          const blockStatus = await getBlockStatus(userId);
+          setIsBlocked(blockStatus.isBlocked || false);
+        } catch (err) {
+          console.error('Error checking block status:', err);
+          setIsBlocked(false);
+        }
+
+        // Fetch organization memberships for other user's profile
+        try {
+          setMembershipsLoading(true);
+          const response = await profileAPI.getUserMemberships(userId);
+          setOrganizationMemberships(response.data || []);
+        } catch (err) {
+          console.error('Error fetching organization memberships:', err);
+          setOrganizationMemberships([]);
+        } finally {
+          setMembershipsLoading(false);
+        }
+      } else {
+        // Reset memberships when viewing own profile (will use context)
+        setOrganizationMemberships([]);
       }
 
       // Record profile view if viewing another user's profile
@@ -620,7 +653,62 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
                   </>
                 )}
               </div>
-              <p className="profile-username-x">@{profile.email.split('@')[0]}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <p className="profile-username-x">@{profile.email.split('@')[0]}</p>
+                {profile && (() => {
+                  // Get the most relevant role to display
+                  const getDisplayRole = () => {
+                    // Platform roles take priority
+                    if (profile.role === 'PLATFORM_ADMIN') {
+                      return { label: 'ADMIN', color: '#ff6b6b' };
+                    }
+                    if (profile.role === 'MODERATOR') {
+                      // Check if they're also an org admin
+                      const memberships = isOwnProfile ? allMemberships : organizationMemberships;
+                      const isOrgAdmin = memberships.some(m => m.role === 'ORG_ADMIN');
+                      if (isOrgAdmin) {
+                        return { label: 'ORG ADMIN', color: '#9b59b6' };
+                      }
+                      return { label: 'MOD', color: '#4ecdc4' };
+                    }
+                    // Check organization roles
+                    const memberships = isOwnProfile ? allMemberships : organizationMemberships;
+                    const orgAdmin = memberships.find(m => m.role === 'ORG_ADMIN');
+                    if (orgAdmin) {
+                      return { label: 'ORG ADMIN', color: '#9b59b6' };
+                    }
+                    const orgMod = memberships.find(m => m.role === 'MODERATOR');
+                    if (orgMod) {
+                      return { label: 'ORG MOD', color: '#3498db' };
+                    }
+                    // No special roles
+                    return null;
+                  };
+
+                  const roleDisplay = getDisplayRole();
+                  if (!roleDisplay) return null;
+
+                  return (
+                    <span 
+                      className="role-pill"
+                      style={{
+                        display: 'inline-block',
+                        padding: '4px 12px',
+                        borderRadius: '20px',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        color: 'white',
+                        backgroundColor: roleDisplay.color,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        lineHeight: '1.2'
+                      }}
+                    >
+                      {roleDisplay.label}
+                    </span>
+                  );
+                })()}
+              </div>
             </div>
 
             {profile.bio && (
