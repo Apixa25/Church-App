@@ -154,7 +154,6 @@ const AnnouncementDetail: React.FC<AnnouncementDetailProps> = ({
               )}
               <div className="author-details">
                 <h4 className="author-name">{announcement.userName}</h4>
-                <span className="author-role">{announcement.userRole}</span>
                 <time className="publication-date">
                   {formatDate(announcement.createdAt)}
                 </time>

@@ -243,7 +243,6 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
                   />
                   <div className="author-info">
                     <span className="author-name">{announcement.userName}</span>
-                    <span className="author-role">{announcement.userRole}</span>
                     <span className="announcement-date">{formatDate(announcement.createdAt)}</span>
                   </div>
                 </div>
@@ -367,7 +366,6 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
                   />
                   <div className="author-info">
                     <span className="author-name">{announcement.userName}</span>
-                    <span className="author-role">{announcement.userRole}</span>
                     <span className="announcement-date">{formatDate(announcement.createdAt)}</span>
                   </div>
                 </div>
