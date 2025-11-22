@@ -141,11 +141,13 @@ public class UserManagementService {
 
             // 🔒 ORGANIZATION FILTERING: If organizationIds is provided (ORG_ADMIN), only show users in those orgs
             if (organizationIds != null && !organizationIds.isEmpty()) {
-                Join<User, UserOrganizationMembership> memberships = root.join("organizationMemberships");
-                predicates.add(memberships.get("organization").get("id").in(organizationIds));
+                // Subquery approach since User doesn't have direct OneToMany to UserOrganizationMembership
+                var subquery = query.subquery(UUID.class);
+                var membershipRoot = subquery.from(UserOrganizationMembership.class);
+                subquery.select(membershipRoot.get("user").get("id"));
+                subquery.where(membershipRoot.get("organization").get("id").in(organizationIds));
                 
-                // Ensure distinct results when joining
-                query.distinct(true);
+                predicates.add(root.get("id").in(subquery));
                 
                 log.debug("🔒 Filtering users by {} organization(s)", organizationIds.size());
             }

@@ -441,11 +441,17 @@ public class OrganizationController {
             @AuthenticationPrincipal User userDetails) {
 
         UUID userId = getUserId(userDetails);
+        log.info("🔍 DEBUG: User {} requesting ALL memberships", userDetails.getUsername());
         List<UserOrganizationMembership> memberships = organizationService.getAllMemberships(userId);
+        log.info("🔍 DEBUG: Found {} memberships for user {}", memberships.size(), userDetails.getUsername());
 
         List<MembershipResponse> response = memberships.stream()
             .map(MembershipResponse::fromOrgMembership)
             .collect(Collectors.toList());
+        
+        // Log each membership role for debugging
+        response.forEach(m -> log.info("🔍 DEBUG: - Org: {}, Role: {}, IsPrimary: {}", 
+            m.getOrganizationName(), m.getRole(), m.getIsPrimary()));
 
         return ResponseEntity.ok(response);
     }
