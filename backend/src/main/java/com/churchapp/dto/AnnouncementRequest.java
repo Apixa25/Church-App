@@ -26,4 +26,7 @@ public class AnnouncementRequest {
     private Boolean isPinned = false;
     
     private Announcement.AnnouncementCategory category = Announcement.AnnouncementCategory.GENERAL;
+    
+    // For PLATFORM_ADMIN: set to true to create system-wide announcement (visible to all organizations)
+    private Boolean isSystemWide = false;
 }
