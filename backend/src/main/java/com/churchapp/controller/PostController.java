@@ -206,11 +206,13 @@ public class PostController {
 
             Page<Post> posts;
 
-            // Use multi-tenant feed for default/community feed
+            // Route to appropriate feed based on feedType
             if ("trending".equalsIgnoreCase(feedType)) {
                 posts = postService.getTrendingFeed(viewerId, pageable);
+            } else if ("following".equalsIgnoreCase(feedType)) {
+                posts = postService.getFollowingFeed(viewerId, pageable);
             } else {
-                // Default to multi-tenant chronological feed
+                // Default to multi-tenant chronological feed (community)
                 posts = postService.getMultiTenantFeed(viewerId, pageable);
             }
 
