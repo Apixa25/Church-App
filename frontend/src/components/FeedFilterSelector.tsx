@@ -39,13 +39,13 @@ const FilterIcon = styled.span`
 
 const FilterLabel = styled.span``;
 
-const DropdownIcon = styled.span<{ isOpen: boolean }>`
+const DropdownIcon = styled.span<{ $isOpen: boolean }>`
   font-size: 12px;
   transition: transform 0.2s;
-  transform: ${props => props.isOpen ? 'rotate(180deg)' : 'rotate(0deg)'};
+  transform: ${props => props.$isOpen ? 'rotate(180deg)' : 'rotate(0deg)'};
 `;
 
-const Dropdown = styled.div<{ isOpen: boolean }>`
+const Dropdown = styled.div<{ $isOpen: boolean }>`
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
@@ -56,9 +56,9 @@ const Dropdown = styled.div<{ isOpen: boolean }>`
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   z-index: 1000;
-  opacity: ${props => props.isOpen ? 1 : 0};
-  visibility: ${props => props.isOpen ? 'visible' : 'hidden'};
-  transform: ${props => props.isOpen ? 'translateY(0)' : 'translateY(-10px)'};
+  opacity: ${props => props.$isOpen ? 1 : 0};
+  visibility: ${props => props.$isOpen ? 'visible' : 'hidden'};
+  transform: ${props => props.$isOpen ? 'translateY(0)' : 'translateY(-10px)'};
   transition: all 0.2s;
 `;
 
@@ -83,14 +83,14 @@ const DropdownSection = styled.div`
   padding: 12px;
 `;
 
-const FilterOption = styled.button<{ isActive: boolean }>`
+const FilterOption = styled.button<{ $isActive: boolean }>`
   width: 100%;
   display: flex;
   align-items: flex-start;
   gap: 12px;
   padding: 12px;
-  background: ${props => props.isActive ? '#f0f7ff' : 'transparent'};
-  border: 2px solid ${props => props.isActive ? '#4a90e2' : 'transparent'};
+  background: ${props => props.$isActive ? '#f0f7ff' : 'transparent'};
+  border: 2px solid ${props => props.$isActive ? '#4a90e2' : 'transparent'};
   border-radius: 8px;
   cursor: pointer;
   text-align: left;
@@ -98,8 +98,8 @@ const FilterOption = styled.button<{ isActive: boolean }>`
   margin-bottom: 8px;
 
   &:hover {
-    background: ${props => props.isActive ? '#f0f7ff' : '#f5f5f5'};
-    border-color: ${props => props.isActive ? '#4a90e2' : '#e0e0e0'};
+    background: ${props => props.$isActive ? '#f0f7ff' : '#f5f5f5'};
+    border-color: ${props => props.$isActive ? '#4a90e2' : '#e0e0e0'};
   }
 
   &:last-child {
@@ -112,10 +112,10 @@ const FilterOption = styled.button<{ isActive: boolean }>`
   }
 `;
 
-const RadioCircle = styled.div<{ isActive: boolean }>`
+const RadioCircle = styled.div<{ $isActive: boolean }>`
   width: 20px;
   height: 20px;
-  border: 2px solid ${props => props.isActive ? '#4a90e2' : '#ccc'};
+  border: 2px solid ${props => props.$isActive ? '#4a90e2' : '#ccc'};
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -130,8 +130,8 @@ const RadioCircle = styled.div<{ isActive: boolean }>`
     height: 10px;
     border-radius: 50%;
     background: #4a90e2;
-    opacity: ${props => props.isActive ? 1 : 0};
-    transform: scale(${props => props.isActive ? 1 : 0});
+    opacity: ${props => props.$isActive ? 1 : 0};
+    transform: scale(${props => props.$isActive ? 1 : 0});
     transition: all 0.2s;
   }
 `;
@@ -379,10 +379,10 @@ const FeedFilterSelector: React.FC = () => {
         <FilterIcon>🔍</FilterIcon>
         <FilterLabel>{getFilterLabel()}</FilterLabel>
         {activeFilter !== 'ALL' && <ActiveFilterBadge>Active</ActiveFilterBadge>}
-        <DropdownIcon isOpen={isOpen}>▼</DropdownIcon>
+        <DropdownIcon $isOpen={isOpen}>▼</DropdownIcon>
       </SelectorButton>
 
-      <Dropdown isOpen={isOpen}>
+      <Dropdown $isOpen={isOpen}>
         <DropdownHeader>
           <DropdownTitle>Filter Your Feed</DropdownTitle>
           <DropdownSubtitle>
@@ -394,10 +394,10 @@ const FeedFilterSelector: React.FC = () => {
 
         <DropdownSection>
           <FilterOption
-            isActive={tempFilter === 'ALL'}
+            $isActive={tempFilter === 'ALL'}
             onClick={() => handleFilterChange('ALL')}
           >
-            <RadioCircle isActive={tempFilter === 'ALL'} />
+            <RadioCircle $isActive={tempFilter === 'ALL'} />
             <OptionContent>
               <OptionTitle>All Posts</OptionTitle>
               <OptionDescription>
@@ -409,11 +409,11 @@ const FeedFilterSelector: React.FC = () => {
           </FilterOption>
 
           <FilterOption
-            isActive={tempFilter === 'PRIMARY_ONLY'}
+            $isActive={tempFilter === 'PRIMARY_ONLY'}
             onClick={() => handleFilterChange('PRIMARY_ONLY')}
             disabled={!hasPrimaryOrg}
           >
-            <RadioCircle isActive={tempFilter === 'PRIMARY_ONLY'} />
+            <RadioCircle $isActive={tempFilter === 'PRIMARY_ONLY'} />
             <OptionContent>
               <OptionTitle>Primary Organization Only</OptionTitle>
               <OptionDescription>
@@ -425,11 +425,11 @@ const FeedFilterSelector: React.FC = () => {
           </FilterOption>
 
           <FilterOption
-            isActive={tempFilter === 'SELECTED_GROUPS'}
+            $isActive={tempFilter === 'SELECTED_GROUPS'}
             onClick={() => handleFilterChange('SELECTED_GROUPS')}
             disabled={unmutedGroups.length === 0}
           >
-            <RadioCircle isActive={tempFilter === 'SELECTED_GROUPS'} />
+            <RadioCircle $isActive={tempFilter === 'SELECTED_GROUPS'} />
             <OptionContent>
               <OptionTitle>Selected Groups Only</OptionTitle>
               <OptionDescription>

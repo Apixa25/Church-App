@@ -165,9 +165,19 @@ class WebSocketService {
           Authorization: `Bearer ${this.token}`,
         },
         debug: (str: string) => {
-          // Only log debug messages in development
+          // Only log important debug messages in development
+          // Filter out verbose STOMP protocol messages
           if (process.env.NODE_ENV === 'development') {
-            console.log('🔌 WebSocket Debug:', str);
+            // Only log connection state changes, not every protocol message
+            if (str.includes('Opening') || 
+                str.includes('Opened') || 
+                str.includes('Closing') || 
+                str.includes('Closed') ||
+                str.includes('CONNECTED') ||
+                str.includes('ERROR')) {
+              console.log('🔌 WebSocket:', str);
+            }
+            // Suppress verbose SUBSCRIBE, CONNECT, and heartbeat messages
           }
         },
         onConnect: (frame: any) => {
