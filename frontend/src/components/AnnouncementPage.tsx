@@ -28,8 +28,9 @@ const AnnouncementPage: React.FC = () => {
   const isModerator = user?.role === 'MODERATOR';
   const isOrgAdmin = allMemberships.some(m => m.role === 'ORG_ADMIN');
   
-  // Any user with a primary organization can create announcements
-  const canCreateAnnouncements = hasPrimaryOrg && !!user;
+  // PLATFORM_ADMIN can create system-wide announcements without primary org
+  // Regular users need a primary organization to create announcements
+  const canCreateAnnouncements = (hasPrimaryOrg || isPlatformAdmin) && !!user;
 
   useEffect(() => {
     // Handle URL parameters
@@ -50,7 +51,7 @@ const AnnouncementPage: React.FC = () => {
   }, [searchParams, canCreateAnnouncements, selectedAnnouncement, setSearchParams]);
 
   const handleCreateNew = () => {
-    if (!hasPrimaryOrg) {
+    if (!hasPrimaryOrg && !isPlatformAdmin) {
       setError('You must have a primary organization to create announcements. Please join a church first.');
       return;
     }
