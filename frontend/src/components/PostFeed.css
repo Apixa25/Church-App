@@ -4,6 +4,15 @@
   max-width: 600px;
   margin: 0 auto;
   padding: 0 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.feed-header {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 /* Feed Error State */
