@@ -7,6 +7,8 @@ import com.churchapp.entity.User;
 import com.churchapp.repository.AnnouncementRepository;
 import com.churchapp.repository.UserRepository;
 import com.churchapp.repository.OrganizationRepository;
+import com.churchapp.repository.UserOrganizationMembershipRepository;
+import com.churchapp.entity.UserOrganizationMembership;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -30,6 +32,7 @@ public class AnnouncementService {
     private final AnnouncementRepository announcementRepository;
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
+    private final UserOrganizationMembershipRepository membershipRepository;
 
     public AnnouncementResponse createAnnouncement(UUID userId, AnnouncementRequest request) {
         User user = userRepository.findById(userId)
@@ -40,10 +43,8 @@ public class AnnouncementService {
             throw new RuntimeException("Cannot create announcement without a primary organization. Please join a church first.");
         }
 
-        // Only admin and moderator can create announcements
-        if (!isAuthorizedToManageAnnouncements(user)) {
-            throw new AccessDeniedException("User does not have permission to create announcements");
-        }
+        // Any user with a primary organization can create announcements
+        // Announcements are automatically scoped to the user's primary organization
 
         Announcement announcement = new Announcement();
         announcement.setUser(user);
@@ -265,12 +266,25 @@ public class AnnouncementService {
     }
     
     // Helper methods
-    private boolean isAuthorizedToManageAnnouncements(User user) {
-        return user.getRole() == User.Role.PLATFORM_ADMIN || user.getRole() == User.Role.MODERATOR;
-    }
-    
     private boolean canModifyAnnouncement(User user, Announcement announcement) {
-        return user.getRole() == User.Role.PLATFORM_ADMIN || 
-               announcement.getUser().getId().equals(user.getId());
+        // Platform admin can always modify
+        if (user.getRole() == User.Role.PLATFORM_ADMIN) {
+            return true;
+        }
+        
+        // Creator can always modify their own announcements
+        if (announcement.getUser().getId().equals(user.getId())) {
+            return true;
+        }
+        
+        // ORG_ADMIN can modify any announcement in their organization
+        if (announcement.getOrganization() != null) {
+            return membershipRepository
+                .findByUserIdAndOrganizationId(user.getId(), announcement.getOrganization().getId())
+                .map(membership -> membership.getRole() == UserOrganizationMembership.OrgRole.ORG_ADMIN)
+                .orElse(false);
+        }
+        
+        return false;
     }
 }

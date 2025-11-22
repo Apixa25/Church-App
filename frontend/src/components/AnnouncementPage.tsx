@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Announcement } from '../types/Announcement';
 import AnnouncementList from './AnnouncementList';
@@ -11,6 +12,7 @@ type ViewMode = 'list' | 'create' | 'edit' | 'detail';
 
 const AnnouncementPage: React.FC = () => {
   const { user } = useAuth();
+  const { primaryMembership, allMemberships } = useOrganization();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -18,9 +20,16 @@ const AnnouncementPage: React.FC = () => {
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const isAdmin = user?.role === 'PLATFORM_ADMIN' || user?.role === 'MODERATOR';
+  // Check if user has a primary organization (required to create announcements)
+  const hasPrimaryOrg = primaryMembership !== null;
+  
+  // Check admin roles for edit/delete permissions
+  const isPlatformAdmin = user?.role === 'PLATFORM_ADMIN';
   const isModerator = user?.role === 'MODERATOR';
-  const canManageAnnouncements = isAdmin || isModerator;
+  const isOrgAdmin = allMemberships.some(m => m.role === 'ORG_ADMIN');
+  
+  // Any user with a primary organization can create announcements
+  const canCreateAnnouncements = hasPrimaryOrg && !!user;
 
   useEffect(() => {
     // Handle URL parameters
@@ -30,7 +39,7 @@ const AnnouncementPage: React.FC = () => {
     if (announcementId && mode === 'detail') {
       setViewMode('detail');
       // The detail component will load the announcement
-    } else if (mode === 'create' && canManageAnnouncements) {
+    } else if (mode === 'create' && canCreateAnnouncements) {
       setViewMode('create');
     } else if (mode === 'edit' && selectedAnnouncement) {
       setViewMode('edit');
@@ -38,11 +47,11 @@ const AnnouncementPage: React.FC = () => {
       setViewMode('list');
       setSearchParams({}); // Clear any invalid params
     }
-  }, [searchParams, canManageAnnouncements, selectedAnnouncement, setSearchParams]);
+  }, [searchParams, canCreateAnnouncements, selectedAnnouncement, setSearchParams]);
 
   const handleCreateNew = () => {
-    if (!canManageAnnouncements) {
-      setError('You do not have permission to create announcements');
+    if (!hasPrimaryOrg) {
+      setError('You must have a primary organization to create announcements. Please join a church first.');
       return;
     }
     
@@ -52,7 +61,10 @@ const AnnouncementPage: React.FC = () => {
   };
 
   const handleEdit = (announcement: Announcement) => {
-    if (!canManageAnnouncements && announcement.userId !== user?.userId) {
+    // Allow edit if user is creator, platform admin, moderator, or org admin
+    const canEdit = isPlatformAdmin || isModerator || isOrgAdmin || announcement.userId === user?.userId;
+    
+    if (!canEdit) {
       setError('You do not have permission to edit this announcement');
       return;
     }
@@ -126,7 +138,7 @@ const AnnouncementPage: React.FC = () => {
                 🏠 Back Home
               </button>
               <h1 className="page-title">📢 Church Announcements</h1>
-              {canManageAnnouncements && (
+              {canCreateAnnouncements && (
                 <button onClick={handleCreateNew} className="create-button">
                   ➕ New Announcement
                 </button>
