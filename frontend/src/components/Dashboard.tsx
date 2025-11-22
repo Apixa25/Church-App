@@ -15,6 +15,7 @@ import QuickDonationWidget from './QuickDonationWidget';
 import ClickableAvatar from './ClickableAvatar';
 import FeedFilterSelector from './FeedFilterSelector';
 import { FeedType } from '../types/Post';
+import PullToRefresh from './PullToRefresh';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -24,7 +25,6 @@ const Dashboard: React.FC = () => {
   const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   // Default to social feed - will be adjusted based on primary org status
   const [feedView, setFeedView] = useState<'activity' | 'social'>('social');
   const [feedType, setFeedType] = useState<FeedType>(FeedType.CHRONOLOGICAL); // Make feedType dynamic
@@ -93,7 +93,6 @@ const Dashboard: React.FC = () => {
       // Use enhanced dashboard service that includes all features (prayers, announcements, events)
       const data = await dashboardApi.getDashboardWithAll();
       setDashboardData(data);
-      setLastRefresh(new Date());
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
       setError('Failed to load dashboard data. Please try again.');
@@ -107,8 +106,8 @@ const Dashboard: React.FC = () => {
     navigate('/login');
   };
 
-  const handleRefresh = () => {
-    fetchDashboardData();
+  const handleRefresh = async () => {
+    await fetchDashboardData();
   };
 
   const handlePostCreated = (newPost: any) => {
@@ -126,14 +125,6 @@ const Dashboard: React.FC = () => {
     setFeedType(newFeedType);
   };
 
-  const formatLastRefresh = () => {
-    const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - lastRefresh.getTime()) / (1000 * 60));
-    
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes === 1) return '1 minute ago';
-    return `${diffInMinutes} minutes ago`;
-  };
 
   // Check if user has primary organization
   const hasPrimaryOrg = primaryMembership !== null;
@@ -185,12 +176,6 @@ const Dashboard: React.FC = () => {
                 : primaryMembership?.organizationName || 'The Gathrd'
               }
             </h1>
-            <div className="refresh-info">
-              <span>Last updated: {formatLastRefresh()}</span>
-              <button onClick={handleRefresh} className="refresh-btn" disabled={isLoading}>
-                {isLoading ? '🔄' : '↻'} Refresh
-              </button>
-            </div>
           </div>
           <div className="user-info">
             <div className="user-details">
@@ -384,6 +369,11 @@ const Dashboard: React.FC = () => {
           }}
         />
       </main>
+      
+      {/* Pull to Refresh for Dashboard Widgets - Window Level */}
+      <PullToRefresh onRefresh={handleRefresh} disabled={isLoading} useWindow={true}>
+        <div style={{ display: 'none' }}></div>
+      </PullToRefresh>
     </div>
   );
 };

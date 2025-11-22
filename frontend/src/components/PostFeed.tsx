@@ -7,6 +7,7 @@ import FeedFilters from './FeedFilters';
 import EmptyFeedState from './EmptyFeedState';
 import { useFeedFilter } from '../contexts/FeedFilterContext';
 import { useWebSocket } from '../contexts/WebSocketContext';
+import PullToRefresh from './PullToRefresh';
 import './PostFeed.css';
 
 interface PostFeedProps {
@@ -332,10 +333,15 @@ const PostFeed: React.FC<PostFeedProps> = ({
     loadPosts(true);
   };
 
+  const handleRefresh = async () => {
+    await loadPosts(true);
+  };
+
   // Filter posts if maxPosts is set
   const displayedPosts = maxPosts ? posts.slice(0, maxPosts) : posts;
 
   return (
+    <PullToRefresh onRefresh={handleRefresh} disabled={loading || loadingMore}>
     <div className="post-feed">
       {/* Feed Header */}
       {showFilters && (
@@ -408,6 +414,7 @@ const PostFeed: React.FC<PostFeedProps> = ({
         </div>
       )}
     </div>
+    </PullToRefresh>
   );
 };
 
