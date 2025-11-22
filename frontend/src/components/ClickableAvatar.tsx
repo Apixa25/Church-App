@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useWebSocket } from '../contexts/WebSocketContext';
 import './ClickableAvatar.css';
 
 interface ClickableAvatarProps {
@@ -10,6 +11,7 @@ interface ClickableAvatarProps {
   isAnonymous?: boolean;
   disabled?: boolean;
   className?: string;
+  showConnectionStatus?: boolean; // Show WebSocket connection status indicator
 }
 
 const ClickableAvatar: React.FC<ClickableAvatarProps> = ({
@@ -20,8 +22,18 @@ const ClickableAvatar: React.FC<ClickableAvatarProps> = ({
   isAnonymous = false,
   disabled = false,
   className = '',
+  showConnectionStatus = false,
 }) => {
   const navigate = useNavigate();
+  
+  // Use WebSocket hook - must be called unconditionally (React hooks rule)
+  // Note: This requires component to be used inside WebSocketProvider
+  // If used outside provider, this will throw an error (expected behavior)
+  const wsContext = useWebSocket();
+  
+  // Only use connection status if showConnectionStatus is true
+  const isConnected = showConnectionStatus ? wsContext.isConnected : false;
+  const connectionStatus = showConnectionStatus ? wsContext.connectionStatus : { reconnectAttempts: -1 };
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent parent click handlers from firing
@@ -67,6 +79,12 @@ const ClickableAvatar: React.FC<ClickableAvatarProps> = ({
         <div className="avatar-placeholder">
           {getInitial()}
         </div>
+      )}
+      {showConnectionStatus && connectionStatus.reconnectAttempts >= 0 && (
+        <div 
+          className={`connection-status-indicator ${isConnected ? 'connected' : 'disconnected'}`}
+          title={isConnected ? 'WebSocket Connected' : 'WebSocket Disconnected'}
+        />
       )}
     </div>
   );

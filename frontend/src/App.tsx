@@ -46,7 +46,8 @@ const App: React.FC = () => {
               <Router>
                 <GlobalSearchProvider>
                   <div className="App">
-                    <WebSocketStatusIndicator />
+                    {/* WebSocket status is now shown on the profile picture in Dashboard */}
+                    {/* <WebSocketStatusIndicator /> */}
                     <Routes>
             {/* Public routes */}
             <Route path="/login" element={<LoginForm />} />
