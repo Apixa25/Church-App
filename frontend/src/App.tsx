@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { WebSocketProvider } from './contexts/WebSocketContext';
 import { OrganizationProvider } from './contexts/OrganizationContext';
 import { GroupProvider } from './contexts/GroupContext';
 import { FeedFilterProvider } from './contexts/FeedFilterContext';
@@ -31,19 +32,22 @@ import WorshipRoomList from './components/WorshipRoomList';
 import WorshipRoom from './components/WorshipRoom';
 import OrganizationBrowser from './components/OrganizationBrowser';
 import GroupBrowser from './components/GroupBrowser';
+import WebSocketStatusIndicator from './components/WebSocketStatusIndicator';
 import './App.css';
 import { GlobalSearchProvider } from './components/global-search/GlobalSearchProvider';
 
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <OrganizationProvider>
-        <GroupProvider>
-          <FeedFilterProvider>
-            <Router>
-              <GlobalSearchProvider>
-                <div className="App">
-                  <Routes>
+      <WebSocketProvider>
+        <OrganizationProvider>
+          <GroupProvider>
+            <FeedFilterProvider>
+              <Router>
+                <GlobalSearchProvider>
+                  <div className="App">
+                    <WebSocketStatusIndicator />
+                    <Routes>
             {/* Public routes */}
             <Route path="/login" element={<LoginForm />} />
             <Route path="/register" element={<RegisterForm />} />
@@ -347,12 +351,13 @@ const App: React.FC = () => {
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
-                </div>
-              </GlobalSearchProvider>
-            </Router>
-          </FeedFilterProvider>
-        </GroupProvider>
-      </OrganizationProvider>
+                  </div>
+                </GlobalSearchProvider>
+              </Router>
+            </FeedFilterProvider>
+          </GroupProvider>
+        </OrganizationProvider>
+      </WebSocketProvider>
     </AuthProvider>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import webSocketService, { EventUpdate, EventRsvpUpdate } from '../services/websocketService';
 import { useAuth } from '../contexts/AuthContext';
+import { useWebSocket } from '../contexts/WebSocketContext';
 import './EventNotifications.css';
 
 interface EventNotification {
@@ -14,6 +15,7 @@ interface EventNotification {
 
 const EventNotifications: React.FC = () => {
   const { isAuthenticated } = useAuth();
+  const { isConnected, ensureConnection } = useWebSocket();
   const [notifications, setNotifications] = useState<EventNotification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -25,42 +27,14 @@ const EventNotifications: React.FC = () => {
       return;
     }
 
-    let retryTimeout: NodeJS.Timeout | null = null;
-    let retryCount = 0;
-    let isConnecting = false; // Flag to prevent multiple simultaneous connection attempts
-    const MAX_RETRIES = 3; // Reduced from 5 to prevent excessive retries
-    const RETRY_DELAY = 5000; // Increased delay to reduce frequency
     let eventUnsubscribe: (() => void) | null = null;
     let rsvpUnsubscribe: (() => void) | null = null;
     let userEventUnsubscribe: (() => void) | null = null;
 
-    const connectWebSocket = async () => {
-      // Prevent multiple simultaneous connection attempts
-      if (isConnecting) {
-        return;
-      }
-
-      // Check if token exists before attempting connection
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        console.warn('⚠️ No auth token available for event notifications, skipping connection');
-        return; // Don't retry if there's no token - user needs to log in first
-      }
-
-      // Stop retrying if we've exceeded max retries
-      if (retryCount >= MAX_RETRIES) {
-        console.error('❌ Max retries reached for event notification WebSocket connection. Stopping retry attempts.');
-        return;
-      }
-
-      isConnecting = true;
-
+    const setupSubscriptions = async () => {
       try {
-        if (!webSocketService.isWebSocketConnected()) {
-          await webSocketService.connect();
-        }
-
-        retryCount = 0; // Reset retry count on successful connection
+        // Use shared WebSocket context to ensure connection
+        await ensureConnection();
 
         // Subscribe to event updates
         eventUnsubscribe = await webSocketService.subscribeToEventUpdates((update: EventUpdate) => {
@@ -107,40 +81,16 @@ const EventNotifications: React.FC = () => {
         console.log('✅ Event notifications WebSocket connected successfully');
       } catch (error) {
         console.error('❌ Failed to connect WebSocket for event notifications:', error);
-        
-        // Check if error is due to missing token
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        const isAuthError = errorMessage.includes('Authentication required') || errorMessage.includes('no token found');
-        
-        // If it's an auth error and there's no token, don't retry
-        if (isAuthError && !token) {
-          console.warn('⚠️ Authentication error with no token - user needs to log in. Stopping retry attempts.');
-          return;
-        }
-        
-        // Only retry if we haven't exceeded max retries
-        if (retryCount < MAX_RETRIES) {
-          retryCount++;
-          console.log(`🔄 Retrying event notification connection (${retryCount}/${MAX_RETRIES})...`);
-          retryTimeout = setTimeout(() => {
-            isConnecting = false;
-            connectWebSocket();
-          }, RETRY_DELAY);
-        } else {
-          console.error('❌ Max retries reached for event notification WebSocket connection');
-        }
-      } finally {
-        isConnecting = false;
+        // Don't retry here - the WebSocket context handles reconnection
       }
     };
 
-    connectWebSocket();
+    // Only setup subscriptions when WebSocket is connected
+    if (isConnected) {
+      setupSubscriptions();
+    }
 
     return () => {
-      // Clear any pending retries
-      if (retryTimeout) {
-        clearTimeout(retryTimeout);
-      }
       // Clean up subscriptions
       if (eventUnsubscribe) {
         eventUnsubscribe();
@@ -152,7 +102,7 @@ const EventNotifications: React.FC = () => {
         userEventUnsubscribe();
       }
     };
-  }, [isAuthenticated]); // Depend on isAuthenticated to reconnect when user logs in
+  }, [isAuthenticated, isConnected, ensureConnection]);
 
   const addNotification = (notification: EventNotification) => {
     setNotifications(prev => [notification, ...prev.slice(0, 9)]); // Keep only 10 most recent

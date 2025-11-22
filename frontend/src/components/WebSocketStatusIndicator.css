@@ -1,0 +1,136 @@
+.websocket-status-indicator {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 8px 12px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  background: white;
+  border: 2px solid;
+}
+
+.websocket-status-indicator.connected {
+  border-color: #4caf50;
+  color: #2e7d32;
+  background: #e8f5e9;
+}
+
+.websocket-status-indicator.disconnected {
+  border-color: #f44336;
+  color: #c62828;
+  background: #ffebee;
+}
+
+.websocket-status-indicator:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.status-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.status-text {
+  font-size: 12px;
+}
+
+.status-details {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 8px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  min-width: 250px;
+  font-size: 11px;
+  z-index: 1001;
+}
+
+.status-details::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  right: 20px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid white;
+}
+
+.detail-item {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.detail-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.detail-item strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.detail-item.warning {
+  color: #d32f2f;
+  font-weight: 500;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #ffcdd2;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .websocket-status-indicator {
+    background: #1e1e1e;
+    color: #fff;
+  }
+
+  .websocket-status-indicator.connected {
+    background: #1b5e20;
+    color: #a5d6a7;
+  }
+
+  .websocket-status-indicator.disconnected {
+    background: #b71c1c;
+    color: #ffcdd2;
+  }
+
+  .status-details {
+    background: #2d2d2d;
+    color: #fff;
+  }
+
+  .status-details::after {
+    border-top-color: #2d2d2d;
+  }
+
+  .detail-item {
+    border-bottom-color: #444;
+  }
+
+  .detail-item strong {
+    color: #fff;
+  }
+
+  .detail-item.warning {
+    border-top-color: #5d1f1f;
+  }
+}
+

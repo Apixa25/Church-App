@@ -6,6 +6,7 @@ import PostCard from './PostCard';
 import FeedFilters from './FeedFilters';
 import EmptyFeedState from './EmptyFeedState';
 import { useFeedFilter } from '../contexts/FeedFilterContext';
+import { useWebSocket } from '../contexts/WebSocketContext';
 import './PostFeed.css';
 
 interface PostFeedProps {
@@ -27,6 +28,8 @@ const PostFeed: React.FC<PostFeedProps> = ({
 }) => {
   // Feed filter context - to refresh feed when filter changes
   const { activeFilter, selectedGroupIds } = useFeedFilter();
+  // WebSocket context - for shared connection management
+  const { isConnected, ensureConnection } = useWebSocket();
 
   // State
   const [posts, setPosts] = useState<Post[]>([]);
@@ -247,21 +250,12 @@ const PostFeed: React.FC<PostFeedProps> = ({
   useEffect(() => {
     const setupWebSocketSubscriptions = async () => {
       try {
-        // Check if token exists before attempting connection
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          console.warn('No auth token available for PostFeed WebSocket, skipping connection');
-          return;
-        }
+        // Use shared WebSocket context to ensure connection
+        await ensureConnection();
 
         // Clean up existing subscriptions
         wsSubscriptionsRef.current.forEach(unsubscribe => unsubscribe());
         wsSubscriptionsRef.current = [];
-
-        // Connect to WebSocket if not already connected
-        if (!webSocketService.isWebSocketConnected()) {
-          await webSocketService.connect();
-        }
 
         // Subscribe to social feed updates
         const unsubscribePosts = webSocketService.subscribeToSocialFeed((update: PostUpdate) => {
@@ -280,8 +274,10 @@ const PostFeed: React.FC<PostFeedProps> = ({
 
         wsSubscriptionsRef.current = [unsubscribePosts, unsubscribeInteractions, unsubscribeComments];
 
+        console.log('✅ PostFeed WebSocket subscriptions established');
+
       } catch (error) {
-        console.error('Failed to setup WebSocket subscriptions:', error);
+        console.error('❌ Failed to setup WebSocket subscriptions for PostFeed:', error);
         // Fall back to polling if WebSocket fails
         const pollInterval = setInterval(() => {
           // Use ref to avoid dependency issues
@@ -294,14 +290,17 @@ const PostFeed: React.FC<PostFeedProps> = ({
       }
     };
 
-    setupWebSocketSubscriptions();
+    // Only setup subscriptions when WebSocket is connected
+    if (isConnected) {
+      setupWebSocketSubscriptions();
+    }
 
     // Cleanup WebSocket subscriptions on unmount
     return () => {
       wsSubscriptionsRef.current.forEach(unsubscribe => unsubscribe());
       wsSubscriptionsRef.current = [];
     };
-  }, [handleRealTimePostUpdate, handleRealTimeInteractionUpdate, handleRealTimeCommentUpdate]); // Removed loadPosts from dependencies
+  }, [isConnected, ensureConnection, handleRealTimePostUpdate, handleRealTimeInteractionUpdate, handleRealTimeCommentUpdate]);
 
   // Set up intersection observer for infinite scroll
   useEffect(() => {
