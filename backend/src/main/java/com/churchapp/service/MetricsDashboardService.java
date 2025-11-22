@@ -27,29 +27,58 @@ public class MetricsDashboardService {
     private final OrganizationMetricsRepository metricsRepository;
     private final OrganizationMetricsHistoryRepository historyRepository;
 
-    public MetricsDashboardResponse getDashboardMetrics(int days) {
+    /**
+     * Get dashboard metrics with optional organization filtering
+     * @param organizationIds null for PLATFORM_ADMIN (all orgs), List<UUID> for ORG_ADMIN (org-specific)
+     */
+    public MetricsDashboardResponse getDashboardMetrics(int days, List<UUID> organizationIds) {
         int clampedDays = Math.max(7, Math.min(days, 180));
         LocalDateTime since = LocalDateTime.now().minusDays(clampedDays);
 
-        List<Organization> organizations = organizationRepository.findAll();
+        boolean isPlatformAdmin = (organizationIds == null);
+        
+        // Filter organizations based on admin scope
+        List<Organization> organizations;
+        if (isPlatformAdmin) {
+            organizations = organizationRepository.findAll();
+        } else {
+            // organizationIds is guaranteed to be non-null when isPlatformAdmin is false
+            organizations = organizationRepository.findAllById(organizationIds != null ? organizationIds : List.of());
+        }
+        
         Map<UUID, Organization> orgMap = organizations.stream()
+                .filter(org -> org.getDeletedAt() == null)
                 .collect(Collectors.toMap(Organization::getId, org -> org));
 
-        List<OrganizationMetrics> metricsList = metricsRepository.findAll();
+        // Filter metrics by organization scope
+        List<OrganizationMetrics> metricsList;
+        if (isPlatformAdmin) {
+            metricsList = metricsRepository.findAll();
+        } else {
+            metricsList = metricsRepository.findByOrganizationIdIn(organizationIds);
+        }
+        
         metricsList = metricsList.stream()
                 .filter(metrics -> {
                     Organization org = metrics.getOrganization();
-                    return org != null && org.getDeletedAt() == null;
+                    return org != null && org.getDeletedAt() == null && orgMap.containsKey(org.getId());
                 })
                 .collect(Collectors.toList());
 
         MetricsDashboardResponse.Summary summary = buildSummary(metricsList);
         List<MetricsDashboardResponse.TopOrganization> topOrganizations = buildTopOrganizations(metricsList, orgMap);
 
-        List<OrganizationMetricsHistory> historyEntries = historyRepository.findByRecordedAtAfter(since);
-        List<MetricsDashboardResponse.TrendPoint> storageTrend = buildStorageTrend(historyEntries);
-        List<MetricsDashboardResponse.TrendPoint> activeUsersTrend = buildActiveUsersTrend(historyEntries);
-        List<MetricsDashboardResponse.ContentTrendPoint> contentTrend = buildContentTrend(historyEntries);
+        // Filter history entries by organization scope
+        List<OrganizationMetricsHistory> historyEntries;
+        if (isPlatformAdmin) {
+            historyEntries = historyRepository.findByRecordedAtAfter(since);
+        } else {
+            historyEntries = historyRepository.findByOrganizationIdInAndRecordedAtAfter(organizationIds, since);
+        }
+        
+        List<MetricsDashboardResponse.TrendPoint> storageTrend = buildStorageTrend(historyEntries, organizationIds);
+        List<MetricsDashboardResponse.TrendPoint> activeUsersTrend = buildActiveUsersTrend(historyEntries, organizationIds);
+        List<MetricsDashboardResponse.ContentTrendPoint> contentTrend = buildContentTrend(historyEntries, organizationIds);
 
         return MetricsDashboardResponse.builder()
                 .summary(summary)
@@ -144,10 +173,13 @@ public class MetricsDashboardService {
                 .collect(Collectors.toList());
     }
 
-    private List<MetricsDashboardResponse.TrendPoint> buildStorageTrend(List<OrganizationMetricsHistory> historyEntries) {
+    private List<MetricsDashboardResponse.TrendPoint> buildStorageTrend(
+            List<OrganizationMetricsHistory> historyEntries, 
+            List<UUID> organizationIds) {
         Map<LocalDate, Long> grouped = new TreeMap<>();
 
         for (OrganizationMetricsHistory history : historyEntries) {
+            // History entries are already filtered by organization scope, so we can process all
             LocalDate date = history.getRecordedAt().toLocalDate();
             long storage = getLongValue(history.getMetricsSnapshot().get("storageUsed"));
             grouped.merge(date, storage, Long::sum);
@@ -161,10 +193,13 @@ public class MetricsDashboardService {
                 .collect(Collectors.toList());
     }
 
-    private List<MetricsDashboardResponse.TrendPoint> buildActiveUsersTrend(List<OrganizationMetricsHistory> historyEntries) {
+    private List<MetricsDashboardResponse.TrendPoint> buildActiveUsersTrend(
+            List<OrganizationMetricsHistory> historyEntries, 
+            List<UUID> organizationIds) {
         Map<LocalDate, Long> grouped = new TreeMap<>();
 
         for (OrganizationMetricsHistory history : historyEntries) {
+            // History entries are already filtered by organization scope, so we can process all
             LocalDate date = history.getRecordedAt().toLocalDate();
             long activeUsers = getLongValue(history.getMetricsSnapshot().get("activeUsersCount"));
             grouped.merge(date, activeUsers, Long::sum);
@@ -178,10 +213,13 @@ public class MetricsDashboardService {
                 .collect(Collectors.toList());
     }
 
-    private List<MetricsDashboardResponse.ContentTrendPoint> buildContentTrend(List<OrganizationMetricsHistory> historyEntries) {
+    private List<MetricsDashboardResponse.ContentTrendPoint> buildContentTrend(
+            List<OrganizationMetricsHistory> historyEntries, 
+            List<UUID> organizationIds) {
         Map<LocalDate, ContentAccumulator> grouped = new TreeMap<>();
 
         for (OrganizationMetricsHistory history : historyEntries) {
+            // History entries are already filtered by organization scope, so we can process all
             LocalDate date = history.getRecordedAt().toLocalDate();
             ContentAccumulator accumulator = grouped.computeIfAbsent(date, d -> new ContentAccumulator());
 
