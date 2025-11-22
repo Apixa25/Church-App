@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import webSocketService, { WebSocketMessage } from '../services/websocketService';
+import { useWebSocket } from '../contexts/WebSocketContext';
 import './NotificationSystem.css';
 
 export interface NotificationItem {
@@ -27,8 +28,8 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
   position = 'top-right',
   autoHideDelay = 5000
 }) => {
+  const { isConnected, ensureConnection } = useWebSocket();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [isConnected, setIsConnected] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const wsUnsubscribeRef = useRef<(() => void) | null>(null);
 
@@ -36,10 +37,8 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
     // Setup WebSocket connection for notifications
     const setupWebSocket = async () => {
       try {
-        if (!webSocketService.isWebSocketConnected()) {
-          await webSocketService.connect();
-        }
-        setIsConnected(true);
+        // Use shared WebSocket context to ensure connection
+        await ensureConnection();
 
         // Subscribe to user social notifications
         const unsubscribe = await webSocketService.subscribeToUserSocialNotifications(
@@ -49,18 +48,18 @@ const NotificationSystem: React.FC<NotificationSystemProps> = ({
         );
 
         wsUnsubscribeRef.current = unsubscribe;
+        console.log('✅ Notification system WebSocket subscription established');
 
       } catch (error) {
         console.error('❌ Failed to setup notification WebSocket:', error);
-        setIsConnected(false);
-        // Retry connection after a delay
-        setTimeout(() => {
-          setupWebSocket();
-        }, 3000);
+        // Don't retry here - the WebSocket context handles reconnection
       }
     };
 
-    setupWebSocket();
+    // Only setup subscriptions when WebSocket is connected
+    if (isConnected) {
+      setupWebSocket();
+    }
 
     // Cleanup WebSocket subscription
     return () => {

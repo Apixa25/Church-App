@@ -99,9 +99,19 @@ class WebSocketService {
   private reconnectDelay = 1000;
   private token: string | null = null;
   private connectionPromise: Promise<void> | null = null;
+  private connectionListeners: Set<(connected: boolean) => void> = new Set();
+  private wsUrl: string;
 
   constructor() {
     this.token = localStorage.getItem('authToken');
+    
+    // Build WebSocket URL from environment variable or default
+    // SockJS requires HTTP/HTTPS URL, not WS/WSS - it handles the protocol upgrade internally
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
+    // Remove trailing slash and append /ws endpoint
+    this.wsUrl = apiUrl.replace(/\/$/, '') + '/ws';
+    
+    console.log('🔌 WebSocket Service initialized with URL:', this.wsUrl);
   }
 
   connect(): Promise<void> {
@@ -147,44 +157,69 @@ class WebSocketService {
       }
 
       this.client = new Client({
-        webSocketFactory: () => new SockJS('http://localhost:8083/api/ws'),
+        webSocketFactory: () => {
+          console.log('🔌 Creating WebSocket connection to:', this.wsUrl);
+          return new SockJS(this.wsUrl);
+        },
         connectHeaders: {
           Authorization: `Bearer ${this.token}`,
         },
         debug: (str: string) => {
-          console.log('WebSocket Debug:', str);
+          // Only log debug messages in development
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🔌 WebSocket Debug:', str);
+          }
         },
         onConnect: (frame: any) => {
-          console.log('WebSocket Connected:', frame);
+          console.log('✅ WebSocket Connected Successfully');
+          console.log('✅ Connection frame:', {
+            command: frame.command,
+            headers: Object.keys(frame.headers || {}),
+            connected: true
+          });
           this.isConnected = true;
           this.reconnectAttempts = 0;
-          this.connectionPromise = null; // Clear the connection promise
+          this.connectionPromise = null;
+          this.notifyConnectionListeners(true);
           resolve();
         },
         onStompError: (frame: any) => {
-          console.error('WebSocket STOMP Error:', frame);
+          console.error('❌ WebSocket STOMP Error:', frame);
+          console.error('❌ Error details:', {
+            command: frame.command,
+            headers: frame.headers,
+            body: frame.body,
+            message: frame.headers?.message || 'Unknown error'
+          });
           this.isConnected = false;
-          this.connectionPromise = null; // Clear the connection promise
+          this.connectionPromise = null;
+          this.notifyConnectionListeners(false);
           
           // Check if it's an authentication error
-          if (frame.headers && frame.headers.message && 
-              (frame.headers.message.includes('401') || 
-              frame.headers.message.includes('Unauthorized'))) {
-            console.error('WebSocket authentication failed - token may be invalid');
+          const errorMessage = frame.headers?.message || '';
+          if (errorMessage.includes('401') || 
+              errorMessage.includes('Unauthorized') ||
+              errorMessage.includes('authentication')) {
+            console.error('🔒 WebSocket authentication failed - token may be invalid or expired');
             reject(new Error('Authentication failed - please login again'));
           } else {
-            reject(new Error('WebSocket connection failed'));
+            reject(new Error(`WebSocket connection failed: ${errorMessage || 'Unknown error'}`));
           }
         },
         onWebSocketError: (error: any) => {
-          console.error('WebSocket Error:', error);
+          console.error('❌ WebSocket Connection Error:', error);
+          console.error('❌ Error type:', error.type);
+          console.error('❌ Error message:', error.message);
+          console.error('❌ Error target:', error.target?.url || 'Unknown');
           this.isConnected = false;
-          this.connectionPromise = null; // Clear the connection promise
+          this.connectionPromise = null;
+          this.notifyConnectionListeners(false);
           reject(error);
         },
         onDisconnect: () => {
-          console.log('WebSocket Disconnected');
+          console.log('⚠️ WebSocket Disconnected');
           this.isConnected = false;
+          this.notifyConnectionListeners(false);
           this.attemptReconnect();
         },
       });
@@ -211,12 +246,49 @@ class WebSocketService {
   private attemptReconnect(): void {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+      // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+      const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), 30000);
+      console.log(`🔄 Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts}) in ${delay}ms`);
       
       setTimeout(() => {
-        this.connect().catch(console.error);
-      }, this.reconnectDelay * this.reconnectAttempts);
+        this.connect().catch((error) => {
+          console.error(`❌ Reconnection attempt ${this.reconnectAttempts} failed:`, error);
+        });
+      }, delay);
+    } else {
+      console.error(`❌ Max reconnection attempts (${this.maxReconnectAttempts}) reached. Manual reconnection required.`);
+      this.notifyConnectionListeners(false);
     }
+  }
+
+  // Connection status listeners
+  addConnectionListener(listener: (connected: boolean) => void): () => void {
+    this.connectionListeners.add(listener);
+    // Immediately notify of current status
+    listener(this.isConnected);
+    // Return unsubscribe function
+    return () => {
+      this.connectionListeners.delete(listener);
+    };
+  }
+
+  private notifyConnectionListeners(connected: boolean): void {
+    this.connectionListeners.forEach(listener => {
+      try {
+        listener(connected);
+      } catch (error) {
+        console.error('Error in connection listener:', error);
+      }
+    });
+  }
+
+  // Get connection status
+  getConnectionStatus(): { connected: boolean; url: string; reconnectAttempts: number } {
+    return {
+      connected: this.isConnected && this.client?.connected === true,
+      url: this.wsUrl,
+      reconnectAttempts: this.reconnectAttempts
+    };
   }
 
   // Subscribe to group messages
