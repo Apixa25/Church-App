@@ -58,6 +58,7 @@ public class AnnouncementController {
             @RequestParam("content") String content,
             @RequestParam(value = "category", required = false) String category,
             @RequestParam(value = "isPinned", required = false, defaultValue = "false") Boolean isPinned,
+            @RequestParam(value = "isSystemWide", required = false, defaultValue = "false") Boolean isSystemWide,
             @RequestParam(value = "image", required = false) MultipartFile imageFile) {
         try {
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
@@ -67,6 +68,7 @@ public class AnnouncementController {
             request.setTitle(title);
             request.setContent(content);
             request.setIsPinned(isPinned != null ? isPinned : false);
+            request.setIsSystemWide(isSystemWide != null ? isSystemWide : false);
             
             // Parse category
             if (category != null && !category.trim().isEmpty()) {
@@ -113,28 +115,33 @@ public class AnnouncementController {
     
     @GetMapping
     public ResponseEntity<?> getAllAnnouncements(
+            @AuthenticationPrincipal User user,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String search) {
         
         try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
             Page<AnnouncementResponse> announcements;
             
             if (search != null && !search.trim().isEmpty()) {
-                announcements = announcementService.searchAnnouncements(search.trim(), page, size);
+                announcements = announcementService.searchAnnouncements(
+                    currentProfile.getUserId(), search.trim(), page, size);
             } else if (category != null && !category.trim().isEmpty()) {
                 try {
                     Announcement.AnnouncementCategory categoryEnum = 
                         Announcement.AnnouncementCategory.valueOf(category.toUpperCase());
-                    announcements = announcementService.getAnnouncementsByCategory(categoryEnum, page, size);
+                    announcements = announcementService.getAnnouncementsByCategory(
+                        currentProfile.getUserId(), categoryEnum, page, size);
                 } catch (IllegalArgumentException e) {
                     Map<String, String> error = new HashMap<>();
                     error.put("error", "Invalid category: " + category);
                     return ResponseEntity.badRequest().body(error);
                 }
             } else {
-                announcements = announcementService.getAllAnnouncements(page, size);
+                announcements = announcementService.getAllAnnouncements(
+                    currentProfile.getUserId(), page, size);
             }
             
             return ResponseEntity.ok(announcements);
@@ -146,9 +153,11 @@ public class AnnouncementController {
     }
     
     @GetMapping("/pinned")
-    public ResponseEntity<?> getPinnedAnnouncements() {
+    public ResponseEntity<?> getPinnedAnnouncements(@AuthenticationPrincipal User user) {
         try {
-            List<AnnouncementResponse> pinnedAnnouncements = announcementService.getPinnedAnnouncements();
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            List<AnnouncementResponse> pinnedAnnouncements = 
+                announcementService.getPinnedAnnouncements(currentProfile.getUserId());
             return ResponseEntity.ok(pinnedAnnouncements);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();

@@ -41,17 +41,25 @@ public class AnnouncementService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
-        // Announcements REQUIRE a primary organization
-        if (user.getPrimaryOrganization() == null) {
-            throw new RuntimeException("Cannot create announcement without a primary organization. Please join a church first.");
+        // Determine organization scope
+        boolean isSystemWide = request.getIsSystemWide() != null && request.getIsSystemWide();
+        
+        // Check if user can create system-wide announcement
+        if (isSystemWide) {
+            if (user.getRole() != User.Role.PLATFORM_ADMIN) {
+                throw new RuntimeException("Only system administrators can create system-wide announcements");
+            }
+        } else {
+            // Regular announcements require a primary organization
+            if (user.getPrimaryOrganization() == null) {
+                throw new RuntimeException("Cannot create announcement without a primary organization. Please join a church first.");
+            }
         }
-
-        // Any user with a primary organization can create announcements
-        // Announcements are automatically scoped to the user's primary organization
 
         Announcement announcement = new Announcement();
         announcement.setUser(user);
-        announcement.setOrganization(user.getPrimaryOrganization()); // Always org-scoped
+        // Set organization: null for system-wide, otherwise user's primary organization
+        announcement.setOrganization(isSystemWide ? null : user.getPrimaryOrganization());
         announcement.setTitle(request.getTitle().trim());
         announcement.setContent(request.getContent().trim());
         announcement.setImageUrl(request.getImageUrl());
@@ -59,8 +67,14 @@ public class AnnouncementService {
         announcement.setIsPinned(request.getIsPinned() != null ? request.getIsPinned() : false);
 
         Announcement savedAnnouncement = announcementRepository.save(announcement);
-        log.info("Announcement created with id: {} by user: {} in org: {}",
-            savedAnnouncement.getId(), userId, user.getPrimaryOrganization().getId());
+        
+        if (isSystemWide) {
+            log.info("System-wide announcement created with id: {} by PLATFORM_ADMIN user: {}",
+                savedAnnouncement.getId(), userId);
+        } else {
+            log.info("Announcement created with id: {} by user: {} in org: {}",
+                savedAnnouncement.getId(), userId, user.getPrimaryOrganization().getId());
+        }
 
         return AnnouncementResponse.fromAnnouncement(savedAnnouncement);
     }
@@ -69,9 +83,19 @@ public class AnnouncementService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
-        // Announcements REQUIRE a primary organization
-        if (user.getPrimaryOrganization() == null) {
-            throw new RuntimeException("Cannot create announcement without a primary organization. Please join a church first.");
+        // Determine organization scope
+        boolean isSystemWide = request.getIsSystemWide() != null && request.getIsSystemWide();
+        
+        // Check if user can create system-wide announcement
+        if (isSystemWide) {
+            if (user.getRole() != User.Role.PLATFORM_ADMIN) {
+                throw new RuntimeException("Only system administrators can create system-wide announcements");
+            }
+        } else {
+            // Regular announcements require a primary organization
+            if (user.getPrimaryOrganization() == null) {
+                throw new RuntimeException("Cannot create announcement without a primary organization. Please join a church first.");
+            }
         }
 
         // Upload image if provided
@@ -96,7 +120,8 @@ public class AnnouncementService {
         // Create announcement with image URL
         Announcement announcement = new Announcement();
         announcement.setUser(user);
-        announcement.setOrganization(user.getPrimaryOrganization()); // Always org-scoped
+        // Set organization: null for system-wide, otherwise user's primary organization
+        announcement.setOrganization(isSystemWide ? null : user.getPrimaryOrganization());
         announcement.setTitle(request.getTitle().trim());
         announcement.setContent(request.getContent().trim());
         announcement.setImageUrl(imageUrl);
@@ -104,8 +129,14 @@ public class AnnouncementService {
         announcement.setIsPinned(request.getIsPinned() != null ? request.getIsPinned() : false);
 
         Announcement savedAnnouncement = announcementRepository.save(announcement);
-        log.info("Announcement created with image with id: {} by user: {} in org: {}",
-            savedAnnouncement.getId(), userId, user.getPrimaryOrganization().getId());
+        
+        if (isSystemWide) {
+            log.info("System-wide announcement created with image with id: {} by PLATFORM_ADMIN user: {}",
+                savedAnnouncement.getId(), userId);
+        } else {
+            log.info("Announcement created with image with id: {} by user: {} in org: {}",
+                savedAnnouncement.getId(), userId, user.getPrimaryOrganization().getId());
+        }
 
         return AnnouncementResponse.fromAnnouncement(savedAnnouncement);
     }
@@ -121,26 +152,52 @@ public class AnnouncementService {
         return AnnouncementResponse.fromAnnouncement(announcement);
     }
     
-    public Page<AnnouncementResponse> getAllAnnouncements(int page, int size) {
+    /**
+     * Get all announcements - filters based on user role and organization
+     * PLATFORM_ADMIN: sees all announcements
+     * Regular users: see their organization's announcements + system-wide announcements
+     */
+    public Page<AnnouncementResponse> getAllAnnouncements(UUID userId, int page, int size) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
         Pageable pageable = PageRequest.of(page, size);
-        Page<Announcement> announcements = announcementRepository.findAllActive(pageable);
+        Page<Announcement> announcements;
+
+        // PLATFORM_ADMIN sees all announcements
+        if (user.getRole() == User.Role.PLATFORM_ADMIN) {
+            announcements = announcementRepository.findAllActive(pageable);
+        } else {
+            // Regular users see their organization's announcements + system-wide (organization IS NULL)
+            if (user.getPrimaryOrganization() == null) {
+                // If no primary org, only show system-wide announcements
+                announcements = announcementRepository.findSystemWideAnnouncements(pageable);
+            } else {
+                announcements = announcementRepository.findByOrganizationIdOrSystemWide(
+                    user.getPrimaryOrganization().getId(), pageable);
+            }
+        }
 
         return announcements.map(AnnouncementResponse::fromAnnouncement);
     }
 
     /**
-     * Get all announcements for user's primary organization
+     * Get all announcements for user's primary organization (including system-wide)
+     * This method is kept for backward compatibility but now includes system-wide announcements
      */
     public Page<AnnouncementResponse> getAnnouncementsForUser(UUID userId, int page, int size) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (user.getPrimaryOrganization() == null) {
-            throw new RuntimeException("Cannot view announcements without a primary organization");
+            // If no primary org, only show system-wide announcements
+            Pageable pageable = PageRequest.of(page, size);
+            Page<Announcement> announcements = announcementRepository.findSystemWideAnnouncements(pageable);
+            return announcements.map(AnnouncementResponse::fromAnnouncement);
         }
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<Announcement> announcements = announcementRepository.findByOrganizationId(
+        Page<Announcement> announcements = announcementRepository.findByOrganizationIdOrSystemWide(
             user.getPrimaryOrganization().getId(), pageable);
 
         return announcements.map(AnnouncementResponse::fromAnnouncement);
@@ -157,31 +214,73 @@ public class AnnouncementService {
     }
 
     /**
-     * Get pinned announcements for user's primary organization
+     * Get pinned announcements for user's primary organization (including system-wide)
      */
     public List<AnnouncementResponse> getPinnedAnnouncementsForUser(UUID userId) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (user.getPrimaryOrganization() == null) {
-            throw new RuntimeException("Cannot view announcements without a primary organization");
+        List<Announcement> pinnedAnnouncements;
+        
+        if (user.getRole() == User.Role.PLATFORM_ADMIN) {
+            // PLATFORM_ADMIN sees all pinned announcements
+            pinnedAnnouncements = announcementRepository.findPinnedAnnouncements();
+        } else if (user.getPrimaryOrganization() == null) {
+            // If no primary org, only show system-wide pinned announcements
+            // We need to filter system-wide announcements where isPinned = true
+            Pageable pageable = PageRequest.of(0, 100); // Get up to 100 pinned announcements
+            Page<Announcement> systemWide = announcementRepository.findSystemWideAnnouncements(pageable);
+            pinnedAnnouncements = systemWide.getContent().stream()
+                .filter(Announcement::getIsPinned)
+                .collect(Collectors.toList());
+        } else {
+            // Regular users see their org's pinned announcements + system-wide pinned
+            pinnedAnnouncements = announcementRepository.findPinnedByOrganizationIdOrSystemWide(
+                user.getPrimaryOrganization().getId());
         }
-
-        List<Announcement> pinnedAnnouncements = announcementRepository.findPinnedByOrganizationId(
-            user.getPrimaryOrganization().getId());
 
         return pinnedAnnouncements.stream()
             .map(AnnouncementResponse::fromAnnouncement)
             .collect(Collectors.toList());
     }
 
-    public Page<AnnouncementResponse> getAnnouncementsByCategory(Announcement.AnnouncementCategory category, int page, int size) {
+    /**
+     * Get announcements by category - filters based on user role and organization
+     */
+    public Page<AnnouncementResponse> getAnnouncementsByCategory(UUID userId, Announcement.AnnouncementCategory category, int page, int size) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
         Pageable pageable = PageRequest.of(page, size);
-        Page<Announcement> announcements = announcementRepository.findByCategoryOrderByCreatedAtDesc(category, pageable);
+        Page<Announcement> announcements;
+
+        if (user.getRole() == User.Role.PLATFORM_ADMIN) {
+            // PLATFORM_ADMIN sees all announcements by category
+            announcements = announcementRepository.findByCategoryOrderByCreatedAtDesc(category, pageable);
+        } else if (user.getPrimaryOrganization() == null) {
+            // If no primary org, only show system-wide announcements by category
+            // Note: We'll need to filter system-wide announcements by category
+            Page<Announcement> systemWide = announcementRepository.findSystemWideAnnouncements(pageable);
+            announcements = new org.springframework.data.domain.PageImpl<>(
+                systemWide.getContent().stream()
+                    .filter(a -> a.getCategory() == category)
+                    .collect(Collectors.toList()),
+                pageable,
+                systemWide.getTotalElements()
+            );
+        } else {
+            // Regular users see their org's announcements + system-wide by category
+            announcements = announcementRepository.findByOrganizationIdOrSystemWideAndCategory(
+                user.getPrimaryOrganization().getId(), category, pageable);
+        }
 
         return announcements.map(AnnouncementResponse::fromAnnouncement);
     }
 
+    /**
+     * Get pinned announcements - for backward compatibility, returns all pinned
+     * Note: This should be replaced with getPinnedAnnouncementsForUser() for proper filtering
+     */
     public List<AnnouncementResponse> getPinnedAnnouncements() {
         List<Announcement> pinnedAnnouncements = announcementRepository.findPinnedAnnouncements();
 
@@ -189,11 +288,43 @@ public class AnnouncementService {
             .map(AnnouncementResponse::fromAnnouncement)
             .collect(Collectors.toList());
     }
+
+    /**
+     * Get pinned announcements for user - filters based on role and organization
+     */
+    public List<AnnouncementResponse> getPinnedAnnouncements(UUID userId) {
+        return getPinnedAnnouncementsForUser(userId);
+    }
     
-    public Page<AnnouncementResponse> searchAnnouncements(String searchTerm, int page, int size) {
+    /**
+     * Search announcements - filters based on user role and organization
+     */
+    public Page<AnnouncementResponse> searchAnnouncements(UUID userId, String searchTerm, int page, int size) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
         Pageable pageable = PageRequest.of(page, size);
-        Page<Announcement> announcements = announcementRepository.searchAnnouncements(searchTerm, pageable);
-        
+        Page<Announcement> announcements;
+
+        if (user.getRole() == User.Role.PLATFORM_ADMIN) {
+            // PLATFORM_ADMIN searches all announcements
+            announcements = announcementRepository.searchAnnouncements(searchTerm, pageable);
+        } else if (user.getPrimaryOrganization() == null) {
+            // If no primary org, only search system-wide announcements
+            Page<Announcement> systemWide = announcementRepository.findSystemWideAnnouncements(pageable);
+            String lowerSearchTerm = searchTerm.toLowerCase();
+            List<Announcement> filtered = systemWide.getContent().stream()
+                .filter(a -> a.getTitle().toLowerCase().contains(lowerSearchTerm) ||
+                           a.getContent().toLowerCase().contains(lowerSearchTerm))
+                .collect(Collectors.toList());
+            announcements = new org.springframework.data.domain.PageImpl<>(
+                filtered, pageable, filtered.size());
+        } else {
+            // Regular users search their org's announcements + system-wide
+            announcements = announcementRepository.searchByOrganizationIdOrSystemWide(
+                user.getPrimaryOrganization().getId(), searchTerm, pageable);
+        }
+
         return announcements.map(AnnouncementResponse::fromAnnouncement);
     }
     
@@ -315,7 +446,7 @@ public class AnnouncementService {
     
     // Helper methods
     private boolean canModifyAnnouncement(User user, Announcement announcement) {
-        // Platform admin can always modify
+        // Platform admin can always modify (including system-wide announcements)
         if (user.getRole() == User.Role.PLATFORM_ADMIN) {
             return true;
         }
@@ -325,14 +456,15 @@ public class AnnouncementService {
             return true;
         }
         
-        // ORG_ADMIN can modify any announcement in their organization
-        if (announcement.getOrganization() != null) {
-            return membershipRepository
-                .findByUserIdAndOrganizationId(user.getId(), announcement.getOrganization().getId())
-                .map(membership -> membership.getRole() == UserOrganizationMembership.OrgRole.ORG_ADMIN)
-                .orElse(false);
+        // For system-wide announcements (organization IS NULL), only PLATFORM_ADMIN can modify
+        if (announcement.getOrganization() == null) {
+            return false;
         }
         
-        return false;
+        // ORG_ADMIN can modify any announcement in their organization
+        return membershipRepository
+            .findByUserIdAndOrganizationId(user.getId(), announcement.getOrganization().getId())
+            .map(membership -> membership.getRole() == UserOrganizationMembership.OrgRole.ORG_ADMIN)
+            .orElse(false);
     }
 }

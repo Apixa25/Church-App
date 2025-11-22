@@ -139,4 +139,57 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, UUID
     
     @Query("SELECT COUNT(a) FROM Announcement a WHERE a.organization.id IN :orgIds AND a.deletedAt IS NULL")
     long countByOrganizationIdIn(@Param("orgIds") List<UUID> orgIds);
+
+    // ========================================================================
+    // SYSTEM-WIDE AND ORGANIZATION ANNOUNCEMENTS (for multi-tenant filtering)
+    // ========================================================================
+
+    // Find announcements for user's organization OR system-wide (organization IS NULL)
+    @Query("SELECT a FROM Announcement a WHERE " +
+           "a.deletedAt IS NULL " +
+           "AND (a.organization.id = :orgId OR a.organization IS NULL) " +
+           "ORDER BY a.isPinned DESC, a.createdAt DESC")
+    Page<Announcement> findByOrganizationIdOrSystemWide(@Param("orgId") UUID orgId, Pageable pageable);
+
+    // Find pinned announcements for user's organization OR system-wide
+    @Query("SELECT a FROM Announcement a WHERE " +
+           "a.isPinned = true " +
+           "AND a.deletedAt IS NULL " +
+           "AND (a.organization.id = :orgId OR a.organization IS NULL) " +
+           "ORDER BY a.createdAt DESC")
+    List<Announcement> findPinnedByOrganizationIdOrSystemWide(@Param("orgId") UUID orgId);
+
+    // Find announcements by category for user's organization OR system-wide
+    @Query("SELECT a FROM Announcement a WHERE " +
+           "a.category = :category " +
+           "AND a.deletedAt IS NULL " +
+           "AND (a.organization.id = :orgId OR a.organization IS NULL) " +
+           "ORDER BY a.isPinned DESC, a.createdAt DESC")
+    Page<Announcement> findByOrganizationIdOrSystemWideAndCategory(
+        @Param("orgId") UUID orgId,
+        @Param("category") Announcement.AnnouncementCategory category,
+        Pageable pageable
+    );
+
+    // Search announcements for user's organization OR system-wide
+    @Query("SELECT a FROM Announcement a WHERE " +
+           "a.deletedAt IS NULL " +
+           "AND (a.organization.id = :orgId OR a.organization IS NULL) " +
+           "AND (" +
+           "  LOWER(a.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
+           "  OR LOWER(a.content) LIKE LOWER(CONCAT('%', :searchTerm, '%'))" +
+           ") " +
+           "ORDER BY a.isPinned DESC, a.createdAt DESC")
+    Page<Announcement> searchByOrganizationIdOrSystemWide(
+        @Param("orgId") UUID orgId,
+        @Param("searchTerm") String searchTerm,
+        Pageable pageable
+    );
+
+    // Find all system-wide announcements (organization IS NULL) - for PLATFORM_ADMIN
+    @Query("SELECT a FROM Announcement a WHERE " +
+           "a.organization IS NULL " +
+           "AND a.deletedAt IS NULL " +
+           "ORDER BY a.isPinned DESC, a.createdAt DESC")
+    Page<Announcement> findSystemWideAnnouncements(Pageable pageable);
 }
