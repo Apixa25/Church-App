@@ -88,6 +88,9 @@ export const profileAPI = {
     api.get('/profile/search', {
       params: { query, page, size },
     }),
+  
+  getUserMemberships: (userId: string) =>
+    api.get(`/organizations/users/${userId}/memberships`),
 };
 
 export default api;
