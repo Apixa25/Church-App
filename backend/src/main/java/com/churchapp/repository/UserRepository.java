@@ -56,44 +56,40 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
     Long sumWarningCounts();
 
     // ========== ORGANIZATION-FILTERED QUERIES (for ORG_ADMIN) ==========
+    // These queries JOIN from UserOrganizationMembership to User
     
     @Query("""
-        SELECT COUNT(DISTINCT u) FROM User u 
-        JOIN u.organizationMemberships m 
+        SELECT COUNT(DISTINCT m.user) FROM UserOrganizationMembership m 
         WHERE m.organization.id IN :orgIds
         """)
     long countUsersInOrganizations(@Param("orgIds") List<UUID> orgIds);
     
     @Query("""
-        SELECT COUNT(DISTINCT u) FROM User u 
-        JOIN u.organizationMemberships m 
+        SELECT COUNT(DISTINCT m.user) FROM UserOrganizationMembership m 
         WHERE m.organization.id IN :orgIds 
-        AND u.isActive = true 
-        AND u.deletedAt IS NULL
+        AND m.user.isActive = true 
+        AND m.user.deletedAt IS NULL
         """)
     long countActiveUsersInOrganizations(@Param("orgIds") List<UUID> orgIds);
     
     @Query("""
-        SELECT COUNT(DISTINCT u) FROM User u 
-        JOIN u.organizationMemberships m 
+        SELECT COUNT(DISTINCT m.user) FROM UserOrganizationMembership m 
         WHERE m.organization.id IN :orgIds 
-        AND u.createdAt > :since
+        AND m.user.createdAt > :since
         """)
     long countNewUsersInOrganizationsSince(@Param("orgIds") List<UUID> orgIds, @Param("since") LocalDateTime since);
     
     @Query("""
-        SELECT COUNT(DISTINCT u) FROM User u 
-        JOIN u.organizationMemberships m 
+        SELECT COUNT(DISTINCT m.user) FROM UserOrganizationMembership m 
         WHERE m.organization.id IN :orgIds 
-        AND u.isBanned = true
+        AND m.user.isBanned = true
         """)
     long countBannedUsersInOrganizations(@Param("orgIds") List<UUID> orgIds);
     
     @Query("""
-        SELECT SUM(u.warningCount) FROM User u 
-        JOIN u.organizationMemberships m 
+        SELECT SUM(m.user.warningCount) FROM UserOrganizationMembership m 
         WHERE m.organization.id IN :orgIds 
-        AND u.deletedAt IS NULL
+        AND m.user.deletedAt IS NULL
         """)
     Long sumWarningCountsInOrganizations(@Param("orgIds") List<UUID> orgIds);
 

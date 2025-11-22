@@ -83,7 +83,11 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
 
   // Fetch user's memberships
   const fetchMemberships = async () => {
+    console.log('🔥 OrganizationContext v2.0 - BUILD 2025-11-22 23:35 PST - fetchMemberships called');
+    console.log('🔥 isAuthenticated:', isAuthenticated, 'token:', token ? 'Present' : 'Missing');
+    
     if (!isAuthenticated) {
+      console.log('🔥 Not authenticated, clearing memberships');
       setPrimaryMembership(null);
       setSecondaryMemberships([]);
       setAllMemberships([]);
@@ -93,6 +97,7 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
 
     try {
       setLoading(true);
+      console.log('🔥 Fetching memberships from API...');
 
       // Fetch all memberships in parallel
       const [primaryRes, secondaryRes, allRes] = await Promise.all([
@@ -100,6 +105,9 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
         api.get('/organizations/my-memberships/secondary'),
         api.get('/organizations/my-memberships'),
       ]);
+
+      console.log('🔥 API Response - allMemberships:', allRes.data);
+      console.log('🔥 Org Admin count:', allRes.data?.filter((m: any) => m.role === 'ORG_ADMIN').length || 0);
 
       setPrimaryMembership(primaryRes.data || null);
       setSecondaryMemberships(secondaryRes.data || []);
