@@ -41,23 +41,36 @@ public class DashboardService {
         User currentUser = userRepository.findByEmail(currentUserEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
         
+        // Get user's primary organization for filtering
+        UUID organizationId = currentUser.getPrimaryOrganization() != null 
+            ? currentUser.getPrimaryOrganization().getId() 
+            : null;
+        
         return new DashboardResponse(
-            getRecentActivity(),
-            getDashboardStats(),
+            getRecentActivity(organizationId),
+            getDashboardStats(organizationId),
             getQuickActions(currentUser),
             getNotificationSummary(currentUser),
             LocalDateTime.now()
         );
     }
     
-    private List<DashboardActivityItem> getRecentActivity() {
+    private List<DashboardActivityItem> getRecentActivity(UUID organizationId) {
         List<DashboardActivityItem> activities = new ArrayList<>();
         
-        // Get recent user registrations (last 30 days)
+        // Get recent user registrations (last 30 days) - FILTER BY ORG
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minus(30, ChronoUnit.DAYS);
         Pageable recentUsersPageable = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"));
         
-        List<User> recentUsers = userRepository.findByCreatedAtAfterOrderByCreatedAtDesc(thirtyDaysAgo, recentUsersPageable);
+        // Only show users from same organization
+        List<User> recentUsers;
+        if (organizationId != null) {
+            recentUsers = userRepository.findByPrimaryOrganizationIdAndCreatedAtAfterOrderByCreatedAtDesc(
+                organizationId, thirtyDaysAgo, recentUsersPageable);
+        } else {
+            // Social-only users - show empty or global org users
+            recentUsers = new ArrayList<>();
+        }
         
         for (User user : recentUsers) {
             activities.add(DashboardActivityItem.userJoined(
@@ -68,9 +81,15 @@ public class DashboardService {
             ));
         }
         
-        // Get recent profile updates (last 7 days)
+        // Get recent profile updates (last 7 days) - FILTER BY ORG
         LocalDateTime sevenDaysAgo = LocalDateTime.now().minus(7, ChronoUnit.DAYS);
-        List<User> recentlyUpdated = userRepository.findByUpdatedAtAfterAndUpdatedAtNotEqualToCreatedAtOrderByUpdatedAtDesc(sevenDaysAgo);
+        List<User> recentlyUpdated;
+        if (organizationId != null) {
+            recentlyUpdated = userRepository.findByPrimaryOrganizationIdAndUpdatedAtAfterAndUpdatedAtNotEqualToCreatedAtOrderByUpdatedAtDesc(
+                organizationId, sevenDaysAgo);
+        } else {
+            recentlyUpdated = new ArrayList<>();
+        }
         
         for (User user : recentlyUpdated) {
             activities.add(DashboardActivityItem.profileUpdated(
@@ -125,14 +144,19 @@ public class DashboardService {
             null
         ));
 
-        // Get recent donations (last 7 days) - reuse existing sevenDaysAgo
-        Pageable recentDonationsPageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "timestamp"));
-
+        // Get recent donations (last 7 days) - FIXED: FILTER BY ORGANIZATION
         try {
-            List<Donation> recentDonations = donationRepository.findDonationsByDateRange(sevenDaysAgo, now)
-                .stream()
-                .limit(10)
-                .collect(Collectors.toList());
+            List<Donation> recentDonations;
+            if (organizationId != null) {
+                // CRITICAL FIX: Only get donations for user's organization
+                recentDonations = donationRepository.findDonationsByOrganizationIdAndDateRange(
+                    organizationId, sevenDaysAgo, now)
+                    .stream()
+                    .limit(10)
+                    .collect(Collectors.toList());
+            } else {
+                recentDonations = new ArrayList<>();
+            }
 
             for (Donation donation : recentDonations) {
                 // Only show non-anonymous donations in the public activity feed
@@ -172,36 +196,59 @@ public class DashboardService {
             .collect(Collectors.toList());
     }
     
-    private DashboardStats getDashboardStats() {
-        long totalMembers = userRepository.count();
+    private DashboardStats getDashboardStats(UUID organizationId) {
+        // CRITICAL FIX: All stats must be filtered by organization
         
-        LocalDateTime oneWeekAgo = LocalDateTime.now().minus(7, ChronoUnit.DAYS);
-        long newMembersThisWeek = userRepository.countByCreatedAtAfter(oneWeekAgo);
+        long totalMembers = 0L;
+        long newMembersThisWeek = 0L;
         
-        // Get actual prayer statistics
-        long activePrayerRequests = prayerRequestService.getActivePrayerCount();
-        long answeredPrayerRequests = prayerRequestService.getAnsweredPrayerCount();
+        if (organizationId != null) {
+            // Count members of this organization only
+            totalMembers = userRepository.countByPrimaryOrganizationId(organizationId);
+            LocalDateTime oneWeekAgo = LocalDateTime.now().minus(7, ChronoUnit.DAYS);
+            newMembersThisWeek = userRepository.countByPrimaryOrganizationIdAndCreatedAtAfter(organizationId, oneWeekAgo);
+        }
         
-        // Get announcement statistics
-        long totalAnnouncements = announcementService.getAnnouncementCount();
-        long pinnedAnnouncements = announcementService.getPinnedAnnouncementCount();
+        // Get prayer statistics - FILTER BY ORG
+        long activePrayerRequests = organizationId != null 
+            ? prayerRequestService.getActivePrayerCountByOrganization(organizationId) 
+            : 0L;
+        long answeredPrayerRequests = organizationId != null 
+            ? prayerRequestService.getAnsweredPrayerCountByOrganization(organizationId) 
+            : 0L;
         
-        // Get upcoming events count - FIXED: Now actually counting upcoming events
+        // Get announcement statistics - FILTER BY ORG
+        long totalAnnouncements = organizationId != null 
+            ? announcementService.getAnnouncementCountByOrganization(organizationId) 
+            : 0L;
+        long pinnedAnnouncements = organizationId != null 
+            ? announcementService.getPinnedAnnouncementCountByOrganization(organizationId) 
+            : 0L;
+        
+        // Get upcoming events count - FIXED: FILTER BY ORGANIZATION
         LocalDateTime now = LocalDateTime.now();
-        long upcomingEvents = eventRepository.findUpcomingEvents(now, PageRequest.of(0, Integer.MAX_VALUE)).getTotalElements();
+        long upcomingEvents = 0L;
+        if (organizationId != null) {
+            upcomingEvents = eventRepository.countUpcomingByOrganizationId(organizationId, now);
+        }
         
-        // Get donation statistics
+        // Get donation statistics - FIXED: FILTER BY ORGANIZATION
         BigDecimal totalDonationsThisMonth = BigDecimal.ZERO;
         long donationCountThisMonth = 0L;
         long uniqueDonorsThisMonth = 0L;
 
         try {
-            LocalDateTime oneMonthAgo = LocalDateTime.now().minus(30, ChronoUnit.DAYS);
-            totalDonationsThisMonth = donationRepository.getTotalDonationsByDateRange(oneMonthAgo, now);
-            if (totalDonationsThisMonth == null) totalDonationsThisMonth = BigDecimal.ZERO;
+            if (organizationId != null) {
+                LocalDateTime oneMonthAgo = LocalDateTime.now().minus(30, ChronoUnit.DAYS);
+                totalDonationsThisMonth = donationRepository.getTotalDonationsByOrganizationIdAndDateRange(
+                    organizationId, oneMonthAgo, now);
+                if (totalDonationsThisMonth == null) totalDonationsThisMonth = BigDecimal.ZERO;
 
-            donationCountThisMonth = donationRepository.findDonationsByDateRange(oneMonthAgo, now).size();
-            uniqueDonorsThisMonth = donationRepository.getUniqueDonorCount(oneMonthAgo, now);
+                donationCountThisMonth = donationRepository.findDonationsByOrganizationIdAndDateRange(
+                    organizationId, oneMonthAgo, now).size();
+                uniqueDonorsThisMonth = donationRepository.getUniqueDonorCountByOrganizationId(
+                    organizationId, oneMonthAgo, now);
+            }
         } catch (Exception e) {
             System.err.println("Error loading donation stats: " + e.getMessage());
         }

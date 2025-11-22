@@ -444,6 +444,22 @@ public class AnnouncementService {
         return announcementRepository.countPinnedAnnouncements();
     }
     
+    /**
+     * Get announcement count for a specific organization
+     */
+    public long getAnnouncementCountByOrganization(UUID organizationId) {
+        Long count = announcementRepository.countByOrganizationId(organizationId);
+        return count != null ? count : 0L;
+    }
+    
+    /**
+     * Get pinned announcement count for a specific organization
+     */
+    public long getPinnedAnnouncementCountByOrganization(UUID organizationId) {
+        List<Announcement> pinned = announcementRepository.findPinnedByOrganizationId(organizationId);
+        return pinned.size();
+    }
+    
     // Helper methods
     private boolean canModifyAnnouncement(User user, Announcement announcement) {
         // Platform admin can always modify (including system-wide announcements)

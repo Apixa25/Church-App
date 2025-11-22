@@ -152,13 +152,14 @@
 .detail-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 24px; /* Increased spacing for better readability between emojis and text */
   font-size: 0.9rem;
   color: var(--text-secondary);
 }
 
 .event-card.compact .detail-item {
   font-size: 0.8rem;
+  gap: 20px; /* Increased spacing for compact cards while maintaining readability */
 }
 
 .detail-icon {

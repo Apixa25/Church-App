@@ -153,4 +153,30 @@ public interface DonationRepository extends JpaRepository<Donation, UUID> {
     
     @Query("SELECT AVG(d.amount) FROM Donation d WHERE d.organization.id IN :orgIds")
     Double averageDonationAmountInOrganizations(@Param("orgIds") List<UUID> orgIds);
+    
+    // ========== SINGLE ORGANIZATION QUERIES (for user dashboard) ==========
+    
+    @Query("SELECT d FROM Donation d WHERE d.organization.id = :orgId AND d.timestamp BETWEEN :startDate AND :endDate ORDER BY d.timestamp DESC")
+    List<Donation> findDonationsByOrganizationIdAndDateRange(
+        @Param("orgId") UUID orgId,
+        @Param("startDate") LocalDateTime startDate,
+        @Param("endDate") LocalDateTime endDate
+    );
+    
+    @Query("SELECT SUM(d.amount) FROM Donation d WHERE d.organization.id = :orgId AND d.timestamp BETWEEN :startDate AND :endDate")
+    BigDecimal getTotalDonationsByOrganizationIdAndDateRange(
+        @Param("orgId") UUID orgId,
+        @Param("startDate") LocalDateTime startDate,
+        @Param("endDate") LocalDateTime endDate
+    );
+    
+    @Query("SELECT COUNT(DISTINCT d.user) FROM Donation d WHERE d.organization.id = :orgId AND d.timestamp BETWEEN :startDate AND :endDate")
+    Long getUniqueDonorCountByOrganizationId(
+        @Param("orgId") UUID orgId,
+        @Param("startDate") LocalDateTime startDate,
+        @Param("endDate") LocalDateTime endDate
+    );
+    
+    @Query("SELECT d FROM Donation d WHERE d.organization.id = :orgId ORDER BY d.timestamp DESC")
+    Page<Donation> findRecentDonationsByOrganizationId(@Param("orgId") UUID orgId, Pageable pageable);
 }
