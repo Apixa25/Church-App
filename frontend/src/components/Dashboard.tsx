@@ -200,6 +200,7 @@ const Dashboard: React.FC = () => {
                 userName={user?.name || 'User'}
                 size="large"
                 className="profile-pic-container"
+                showConnectionStatus={true}
               />
               <div>
                 <p className="user-name">👋 Welcome, {user?.name}!</p>
