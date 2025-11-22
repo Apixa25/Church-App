@@ -44,10 +44,6 @@ const FeedFilters: React.FC<FeedFiltersProps> = ({
 
   return (
     <div className="feed-filters">
-      <div className="filters-header">
-        <span className="filters-subtitle">Choose how you want to see posts</span>
-      </div>
-
       <div className="filters-options">
         {feedOptions.map((option) => (
           <button
