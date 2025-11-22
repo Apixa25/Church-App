@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import webSocketService, { EventUpdate, EventRsvpUpdate } from '../services/websocketService';
+import { useAuth } from '../contexts/AuthContext';
 import './EventNotifications.css';
 
 interface EventNotification {
@@ -12,43 +13,54 @@ interface EventNotification {
 }
 
 const EventNotifications: React.FC = () => {
+  const { isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState<EventNotification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
+    // Don't attempt connection if user is not authenticated
+    if (!isAuthenticated) {
+      console.log('⚠️ User not authenticated, skipping event notification WebSocket connection');
+      return;
+    }
+
     let retryTimeout: NodeJS.Timeout | null = null;
     let retryCount = 0;
-    const MAX_RETRIES = 5;
-    const RETRY_DELAY = 3000;
+    let isConnecting = false; // Flag to prevent multiple simultaneous connection attempts
+    const MAX_RETRIES = 3; // Reduced from 5 to prevent excessive retries
+    const RETRY_DELAY = 5000; // Increased delay to reduce frequency
     let eventUnsubscribe: (() => void) | null = null;
     let rsvpUnsubscribe: (() => void) | null = null;
     let userEventUnsubscribe: (() => void) | null = null;
 
     const connectWebSocket = async () => {
+      // Prevent multiple simultaneous connection attempts
+      if (isConnecting) {
+        return;
+      }
+
+      // Check if token exists before attempting connection
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        console.warn('⚠️ No auth token available for event notifications, skipping connection');
+        return; // Don't retry if there's no token - user needs to log in first
+      }
+
+      // Stop retrying if we've exceeded max retries
+      if (retryCount >= MAX_RETRIES) {
+        console.error('❌ Max retries reached for event notification WebSocket connection. Stopping retry attempts.');
+        return;
+      }
+
+      isConnecting = true;
+
       try {
-        // Check if token exists before attempting connection
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          console.warn('No auth token available for event notifications, waiting for authentication...');
-          // Only retry if we haven't exceeded max retries
-          if (retryCount < MAX_RETRIES) {
-            retryCount++;
-            retryTimeout = setTimeout(() => {
-              connectWebSocket();
-            }, RETRY_DELAY);
-          } else {
-            console.error('Max retries reached for event notification WebSocket connection');
-          }
-          return;
-        }
-
-        // Reset retry count on successful token check
-        retryCount = 0;
-
         if (!webSocketService.isWebSocketConnected()) {
           await webSocketService.connect();
         }
+
+        retryCount = 0; // Reset retry count on successful connection
 
         // Subscribe to event updates
         eventUnsubscribe = await webSocketService.subscribeToEventUpdates((update: EventUpdate) => {
@@ -100,25 +112,25 @@ const EventNotifications: React.FC = () => {
         const errorMessage = error instanceof Error ? error.message : String(error);
         const isAuthError = errorMessage.includes('Authentication required') || errorMessage.includes('no token found');
         
+        // If it's an auth error and there's no token, don't retry
+        if (isAuthError && !token) {
+          console.warn('⚠️ Authentication error with no token - user needs to log in. Stopping retry attempts.');
+          return;
+        }
+        
         // Only retry if we haven't exceeded max retries
         if (retryCount < MAX_RETRIES) {
-          const token = localStorage.getItem('authToken');
-          // Only retry if token exists (meaning it's a connection issue, not auth issue)
-          if (token || !isAuthError) {
-            retryCount++;
-            retryTimeout = setTimeout(() => {
-              connectWebSocket();
-            }, RETRY_DELAY);
-          } else {
-            // If no token and auth error, wait longer and check again
-            retryCount++;
-            retryTimeout = setTimeout(() => {
-              connectWebSocket();
-            }, RETRY_DELAY * 2); // Wait longer if it's an auth issue
-          }
+          retryCount++;
+          console.log(`🔄 Retrying event notification connection (${retryCount}/${MAX_RETRIES})...`);
+          retryTimeout = setTimeout(() => {
+            isConnecting = false;
+            connectWebSocket();
+          }, RETRY_DELAY);
         } else {
-          console.error('Max retries reached for event notification WebSocket connection');
+          console.error('❌ Max retries reached for event notification WebSocket connection');
         }
+      } finally {
+        isConnecting = false;
       }
     };
 
@@ -140,7 +152,7 @@ const EventNotifications: React.FC = () => {
         userEventUnsubscribe();
       }
     };
-  }, []);
+  }, [isAuthenticated]); // Depend on isAuthenticated to reconnect when user logs in
 
   const addNotification = (notification: EventNotification) => {
     setNotifications(prev => [notification, ...prev.slice(0, 9)]); // Keep only 10 most recent

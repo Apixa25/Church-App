@@ -126,6 +126,7 @@ class WebSocketService {
           if (this.isConnected && this.client?.connected) {
             resolve();
           } else if (!this.client || this.client.state === 0) { // 0 = INACTIVE state
+            this.connectionPromise = null; // Clear the promise on failure
             reject(new Error('Connection failed'));
           } else {
             setTimeout(checkConnection, 100);
@@ -139,7 +140,8 @@ class WebSocketService {
       this.token = localStorage.getItem('authToken');
       
       if (!this.token) {
-        console.error('No JWT token found for WebSocket connection');
+        console.warn('⚠️ No JWT token found for WebSocket connection - user may need to log in');
+        this.connectionPromise = null; // Clear the promise on auth failure
         reject(new Error('Authentication required - no token found'));
         return;
       }
