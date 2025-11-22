@@ -14,7 +14,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -244,7 +243,7 @@ public class PostService {
         return postRepository.findByGroupId(groupId, pageable);
     }
 
-    private Page<Post> getFollowingFeed(UUID userId, Pageable pageable) {
+    public Page<Post> getFollowingFeed(UUID userId, Pageable pageable) {
         // Get users that this user follows (across all organizations)
         List<UUID> followingIds = userFollowService.getFollowingIds(userId);
 
