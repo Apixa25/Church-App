@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import { 
   AnnouncementCreateRequest, 
   AnnouncementUpdateRequest, 
@@ -58,6 +59,7 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
   mode = 'create'
 }) => {
   const { user } = useAuth();
+  const { primaryMembership, allMemberships } = useOrganization();
   const {
     register,
     handleSubmit,
@@ -83,9 +85,14 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
   );
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  const isAdmin = user?.role === 'PLATFORM_ADMIN' || user?.role === 'MODERATOR';
+  // Check admin roles for pinning permissions
+  const isPlatformAdmin = user?.role === 'PLATFORM_ADMIN';
   const isModerator = user?.role === 'MODERATOR';
-  const canManageAnnouncements = isAdmin || isModerator;
+  const isOrgAdmin = allMemberships.some(m => m.role === 'ORG_ADMIN');
+  const canPin = isPlatformAdmin || isModerator || isOrgAdmin;
+  
+  // Check if user has primary organization (required to create)
+  const hasPrimaryOrg = primaryMembership !== null;
 
   const watchedImageUrl = watch('imageUrl');
   const watchedCategory = watch('category');
@@ -96,12 +103,12 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
     }
   }, [watchedImageUrl, imagePreview]);
 
-  // Check permissions
+  // Check if user has primary organization
   useEffect(() => {
-    if (!canManageAnnouncements) {
-      setError('You do not have permission to create announcements. Only admins and moderators can create announcements.');
+    if (mode === 'create' && !hasPrimaryOrg) {
+      setError('You must have a primary organization to create announcements. Please join a church first.');
     }
-  }, [canManageAnnouncements]);
+  }, [mode, hasPrimaryOrg]);
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -149,8 +156,8 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
   };
 
   const onSubmit = async (data: AnnouncementFormData) => {
-    if (!canManageAnnouncements) {
-      setError('You do not have permission to create announcements');
+    if (mode === 'create' && !hasPrimaryOrg) {
+      setError('You must have a primary organization to create announcements. Please join a church first.');
       return;
     }
 
@@ -167,7 +174,7 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
           content: data.content.trim(),
           imageUrl: data.imageUrl?.trim() || undefined,
           category: data.category,
-          isPinned: isAdmin ? data.isPinned : false // Only admins can pin during creation
+          isPinned: canPin ? data.isPinned : false // Only admins/org admins can pin during creation
         };
 
         const response = await announcementAPI.createAnnouncement(createRequest);
@@ -183,7 +190,7 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
           content: data.content.trim(),
           imageUrl: data.imageUrl?.trim() || undefined,
           category: data.category,
-          isPinned: isAdmin ? data.isPinned : existingAnnouncement.isPinned // Only admins can change pin status
+          isPinned: canPin ? data.isPinned : existingAnnouncement.isPinned // Only admins/org admins can change pin status
         };
 
         const response = await announcementAPI.updateAnnouncement(existingAnnouncement.id, updateRequest);
@@ -222,12 +229,13 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
     }
   };
 
-  if (!canManageAnnouncements) {
+  // Show error if user doesn't have primary org (only for create mode)
+  if (mode === 'create' && !hasPrimaryOrg) {
     return (
       <div className="announcement-form-error">
         <div className="error-container">
-          <h3>Access Denied</h3>
-          <p>You do not have permission to create announcements. Only admins and moderators can create announcements.</p>
+          <h3>Primary Organization Required</h3>
+          <p>You must have a primary organization to create announcements. Please join a church first.</p>
           <button onClick={onCancel} className="btn-secondary">
             Go Back
           </button>
@@ -388,7 +396,7 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
         </div>
 
         {/* Pin Option (Admin Only) */}
-        {isAdmin && (
+        {canPin && (
           <div className="form-group">
             <label className="checkbox-label">
               <input
