@@ -354,6 +354,16 @@
   font-family: 'Merriweather', serif;
   font-weight: 700;
   letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dashboard-header h1 .wheat-emoji {
+  font-size: 48px;
+  line-height: 1;
+  display: inline-block;
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.8));
 }
 
 .user-info {
