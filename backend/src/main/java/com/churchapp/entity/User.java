@@ -1,5 +1,6 @@
 package com.churchapp.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -120,10 +121,12 @@ public class User {
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
     
+    @JsonProperty("isActive")
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
     // Admin/Moderation fields
+    @JsonProperty("isBanned")
     @Column(name = "is_banned", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE NOT NULL")
     private boolean isBanned = false;
 
