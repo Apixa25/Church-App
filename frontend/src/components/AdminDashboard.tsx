@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import AdminModeration from './AdminModeration';
 import AdminOrganizationManagement from './AdminOrganizationManagement';
 import AnalyticsDashboard from './AnalyticsDashboard';
@@ -170,10 +171,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  // Check if user has any admin access (Platform Admin or Moderator)
+  // Check if user has any admin access (Platform Admin, Moderator, or Org Admin)
+  const { allMemberships } = useOrganization();
   const isPlatformAdmin = currentUser?.role === 'PLATFORM_ADMIN';
   const isModerator = currentUser?.role === 'MODERATOR';
-  const hasAdminAccess = isPlatformAdmin || isModerator;
+  const isOrgAdmin = allMemberships.some(membership => membership.role === 'ORG_ADMIN');
+  const hasAdminAccess = isPlatformAdmin || isModerator || isOrgAdmin;
 
   if (!currentUser || !hasAdminAccess) {
     return (
@@ -181,6 +184,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="unauthorized-content">
           <h1>🚫 Access Denied</h1>
           <p>You don't have permission to access the admin dashboard.</p>
+          <p style={{ fontSize: '12px', marginTop: '10px', color: '#666' }}>
+            Debug: isPlatformAdmin={isPlatformAdmin.toString()}, isModerator={isModerator.toString()}, isOrgAdmin={isOrgAdmin.toString()}
+          </p>
         </div>
       </div>
     );

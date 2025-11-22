@@ -17,14 +17,41 @@ const EventNotifications: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
+    let retryTimeout: NodeJS.Timeout | null = null;
+    let retryCount = 0;
+    const MAX_RETRIES = 5;
+    const RETRY_DELAY = 3000;
+    let eventUnsubscribe: (() => void) | null = null;
+    let rsvpUnsubscribe: (() => void) | null = null;
+    let userEventUnsubscribe: (() => void) | null = null;
+
     const connectWebSocket = async () => {
       try {
+        // Check if token exists before attempting connection
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          console.warn('No auth token available for event notifications, waiting for authentication...');
+          // Only retry if we haven't exceeded max retries
+          if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            retryTimeout = setTimeout(() => {
+              connectWebSocket();
+            }, RETRY_DELAY);
+          } else {
+            console.error('Max retries reached for event notification WebSocket connection');
+          }
+          return;
+        }
+
+        // Reset retry count on successful token check
+        retryCount = 0;
+
         if (!webSocketService.isWebSocketConnected()) {
           await webSocketService.connect();
         }
 
         // Subscribe to event updates
-        const eventUnsubscribe = await webSocketService.subscribeToEventUpdates((update: EventUpdate) => {
+        eventUnsubscribe = await webSocketService.subscribeToEventUpdates((update: EventUpdate) => {
           const notification: EventNotification = {
             id: `event-${update.eventId}-${Date.now()}`,
             type: 'event',
@@ -38,7 +65,7 @@ const EventNotifications: React.FC = () => {
         });
 
         // Subscribe to RSVP updates
-        const rsvpUnsubscribe = webSocketService.subscribeToRsvpUpdates((update: EventRsvpUpdate) => {
+        rsvpUnsubscribe = webSocketService.subscribeToRsvpUpdates((update: EventRsvpUpdate) => {
           const notification: EventNotification = {
             id: `rsvp-${update.eventId}-${update.userId}-${Date.now()}`,
             type: 'rsvp',
@@ -52,7 +79,7 @@ const EventNotifications: React.FC = () => {
         });
 
         // Subscribe to personal event notifications
-        const userEventUnsubscribe = webSocketService.subscribeToUserEventNotifications((notification) => {
+        userEventUnsubscribe = webSocketService.subscribeToUserEventNotifications((notification) => {
           const eventNotification: EventNotification = {
             id: `user-event-${Date.now()}`,
             type: 'event',
@@ -66,25 +93,52 @@ const EventNotifications: React.FC = () => {
         });
 
         console.log('✅ Event notifications WebSocket connected successfully');
-
-        return () => {
-          eventUnsubscribe();
-          rsvpUnsubscribe();
-          userEventUnsubscribe();
-        };
       } catch (error) {
         console.error('❌ Failed to connect WebSocket for event notifications:', error);
-        // Retry connection after a delay
-        setTimeout(() => {
-          connectWebSocket();
-        }, 3000);
+        
+        // Check if error is due to missing token
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const isAuthError = errorMessage.includes('Authentication required') || errorMessage.includes('no token found');
+        
+        // Only retry if we haven't exceeded max retries
+        if (retryCount < MAX_RETRIES) {
+          const token = localStorage.getItem('authToken');
+          // Only retry if token exists (meaning it's a connection issue, not auth issue)
+          if (token || !isAuthError) {
+            retryCount++;
+            retryTimeout = setTimeout(() => {
+              connectWebSocket();
+            }, RETRY_DELAY);
+          } else {
+            // If no token and auth error, wait longer and check again
+            retryCount++;
+            retryTimeout = setTimeout(() => {
+              connectWebSocket();
+            }, RETRY_DELAY * 2); // Wait longer if it's an auth issue
+          }
+        } else {
+          console.error('Max retries reached for event notification WebSocket connection');
+        }
       }
     };
 
     connectWebSocket();
 
     return () => {
-      // WebSocket subscriptions will be cleaned up automatically
+      // Clear any pending retries
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
+      // Clean up subscriptions
+      if (eventUnsubscribe) {
+        eventUnsubscribe();
+      }
+      if (rsvpUnsubscribe) {
+        rsvpUnsubscribe();
+      }
+      if (userEventUnsubscribe) {
+        userEventUnsubscribe();
+      }
     };
   }, []);
 
