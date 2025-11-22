@@ -247,6 +247,13 @@ const PostFeed: React.FC<PostFeedProps> = ({
   useEffect(() => {
     const setupWebSocketSubscriptions = async () => {
       try {
+        // Check if token exists before attempting connection
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          console.warn('No auth token available for PostFeed WebSocket, skipping connection');
+          return;
+        }
+
         // Clean up existing subscriptions
         wsSubscriptionsRef.current.forEach(unsubscribe => unsubscribe());
         wsSubscriptionsRef.current = [];

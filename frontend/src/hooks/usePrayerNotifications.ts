@@ -205,9 +205,32 @@ export const usePrayerNotifications = () => {
 
     let unsubscribePrayerRequests: (() => void) | null = null;
     let unsubscribeUserNotifications: (() => void) | null = null;
+    let retryTimeout: NodeJS.Timeout | null = null;
+    let retryCount = 0;
+    const MAX_RETRIES = 5;
+    const RETRY_DELAY = 3000;
 
     const setupSubscriptions = async () => {
       try {
+        // Check if token exists before attempting connection
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          console.warn('No auth token available, waiting for authentication...');
+          // Only retry if we haven't exceeded max retries
+          if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            retryTimeout = setTimeout(() => {
+              setupSubscriptions();
+            }, RETRY_DELAY);
+          } else {
+            console.error('Max retries reached for prayer notification subscriptions');
+          }
+          return;
+        }
+
+        // Reset retry count on successful token check
+        retryCount = 0;
+
         if (!webSocketService.isWebSocketConnected()) {
           await webSocketService.connect();
           // Wait a bit more for connection to be fully established
@@ -227,16 +250,39 @@ export const usePrayerNotifications = () => {
         console.error('Failed to establish prayer notification subscriptions:', error);
         setIsConnected(false);
         
-        // Retry connection after a delay
-        setTimeout(() => {
-          setupSubscriptions();
-        }, 3000);
+        // Check if error is due to missing token
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const isAuthError = errorMessage.includes('Authentication required') || errorMessage.includes('no token found');
+        
+        // Only retry if we haven't exceeded max retries and token should be available
+        if (retryCount < MAX_RETRIES) {
+          const token = localStorage.getItem('authToken');
+          // Only retry if token exists (meaning it's a connection issue, not auth issue)
+          if (token || !isAuthError) {
+            retryCount++;
+            retryTimeout = setTimeout(() => {
+              setupSubscriptions();
+            }, RETRY_DELAY);
+          } else {
+            // If no token and auth error, wait longer and check again
+            retryCount++;
+            retryTimeout = setTimeout(() => {
+              setupSubscriptions();
+            }, RETRY_DELAY * 2); // Wait longer if it's an auth issue
+          }
+        } else {
+          console.error('Max retries reached for prayer notification subscriptions');
+        }
       }
     };
 
     setupSubscriptions();
 
     return () => {
+      // Clear any pending retries
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
       if (unsubscribePrayerRequests) {
         unsubscribePrayerRequests();
       }

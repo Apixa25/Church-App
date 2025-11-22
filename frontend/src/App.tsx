@@ -9,6 +9,7 @@ import RegisterForm from './components/RegisterForm';
 import Dashboard from './components/Dashboard';
 import AuthCallback from './components/AuthCallback';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 import PublicPostPreview from './components/PublicPostPreview';
 import ProfileView from './components/ProfileView';
 import ProfileEdit from './components/ProfileEdit';
@@ -269,18 +270,18 @@ const App: React.FC = () => {
             <Route
               path="/admin"
               element={
-                <ProtectedRoute>
+                <AdminRoute>
                   <AdminDashboard />
-                </ProtectedRoute>
+                </AdminRoute>
               }
             />
 
             <Route
               path="/admin/:tab"
               element={
-                <ProtectedRoute>
+                <AdminRoute>
                   <AdminDashboard />
-                </ProtectedRoute>
+                </AdminRoute>
               }
             />
 

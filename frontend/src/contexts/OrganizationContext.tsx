@@ -91,7 +91,8 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
       setPrimaryMembership(null);
       setSecondaryMemberships([]);
       setAllMemberships([]);
-      setLoading(false);
+      // Keep loading = true because we're waiting for authentication
+      // Don't set loading = false here, or AdminRoute will check too early
       return;
     }
 
