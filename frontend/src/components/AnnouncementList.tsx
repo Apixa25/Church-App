@@ -284,7 +284,7 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
               
               <div className="announcement-content">
                 <h4 className="announcement-title" onClick={() => handleView(announcement)}>
-                  {announcement.title}
+                  {announcement.title.replace(/🏛️/g, '⛪')}
                 </h4>
                 <p className="announcement-text">{announcement.content}</p>
                 {announcement.imageUrl && (
@@ -414,7 +414,7 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
               
               <div className="announcement-content">
                 <h4 className="announcement-title" onClick={() => handleView(announcement)}>
-                  {announcement.title}
+                  {announcement.title.replace(/🏛️/g, '⛪')}
                 </h4>
                 <p className="announcement-text">{announcement.content}</p>
                 {announcement.imageUrl && (
