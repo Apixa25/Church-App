@@ -108,7 +108,12 @@ const EventDetailsPage: React.FC = () => {
               {formatEventDuration(event.startTime, event.endTime) &&
                 ` (${formatEventDuration(event.startTime, event.endTime)})`}
             </p>
-            {event.location && <p className="event-location">📍 {event.location}</p>}
+            {event.location && (
+              <p className="event-location">
+                <span className="location-icon">📍</span>
+                <span className="location-text">{event.location}</span>
+              </p>
+            )}
           </div>
           <div className="header-actions">
             <button className="btn btn-primary btn-sm" onClick={fetchEvent} disabled={refreshing}>

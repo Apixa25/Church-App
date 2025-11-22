@@ -462,6 +462,23 @@ public class PrayerRequestService {
     }
     
     /**
+     * Get active prayer count for a specific organization
+     */
+    public long getActivePrayerCountByOrganization(UUID organizationId) {
+        return prayerRequestRepository.countActiveByOrganizationId(organizationId);
+    }
+    
+    /**
+     * Get answered prayer count for a specific organization
+     */
+    public long getAnsweredPrayerCountByOrganization(UUID organizationId) {
+        // Use count query if available, otherwise use page query
+        return prayerRequestRepository.findByOrganizationIdAndStatus(
+            organizationId, PrayerRequest.PrayerStatus.ANSWERED, PageRequest.of(0, Integer.MAX_VALUE)
+        ).getTotalElements();
+    }
+    
+    /**
      * Get all active prayers for prayer sheet
      * Returns prayers in chronological order (newest first) with full details
      * Respects anonymity settings - only shows anonymous prayers to their owners

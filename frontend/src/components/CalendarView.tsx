@@ -323,7 +323,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                               <p className="event-description">{event.description}</p>
                             )}
                             {event.location && (
-                              <p className="event-location">📍 {event.location}</p>
+                              <p className="event-location">
+                                <span className="location-icon">📍</span>
+                                <span className="location-text">{event.location}</span>
+                              </p>
                             )}
                           </div>
                         </div>

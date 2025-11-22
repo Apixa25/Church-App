@@ -121,4 +121,25 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
         @Param("orgId") UUID orgId,
         @Param("globalOrgId") UUID globalOrgId
     );
+    
+    // ========== SINGLE ORGANIZATION QUERIES (for user dashboard) ==========
+    
+    @Query("SELECT COUNT(u) FROM User u WHERE u.primaryOrganization.id = :orgId")
+    long countByPrimaryOrganizationId(@Param("orgId") UUID orgId);
+    
+    @Query("SELECT COUNT(u) FROM User u WHERE u.primaryOrganization.id = :orgId AND u.createdAt > :since")
+    long countByPrimaryOrganizationIdAndCreatedAtAfter(@Param("orgId") UUID orgId, @Param("since") LocalDateTime since);
+    
+    @Query("SELECT u FROM User u WHERE u.primaryOrganization.id = :orgId AND u.createdAt > :createdAfter ORDER BY u.createdAt DESC")
+    List<User> findByPrimaryOrganizationIdAndCreatedAtAfterOrderByCreatedAtDesc(
+        @Param("orgId") UUID orgId,
+        @Param("createdAfter") LocalDateTime createdAfter,
+        Pageable pageable
+    );
+    
+    @Query("SELECT u FROM User u WHERE u.primaryOrganization.id = :orgId AND u.updatedAt > :updatedAfter AND u.updatedAt != u.createdAt ORDER BY u.updatedAt DESC")
+    List<User> findByPrimaryOrganizationIdAndUpdatedAtAfterAndUpdatedAtNotEqualToCreatedAtOrderByUpdatedAtDesc(
+        @Param("orgId") UUID orgId,
+        @Param("updatedAfter") LocalDateTime updatedAfter
+    );
 }
