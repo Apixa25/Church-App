@@ -47,6 +47,15 @@ public interface OrganizationMetricsHistoryRepository extends JpaRepository<Orga
     List<OrganizationMetricsHistory> findByRecordedAtAfter(@Param("since") LocalDateTime since);
 
     /**
+     * Find history records for multiple organizations since a date
+     */
+    @Query("SELECT h FROM OrganizationMetricsHistory h WHERE h.organization.id IN :orgIds AND h.recordedAt >= :since ORDER BY h.recordedAt ASC")
+    List<OrganizationMetricsHistory> findByOrganizationIdInAndRecordedAtAfter(
+        @Param("orgIds") List<UUID> orgIds,
+        @Param("since") LocalDateTime since
+    );
+
+    /**
      * Find history records for the last N days
      */
     @Query("SELECT h FROM OrganizationMetricsHistory h WHERE " +
