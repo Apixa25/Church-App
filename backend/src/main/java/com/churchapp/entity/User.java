@@ -64,23 +64,23 @@ public class User {
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
     
-    @Column(name = "address_line1", length = 255, nullable = false)
-    private String addressLine1 = "";
+    @Column(name = "address_line1", length = 255)
+    private String addressLine1;
 
     @Column(name = "address_line2", length = 255)
     private String addressLine2;
 
-    @Column(name = "city", length = 100, nullable = false)
-    private String city = "";
+    @Column(name = "city", length = 100)
+    private String city;
 
-    @Column(name = "state_province", length = 100, nullable = false)
-    private String stateProvince = "";
+    @Column(name = "state_province", length = 100)
+    private String stateProvince;
 
-    @Column(name = "postal_code", length = 20, nullable = false)
-    private String postalCode = "";
+    @Column(name = "postal_code", length = 20)
+    private String postalCode;
 
-    @Column(name = "country", length = 100, nullable = false)
-    private String country = "United States";
+    @Column(name = "country", length = 100)
+    private String country;
 
     @Column(name = "latitude", precision = 9, scale = 6)
     private BigDecimal latitude;

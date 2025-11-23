@@ -293,30 +293,7 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
       return false;
     }
 
-    if (!formData.addressLine1.trim()) {
-      setError('Address line 1 is required');
-      return false;
-    }
-
-    if (!formData.city.trim()) {
-      setError('City is required');
-      return false;
-    }
-
-    if (!formData.stateProvince.trim()) {
-      setError('State or province is required');
-      return false;
-    }
-
-    if (!formData.postalCode.trim()) {
-      setError('Postal code is required');
-      return false;
-    }
-
-    if (!formData.country.trim()) {
-      setError('Country is required');
-      return false;
-    }
+    // Address fields are now optional - no validation required
 
     if (formData.latitude.trim() && isNaN(Number(formData.latitude.trim()))) {
       setError('Latitude must be a valid number');
@@ -704,7 +681,7 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="addressLine1">Address Line 1 *</label>
+              <label htmlFor="addressLine1">Address Line 1</label>
               <input
                 id="addressLine1"
                 type="text"
@@ -713,7 +690,6 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
                 placeholder="123 Church Street"
                 maxLength={255}
                 className="form-input"
-                required
               />
             </div>
             <div className="form-group">
@@ -732,7 +708,7 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="city">City *</label>
+              <label htmlFor="city">City</label>
               <input
                 id="city"
                 type="text"
@@ -741,11 +717,10 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
                 placeholder="City"
                 maxLength={100}
                 className="form-input"
-                required
               />
             </div>
             <div className="form-group">
-              <label htmlFor="stateProvince">State / Province *</label>
+              <label htmlFor="stateProvince">State / Province</label>
               <input
                 id="stateProvince"
                 type="text"
@@ -754,14 +729,13 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
                 placeholder="State or province"
                 maxLength={100}
                 className="form-input"
-                required
               />
             </div>
           </div>
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="postalCode">Postal Code *</label>
+              <label htmlFor="postalCode">Postal Code</label>
               <input
                 id="postalCode"
                 type="text"
@@ -770,11 +744,10 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
                 placeholder="ZIP or postal code"
                 maxLength={20}
                 className="form-input"
-                required
               />
             </div>
             <div className="form-group">
-              <label htmlFor="country">Country *</label>
+              <label htmlFor="country">Country</label>
               <input
                 id="country"
                 type="text"
@@ -783,7 +756,6 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
                 placeholder="Country"
                 maxLength={100}
                 className="form-input"
-                required
               />
             </div>
           </div>
