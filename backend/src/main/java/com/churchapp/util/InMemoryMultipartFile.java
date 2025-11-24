@@ -4,6 +4,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -61,7 +62,12 @@ public class InMemoryMultipartFile implements MultipartFile {
 
     @Override
     public void transferTo(File dest) throws IOException, IllegalStateException {
-        throw new UnsupportedOperationException("transferTo not supported for in-memory file");
+        if (content == null) {
+            throw new IllegalStateException("File content is null");
+        }
+        try (FileOutputStream fos = new FileOutputStream(dest)) {
+            fos.write(content);
+        }
     }
 }
 

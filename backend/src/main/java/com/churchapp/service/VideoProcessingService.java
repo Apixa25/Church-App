@@ -89,9 +89,10 @@ public class VideoProcessingService {
             long originalSize = file.getSize();
             double compressionRatio = (double) processedSize / originalSize;
 
-            log.info("Video processed: {} bytes -> {} bytes ({}% reduction, ratio: {:.2f})",
-                    originalSize, processedSize,
-                    Math.round((1 - compressionRatio) * 100), compressionRatio);
+            int reductionPercent = (int) Math.round((1 - compressionRatio) * 100);
+            String compressionRatioFormatted = String.format("%.2f", compressionRatio);
+            log.info("Video processed: {} bytes -> {} bytes ({}% reduction, ratio: {})",
+                    originalSize, processedSize, reductionPercent, compressionRatioFormatted);
 
             return new VideoProcessingResult(
                     processedData,
