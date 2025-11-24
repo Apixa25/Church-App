@@ -1,11 +1,15 @@
 package com.churchapp.service;
 
+import com.churchapp.dto.ProcessingStatus;
+import com.churchapp.entity.MediaFile;
+import com.churchapp.repository.MediaFileRepository;
 import com.churchapp.util.InMemoryMultipartFile;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -32,18 +36,21 @@ public class FileUploadService {
     private final ImageProcessingService imageProcessingService;
     private final VideoProcessingService videoProcessingService;
     private final Executor mediaProcessingExecutor;
+    private final MediaFileRepository mediaFileRepository;
     
     public FileUploadService(
             S3Client s3Client,
             S3Presigner s3Presigner,
             ImageProcessingService imageProcessingService,
             VideoProcessingService videoProcessingService,
-            @Qualifier("mediaProcessingExecutor") Executor mediaProcessingExecutor) {
+            @Qualifier("mediaProcessingExecutor") Executor mediaProcessingExecutor,
+            MediaFileRepository mediaFileRepository) {
         this.s3Client = s3Client;
         this.s3Presigner = s3Presigner;
         this.imageProcessingService = imageProcessingService;
         this.videoProcessingService = videoProcessingService;
         this.mediaProcessingExecutor = mediaProcessingExecutor;
+        this.mediaFileRepository = mediaFileRepository;
     }
     
     @Value("${aws.s3.bucket-name}")
@@ -99,12 +106,24 @@ public class FileUploadService {
             );
             log.info("Original file uploaded: {}", originalUrl);
             
+            // Create MediaFile record to track processing status
+            MediaFile mediaFile = null;
+            if (isImage || isVideo) {
+                mediaFile = createMediaFileRecord(
+                    originalUrl,
+                    file.getContentType(),
+                    file.getOriginalFilename(),
+                    fileBytes.length,
+                    folder
+                );
+            }
+            
             // Process in background if enabled and file type requires processing
-            if (asyncProcessingEnabled && (isImage || isVideo)) {
+            if (asyncProcessingEnabled && (isImage || isVideo) && mediaFile != null) {
                 if (isImage) {
-                    processImageAsync(fileForProcessing, originalUrl, folder);
+                    processImageAsync(fileForProcessing, mediaFile);
                 } else if (isVideo) {
-                    processVideoAsync(fileForProcessing, originalUrl, folder);
+                    processVideoAsync(fileForProcessing, mediaFile);
                 }
             }
             
@@ -143,18 +162,38 @@ public class FileUploadService {
     }
     
     /**
+     * Create MediaFile record to track processing status
+     */
+    @Transactional
+    private MediaFile createMediaFileRecord(String originalUrl, String contentType, 
+                                           String originalFilename, long fileSize, String folder) {
+        MediaFile mediaFile = new MediaFile();
+        mediaFile.setOriginalUrl(originalUrl);
+        mediaFile.setFileType(contentType.startsWith("image/") ? "image" : "video");
+        mediaFile.setProcessingStatus(ProcessingStatus.PENDING);
+        mediaFile.setOriginalSize(fileSize);
+        mediaFile.setFolder(folder);
+        mediaFile.setOriginalFilename(originalFilename);
+        
+        return mediaFileRepository.save(mediaFile);
+    }
+    
+    /**
      * Process image asynchronously
      */
-    private void processImageAsync(MultipartFile file, String originalUrl, String folder) {
+    private void processImageAsync(MultipartFile file, MediaFile mediaFile) {
         mediaProcessingExecutor.execute(() -> {
             try {
-                log.info("Starting async image processing for: {}", originalUrl);
+                log.info("Starting async image processing for: {}", mediaFile.getOriginalUrl());
+                
+                // Mark as processing
+                updateMediaFileStatus(mediaFile.getId(), ProcessingStatus.PROCESSING);
                 
                 // Process image (file is already in memory)
                 var result = imageProcessingService.processImage(file);
                 
                 // Upload optimized version
-                String optimizedKey = folder + "/optimized/" + UUID.randomUUID() + ".jpg";
+                String optimizedKey = mediaFile.getFolder() + "/optimized/" + UUID.randomUUID() + ".jpg";
                 uploadProcessedFile(result.getProcessedImageData(), optimizedKey, "image/jpeg");
                 
                 String optimizedUrl = generateAccessibleUrl(optimizedKey);
@@ -163,14 +202,15 @@ public class FileUploadService {
                     ? (int) Math.round((1 - compressionRatio) * 100) 
                     : 0;
                 log.info("Image processing completed: {} -> {} ({}% reduction)",
-                        originalUrl, optimizedUrl, reductionPercent);
+                        mediaFile.getOriginalUrl(), optimizedUrl, reductionPercent);
                 
-                // TODO: Update database to use optimized URL instead of original
-                // This will be implemented when we add the MediaFile entity
+                // Update MediaFile with optimized URL and mark as completed
+                markMediaFileCompleted(mediaFile.getId(), optimizedUrl, result.getProcessedImageData().length);
                 
             } catch (Exception e) {
-                log.error("Error processing image: {}", originalUrl, e);
-                // Keep original if processing fails
+                log.error("Error processing image: {}", mediaFile.getOriginalUrl(), e);
+                // Mark as failed and keep original
+                markMediaFileFailed(mediaFile.getId(), e.getMessage());
             }
         });
     }
@@ -178,30 +218,67 @@ public class FileUploadService {
     /**
      * Process video asynchronously
      */
-    private void processVideoAsync(MultipartFile file, String originalUrl, String folder) {
+    private void processVideoAsync(MultipartFile file, MediaFile mediaFile) {
         mediaProcessingExecutor.execute(() -> {
             try {
-                log.info("Starting async video processing for: {}", originalUrl);
+                log.info("Starting async video processing for: {}", mediaFile.getOriginalUrl());
+                
+                // Mark as processing
+                updateMediaFileStatus(mediaFile.getId(), ProcessingStatus.PROCESSING);
                 
                 // Process video (file is already in memory)
                 var result = videoProcessingService.processVideo(file);
                 
                 // Upload optimized version
-                String optimizedKey = folder + "/optimized/" + UUID.randomUUID() + ".mp4";
+                String optimizedKey = mediaFile.getFolder() + "/optimized/" + UUID.randomUUID() + ".mp4";
                 uploadProcessedFile(result.getProcessedVideoData(), optimizedKey, "video/mp4");
                 
                 String optimizedUrl = generateAccessibleUrl(optimizedKey);
+                int reductionPercent = (int) Math.round((1 - result.getCompressionRatio()) * 100);
                 log.info("Video processing completed: {} -> {} ({}% reduction)",
-                        originalUrl, optimizedUrl,
-                        Math.round((1 - result.getCompressionRatio()) * 100));
+                        mediaFile.getOriginalUrl(), optimizedUrl, reductionPercent);
                 
-                // TODO: Update database to use optimized URL instead of original
-                // This will be implemented when we add the MediaFile entity
+                // Update MediaFile with optimized URL and mark as completed
+                markMediaFileCompleted(mediaFile.getId(), optimizedUrl, result.getProcessedVideoData().length);
                 
             } catch (Exception e) {
-                log.error("Error processing video: {}", originalUrl, e);
-                // Keep original if processing fails
+                log.error("Error processing video: {}", mediaFile.getOriginalUrl(), e);
+                // Mark as failed and keep original
+                markMediaFileFailed(mediaFile.getId(), e.getMessage());
             }
+        });
+    }
+    
+    /**
+     * Update MediaFile processing status
+     */
+    @Transactional
+    private void updateMediaFileStatus(UUID mediaFileId, ProcessingStatus status) {
+        mediaFileRepository.findById(mediaFileId).ifPresent(mediaFile -> {
+            mediaFile.markProcessingStarted();
+            mediaFileRepository.save(mediaFile);
+        });
+    }
+    
+    /**
+     * Mark MediaFile as completed with optimized URL
+     */
+    @Transactional
+    private void markMediaFileCompleted(UUID mediaFileId, String optimizedUrl, long optimizedSize) {
+        mediaFileRepository.findById(mediaFileId).ifPresent(mediaFile -> {
+            mediaFile.markProcessingCompleted(optimizedUrl, optimizedSize);
+            mediaFileRepository.save(mediaFile);
+        });
+    }
+    
+    /**
+     * Mark MediaFile as failed
+     */
+    @Transactional
+    private void markMediaFileFailed(UUID mediaFileId, String errorMessage) {
+        mediaFileRepository.findById(mediaFileId).ifPresent(mediaFile -> {
+            mediaFile.markProcessingFailed(errorMessage);
+            mediaFileRepository.save(mediaFile);
         });
     }
     
