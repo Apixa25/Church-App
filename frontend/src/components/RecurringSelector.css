@@ -14,12 +14,13 @@
   align-items: center;
   gap: 1rem;
   padding: 1.25rem;
-  background: var(--bg-tertiary);
-  border: 2px solid var(--border-primary);
+  background: var(--bg-tertiary, #1a1a2e);
+  border: 2px solid var(--border-primary, rgba(255, 255, 255, 0.1));
   border-radius: var(--border-radius-lg);
   cursor: pointer;
   transition: all var(--transition-base);
   position: relative;
+  color: var(--text-primary, #ffffff);
 }
 
 .toggle-container:hover {
@@ -68,7 +69,7 @@
 
 .toggle-input:checked + .toggle-slider::before {
   transform: translateY(-50%) translateX(24px);
-  background: white;
+  background: var(--text-primary, #ffffff);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
@@ -138,13 +139,14 @@
   align-items: center;
   gap: 0.75rem;
   padding: 1.5rem;
-  background: var(--bg-tertiary);
-  border: 2px solid var(--border-primary);
+  background: var(--bg-tertiary, #1a1a2e);
+  border: 2px solid var(--border-primary, rgba(255, 255, 255, 0.1));
   border-radius: var(--border-radius-lg);
   cursor: pointer;
   transition: all var(--transition-base);
   text-align: center;
   overflow: hidden;
+  color: var(--text-primary, #ffffff);
 }
 
 .frequency-card::before {
@@ -313,10 +315,11 @@
 
 .info-card {
   padding: 1.5rem;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
+  background: var(--bg-tertiary, #1a1a2e);
+  border: 1px solid var(--border-primary, rgba(255, 255, 255, 0.1));
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-sm);
+  color: var(--text-primary, #ffffff);
 }
 
 .info-card h5 {

@@ -14,12 +14,12 @@
 
 .preset-btn {
   padding: 1rem 0.5rem;
-  background: var(--bg-tertiary);
-  border: 2px solid var(--border-primary);
+  background: var(--bg-tertiary, #1a1a2e);
+  border: 2px solid var(--border-primary, rgba(255, 255, 255, 0.1));
   border-radius: var(--border-radius-md);
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary, #ffffff);
   cursor: pointer;
   transition: all var(--transition-base);
   position: relative;
@@ -75,8 +75,8 @@
   position: relative;
   display: flex;
   align-items: center;
-  background: var(--bg-tertiary);
-  border: 2px solid var(--border-primary);
+  background: var(--bg-tertiary, #1a1a2e);
+  border: 2px solid var(--border-primary, rgba(255, 255, 255, 0.1));
   border-radius: var(--border-radius-md);
   padding: 0.5rem 1rem;
   transition: all var(--transition-base);
@@ -138,10 +138,11 @@
 .amount-info {
   margin-top: 1.5rem;
   padding: 1.25rem;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
+  background: var(--bg-tertiary, #1a1a2e);
+  border: 1px solid var(--border-primary, rgba(255, 255, 255, 0.1));
   border-radius: var(--border-radius-md);
   box-shadow: var(--shadow-sm);
+  color: var(--text-primary, #ffffff);
 }
 
 .selected-amount {

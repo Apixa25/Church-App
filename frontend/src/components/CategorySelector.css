@@ -19,12 +19,13 @@
   align-items: flex-start;
   gap: 1rem;
   padding: 1.5rem;
-  background: var(--bg-tertiary);
-  border: 2px solid var(--border-primary);
+  background: var(--bg-tertiary, #1a1a2e);
+  border: 2px solid var(--border-primary, rgba(255, 255, 255, 0.1));
   border-radius: var(--border-radius-lg);
   cursor: pointer;
   transition: all var(--transition-base);
   overflow: hidden;
+  color: var(--text-primary, #ffffff);
 }
 
 .category-card::before {
@@ -45,10 +46,10 @@
 }
 
 .category-card:hover {
-  background: var(--bg-elevated);
-  border-color: var(--border-glow);
+  background: var(--bg-elevated, #1f1f3a);
+  border-color: var(--border-glow, rgba(91, 127, 255, 0.3));
   transform: translateY(-4px);
-  box-shadow: var(--shadow-lg), 0 0 20px var(--button-primary-glow);
+  box-shadow: var(--shadow-lg, 0 8px 32px rgba(0, 0, 0, 0.6)), 0 0 20px var(--button-primary-glow, rgba(91, 127, 255, 0.4));
 }
 
 .category-card:hover::before {
@@ -56,9 +57,9 @@
 }
 
 .category-card.selected {
-  background: var(--bg-elevated);
-  border-color: var(--accent-primary);
-  box-shadow: var(--shadow-lg), var(--glow-blue);
+  background: var(--bg-elevated, #1f1f3a);
+  border-color: var(--accent-primary, #5b7fff);
+  box-shadow: var(--shadow-lg, 0 8px 32px rgba(0, 0, 0, 0.6)), var(--glow-blue, 0 0 20px rgba(91, 127, 255, 0.5));
   transform: translateY(-4px);
 }
 
@@ -77,8 +78,8 @@
   width: 3.5rem;
   height: 3.5rem;
   border-radius: var(--border-radius-md);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
+  background: var(--bg-secondary, #141420);
+  border: 1px solid var(--border-primary, rgba(255, 255, 255, 0.1));
   transition: all var(--transition-base);
 }
 
@@ -104,7 +105,7 @@
   margin: 0 0 0.5rem 0;
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--text-primary, #ffffff);
   transition: color var(--transition-fast);
 }
 
@@ -119,7 +120,7 @@
   margin: 0;
   font-size: 0.95rem;
   line-height: 1.5;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #e0e0f0);
   transition: color var(--transition-fast);
 }
 
