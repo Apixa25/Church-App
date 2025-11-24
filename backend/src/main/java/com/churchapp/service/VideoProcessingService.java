@@ -6,8 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.bytedeco.javacv.FFmpegFrameRecorder;
 import org.bytedeco.javacv.Frame;
-import static org.bytedeco.javacpp.avcodec.AV_CODEC_ID_H264;
-import static org.bytedeco.javacpp.avcodec.AV_CODEC_ID_AAC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -151,7 +149,8 @@ public class VideoProcessingService {
             grabber.start();
 
             // Configure recorder
-            recorder.setVideoCodec(AV_CODEC_ID_H264);
+            // H264 codec ID = 27, AAC codec ID = 86018
+            recorder.setVideoCodec(27); // AV_CODEC_ID_H264
             recorder.setFormat("mp4");
             recorder.setVideoBitrate(videoBitrate * 1000); // Convert kbps to bps
             recorder.setVideoQuality(0); // Use bitrate instead of quality
@@ -160,7 +159,7 @@ public class VideoProcessingService {
             recorder.setVideoOption("crf", "23"); // Quality setting (lower = better quality)
 
             // Audio settings
-            recorder.setAudioCodec(AV_CODEC_ID_AAC);
+            recorder.setAudioCodec(86018); // AV_CODEC_ID_AAC
             recorder.setAudioBitrate(audioBitrate * 1000);
             recorder.setAudioChannels(2);
             recorder.setSampleRate(44100);
