@@ -23,6 +23,7 @@ public class PostResponseMapper {
 
     private final PostLikeRepository postLikeRepository;
     private final PostBookmarkRepository postBookmarkRepository;
+    private final MediaUrlService mediaUrlService;
 
     public Page<PostResponse> mapPage(Page<Post> posts, UUID viewerId) {
         if (posts == null) {
@@ -45,7 +46,7 @@ public class PostResponseMapper {
 
         if (viewerId == null) {
             return posts.stream()
-                .map(PostResponse::fromEntity)
+                .map(this::mapPostWithOptimizedUrls)
                 .collect(Collectors.toList());
         }
 
@@ -74,7 +75,7 @@ public class PostResponseMapper {
         }
 
         if (viewerId == null) {
-            return PostResponse.fromEntity(post);
+            return mapPostWithOptimizedUrls(post);
         }
 
         boolean liked = postLikeRepository.existsById_PostIdAndId_UserId(post.getId(), viewerId);
@@ -83,9 +84,22 @@ public class PostResponseMapper {
     }
 
     private PostResponse mapPostInternal(Post post, boolean liked, boolean bookmarked) {
-        PostResponse response = PostResponse.fromEntity(post);
+        PostResponse response = mapPostWithOptimizedUrls(post);
         response.setLikedByCurrentUser(liked);
         response.setBookmarkedByCurrentUser(bookmarked);
+        return response;
+    }
+    
+    /**
+     * Map Post to PostResponse with optimized URLs
+     * Uses MediaUrlService to resolve best URLs (optimized if available, original otherwise)
+     */
+    private PostResponse mapPostWithOptimizedUrls(Post post) {
+        PostResponse response = PostResponse.fromEntity(post);
+        // Resolve optimized URLs if available
+        if (response.getMediaUrls() != null && !response.getMediaUrls().isEmpty()) {
+            response.setMediaUrls(mediaUrlService.getBestUrls(response.getMediaUrls()));
+        }
         return response;
     }
 }

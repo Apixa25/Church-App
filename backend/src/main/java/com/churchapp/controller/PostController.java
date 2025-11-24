@@ -45,6 +45,7 @@ public class PostController {
     private final PostResponseMapper postResponseMapper;
     private final PostAnalyticsService postAnalyticsService;
     private final UserRepository userRepository;
+    private final MediaUrlService mediaUrlService;
 
     // ========== POST CRUD OPERATIONS ==========
 
@@ -440,6 +441,10 @@ public class PostController {
             );
 
             CommentResponse response = CommentResponse.fromEntity(comment);
+            // Resolve optimized URLs if available
+            if (response.getMediaUrls() != null && !response.getMediaUrls().isEmpty()) {
+                response.setMediaUrls(mediaUrlService.getBestUrls(response.getMediaUrls()));
+            }
             notificationService.notifyPostComment(postId, UUID.randomUUID(), request.getContent());
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
