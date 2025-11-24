@@ -172,7 +172,7 @@ const Dashboard: React.FC = () => {
           <div className="header-left">
             <h1>
               <span className="wheat-emoji">🌾</span>
-              {primaryMembership?.organizationName || 'The Gathrd'}
+              {primaryMembership?.organizationName || 'The Gathering'}
             </h1>
           </div>
           <div className="user-info">
