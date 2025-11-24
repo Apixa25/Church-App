@@ -43,6 +43,13 @@ public interface PrayerRequestRepository extends JpaRepository<PrayerRequest, UU
     @Query("SELECT pr FROM PrayerRequest pr WHERE pr.status = 'ACTIVE' ORDER BY pr.createdAt DESC")
     List<PrayerRequest> findAllActivePrayersList();
     
+    // Find all active prayers by organization as list (for prayer sheet)
+    @Query("SELECT pr FROM PrayerRequest pr WHERE " +
+           "pr.organization.id = :orgId " +
+           "AND pr.status = 'ACTIVE' " +
+           "ORDER BY pr.createdAt DESC")
+    List<PrayerRequest> findAllActiveByOrganizationId(@Param("orgId") UUID orgId);
+    
     // Search prayers by title or description
     @Query("SELECT pr FROM PrayerRequest pr WHERE " +
            "LOWER(pr.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
