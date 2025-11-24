@@ -42,7 +42,15 @@ public class ImageProcessingService {
      * @throws IOException If processing fails
      */
     public ImageProcessingResult processImage(MultipartFile file) throws IOException {
-        log.info("Processing image: {} ({} bytes)", file.getOriginalFilename(), file.getSize());
+        // Get original size BEFORE reading stream (important!)
+        long originalSize = file.getSize();
+        if (originalSize <= 0) {
+            // Fallback: try to get size from bytes if getSize() returns 0
+            byte[] fileBytes = file.getBytes();
+            originalSize = fileBytes.length;
+            log.warn("File.getSize() returned 0, using byte array length: {} bytes", originalSize);
+        }
+        log.info("Processing image: {} ({} bytes)", file.getOriginalFilename(), originalSize);
 
         // Read original image
         BufferedImage originalImage = ImageIO.read(file.getInputStream());
@@ -52,7 +60,6 @@ public class ImageProcessingService {
 
         int originalWidth = originalImage.getWidth();
         int originalHeight = originalImage.getHeight();
-        long originalSize = file.getSize();
 
         log.debug("Original image dimensions: {}x{}", originalWidth, originalHeight);
 
@@ -82,11 +89,16 @@ public class ImageProcessingService {
 
         byte[] processedData = outputStream.toByteArray();
         long processedSize = processedData.length;
-        double compressionRatio = (double) processedSize / originalSize;
+        
+        // Calculate compression metrics
+        double compressionRatio = originalSize > 0 ? (double) processedSize / originalSize : 1.0;
+        int reductionPercent = originalSize > 0 ? (int) Math.round((1 - compressionRatio) * 100) : 0;
+        
+        // Format compression ratio for logging
+        String compressionRatioStr = String.format("%.2f", compressionRatio);
 
-        log.info("Image processed: {} bytes -> {} bytes ({}% reduction, ratio: {:.2f})",
-                originalSize, processedSize, 
-                Math.round((1 - compressionRatio) * 100), compressionRatio);
+        log.info("Image processed: {} bytes -> {} bytes ({}% reduction, ratio: {})",
+                originalSize, processedSize, reductionPercent, compressionRatioStr);
 
         return new ImageProcessingResult(
                 processedData,

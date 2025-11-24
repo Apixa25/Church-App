@@ -6,6 +6,7 @@ import com.churchapp.repository.PostRepository;
 import com.churchapp.repository.PostViewRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -53,8 +54,14 @@ public class PostAnalyticsService {
         postView.setViewerId(viewerId); // Can be null for anonymous views
         postView.setTimeSpentSeconds(0);
 
-        postViewRepository.save(postView);
-        log.debug("Recorded post view: post={}, viewer={}", postId, viewerId);
+        try {
+            postViewRepository.save(postView);
+            log.debug("Recorded post view: post={}, viewer={}", postId, viewerId);
+        } catch (DataIntegrityViolationException e) {
+            // Handle race condition: another thread may have inserted the same view
+            // This is expected behavior when multiple requests happen simultaneously
+            log.debug("Post view already recorded (race condition handled): post={}, viewer={}", postId, viewerId);
+        }
     }
 
     /**

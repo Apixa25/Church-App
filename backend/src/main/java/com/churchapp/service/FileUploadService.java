@@ -1,5 +1,6 @@
 package com.churchapp.service;
 
+import com.churchapp.util.InMemoryMultipartFile;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -67,16 +68,30 @@ public class FileUploadService {
             boolean isImage = contentType != null && contentType.startsWith("image/");
             boolean isVideo = contentType != null && contentType.startsWith("video/");
             
+            // Read file into memory BEFORE uploading (so we can reuse for processing)
+            // This is necessary because MultipartFile streams can only be read once
+            byte[] fileBytes = file.getBytes();
+            MultipartFile fileForProcessing = new InMemoryMultipartFile(
+                file.getOriginalFilename(),
+                file.getContentType(),
+                fileBytes
+            );
+            
             // Upload original to S3 immediately (fast response)
-            String originalUrl = uploadOriginalFile(file, folder);
+            String originalUrl = uploadOriginalFileFromBytes(
+                fileBytes, 
+                file.getContentType(), 
+                file.getOriginalFilename(),
+                folder
+            );
             log.info("Original file uploaded: {}", originalUrl);
             
             // Process in background if enabled and file type requires processing
             if (asyncProcessingEnabled && (isImage || isVideo)) {
                 if (isImage) {
-                    processImageAsync(file, originalUrl, folder);
+                    processImageAsync(fileForProcessing, originalUrl, folder);
                 } else if (isVideo) {
-                    processVideoAsync(file, originalUrl, folder);
+                    processVideoAsync(fileForProcessing, originalUrl, folder);
                 }
             }
             
@@ -91,26 +106,25 @@ public class FileUploadService {
     }
     
     /**
-     * Upload original file to S3 (synchronous, fast)
+     * Upload original file to S3 from bytes (synchronous, fast)
      */
-    private String uploadOriginalFile(MultipartFile file, String folder) throws IOException {
-        String originalFilename = file.getOriginalFilename();
+    private String uploadOriginalFileFromBytes(byte[] fileBytes, String contentType, String originalFilename, String folder) {
         String fileExtension = getFileExtension(originalFilename);
         String uniqueFilename = UUID.randomUUID().toString() + fileExtension;
         String key = folder + "/originals/" + uniqueFilename;
         
         log.info("Uploading original file to S3: bucket={}, key={}, size={}", 
-                bucketName, key, file.getSize());
+                bucketName, key, fileBytes.length);
         
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(key)
-                .contentType(file.getContentType())
-                .contentLength(file.getSize())
+                .contentType(contentType)
+                .contentLength((long) fileBytes.length)
                 .build();
         
         s3Client.putObject(putObjectRequest, 
-                RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+                RequestBody.fromInputStream(new ByteArrayInputStream(fileBytes), fileBytes.length));
         
         return generateAccessibleUrl(key);
     }
@@ -123,7 +137,7 @@ public class FileUploadService {
             try {
                 log.info("Starting async image processing for: {}", originalUrl);
                 
-                // Process image
+                // Process image (file is already in memory)
                 var result = imageProcessingService.processImage(file);
                 
                 // Upload optimized version
@@ -131,9 +145,12 @@ public class FileUploadService {
                 uploadProcessedFile(result.getProcessedImageData(), optimizedKey, "image/jpeg");
                 
                 String optimizedUrl = generateAccessibleUrl(optimizedKey);
+                double compressionRatio = result.getCompressionRatio();
+                int reductionPercent = compressionRatio > 0 && compressionRatio <= 1.0 
+                    ? (int) Math.round((1 - compressionRatio) * 100) 
+                    : 0;
                 log.info("Image processing completed: {} -> {} ({}% reduction)",
-                        originalUrl, optimizedUrl,
-                        Math.round((1 - result.getCompressionRatio()) * 100));
+                        originalUrl, optimizedUrl, reductionPercent);
                 
                 // TODO: Update database to use optimized URL instead of original
                 // This will be implemented when we add the MediaFile entity
@@ -153,7 +170,7 @@ public class FileUploadService {
             try {
                 log.info("Starting async video processing for: {}", originalUrl);
                 
-                // Process video
+                // Process video (file is already in memory)
                 var result = videoProcessingService.processVideo(file);
                 
                 // Upload optimized version
