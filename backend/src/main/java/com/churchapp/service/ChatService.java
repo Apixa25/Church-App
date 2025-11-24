@@ -34,6 +34,7 @@ public class ChatService {
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final FileUploadService fileUploadService;
+    private final MediaUrlService mediaUrlService;
     
     // ==================== CHAT GROUP OPERATIONS ====================
     
@@ -288,8 +289,9 @@ public class ChatService {
         
         message = messageRepository.save(message);
         
-        MessageResponse response = MessageResponse.fromEntityWithUserContext(
-            message, message.canBeEditedBy(user), message.canBeDeletedBy(user));
+        MessageResponse response = resolveMessageResponse(
+            MessageResponse.fromEntityWithUserContext(
+                message, message.canBeEditedBy(user), message.canBeDeletedBy(user)));
         response.setTempId(request.getTempId());
         
         // Update last read for sender
@@ -319,8 +321,9 @@ public class ChatService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "timestamp"));
         Page<Message> messages = messageRepository.findByChatGroupAndIsDeletedFalseOrderByTimestampDesc(chatGroup, pageable);
         
-        return messages.map(message -> MessageResponse.fromEntityWithUserContext(
-            message, message.canBeEditedBy(user), message.canBeDeletedBy(user)));
+        return messages.map(message -> resolveMessageResponse(
+            MessageResponse.fromEntityWithUserContext(
+                message, message.canBeEditedBy(user), message.canBeDeletedBy(user))));
     }
     
     @Transactional
@@ -336,8 +339,9 @@ public class ChatService {
         message.edit(newContent);
         message = messageRepository.save(message);
         
-        MessageResponse response = MessageResponse.fromEntityWithUserContext(
-            message, true, message.canBeDeletedBy(user));
+        MessageResponse response = resolveMessageResponse(
+            MessageResponse.fromEntityWithUserContext(
+                message, true, message.canBeDeletedBy(user)));
         
         // Notify group members of edit
         notifyGroupMessage(message.getChatGroup(), response);
@@ -438,8 +442,9 @@ public class ChatService {
         
         // Convert to responses
         List<MessageResponse> messageResponses = messages.stream()
-            .map(message -> MessageResponse.fromEntityWithUserContext(
-                message, message.canBeEditedBy(user), message.canBeDeletedBy(user)))
+            .map(message -> resolveMessageResponse(
+                MessageResponse.fromEntityWithUserContext(
+                    message, message.canBeEditedBy(user), message.canBeDeletedBy(user))))
             .collect(Collectors.toList());
         
         long searchTime = System.currentTimeMillis() - startTime;
@@ -517,6 +522,17 @@ public class ChatService {
     private List<Message> applySearchFilters(List<Message> messages, ChatSearchRequest request) {
         // Apply date filters, message type filters, etc.
         return messages; // Placeholder
+    }
+    
+    /**
+     * Resolve optimized media URL for MessageResponse
+     * Returns optimized URL if available, otherwise returns original URL
+     */
+    private MessageResponse resolveMessageResponse(MessageResponse response) {
+        if (response != null && response.getMediaUrl() != null) {
+            response.setMediaUrl(mediaUrlService.getBestUrl(response.getMediaUrl()));
+        }
+        return response;
     }
     
     // Inner class for WebSocket notifications
