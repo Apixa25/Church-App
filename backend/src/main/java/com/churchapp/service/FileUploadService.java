@@ -2,6 +2,7 @@ package com.churchapp.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,17 +16,34 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 import java.time.Duration;
+import java.util.concurrent.Executor;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class FileUploadService {
     
     private final S3Client s3Client;
     private final S3Presigner s3Presigner;
+    private final ImageProcessingService imageProcessingService;
+    private final VideoProcessingService videoProcessingService;
+    private final Executor mediaProcessingExecutor;
+    
+    public FileUploadService(
+            S3Client s3Client,
+            S3Presigner s3Presigner,
+            ImageProcessingService imageProcessingService,
+            VideoProcessingService videoProcessingService,
+            @Qualifier("mediaProcessingExecutor") Executor mediaProcessingExecutor) {
+        this.s3Client = s3Client;
+        this.s3Presigner = s3Presigner;
+        this.imageProcessingService = imageProcessingService;
+        this.videoProcessingService = videoProcessingService;
+        this.mediaProcessingExecutor = mediaProcessingExecutor;
+    }
     
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
@@ -33,40 +51,149 @@ public class FileUploadService {
     @Value("${aws.region}")
     private String region;
     
+    @Value("${media.processing.async.enabled:true}")
+    private boolean asyncProcessingEnabled;
+    
+    /**
+     * Upload file with async processing (Facebook/X approach)
+     * Uploads original immediately, processes in background
+     */
     public String uploadFile(MultipartFile file, String folder) {
         try {
             // Validate file
             validateFile(file);
             
-            // Generate unique filename
-            String originalFilename = file.getOriginalFilename();
-            String fileExtension = getFileExtension(originalFilename);
-            String uniqueFilename = UUID.randomUUID().toString() + fileExtension;
-            String key = folder + "/" + uniqueFilename;
+            String contentType = file.getContentType();
+            boolean isImage = contentType != null && contentType.startsWith("image/");
+            boolean isVideo = contentType != null && contentType.startsWith("video/");
             
-            log.info("Attempting to upload file to S3: bucket={}, region={}, key={}", bucketName, region, key);
+            // Upload original to S3 immediately (fast response)
+            String originalUrl = uploadOriginalFile(file, folder);
+            log.info("Original file uploaded: {}", originalUrl);
             
-            // Upload to S3 (without ACL since bucket doesn't allow ACLs)
-            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(key)
-                    .contentType(file.getContentType())
-                    .contentLength(file.getSize())
-                    // Removed ACL since bucket doesn't allow it - public access controlled by bucket policy
-                    .build();
+            // Process in background if enabled and file type requires processing
+            if (asyncProcessingEnabled && (isImage || isVideo)) {
+                if (isImage) {
+                    processImageAsync(file, originalUrl, folder);
+                } else if (isVideo) {
+                    processVideoAsync(file, originalUrl, folder);
+                }
+            }
             
-            s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
-            
-            // Return either public URL or pre-signed URL based on configuration
-            String fileUrl = generateAccessibleUrl(key);
-            log.info("File uploaded successfully: {}", fileUrl);
-            
-            return fileUrl;
+            // Return original URL immediately (user can continue)
+            return originalUrl;
             
         } catch (Exception e) {
             log.error("Error uploading file to S3 - bucket: {}, region: {}", bucketName, region, e);
             log.error("Exception details: {}", e.getMessage());
             throw new RuntimeException("Failed to upload file: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Upload original file to S3 (synchronous, fast)
+     */
+    private String uploadOriginalFile(MultipartFile file, String folder) throws IOException {
+        String originalFilename = file.getOriginalFilename();
+        String fileExtension = getFileExtension(originalFilename);
+        String uniqueFilename = UUID.randomUUID().toString() + fileExtension;
+        String key = folder + "/originals/" + uniqueFilename;
+        
+        log.info("Uploading original file to S3: bucket={}, key={}, size={}", 
+                bucketName, key, file.getSize());
+        
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .contentType(file.getContentType())
+                .contentLength(file.getSize())
+                .build();
+        
+        s3Client.putObject(putObjectRequest, 
+                RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+        
+        return generateAccessibleUrl(key);
+    }
+    
+    /**
+     * Process image asynchronously
+     */
+    private void processImageAsync(MultipartFile file, String originalUrl, String folder) {
+        mediaProcessingExecutor.execute(() -> {
+            try {
+                log.info("Starting async image processing for: {}", originalUrl);
+                
+                // Process image
+                var result = imageProcessingService.processImage(file);
+                
+                // Upload optimized version
+                String optimizedKey = folder + "/optimized/" + UUID.randomUUID() + ".jpg";
+                uploadProcessedFile(result.getProcessedImageData(), optimizedKey, "image/jpeg");
+                
+                String optimizedUrl = generateAccessibleUrl(optimizedKey);
+                log.info("Image processing completed: {} -> {} ({}% reduction)",
+                        originalUrl, optimizedUrl,
+                        Math.round((1 - result.getCompressionRatio()) * 100));
+                
+                // TODO: Update database to use optimized URL instead of original
+                // This will be implemented when we add the MediaFile entity
+                
+            } catch (Exception e) {
+                log.error("Error processing image: {}", originalUrl, e);
+                // Keep original if processing fails
+            }
+        });
+    }
+    
+    /**
+     * Process video asynchronously
+     */
+    private void processVideoAsync(MultipartFile file, String originalUrl, String folder) {
+        mediaProcessingExecutor.execute(() -> {
+            try {
+                log.info("Starting async video processing for: {}", originalUrl);
+                
+                // Process video
+                var result = videoProcessingService.processVideo(file);
+                
+                // Upload optimized version
+                String optimizedKey = folder + "/optimized/" + UUID.randomUUID() + ".mp4";
+                uploadProcessedFile(result.getProcessedVideoData(), optimizedKey, "video/mp4");
+                
+                String optimizedUrl = generateAccessibleUrl(optimizedKey);
+                log.info("Video processing completed: {} -> {} ({}% reduction)",
+                        originalUrl, optimizedUrl,
+                        Math.round((1 - result.getCompressionRatio()) * 100));
+                
+                // TODO: Update database to use optimized URL instead of original
+                // This will be implemented when we add the MediaFile entity
+                
+            } catch (Exception e) {
+                log.error("Error processing video: {}", originalUrl, e);
+                // Keep original if processing fails
+            }
+        });
+    }
+    
+    /**
+     * Upload processed file to S3
+     */
+    private void uploadProcessedFile(byte[] data, String key, String contentType) {
+        try {
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .contentType(contentType)
+                    .contentLength((long) data.length)
+                    .build();
+            
+            s3Client.putObject(putObjectRequest, 
+                    RequestBody.fromInputStream(new ByteArrayInputStream(data), data.length));
+            
+            log.debug("Processed file uploaded: {}", key);
+        } catch (Exception e) {
+            log.error("Error uploading processed file: {}", key, e);
+            throw new RuntimeException("Failed to upload processed file", e);
         }
     }
     
@@ -94,29 +221,45 @@ public class FileUploadService {
             throw new IllegalArgumentException("File is empty");
         }
         
-        // Check file size (10MB limit)
-        long maxSize = 10 * 1024 * 1024; // 10MB
-        if (file.getSize() > maxSize) {
-            throw new IllegalArgumentException("File size exceeds maximum limit of 10MB");
+        String contentType = file.getContentType();
+        
+        // Different size limits by type (server will compress)
+        if (contentType != null && contentType.startsWith("video/")) {
+            long maxVideoSize = 100 * 1024 * 1024; // 100MB (server will compress to ~5-8MB)
+            if (file.getSize() > maxVideoSize) {
+                throw new IllegalArgumentException("Video file size exceeds maximum limit of 100MB");
+            }
+        } else if (contentType != null && contentType.startsWith("image/")) {
+            long maxImageSize = 20 * 1024 * 1024; // 20MB (server will compress to ~1-2MB)
+            if (file.getSize() > maxImageSize) {
+                throw new IllegalArgumentException("Image file size exceeds maximum limit of 20MB");
+            }
+        } else {
+            // Audio and documents
+            long maxSize = 10 * 1024 * 1024; // 10MB
+            if (file.getSize() > maxSize) {
+                throw new IllegalArgumentException("File size exceeds maximum limit of 10MB");
+            }
         }
         
         // Check file type - allow images, videos, audio, and documents
-        String contentType = file.getContentType();
         if (contentType == null || !isAllowedFileType(contentType)) {
-            throw new IllegalArgumentException("File type not supported. Allowed types: images (JPEG, PNG, GIF, WebP), videos (MP4, WebM), audio (MP3, WAV, OGG), documents (PDF, DOC, DOCX, TXT)");
+            throw new IllegalArgumentException("File type not supported. Allowed types: images (JPEG, PNG, GIF, WebP, HEIC, HEIF), videos (MP4, WebM, MOV), audio (MP3, WAV, OGG), documents (PDF, DOC, DOCX, TXT)");
         }
     }
     
     private boolean isAllowedFileType(String contentType) {
-        // Images
+        // Images (including HEIC/HEIF for iPhone)
         if (contentType.equals("image/jpeg") || contentType.equals("image/jpg") ||
             contentType.equals("image/png") || contentType.equals("image/gif") ||
-            contentType.equals("image/webp")) {
+            contentType.equals("image/webp") ||
+            contentType.equals("image/heic") || contentType.equals("image/heif")) {
             return true;
         }
         
-        // Videos
-        if (contentType.equals("video/mp4") || contentType.equals("video/webm")) {
+        // Videos (including MOV for iPhone)
+        if (contentType.equals("video/mp4") || contentType.equals("video/webm") ||
+            contentType.equals("video/quicktime")) { // MOV files
             return true;
         }
         
