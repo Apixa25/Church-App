@@ -290,11 +290,10 @@ public class PrayerRequestController {
     }
     
     @GetMapping("/stats")
-    public ResponseEntity<?> getPrayerStats() {
+    public ResponseEntity<?> getPrayerStats(@AuthenticationPrincipal User user) {
         try {
-            Map<String, Object> stats = new HashMap<>();
-            stats.put("activePrayerCount", prayerRequestService.getActivePrayerCount());
-            stats.put("answeredPrayerCount", prayerRequestService.getAnsweredPrayerCount());
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            Map<String, Long> stats = prayerRequestService.getPrayerStatsForUser(currentProfile.getUserId());
             return ResponseEntity.ok(stats);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();

@@ -23,7 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -479,12 +481,40 @@ public class PrayerRequestService {
     }
     
     /**
+     * Get prayer statistics for a user's organization
+     */
+    public Map<String, Long> getPrayerStatsForUser(UUID requestingUserId) {
+        User user = userRepository.findById(requestingUserId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Use primary organization or fall back to Global Organization
+        UUID organizationId = (user.getPrimaryOrganization() != null)
+            ? user.getPrimaryOrganization().getId()
+            : GLOBAL_ORG_ID;
+
+        Map<String, Long> stats = new HashMap<>();
+        stats.put("activePrayerCount", getActivePrayerCountByOrganization(organizationId));
+        stats.put("answeredPrayerCount", getAnsweredPrayerCountByOrganization(organizationId));
+        return stats;
+    }
+    
+    /**
      * Get all active prayers for prayer sheet
      * Returns prayers in chronological order (newest first) with full details
      * Respects anonymity settings - only shows anonymous prayers to their owners
+     * Filters by user's organization
      */
     public List<PrayerRequestResponse> getActivePrayersForSheet(UUID requestingUserId) {
-        List<PrayerRequest> activePrayers = prayerRequestRepository.findAllActivePrayersList();
+        User user = userRepository.findById(requestingUserId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Use primary organization or fall back to Global Organization
+        UUID organizationId = (user.getPrimaryOrganization() != null)
+            ? user.getPrimaryOrganization().getId()
+            : GLOBAL_ORG_ID;
+
+        // Get active prayers from user's organization only
+        List<PrayerRequest> activePrayers = prayerRequestRepository.findAllActiveByOrganizationId(organizationId);
         
         return activePrayers.stream()
                 .filter(prayer -> {
