@@ -55,6 +55,19 @@ public class FileUploadService {
     @Value("${media.processing.async.enabled:true}")
     private boolean asyncProcessingEnabled;
     
+    // File size limits (configurable)
+    @Value("${media.upload.video.max-size:78643200}") // 75MB default
+    private long maxVideoSize;
+    
+    @Value("${media.upload.image.max-size:20971520}") // 20MB default
+    private long maxImageSize;
+    
+    @Value("${media.upload.audio.max-size:10485760}") // 10MB default
+    private long maxAudioSize;
+    
+    @Value("${media.upload.document.max-size:10485760}") // 10MB default
+    private long maxDocumentSize;
+    
     /**
      * Upload file with async processing (Facebook/X approach)
      * Uploads original immediately, processes in background
@@ -239,23 +252,37 @@ public class FileUploadService {
         }
         
         String contentType = file.getContentType();
+        long fileSize = file.getSize();
         
         // Different size limits by type (server will compress)
         if (contentType != null && contentType.startsWith("video/")) {
-            long maxVideoSize = 100 * 1024 * 1024; // 100MB (server will compress to ~5-8MB)
-            if (file.getSize() > maxVideoSize) {
-                throw new IllegalArgumentException("Video file size exceeds maximum limit of 100MB");
+            if (fileSize > maxVideoSize) {
+                throw new IllegalArgumentException(
+                    String.format("Video file size (%.2f MB) exceeds maximum limit of %.2f MB", 
+                        fileSize / (1024.0 * 1024.0), maxVideoSize / (1024.0 * 1024.0))
+                );
             }
         } else if (contentType != null && contentType.startsWith("image/")) {
-            long maxImageSize = 20 * 1024 * 1024; // 20MB (server will compress to ~1-2MB)
-            if (file.getSize() > maxImageSize) {
-                throw new IllegalArgumentException("Image file size exceeds maximum limit of 20MB");
+            if (fileSize > maxImageSize) {
+                throw new IllegalArgumentException(
+                    String.format("Image file size (%.2f MB) exceeds maximum limit of %.2f MB", 
+                        fileSize / (1024.0 * 1024.0), maxImageSize / (1024.0 * 1024.0))
+                );
+            }
+        } else if (contentType != null && contentType.startsWith("audio/")) {
+            if (fileSize > maxAudioSize) {
+                throw new IllegalArgumentException(
+                    String.format("Audio file size (%.2f MB) exceeds maximum limit of %.2f MB", 
+                        fileSize / (1024.0 * 1024.0), maxAudioSize / (1024.0 * 1024.0))
+                );
             }
         } else {
-            // Audio and documents
-            long maxSize = 10 * 1024 * 1024; // 10MB
-            if (file.getSize() > maxSize) {
-                throw new IllegalArgumentException("File size exceeds maximum limit of 10MB");
+            // Documents and other types
+            if (fileSize > maxDocumentSize) {
+                throw new IllegalArgumentException(
+                    String.format("File size (%.2f MB) exceeds maximum limit of %.2f MB", 
+                        fileSize / (1024.0 * 1024.0), maxDocumentSize / (1024.0 * 1024.0))
+                );
             }
         }
         
