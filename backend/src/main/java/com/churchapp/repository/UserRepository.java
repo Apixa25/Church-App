@@ -94,10 +94,11 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
     Long sumWarningCountsInOrganizations(@Param("orgIds") List<UUID> orgIds);
 
     // Organization-scoped DM candidates with optional query and pagination
+    // NOTE: Updated to use churchPrimaryOrganization for Dual Primary System
     @Query("""
         SELECT u
         FROM User u
-        WHERE u.primaryOrganization.id = :orgId
+        WHERE u.churchPrimaryOrganization.id = :orgId
           AND u.id <> :excludeUserId
           AND (
                 :qLike IS NULL
@@ -110,36 +111,50 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
                                    @Param("qLike") String qLike,
                                    Pageable pageable);
 
-    @Query("SELECT u.primaryOrganization.id FROM User u WHERE u.id = :userId")
-    UUID findPrimaryOrgIdByUserId(@Param("userId") UUID userId);
+    @Query("SELECT u.churchPrimaryOrganization.id FROM User u WHERE u.id = :userId")
+    UUID findChurchPrimaryOrgIdByUserId(@Param("userId") UUID userId);
+    
+    @Query("SELECT u.familyPrimaryOrganization.id FROM User u WHERE u.id = :userId")
+    UUID findFamilyPrimaryOrgIdByUserId(@Param("userId") UUID userId);
 
-    // Update users' primary organization to Global when their org is deleted
+    // Update users' church primary organization to Global when their org is deleted
     @Modifying
-    @Query(value = "UPDATE users SET primary_organization_id = :globalOrgId " +
-           "WHERE primary_organization_id = :orgId", nativeQuery = true)
-    void updatePrimaryOrganizationToGlobal(
+    @Query(value = "UPDATE users SET church_primary_organization_id = :globalOrgId " +
+           "WHERE church_primary_organization_id = :orgId", nativeQuery = true)
+    void updateChurchPrimaryOrganizationToGlobal(
         @Param("orgId") UUID orgId,
         @Param("globalOrgId") UUID globalOrgId
     );
     
+    // Clear family primary when family org is deleted (no global fallback for families)
+    @Modifying
+    @Query(value = "UPDATE users SET family_primary_organization_id = NULL " +
+           "WHERE family_primary_organization_id = :orgId", nativeQuery = true)
+    void clearFamilyPrimaryOrganization(@Param("orgId") UUID orgId);
+    
     // ========== SINGLE ORGANIZATION QUERIES (for user dashboard) ==========
+    // NOTE: Updated to use churchPrimaryOrganization for Dual Primary System
     
-    @Query("SELECT COUNT(u) FROM User u WHERE u.primaryOrganization.id = :orgId")
-    long countByPrimaryOrganizationId(@Param("orgId") UUID orgId);
+    @Query("SELECT COUNT(u) FROM User u WHERE u.churchPrimaryOrganization.id = :orgId")
+    long countByChurchPrimaryOrganizationId(@Param("orgId") UUID orgId);
     
-    @Query("SELECT COUNT(u) FROM User u WHERE u.primaryOrganization.id = :orgId AND u.createdAt > :since")
-    long countByPrimaryOrganizationIdAndCreatedAtAfter(@Param("orgId") UUID orgId, @Param("since") LocalDateTime since);
+    @Query("SELECT COUNT(u) FROM User u WHERE u.churchPrimaryOrganization.id = :orgId AND u.createdAt > :since")
+    long countByChurchPrimaryOrganizationIdAndCreatedAtAfter(@Param("orgId") UUID orgId, @Param("since") LocalDateTime since);
     
-    @Query("SELECT u FROM User u WHERE u.primaryOrganization.id = :orgId AND u.createdAt > :createdAfter ORDER BY u.createdAt DESC")
-    List<User> findByPrimaryOrganizationIdAndCreatedAtAfterOrderByCreatedAtDesc(
+    @Query("SELECT u FROM User u WHERE u.churchPrimaryOrganization.id = :orgId AND u.createdAt > :createdAfter ORDER BY u.createdAt DESC")
+    List<User> findByChurchPrimaryOrganizationIdAndCreatedAtAfterOrderByCreatedAtDesc(
         @Param("orgId") UUID orgId,
         @Param("createdAfter") LocalDateTime createdAfter,
         Pageable pageable
     );
     
-    @Query("SELECT u FROM User u WHERE u.primaryOrganization.id = :orgId AND u.updatedAt > :updatedAfter AND u.updatedAt != u.createdAt ORDER BY u.updatedAt DESC")
-    List<User> findByPrimaryOrganizationIdAndUpdatedAtAfterAndUpdatedAtNotEqualToCreatedAtOrderByUpdatedAtDesc(
+    @Query("SELECT u FROM User u WHERE u.churchPrimaryOrganization.id = :orgId AND u.updatedAt > :updatedAfter AND u.updatedAt != u.createdAt ORDER BY u.updatedAt DESC")
+    List<User> findByChurchPrimaryOrganizationIdAndUpdatedAtAfterAndUpdatedAtNotEqualToCreatedAtOrderByUpdatedAtDesc(
         @Param("orgId") UUID orgId,
         @Param("updatedAfter") LocalDateTime updatedAfter
     );
+    
+    // Family organization queries
+    @Query("SELECT COUNT(u) FROM User u WHERE u.familyPrimaryOrganization.id = :orgId")
+    long countByFamilyPrimaryOrganizationId(@Param("orgId") UUID orgId);
 }

@@ -62,10 +62,10 @@ public class DashboardService {
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minus(30, ChronoUnit.DAYS);
         Pageable recentUsersPageable = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"));
         
-        // Only show users from same organization
+        // Only show users from same organization (using church primary for org context)
         List<User> recentUsers;
         if (organizationId != null) {
-            recentUsers = userRepository.findByPrimaryOrganizationIdAndCreatedAtAfterOrderByCreatedAtDesc(
+            recentUsers = userRepository.findByChurchPrimaryOrganizationIdAndCreatedAtAfterOrderByCreatedAtDesc(
                 organizationId, thirtyDaysAgo, recentUsersPageable);
         } else {
             // Social-only users - show empty or global org users
@@ -85,7 +85,7 @@ public class DashboardService {
         LocalDateTime sevenDaysAgo = LocalDateTime.now().minus(7, ChronoUnit.DAYS);
         List<User> recentlyUpdated;
         if (organizationId != null) {
-            recentlyUpdated = userRepository.findByPrimaryOrganizationIdAndUpdatedAtAfterAndUpdatedAtNotEqualToCreatedAtOrderByUpdatedAtDesc(
+            recentlyUpdated = userRepository.findByChurchPrimaryOrganizationIdAndUpdatedAtAfterAndUpdatedAtNotEqualToCreatedAtOrderByUpdatedAtDesc(
                 organizationId, sevenDaysAgo);
         } else {
             recentlyUpdated = new ArrayList<>();
@@ -203,10 +203,10 @@ public class DashboardService {
         long newMembersThisWeek = 0L;
         
         if (organizationId != null) {
-            // Count members of this organization only
-            totalMembers = userRepository.countByPrimaryOrganizationId(organizationId);
+            // Count members of this organization only (using church primary for org context)
+            totalMembers = userRepository.countByChurchPrimaryOrganizationId(organizationId);
             LocalDateTime oneWeekAgo = LocalDateTime.now().minus(7, ChronoUnit.DAYS);
-            newMembersThisWeek = userRepository.countByPrimaryOrganizationIdAndCreatedAtAfter(organizationId, oneWeekAgo);
+            newMembersThisWeek = userRepository.countByChurchPrimaryOrganizationIdAndCreatedAtAfter(organizationId, oneWeekAgo);
         }
         
         // Get prayer statistics - FILTER BY ORG
