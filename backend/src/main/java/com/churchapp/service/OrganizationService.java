@@ -232,9 +232,10 @@ public class OrganizationService {
         log.info("Deleting user organization history for organization: {}", orgId);
         historyRepository.deleteByOrganizationId(orgId);
         
-        // 10. Update users with this as primary org (set to Global)
+        // 10. Update users with this as primary org (set to Global for church, clear for family)
         log.info("Updating users' primary organization to Global for organization: {}", orgId);
-        userRepository.updatePrimaryOrganizationToGlobal(orgId, GLOBAL_ORG_ID);
+        userRepository.updateChurchPrimaryOrganizationToGlobal(orgId, GLOBAL_ORG_ID);
+        userRepository.clearFamilyPrimaryOrganization(orgId);
         
         // 11. Soft delete the organization
         org.setDeletedAt(LocalDateTime.now());

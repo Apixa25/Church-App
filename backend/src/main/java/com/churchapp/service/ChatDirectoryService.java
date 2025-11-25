@@ -31,7 +31,8 @@ public class ChatDirectoryService {
     public Page<User> getDmCandidatesForUser(UUID requesterId,
                                              String query,
                                              Pageable pageable) {
-        UUID primaryOrgId = userRepository.findPrimaryOrgIdByUserId(requesterId);
+        // Use church primary org for DM candidate lookup
+        UUID primaryOrgId = userRepository.findChurchPrimaryOrgIdByUserId(requesterId);
         if (primaryOrgId == null) {
             return Page.empty(pageable);
         }
