@@ -400,8 +400,9 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
     );
   }
 
-  const displayName = primaryMembership?.organizationName || 'No Organization';
-  const displayIcon = primaryMembership ? '🏛️' : '👤';
+  // Updated text: "Find Organization" instead of "No Organization" to encourage discovery
+  const displayName = primaryMembership?.organizationName || '🔍 Find Organization';
+  const displayIcon = primaryMembership ? '🏛️' : '🔍';
 
   const dropdownContent = isOpen && (
     <DropdownPortal ref={dropdownRef} isOpen={isOpen} top={dropdownPosition.top} left={dropdownPosition.left}>

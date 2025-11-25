@@ -375,7 +375,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
                 }}
                 className="organization-select"
               >
-                <option value="">Global Feed (No Organization)</option>
+                <option value="">🌐 Global Feed (All Organizations)</option>
                 {allMemberships.map(membership => (
                   <option key={membership.id} value={membership.organizationId}>
                     {membership.organizationName}

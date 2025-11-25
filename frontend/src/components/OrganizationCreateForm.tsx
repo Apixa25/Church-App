@@ -12,7 +12,7 @@ interface OrganizationCreateFormProps {
 const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({ onSuccess, onCancel }) => {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
-  const [type, setType] = useState<'CHURCH' | 'MINISTRY' | 'NONPROFIT'>('CHURCH');
+  const [type, setType] = useState<'CHURCH' | 'MINISTRY' | 'NONPROFIT' | 'FAMILY' | 'GENERAL'>('CHURCH');
   const [description, setDescription] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -205,10 +205,17 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({ onSucce
             onChange={(e) => setType(e.target.value as any)}
             disabled={isSubmitting}
           >
-            <option value="CHURCH">Church</option>
-            <option value="MINISTRY">Ministry</option>
-            <option value="NONPROFIT">Nonprofit</option>
+            <option value="CHURCH">⛪ Church</option>
+            <option value="MINISTRY">🙏 Ministry</option>
+            <option value="NONPROFIT">💝 Non-Profit</option>
+            <option value="FAMILY">🏠 Family</option>
+            <option value="GENERAL">🌐 General</option>
           </Select>
+          <HelpText>
+            {type === 'FAMILY' 
+              ? '🏠 Family organizations are for family groups - users can set this as their Family Primary'
+              : '⛪ Church, Ministry, Non-Profit, and General can be set as a user\'s Church Primary'}
+          </HelpText>
         </FormGroup>
 
         <FormGroup>

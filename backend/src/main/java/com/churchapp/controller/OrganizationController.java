@@ -398,13 +398,149 @@ public class OrganizationController {
         return ResponseEntity.ok(response);
     }
 
+    // ========================================================================
+    // DUAL PRIMARY ORGANIZATION SYSTEM
+    // ========================================================================
+
+    /**
+     * Set organization as Church Primary
+     * Church Primary slot accepts: CHURCH, MINISTRY, NONPROFIT, GENERAL
+     */
+    @PostMapping("/{orgId}/set-church-primary")
+    public ResponseEntity<MembershipResponse> setChurchPrimary(
+            @PathVariable UUID orgId,
+            @AuthenticationPrincipal User userDetails) {
+
+        UUID userId = getUserId(userDetails);
+        log.info("User {} setting Church Primary to organization {}", userId, orgId);
+
+        UserOrganizationMembership membership = organizationService.setChurchPrimary(userId, orgId);
+
+        MembershipResponse response = MembershipResponse.fromOrgMembership(membership);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Set organization as Family Primary
+     * Family Primary slot accepts: FAMILY only
+     */
+    @PostMapping("/{orgId}/set-family-primary")
+    public ResponseEntity<MembershipResponse> setFamilyPrimary(
+            @PathVariable UUID orgId,
+            @AuthenticationPrincipal User userDetails) {
+
+        UUID userId = getUserId(userDetails);
+        log.info("User {} setting Family Primary to organization {}", userId, orgId);
+
+        UserOrganizationMembership membership = organizationService.setFamilyPrimary(userId, orgId);
+
+        MembershipResponse response = MembershipResponse.fromOrgMembership(membership);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Join organization as Group (social feed only access)
+     */
+    @PostMapping("/{orgId}/join-as-group")
+    public ResponseEntity<MembershipResponse> joinAsGroup(
+            @PathVariable UUID orgId,
+            @AuthenticationPrincipal User userDetails) {
+
+        UUID userId = getUserId(userDetails);
+        log.info("User {} joining organization {} as Group (social feed only)", userId, orgId);
+
+        UserOrganizationMembership membership = organizationService.joinAsGroup(userId, orgId);
+
+        MembershipResponse response = MembershipResponse.fromOrgMembership(membership);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Clear Church Primary (demote to Group)
+     */
+    @DeleteMapping("/my-church-primary")
+    public ResponseEntity<Void> clearChurchPrimary(
+            @AuthenticationPrincipal User userDetails) {
+
+        UUID userId = getUserId(userDetails);
+        log.info("User {} clearing Church Primary", userId);
+
+        organizationService.clearChurchPrimary(userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Clear Family Primary (demote to Group)
+     */
+    @DeleteMapping("/my-family-primary")
+    public ResponseEntity<Void> clearFamilyPrimary(
+            @AuthenticationPrincipal User userDetails) {
+
+        UUID userId = getUserId(userDetails);
+        log.info("User {} clearing Family Primary", userId);
+
+        organizationService.clearFamilyPrimary(userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Get user's Church Primary membership
+     */
+    @GetMapping("/my-memberships/church-primary")
+    public ResponseEntity<MembershipResponse> getMyChurchPrimaryMembership(
+            @AuthenticationPrincipal User userDetails) {
+
+        UUID userId = getUserId(userDetails);
+        return organizationService.getChurchPrimaryMembership(userId)
+            .map(membership -> ResponseEntity.ok(MembershipResponse.fromOrgMembership(membership)))
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Get user's Family Primary membership
+     */
+    @GetMapping("/my-memberships/family-primary")
+    public ResponseEntity<MembershipResponse> getMyFamilyPrimaryMembership(
+            @AuthenticationPrincipal User userDetails) {
+
+        UUID userId = getUserId(userDetails);
+        return organizationService.getFamilyPrimaryMembership(userId)
+            .map(membership -> ResponseEntity.ok(MembershipResponse.fromOrgMembership(membership)))
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Get user's Group memberships (non-primary organizations)
+     */
+    @GetMapping("/my-memberships/groups")
+    public ResponseEntity<List<MembershipResponse>> getMyGroupMemberships(
+            @AuthenticationPrincipal User userDetails) {
+
+        UUID userId = getUserId(userDetails);
+        List<UserOrganizationMembership> memberships = organizationService.getGroupMemberships(userId);
+
+        List<MembershipResponse> response = memberships.stream()
+            .map(MembershipResponse::fromOrgMembership)
+            .collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
+    }
+
+    // ========================================================================
+    // LEGACY ENDPOINTS (Backward compatibility - deprecated)
+    // ========================================================================
+
+    /**
+     * @deprecated Use setChurchPrimary() instead. This now delegates to setChurchPrimary.
+     */
+    @Deprecated
     @PostMapping("/{orgId}/switch-primary")
     public ResponseEntity<MembershipResponse> switchPrimaryOrganization(
             @PathVariable UUID orgId,
             @AuthenticationPrincipal User userDetails) {
 
         UUID userId = getUserId(userDetails);
-        log.info("User {} switching primary organization to {}", userId, orgId);
+        log.info("User {} using legacy switch-primary (now maps to set-church-primary) for {}", userId, orgId);
 
         UserOrganizationMembership membership = organizationService.switchPrimaryOrganization(userId, orgId);
 
@@ -412,24 +548,26 @@ public class OrganizationController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * @deprecated No more cooldown - always returns true
+     */
+    @Deprecated
     @GetMapping("/switch-primary/can-switch")
     public ResponseEntity<Boolean> canSwitchPrimaryOrganization(
             @AuthenticationPrincipal User userDetails) {
 
-        UUID userId = getUserId(userDetails);
-        boolean canSwitch = organizationService.canSwitchPrimaryOrganization(userId);
-
-        return ResponseEntity.ok(canSwitch);
+        return ResponseEntity.ok(true); // No more cooldown!
     }
 
+    /**
+     * @deprecated No more cooldown - always returns 0
+     */
+    @Deprecated
     @GetMapping("/switch-primary/days-until")
     public ResponseEntity<Long> getDaysUntilCanSwitch(
             @AuthenticationPrincipal User userDetails) {
 
-        UUID userId = getUserId(userDetails);
-        long days = organizationService.getDaysUntilCanSwitch(userId);
-
-        return ResponseEntity.ok(days);
+        return ResponseEntity.ok(0L); // No more cooldown!
     }
 
     // ========================================================================

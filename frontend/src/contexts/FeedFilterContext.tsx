@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import axios from 'axios';
 import { useAuth } from './AuthContext';
 import { useOrganization } from './OrganizationContext';
+import { useActiveContext } from './ActiveContextContext';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
 
@@ -53,7 +54,11 @@ interface FeedFilterProviderProps {
 
 export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children }) => {
   const { token, isAuthenticated } = useAuth();
-  const { primaryMembership, secondaryMemberships } = useOrganization();
+  // Use the new dual-primary system
+  const { churchPrimary, familyPrimary, groups, hasChurchPrimary, hasFamilyPrimary } = useOrganization();
+  // Get active context for context-aware filtering
+  const { activeContext, activeOrganizationId } = useActiveContext();
+  
   const [preference, setPreference] = useState<FeedPreference | null>(null);
   const [feedParameters, setFeedParameters] = useState<FeedParameters | null>(null);
   const [visibleGroupIds, setVisibleGroupIds] = useState<string[]>([]);
@@ -61,8 +66,13 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
   const [secondaryOrgIds, setSecondaryOrgIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Derive hasPrimaryOrg from OrganizationContext instead of API call
-  const hasPrimaryOrg = primaryMembership !== null;
+  // Derive hasPrimaryOrg - now means user has either Church or Family primary
+  const hasPrimaryOrg = hasChurchPrimary || hasFamilyPrimary;
+  
+  // Legacy compatibility: primaryMembership maps to churchPrimary
+  const primaryMembership = churchPrimary;
+  // Legacy compatibility: secondaryMemberships maps to groups
+  const secondaryMemberships = groups;
 
   // Axios instance with auth
   const api = axios.create({
@@ -70,20 +80,39 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
-  // Update primaryOrgId and secondaryOrgIds from OrganizationContext
+  // Update primaryOrgId and secondaryOrgIds based on active context (DUAL PRIMARY SYSTEM)
+  // When PRIMARY_ONLY filter is active, use the active context's organization
   useEffect(() => {
-    if (primaryMembership) {
-      setPrimaryOrgId(primaryMembership.organizationId);
+    // Primary org is determined by active context (Church or Family)
+    if (activeOrganizationId) {
+      setPrimaryOrgId(activeOrganizationId);
+    } else if (churchPrimary) {
+      // Fallback to church primary if no active context set
+      setPrimaryOrgId(churchPrimary.organizationId);
+    } else if (familyPrimary) {
+      // Fallback to family primary
+      setPrimaryOrgId(familyPrimary.organizationId);
     } else {
       setPrimaryOrgId(null);
     }
 
-    if (secondaryMemberships && secondaryMemberships.length > 0) {
-      setSecondaryOrgIds(secondaryMemberships.map(m => m.organizationId));
-    } else {
-      setSecondaryOrgIds([]);
+    // Secondary orgs include the "other" primary (if not active) plus all groups
+    const secondaryIds: string[] = [];
+    
+    // Add the non-active primary as secondary
+    if (activeContext === 'church' && familyPrimary) {
+      secondaryIds.push(familyPrimary.organizationId);
+    } else if (activeContext === 'family' && churchPrimary) {
+      secondaryIds.push(churchPrimary.organizationId);
     }
-  }, [primaryMembership, secondaryMemberships]);
+    
+    // Add all group memberships
+    if (groups && groups.length > 0) {
+      secondaryIds.push(...groups.map(m => m.organizationId));
+    }
+    
+    setSecondaryOrgIds(secondaryIds);
+  }, [activeContext, activeOrganizationId, churchPrimary, familyPrimary, groups]);
 
   // Fetch feed preference and parameters
   const fetchPreference = async () => {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
+import { useActiveContext } from '../contexts/ActiveContextContext';
 import { useNavigate } from 'react-router-dom';
 import dashboardApi, { DashboardResponse } from '../services/dashboardApi';
 import ActivityFeed from './ActivityFeed';
@@ -14,13 +15,27 @@ import SearchComponent from './SearchComponent';
 import QuickDonationWidget from './QuickDonationWidget';
 import ClickableAvatar from './ClickableAvatar';
 import FeedFilterSelector from './FeedFilterSelector';
+import ContextSwitcher from './ContextSwitcher';
 import { FeedType } from '../types/Post';
 import PullToRefresh from './PullToRefresh';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
   const { user, logout, updateUser } = useAuth();
-  const { primaryMembership } = useOrganization();
+  // Dual Primary System - use both organization context and active context
+  const { churchPrimary, familyPrimary, hasChurchPrimary, hasFamilyPrimary } = useOrganization();
+  const { 
+    activeContext, 
+    activeMembership, 
+    activeOrganizationName, 
+    activeOrganizationLogo,
+    hasAnyPrimary,
+    showContextSwitcher 
+  } = useActiveContext();
+  
+  // Legacy compatibility: primaryMembership maps to the currently active context
+  const primaryMembership = activeMembership;
+  
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -86,8 +101,8 @@ const Dashboard: React.FC = () => {
     refreshUserData();
   }, [user, updateUser]);
 
-  // Check if user has primary organization (used to optimize API calls)
-  const hasPrimaryOrg = primaryMembership !== null;
+  // Check if user has any primary organization (Church OR Family) - used to optimize API calls
+  const hasPrimaryOrg = hasAnyPrimary;
 
   const fetchDashboardData = async () => {
     try {
@@ -139,15 +154,19 @@ const Dashboard: React.FC = () => {
     }
   }, [hasPrimaryOrg, feedView]);
 
-  // Determine if this is "The Gathering" global organization
-  const isGatheringGlobal = primaryMembership?.organizationType === 'GLOBAL' || 
-                            primaryMembership?.organizationName?.includes('The Gathering') ||
-                            primaryMembership?.organizationName?.includes('Gathering Community');
+  // Determine if this is "The Gathering" global organization (no active context)
+  const isGatheringGlobal = activeContext === 'gathering' ||
+                            activeMembership?.organizationType === 'GLOBAL' || 
+                            activeOrganizationName?.includes('The Gathering') ||
+                            activeOrganizationName?.includes('Gathering Community');
   
-  // Use organization logo as background if available and not The Gathering
-  const bannerImageUrl = primaryMembership?.organizationLogoUrl && !isGatheringGlobal 
-    ? primaryMembership.organizationLogoUrl 
+  // Use active context's organization logo as background if available and not The Gathering
+  const bannerImageUrl = activeOrganizationLogo && !isGatheringGlobal 
+    ? activeOrganizationLogo 
     : '/dashboard-banner.jpg';
+    
+  // Get display name for header - uses active context
+  const displayOrgName = activeOrganizationName || 'The Gathering';
 
   return (
     <div className="dashboard-container">
@@ -175,8 +194,10 @@ const Dashboard: React.FC = () => {
           <div className="header-left">
             <h1>
               <span className="wheat-emoji">🌾</span>
-              {primaryMembership?.organizationName || 'The Gathering'}
+              {displayOrgName}
             </h1>
+            {/* Context Switcher - only shows when user has both Church and Family primaries */}
+            {showContextSwitcher && <ContextSwitcher />}
           </div>
           <div className="user-info">
             <div className="user-details">

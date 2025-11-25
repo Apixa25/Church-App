@@ -142,16 +142,21 @@ public class User {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
-    // Multi-tenant organization fields
+    // Multi-tenant organization fields - Dual Primary System
+    // Church Primary: Can hold CHURCH, MINISTRY, NONPROFIT, GENERAL type organizations
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "primary_organization_id")
-    private Organization primaryOrganization;
+    @JoinColumn(name = "church_primary_organization_id")
+    private Organization churchPrimaryOrganization;
+
+    // Family Primary: Can hold FAMILY type organizations only
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "family_primary_organization_id")
+    private Organization familyPrimaryOrganization;
 
     @Column(name = "created_via", length = 100)
     private String createdVia; // App slug that user signed up through
 
-    @Column(name = "last_org_switch_at")
-    private LocalDateTime lastOrgSwitchAt;
+    // Note: lastOrgSwitchAt removed - no more cooldown! Users can switch freely like real life!
 
     // Donation relationships
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -164,5 +169,49 @@ public class User {
         USER,           // Regular user (renamed from MEMBER for clarity)
         MODERATOR,      // Platform-level content moderator
         PLATFORM_ADMIN  // System administrator - Master of Everything!
+    }
+
+    // ========================================================================
+    // BACKWARD COMPATIBILITY & HELPER METHODS
+    // ========================================================================
+
+    /**
+     * Backward compatibility: Returns church primary organization.
+     * This allows existing code that calls getPrimaryOrganization() to still work.
+     * @deprecated Use getChurchPrimaryOrganization() instead
+     */
+    @Deprecated
+    public Organization getPrimaryOrganization() {
+        return churchPrimaryOrganization;
+    }
+
+    /**
+     * Backward compatibility: Sets church primary organization.
+     * @deprecated Use setChurchPrimaryOrganization() instead
+     */
+    @Deprecated
+    public void setPrimaryOrganization(Organization org) {
+        this.churchPrimaryOrganization = org;
+    }
+
+    /**
+     * Check if user has any primary organization (church OR family)
+     */
+    public boolean hasAnyPrimaryOrganization() {
+        return churchPrimaryOrganization != null || familyPrimaryOrganization != null;
+    }
+
+    /**
+     * Check if user has a church-type primary organization
+     */
+    public boolean hasChurchPrimary() {
+        return churchPrimaryOrganization != null;
+    }
+
+    /**
+     * Check if user has a family-type primary organization
+     */
+    public boolean hasFamilyPrimary() {
+        return familyPrimaryOrganization != null;
     }
 }

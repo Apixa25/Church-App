@@ -451,10 +451,12 @@ const AdminOrganizationManagement: React.FC = () => {
         />
         <FilterSelect value={filterType} onChange={(e) => setFilterType(e.target.value)}>
           <option value="ALL">All Types</option>
-          <option value="CHURCH">Churches</option>
-          <option value="MINISTRY">Ministries</option>
-          <option value="NONPROFIT">Nonprofits</option>
-          <option value="GLOBAL">Global</option>
+          <option value="CHURCH">⛪ Churches</option>
+          <option value="MINISTRY">🙏 Ministries</option>
+          <option value="NONPROFIT">💝 Nonprofits</option>
+          <option value="FAMILY">🏠 Families</option>
+          <option value="GENERAL">🌐 General</option>
+          <option value="GLOBAL">🌍 Global</option>
         </FilterSelect>
       </Controls>
 
