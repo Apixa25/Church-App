@@ -478,20 +478,33 @@ const dashboardApi = {
     ];
   },
 
-  getDashboardWithAll: async (): Promise<DashboardResponse> => {
+  /**
+   * Get dashboard data with all features.
+   * @param hasPrimaryOrgOverride - Optional: If you already know whether the user has a primary org
+   *                                 (e.g., from OrganizationContext), pass it here to skip the API check.
+   *                                 This prevents unnecessary 404 errors for users without a primary org.
+   */
+  getDashboardWithAll: async (hasPrimaryOrgOverride?: boolean): Promise<DashboardResponse> => {
     try {
       // Get the main dashboard data
       const dashboardResponse = await api.get('/dashboard');
       const dashboardData = dashboardResponse.data;
 
       // Check if user has primary organization
+      // If caller already knows (from OrganizationContext), use that to avoid 404 errors
       let hasPrimaryOrg = false;
-      try {
-        const primaryOrgResponse = await api.get('/organizations/my-memberships/primary');
-        hasPrimaryOrg = primaryOrgResponse.data !== null && primaryOrgResponse.data !== undefined;
-      } catch (error) {
-        // If endpoint fails, assume no primary org
-        hasPrimaryOrg = false;
+      if (hasPrimaryOrgOverride !== undefined) {
+        // Use the value passed from the caller (e.g., Dashboard component knows from OrganizationContext)
+        hasPrimaryOrg = hasPrimaryOrgOverride;
+      } else {
+        // Fallback: check via API (may result in 404 for users without primary org)
+        try {
+          const primaryOrgResponse = await api.get('/organizations/my-memberships/primary');
+          hasPrimaryOrg = primaryOrgResponse.data !== null && primaryOrgResponse.data !== undefined;
+        } catch (error) {
+          // If endpoint fails, assume no primary org
+          hasPrimaryOrg = false;
+        }
       }
 
       // Get all activity items in parallel - use allSettled for resilience

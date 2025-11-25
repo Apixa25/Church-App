@@ -86,12 +86,16 @@ const Dashboard: React.FC = () => {
     refreshUserData();
   }, [user, updateUser]);
 
+  // Check if user has primary organization (used to optimize API calls)
+  const hasPrimaryOrg = primaryMembership !== null;
+
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
       setError(null);
       // Use enhanced dashboard service that includes all features (prayers, announcements, events)
-      const data = await dashboardApi.getDashboardWithAll();
+      // Pass hasPrimaryOrg to avoid unnecessary 404 errors for users without a primary org
+      const data = await dashboardApi.getDashboardWithAll(hasPrimaryOrg);
       setDashboardData(data);
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
@@ -126,8 +130,7 @@ const Dashboard: React.FC = () => {
   };
 
 
-  // Check if user has primary organization
-  const hasPrimaryOrg = primaryMembership !== null;
+  // Note: hasPrimaryOrg is defined earlier in the component for API optimization
 
   // Ensure social-only users default to social feed
   useEffect(() => {
