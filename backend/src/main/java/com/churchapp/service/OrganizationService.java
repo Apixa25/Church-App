@@ -29,6 +29,7 @@ public class OrganizationService {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final PrayerRequestRepository prayerRequestRepository;
+    private final PrayerInteractionRepository prayerInteractionRepository;
     private final EventRepository eventRepository;
     private final AnnouncementRepository announcementRepository;
     private final DonationRepository donationRepository;
@@ -200,44 +201,49 @@ public class OrganizationService {
         log.info("Deleting posts for organization: {}", orgId);
         postRepository.deleteByOrganizationId(orgId);
         
-        // 2. Delete all prayer requests
+        // 2. Delete all prayer interactions (must be deleted BEFORE prayer requests due to FK constraint)
+        log.info("Deleting prayer interactions for organization: {}", orgId);
+        prayerInteractionRepository.deleteRepliesByOrganizationId(orgId);  // Delete replies first
+        prayerInteractionRepository.deleteTopLevelInteractionsByOrganizationId(orgId);  // Then top-level
+        
+        // 3. Delete all prayer requests
         log.info("Deleting prayer requests for organization: {}", orgId);
         prayerRequestRepository.deleteByOrganizationId(orgId);
         
-        // 3. Delete all events
+        // 4. Delete all events
         log.info("Deleting events for organization: {}", orgId);
         eventRepository.deleteByOrganizationId(orgId);
         
-        // 4. Delete all announcements
+        // 5. Delete all announcements
         log.info("Deleting announcements for organization: {}", orgId);
         announcementRepository.deleteByOrganizationId(orgId);
         
-        // 5. Delete all donations
+        // 6. Delete all donations
         log.info("Deleting donations for organization: {}", orgId);
         donationRepository.deleteByOrganizationId(orgId);
         
-        // 6. Delete all donation subscriptions
+        // 7. Delete all donation subscriptions
         log.info("Deleting donation subscriptions for organization: {}", orgId);
         donationSubscriptionRepository.deleteByOrganizationId(orgId);
         
-        // 7. Delete all groups created by organization
+        // 8. Delete all groups created by organization
         log.info("Deleting groups for organization: {}", orgId);
         groupRepository.deleteByOrganizationId(orgId);
         
-        // 8. Delete all user organization memberships
+        // 9. Delete all user organization memberships
         log.info("Deleting user organization memberships for organization: {}", orgId);
         membershipRepository.deleteByOrganizationId(orgId);
         
-        // 9. Delete user organization history (both from and to)
+        // 10. Delete user organization history (both from and to)
         log.info("Deleting user organization history for organization: {}", orgId);
         historyRepository.deleteByOrganizationId(orgId);
         
-        // 10. Update users with this as primary org (set to Global for church, clear for family)
+        // 11. Update users with this as primary org (set to Global for church, clear for family)
         log.info("Updating users' primary organization to Global for organization: {}", orgId);
         userRepository.updateChurchPrimaryOrganizationToGlobal(orgId, GLOBAL_ORG_ID);
         userRepository.clearFamilyPrimaryOrganization(orgId);
         
-        // 11. Soft delete the organization
+        // 12. Soft delete the organization
         org.setDeletedAt(LocalDateTime.now());
         org.setStatus(Organization.OrganizationStatus.CANCELLED);
         organizationRepository.save(org);

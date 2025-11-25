@@ -108,4 +108,14 @@ public interface PrayerInteractionRepository extends JpaRepository<PrayerInterac
     @Modifying(clearAutomatically = true)
     @Query("DELETE FROM PrayerInteraction pi WHERE pi.prayerRequest.id = :prayerRequestId AND pi.parentInteraction IS NULL")
     void deleteTopLevelInteractionsByPrayerRequestId(@Param("prayerRequestId") UUID prayerRequestId);
+    
+    // Bulk delete all interactions for an organization (for org deletion)
+    // Delete replies first, then top-level interactions
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM PrayerInteraction pi WHERE pi.prayerRequest.organization.id = :orgId AND pi.parentInteraction IS NOT NULL")
+    void deleteRepliesByOrganizationId(@Param("orgId") UUID orgId);
+    
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM PrayerInteraction pi WHERE pi.prayerRequest.organization.id = :orgId AND pi.parentInteraction IS NULL")
+    void deleteTopLevelInteractionsByOrganizationId(@Param("orgId") UUID orgId);
 }
