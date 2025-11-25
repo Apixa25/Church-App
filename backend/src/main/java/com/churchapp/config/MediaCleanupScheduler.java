@@ -41,7 +41,7 @@ public class MediaCleanupScheduler {
      * Retry failed processing jobs
      * Runs every 6 hours to check for retryable failed processing
      * 
-     * Cron: "0 0 */6 * * *" = Every 6 hours
+     * Cron: "0 0 *\/6 * * *" = Every 6 hours
      */
     @Scheduled(cron = "0 0 */6 * * *")
     public void retryFailedProcessing() {

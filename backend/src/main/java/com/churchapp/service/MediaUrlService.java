@@ -31,29 +31,35 @@ public class MediaUrlService {
      * @param originalUrl The original URL (may be from MediaFile or direct URL)
      * @return The best URL to use (optimized if available, original otherwise)
      */
-    @Transactional(readOnly = true)
     public String getBestUrl(String originalUrl) {
         if (originalUrl == null || originalUrl.isEmpty()) {
             return originalUrl;
         }
         
-        // Try to find MediaFile by original URL
-        Optional<MediaFile> mediaFileOpt = mediaFileRepository.findByOriginalUrl(originalUrl);
-        
-        if (mediaFileOpt.isPresent()) {
-            MediaFile mediaFile = mediaFileOpt.get();
+        try {
+            // Try to find MediaFile by original URL
+            Optional<MediaFile> mediaFileOpt = mediaFileRepository.findByOriginalUrl(originalUrl);
             
-            // If processing is completed and optimized URL exists, use it
-            if (mediaFile.getProcessingStatus() == ProcessingStatus.COMPLETED 
-                && mediaFile.getOptimizedUrl() != null 
-                && !mediaFile.getOptimizedUrl().isEmpty()) {
-                log.debug("Using optimized URL for: {} -> {}", originalUrl, mediaFile.getOptimizedUrl());
-                return mediaFile.getOptimizedUrl();
+            if (mediaFileOpt.isPresent()) {
+                MediaFile mediaFile = mediaFileOpt.get();
+                
+                // If processing is completed and optimized URL exists, use it
+                if (mediaFile.getProcessingStatus() == ProcessingStatus.COMPLETED 
+                    && mediaFile.getOptimizedUrl() != null 
+                    && !mediaFile.getOptimizedUrl().isEmpty()) {
+                    log.debug("Using optimized URL for: {} -> {}", originalUrl, mediaFile.getOptimizedUrl());
+                    return mediaFile.getOptimizedUrl();
+                }
+                
+                // Otherwise, use original URL (processing pending, failed, or no optimized version)
+                log.debug("Using original URL (status: {}): {}", mediaFile.getProcessingStatus(), originalUrl);
+                return originalUrl;
             }
-            
-            // Otherwise, use original URL (processing pending, failed, or no optimized version)
-            log.debug("Using original URL (status: {}): {}", mediaFile.getProcessingStatus(), originalUrl);
-            return originalUrl;
+        } catch (Exception e) {
+            // If MediaFile table doesn't exist yet or any other error, fall back to original URL
+            // This ensures backward compatibility during migration
+            log.warn("Error looking up MediaFile for URL: {}, using original URL. Error: {}", originalUrl, e.getMessage());
+            return originalUrl; // Return original URL on any error
         }
         
         // No MediaFile found - this is likely an old URL or non-processed file
@@ -69,7 +75,6 @@ public class MediaUrlService {
      * @param originalUrls List of original URLs
      * @return List of best URLs (optimized if available, original otherwise)
      */
-    @Transactional(readOnly = true)
     public List<String> getBestUrls(List<String> originalUrls) {
         if (originalUrls == null || originalUrls.isEmpty()) {
             return new ArrayList<>();
@@ -77,7 +82,13 @@ public class MediaUrlService {
         
         List<String> bestUrls = new ArrayList<>();
         for (String originalUrl : originalUrls) {
-            bestUrls.add(getBestUrl(originalUrl));
+            try {
+                bestUrls.add(getBestUrl(originalUrl));
+            } catch (Exception e) {
+                // If any URL fails, use original URL for that item
+                log.warn("Error resolving URL: {}, using original. Error: {}", originalUrl, e.getMessage());
+                bestUrls.add(originalUrl);
+            }
         }
         return bestUrls;
     }
