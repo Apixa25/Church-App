@@ -6,6 +6,7 @@ import com.churchapp.entity.PostComment;
 import com.churchapp.repository.UserRepository;
 import com.churchapp.service.FeedService;
 import com.churchapp.service.FileUploadService;
+import com.churchapp.service.MediaUrlService;
 import com.churchapp.service.NotificationService;
 import com.churchapp.service.PostAnalyticsService;
 import com.churchapp.service.PostInteractionService;
