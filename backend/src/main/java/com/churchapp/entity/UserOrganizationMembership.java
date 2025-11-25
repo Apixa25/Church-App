@@ -44,6 +44,10 @@ public class UserOrganizationMembership {
     @Column(name = "role", nullable = false, length = 20)
     private OrgRole role = OrgRole.MEMBER;
 
+    // Slot type for dual-primary system: CHURCH, FAMILY, or GROUP
+    @Column(name = "slot_type", length = 20)
+    private String slotType;
+
     @Column(name = "joined_at", nullable = false)
     private LocalDateTime joinedAt;
 

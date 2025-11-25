@@ -5,6 +5,7 @@ import { WebSocketProvider } from './contexts/WebSocketContext';
 import { OrganizationProvider } from './contexts/OrganizationContext';
 import { GroupProvider } from './contexts/GroupContext';
 import { FeedFilterProvider } from './contexts/FeedFilterContext';
+import { ActiveContextProvider } from './contexts/ActiveContextContext';
 import LoginForm from './components/LoginForm';
 import RegisterForm from './components/RegisterForm';
 import Dashboard from './components/Dashboard';
@@ -41,9 +42,10 @@ const App: React.FC = () => {
     <AuthProvider>
       <WebSocketProvider>
         <OrganizationProvider>
-          <GroupProvider>
-            <FeedFilterProvider>
-              <Router>
+          <ActiveContextProvider>
+            <GroupProvider>
+              <FeedFilterProvider>
+                <Router>
                 <GlobalSearchProvider>
                   <div className="App">
                     {/* WebSocket status is now shown on the profile picture in Dashboard */}
@@ -355,8 +357,9 @@ const App: React.FC = () => {
                   </div>
                 </GlobalSearchProvider>
               </Router>
-            </FeedFilterProvider>
-          </GroupProvider>
+              </FeedFilterProvider>
+            </GroupProvider>
+          </ActiveContextProvider>
         </OrganizationProvider>
       </WebSocketProvider>
     </AuthProvider>

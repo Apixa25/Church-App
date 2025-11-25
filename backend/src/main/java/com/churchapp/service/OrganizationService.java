@@ -35,8 +35,22 @@ public class OrganizationService {
     private final DonationSubscriptionRepository donationSubscriptionRepository;
     private final GroupRepository groupRepository;
 
-    private static final int ORG_SWITCH_COOLDOWN_DAYS = 30;
+    // Cooldown removed! Users can now switch organizations freely like real life!
+    // private static final int ORG_SWITCH_COOLDOWN_DAYS = 30;  // DEPRECATED - no more cooldown
     private static final UUID GLOBAL_ORG_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    
+    // Organization types that can be Church Primary
+    private static final java.util.Set<Organization.OrganizationType> CHURCH_SLOT_TYPES = java.util.Set.of(
+        Organization.OrganizationType.CHURCH,
+        Organization.OrganizationType.MINISTRY,
+        Organization.OrganizationType.NONPROFIT,
+        Organization.OrganizationType.GENERAL
+    );
+    
+    // Organization types that can be Family Primary
+    private static final java.util.Set<Organization.OrganizationType> FAMILY_SLOT_TYPES = java.util.Set.of(
+        Organization.OrganizationType.FAMILY
+    );
 
     // ========================================================================
     // ORGANIZATION CRUD
@@ -72,13 +86,25 @@ public class OrganizationService {
         membership.setIsPrimary(true); // Set as their primary org
         membership.setJoinedAt(LocalDateTime.now());
         membership.setCreatedAt(LocalDateTime.now());
+        
+        // Set slot type based on organization type
+        if (FAMILY_SLOT_TYPES.contains(saved.getType())) {
+            membership.setSlotType("FAMILY");
+        } else {
+            membership.setSlotType("CHURCH");
+        }
+        
         membershipRepository.save(membership);
 
-        // Update user's primary org
-        creator.setPrimaryOrganization(saved);
+        // Update user's primary org based on type (dual primary system)
+        if (FAMILY_SLOT_TYPES.contains(saved.getType())) {
+            creator.setFamilyPrimaryOrganization(saved);
+            log.info("User {} set as Family Primary ORG_ADMIN of organization {}", creator.getId(), saved.getId());
+        } else {
+            creator.setChurchPrimaryOrganization(saved);
+            log.info("User {} set as Church Primary ORG_ADMIN of organization {}", creator.getId(), saved.getId());
+        }
         userRepository.save(creator);
-
-        log.info("User {} automatically set as ORG_ADMIN of organization {}", creator.getId(), saved.getId());
 
         return saved;
     }
@@ -411,54 +437,70 @@ public class OrganizationService {
     }
 
     // ========================================================================
-    // PRIMARY ORGANIZATION SWITCHING (with 30-day cooldown)
+    // DUAL PRIMARY ORGANIZATION SYSTEM (No cooldown - free switching!)
     // ========================================================================
 
-    public UserOrganizationMembership switchPrimaryOrganization(UUID userId, UUID newOrgId) {
+    /**
+     * Set an organization as the user's Church Primary
+     * Church Primary slot accepts: CHURCH, MINISTRY, NONPROFIT, GENERAL
+     * 
+     * @param userId The user ID
+     * @param orgId The organization ID to set as Church Primary
+     * @return The created/updated membership
+     */
+    public UserOrganizationMembership setChurchPrimary(UUID userId, UUID orgId) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
-        // Check cooldown period
-        if (user.getLastOrgSwitchAt() != null) {
-            LocalDateTime cooldownEnd = user.getLastOrgSwitchAt().plusDays(ORG_SWITCH_COOLDOWN_DAYS);
-            if (LocalDateTime.now().isBefore(cooldownEnd)) {
-                long daysRemaining = java.time.Duration.between(LocalDateTime.now(), cooldownEnd).toDays();
-                throw new RuntimeException("Cannot switch primary organization yet. " + daysRemaining + " days remaining in cooldown period.");
-            }
+        Organization newOrg = getOrganizationById(orgId);
+        
+        // Validate organization type for Church slot
+        if (!CHURCH_SLOT_TYPES.contains(newOrg.getType())) {
+            throw new RuntimeException("Organization type " + newOrg.getType() + 
+                " cannot be set as Church Primary. Allowed types: CHURCH, MINISTRY, NONPROFIT, GENERAL");
         }
 
-        Organization newOrg = getOrganizationById(newOrgId);
-        UUID oldOrgId = user.getPrimaryOrganization() != null ? user.getPrimaryOrganization().getId() : null;
+        UUID oldOrgId = user.getChurchPrimaryOrganization() != null ? 
+            user.getChurchPrimaryOrganization().getId() : null;
 
         // Record history
         UserOrganizationHistory history = new UserOrganizationHistory();
         history.setUser(user);
         if (oldOrgId != null) {
-            history.setFromOrganization(user.getPrimaryOrganization());
+            history.setFromOrganization(user.getChurchPrimaryOrganization());
         }
         history.setToOrganization(newOrg);
         history.setSwitchedAt(LocalDateTime.now());
+        history.setReason("Set as Church Primary");
         historyRepository.save(history);
 
-        // Clear old primary
-        membershipRepository.clearPrimaryForUser(userId);
+        // Clear old Church primary membership's isPrimary flag
+        if (oldOrgId != null) {
+            membershipRepository.findByUserIdAndOrganizationId(userId, oldOrgId)
+                .ifPresent(oldMembership -> {
+                    oldMembership.setIsPrimary(false);
+                    oldMembership.setSlotType("GROUP"); // Demote to group
+                    oldMembership.setUpdatedAt(LocalDateTime.now());
+                    membershipRepository.save(oldMembership);
+                });
+        }
 
-        // Check if user is already a member
+        // Create or update membership
         Optional<UserOrganizationMembership> existingMembership =
-            membershipRepository.findByUserIdAndOrganizationId(userId, newOrgId);
+            membershipRepository.findByUserIdAndOrganizationId(userId, orgId);
 
         UserOrganizationMembership membership;
         if (existingMembership.isPresent()) {
-            // Upgrade existing secondary membership to primary
             membership = existingMembership.get();
             membership.setIsPrimary(true);
+            membership.setSlotType("CHURCH");
             membership.setUpdatedAt(LocalDateTime.now());
         } else {
-            // Create new primary membership
             membership = new UserOrganizationMembership();
             membership.setUser(user);
             membership.setOrganization(newOrg);
             membership.setIsPrimary(true);
+            membership.setSlotType("CHURCH");
             membership.setRole(UserOrganizationMembership.OrgRole.MEMBER);
             membership.setJoinedAt(LocalDateTime.now());
             membership.setCreatedAt(LocalDateTime.now());
@@ -466,56 +508,281 @@ public class OrganizationService {
 
         membership = membershipRepository.save(membership);
 
-        // Update user's primary org reference
-        user.setPrimaryOrganization(newOrg);
-        user.setLastOrgSwitchAt(LocalDateTime.now());
+        // Update user's church primary
+        user.setChurchPrimaryOrganization(newOrg);
         userRepository.save(user);
 
-        log.info("User {} switched primary organization from {} to {}", userId, oldOrgId, newOrgId);
-
-        // TODO: Send notification to old org admins about member leaving
+        log.info("User {} set Church Primary from {} to {}", userId, oldOrgId, orgId);
 
         return membership;
     }
 
+    /**
+     * Set an organization as the user's Family Primary
+     * Family Primary slot accepts: FAMILY only
+     * 
+     * @param userId The user ID
+     * @param orgId The organization ID to set as Family Primary
+     * @return The created/updated membership
+     */
+    public UserOrganizationMembership setFamilyPrimary(UUID userId, UUID orgId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        Organization newOrg = getOrganizationById(orgId);
+        
+        // Validate organization type for Family slot
+        if (!FAMILY_SLOT_TYPES.contains(newOrg.getType())) {
+            throw new RuntimeException("Organization type " + newOrg.getType() + 
+                " cannot be set as Family Primary. Only FAMILY type allowed.");
+        }
+
+        UUID oldOrgId = user.getFamilyPrimaryOrganization() != null ? 
+            user.getFamilyPrimaryOrganization().getId() : null;
+
+        // Record history
+        UserOrganizationHistory history = new UserOrganizationHistory();
+        history.setUser(user);
+        if (oldOrgId != null) {
+            history.setFromOrganization(user.getFamilyPrimaryOrganization());
+        }
+        history.setToOrganization(newOrg);
+        history.setSwitchedAt(LocalDateTime.now());
+        history.setReason("Set as Family Primary");
+        historyRepository.save(history);
+
+        // Clear old Family primary membership's isPrimary flag
+        if (oldOrgId != null) {
+            membershipRepository.findByUserIdAndOrganizationId(userId, oldOrgId)
+                .ifPresent(oldMembership -> {
+                    oldMembership.setIsPrimary(false);
+                    oldMembership.setSlotType("GROUP"); // Demote to group
+                    oldMembership.setUpdatedAt(LocalDateTime.now());
+                    membershipRepository.save(oldMembership);
+                });
+        }
+
+        // Create or update membership
+        Optional<UserOrganizationMembership> existingMembership =
+            membershipRepository.findByUserIdAndOrganizationId(userId, orgId);
+
+        UserOrganizationMembership membership;
+        if (existingMembership.isPresent()) {
+            membership = existingMembership.get();
+            membership.setIsPrimary(true);
+            membership.setSlotType("FAMILY");
+            membership.setUpdatedAt(LocalDateTime.now());
+        } else {
+            membership = new UserOrganizationMembership();
+            membership.setUser(user);
+            membership.setOrganization(newOrg);
+            membership.setIsPrimary(true);
+            membership.setSlotType("FAMILY");
+            membership.setRole(UserOrganizationMembership.OrgRole.MEMBER);
+            membership.setJoinedAt(LocalDateTime.now());
+            membership.setCreatedAt(LocalDateTime.now());
+        }
+
+        membership = membershipRepository.save(membership);
+
+        // Update user's family primary
+        user.setFamilyPrimaryOrganization(newOrg);
+        userRepository.save(user);
+
+        log.info("User {} set Family Primary from {} to {}", userId, oldOrgId, orgId);
+
+        return membership;
+    }
+
+    /**
+     * Join an organization as a Group (social feed only access)
+     * Groups provide access to social feed but not Quick Actions
+     * 
+     * @param userId The user ID
+     * @param orgId The organization ID to join as Group
+     * @return The created membership
+     */
+    public UserOrganizationMembership joinAsGroup(UUID userId, UUID orgId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        Organization org = getOrganizationById(orgId);
+
+        // Check if already a member
+        Optional<UserOrganizationMembership> existing =
+            membershipRepository.findByUserIdAndOrganizationId(userId, orgId);
+
+        if (existing.isPresent()) {
+            throw new RuntimeException("User is already a member of this organization");
+        }
+
+        UserOrganizationMembership membership = new UserOrganizationMembership();
+        membership.setUser(user);
+        membership.setOrganization(org);
+        membership.setIsPrimary(false);
+        membership.setSlotType("GROUP");
+        membership.setRole(UserOrganizationMembership.OrgRole.MEMBER);
+        membership.setJoinedAt(LocalDateTime.now());
+        membership.setCreatedAt(LocalDateTime.now());
+
+        UserOrganizationMembership saved = membershipRepository.save(membership);
+        log.info("User {} joined organization {} as GROUP (social feed only)", userId, orgId);
+
+        return saved;
+    }
+
+    /**
+     * Clear the user's Church Primary (keep membership as Group)
+     */
+    public void clearChurchPrimary(UUID userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        if (user.getChurchPrimaryOrganization() != null) {
+            UUID oldOrgId = user.getChurchPrimaryOrganization().getId();
+            
+            // Demote membership to group
+            membershipRepository.findByUserIdAndOrganizationId(userId, oldOrgId)
+                .ifPresent(membership -> {
+                    membership.setIsPrimary(false);
+                    membership.setSlotType("GROUP");
+                    membership.setUpdatedAt(LocalDateTime.now());
+                    membershipRepository.save(membership);
+                });
+            
+            user.setChurchPrimaryOrganization(null);
+            userRepository.save(user);
+            
+            log.info("User {} cleared Church Primary (was {})", userId, oldOrgId);
+        }
+    }
+
+    /**
+     * Clear the user's Family Primary (keep membership as Group)
+     */
+    public void clearFamilyPrimary(UUID userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        if (user.getFamilyPrimaryOrganization() != null) {
+            UUID oldOrgId = user.getFamilyPrimaryOrganization().getId();
+            
+            // Demote membership to group
+            membershipRepository.findByUserIdAndOrganizationId(userId, oldOrgId)
+                .ifPresent(membership -> {
+                    membership.setIsPrimary(false);
+                    membership.setSlotType("GROUP");
+                    membership.setUpdatedAt(LocalDateTime.now());
+                    membershipRepository.save(membership);
+                });
+            
+            user.setFamilyPrimaryOrganization(null);
+            userRepository.save(user);
+            
+            log.info("User {} cleared Family Primary (was {})", userId, oldOrgId);
+        }
+    }
+
+    // ========================================================================
+    // BACKWARD COMPATIBILITY - Legacy switch method (now without cooldown)
+    // ========================================================================
+
+    /**
+     * Legacy method - switches Church Primary (kept for backward compatibility)
+     * @deprecated Use setChurchPrimary() instead
+     */
+    @Deprecated
+    public UserOrganizationMembership switchPrimaryOrganization(UUID userId, UUID newOrgId) {
+        return setChurchPrimary(userId, newOrgId);
+    }
+
+    /**
+     * @deprecated No more cooldown - always returns true
+     */
+    @Deprecated
     public boolean canSwitchPrimaryOrganization(UUID userId) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-
-        if (user.getLastOrgSwitchAt() == null) {
-            return true;
-        }
-
-        LocalDateTime cooldownEnd = user.getLastOrgSwitchAt().plusDays(ORG_SWITCH_COOLDOWN_DAYS);
-        return LocalDateTime.now().isAfter(cooldownEnd);
+        return true; // No more cooldown!
     }
 
+    /**
+     * @deprecated No more cooldown - always returns 0
+     */
+    @Deprecated
     public long getDaysUntilCanSwitch(UUID userId) {
+        return 0; // No more cooldown!
+    }
+
+    // ========================================================================
+    // MEMBERSHIP QUERIES - DUAL PRIMARY SYSTEM
+    // ========================================================================
+
+    /**
+     * Get the user's Church Primary membership
+     */
+    public Optional<UserOrganizationMembership> getChurchPrimaryMembership(UUID userId) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-
-        if (user.getLastOrgSwitchAt() == null) {
-            return 0;
+        
+        if (user.getChurchPrimaryOrganization() == null) {
+            return Optional.empty();
         }
-
-        LocalDateTime cooldownEnd = user.getLastOrgSwitchAt().plusDays(ORG_SWITCH_COOLDOWN_DAYS);
-        if (LocalDateTime.now().isAfter(cooldownEnd)) {
-            return 0;
-        }
-
-        return java.time.Duration.between(LocalDateTime.now(), cooldownEnd).toDays();
+        
+        return membershipRepository.findByUserIdAndOrganizationId(
+            userId, user.getChurchPrimaryOrganization().getId()
+        );
     }
 
-    // ========================================================================
-    // MEMBERSHIP QUERIES
-    // ========================================================================
+    /**
+     * Get the user's Family Primary membership
+     */
+    public Optional<UserOrganizationMembership> getFamilyPrimaryMembership(UUID userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        
+        if (user.getFamilyPrimaryOrganization() == null) {
+            return Optional.empty();
+        }
+        
+        return membershipRepository.findByUserIdAndOrganizationId(
+            userId, user.getFamilyPrimaryOrganization().getId()
+        );
+    }
 
+    /**
+     * Get all Group memberships (non-primary organizations)
+     */
+    public List<UserOrganizationMembership> getGroupMemberships(UUID userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        
+        List<UserOrganizationMembership> allMemberships = membershipRepository.findByUserId(userId);
+        
+        UUID churchPrimaryId = user.getChurchPrimaryOrganization() != null ? 
+            user.getChurchPrimaryOrganization().getId() : null;
+        UUID familyPrimaryId = user.getFamilyPrimaryOrganization() != null ? 
+            user.getFamilyPrimaryOrganization().getId() : null;
+        
+        // Filter out primary organizations
+        return allMemberships.stream()
+            .filter(m -> !m.getOrganization().getId().equals(churchPrimaryId))
+            .filter(m -> !m.getOrganization().getId().equals(familyPrimaryId))
+            .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * @deprecated Use getChurchPrimaryMembership() instead
+     */
+    @Deprecated
     public Optional<UserOrganizationMembership> getPrimaryMembership(UUID userId) {
-        return membershipRepository.findPrimaryByUserId(userId);
+        return getChurchPrimaryMembership(userId);
     }
 
+    /**
+     * @deprecated Use getGroupMemberships() instead
+     */
+    @Deprecated
     public List<UserOrganizationMembership> getSecondaryMemberships(UUID userId) {
-        return membershipRepository.findSecondaryMembershipsByUserId(userId);
+        return getGroupMemberships(userId);
     }
 
     public List<UserOrganizationMembership> getAllMemberships(UUID userId) {
@@ -526,10 +793,41 @@ public class OrganizationService {
         return membershipRepository.existsByUserIdAndOrganizationId(userId, orgId);
     }
 
+    /**
+     * Check if an organization is one of the user's primary organizations (Church or Family)
+     */
     public boolean isPrimaryMember(UUID userId, UUID orgId) {
-        Optional<UserOrganizationMembership> membership =
-            membershipRepository.findByUserIdAndOrganizationId(userId, orgId);
-        return membership.isPresent() && membership.get().getIsPrimary();
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        
+        boolean isChurchPrimary = user.getChurchPrimaryOrganization() != null && 
+            user.getChurchPrimaryOrganization().getId().equals(orgId);
+        boolean isFamilyPrimary = user.getFamilyPrimaryOrganization() != null && 
+            user.getFamilyPrimaryOrganization().getId().equals(orgId);
+        
+        return isChurchPrimary || isFamilyPrimary;
+    }
+
+    /**
+     * Check if organization is user's Church Primary
+     */
+    public boolean isChurchPrimary(UUID userId, UUID orgId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        
+        return user.getChurchPrimaryOrganization() != null && 
+            user.getChurchPrimaryOrganization().getId().equals(orgId);
+    }
+
+    /**
+     * Check if organization is user's Family Primary
+     */
+    public boolean isFamilyPrimary(UUID userId, UUID orgId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        
+        return user.getFamilyPrimaryOrganization() != null && 
+            user.getFamilyPrimaryOrganization().getId().equals(orgId);
     }
 
     // ========================================================================

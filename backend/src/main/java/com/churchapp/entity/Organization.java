@@ -104,6 +104,8 @@ public class Organization {
         CHURCH,
         MINISTRY,
         NONPROFIT,
+        FAMILY,     // For family organizations - goes in Family Primary slot
+        GENERAL,    // General purpose orgs - goes in Church Primary slot
         GLOBAL
     }
 

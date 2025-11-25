@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useFeedFilter } from '../contexts/FeedFilterContext';
 import { useGroup } from '../contexts/GroupContext';
+import { useActiveContext } from '../contexts/ActiveContextContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import styled from 'styled-components';
 
 const SelectorContainer = styled.div`
@@ -279,6 +281,10 @@ const FeedFilterSelector: React.FC = () => {
     loading: groupsLoading,
   } = useGroup();
 
+  // Dual Primary System - context awareness
+  const { activeContext, activeOrganizationName } = useActiveContext();
+  const { hasChurchPrimary, hasFamilyPrimary, churchPrimary, familyPrimary } = useOrganization();
+
   const [isOpen, setIsOpen] = useState(false);
   const [tempFilter, setTempFilter] = useState(activeFilter);
   const [tempSelectedGroups, setTempSelectedGroups] = useState<string[]>(selectedGroupIds);
@@ -351,6 +357,12 @@ const FeedFilterSelector: React.FC = () => {
       case 'ALL':
         return 'All Posts';
       case 'PRIMARY_ONLY':
+        // Context-aware: show which primary org is being filtered
+        if (activeContext === 'church' && churchPrimary) {
+          return `⛪ ${churchPrimary.organizationName?.substring(0, 15) || 'Church'}...`;
+        } else if (activeContext === 'family' && familyPrimary) {
+          return `🏠 ${familyPrimary.organizationName?.substring(0, 15) || 'Family'}...`;
+        }
         return 'Primary Org Only';
       case 'SELECTED_GROUPS':
         return `${selectedGroupIds.length} Group${selectedGroupIds.length !== 1 ? 's' : ''}`;
@@ -399,10 +411,10 @@ const FeedFilterSelector: React.FC = () => {
           >
             <RadioCircle $isActive={tempFilter === 'ALL'} />
             <OptionContent>
-              <OptionTitle>All Posts</OptionTitle>
+              <OptionTitle>🌐 All Posts</OptionTitle>
               <OptionDescription>
-                {hasPrimaryOrg
-                  ? 'See posts from your primary org, secondary orgs (public only), and all groups you\'re in'
+                {(hasChurchPrimary || hasFamilyPrimary)
+                  ? 'See posts from your Church, Family, and all Groups you\'re in'
                   : 'See posts from all groups you\'re in'}
               </OptionDescription>
             </OptionContent>
@@ -411,15 +423,19 @@ const FeedFilterSelector: React.FC = () => {
           <FilterOption
             $isActive={tempFilter === 'PRIMARY_ONLY'}
             onClick={() => handleFilterChange('PRIMARY_ONLY')}
-            disabled={!hasPrimaryOrg}
+            disabled={!hasChurchPrimary && !hasFamilyPrimary}
           >
             <RadioCircle $isActive={tempFilter === 'PRIMARY_ONLY'} />
             <OptionContent>
-              <OptionTitle>Primary Organization Only</OptionTitle>
+              <OptionTitle>
+                {activeContext === 'church' ? '⛪ Church Only' : 
+                 activeContext === 'family' ? '🏠 Family Only' : 
+                 '📍 Active Context Only'}
+              </OptionTitle>
               <OptionDescription>
-                {hasPrimaryOrg
-                  ? 'See only posts from your primary organization'
-                  : 'Join a primary organization to use this filter'}
+                {(hasChurchPrimary || hasFamilyPrimary)
+                  ? `See only posts from ${activeOrganizationName || 'your active organization'}`
+                  : 'Set a Church or Family primary to use this filter'}
               </OptionDescription>
             </OptionContent>
           </FilterOption>
@@ -431,7 +447,7 @@ const FeedFilterSelector: React.FC = () => {
           >
             <RadioCircle $isActive={tempFilter === 'SELECTED_GROUPS'} />
             <OptionContent>
-              <OptionTitle>Selected Groups Only</OptionTitle>
+              <OptionTitle>👥 Selected Groups Only</OptionTitle>
               <OptionDescription>
                 {unmutedGroups.length > 0
                   ? 'Choose specific groups to see in your feed'

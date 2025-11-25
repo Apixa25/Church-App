@@ -4,11 +4,16 @@ import { useAuth } from './AuthContext';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
 
+// Organization types that can be Church Primary
+const CHURCH_SLOT_TYPES = ['CHURCH', 'MINISTRY', 'NONPROFIT', 'GENERAL'];
+// Organization types that can be Family Primary
+const FAMILY_SLOT_TYPES = ['FAMILY'];
+
 export interface Organization {
   id: string;
   name: string;
   slug: string;
-  type: 'CHURCH' | 'MINISTRY' | 'NONPROFIT' | 'GLOBAL';
+  type: 'CHURCH' | 'MINISTRY' | 'NONPROFIT' | 'FAMILY' | 'GENERAL' | 'GLOBAL';
   tier: 'BASIC' | 'PREMIUM';
   status: 'TRIAL' | 'ACTIVE' | 'SUSPENDED' | 'CANCELLED';
   stripeConnectAccountId?: string;
@@ -29,37 +34,110 @@ export interface Membership {
   userAvatarUrl?: string;
   organizationId: string;
   organizationName?: string;
-  organizationType?: 'CHURCH' | 'MINISTRY' | 'NONPROFIT' | 'GLOBAL';
+  organizationType?: 'CHURCH' | 'MINISTRY' | 'NONPROFIT' | 'FAMILY' | 'GENERAL' | 'GLOBAL';
   organizationLogoUrl?: string;
   role: 'MEMBER' | 'ORG_ADMIN' | 'MODERATOR';
   isPrimary: boolean;
+  slotType?: 'CHURCH' | 'FAMILY' | 'GROUP';
   joinedAt: string;
   createdAt: string;
 }
 
 interface OrganizationContextType {
-  // Current user's memberships
-  primaryMembership: Membership | null;
-  secondaryMemberships: Membership[];
+  // ========================================================================
+  // DUAL PRIMARY SYSTEM - New Structure
+  // ========================================================================
+  
+  // Church Primary: CHURCH, MINISTRY, NONPROFIT, GENERAL types
+  churchPrimary: Membership | null;
+  
+  // Family Primary: FAMILY type only
+  familyPrimary: Membership | null;
+  
+  // Groups: All other memberships (social feed only access)
+  groups: Membership[];
+  
+  // All memberships combined
   allMemberships: Membership[];
+
+  // ========================================================================
+  // BACKWARD COMPATIBILITY - Legacy fields (deprecated)
+  // ========================================================================
+  
+  /** @deprecated Use churchPrimary instead */
+  primaryMembership: Membership | null;
+  
+  /** @deprecated Use groups instead */
+  secondaryMemberships: Membership[];
 
   // Loading states
   loading: boolean;
 
-  // Actions
+  // ========================================================================
+  // DUAL PRIMARY ACTIONS - New Methods
+  // ========================================================================
+  
+  // Set organization as Church Primary
+  setChurchPrimary: (orgId: string) => Promise<Membership>;
+  
+  // Set organization as Family Primary
+  setFamilyPrimary: (orgId: string) => Promise<Membership>;
+  
+  // Join as Group (social feed only)
+  joinAsGroup: (orgId: string) => Promise<Membership>;
+  
+  // Clear primaries
+  clearChurchPrimary: () => Promise<void>;
+  clearFamilyPrimary: () => Promise<void>;
+
+  // ========================================================================
+  // LEGACY ACTIONS (kept for backward compatibility)
+  // ========================================================================
+  
   joinOrganization: (orgId: string, isPrimary: boolean) => Promise<Membership>;
   leaveOrganization: (orgId: string) => Promise<void>;
+  
+  /** @deprecated Use setChurchPrimary instead - no more cooldown! */
   switchPrimaryOrganization: (orgId: string) => Promise<Membership>;
 
-  // Utilities
+  // ========================================================================
+  // UTILITIES
+  // ========================================================================
+  
+  /** @deprecated No more cooldown - always returns true */
   canSwitchPrimary: () => Promise<boolean>;
+  
+  /** @deprecated No more cooldown - always returns 0 */
   getDaysUntilCanSwitch: () => Promise<number>;
+  
   refreshMemberships: () => Promise<void>;
 
-  // Organization queries
+  // ========================================================================
+  // ORGANIZATION QUERIES
+  // ========================================================================
+  
   searchOrganizations: (query: string, page?: number, size?: number) => Promise<{ content: Organization[], totalElements: number }>;
   getOrganizationById: (orgId: string) => Promise<Organization>;
   getOrganizationBySlug: (slug: string) => Promise<Organization>;
+  
+  // ========================================================================
+  // HELPER METHODS
+  // ========================================================================
+  
+  // Check if org type can be Church Primary
+  canBeChurchPrimary: (orgType: string) => boolean;
+  
+  // Check if org type can be Family Primary
+  canBeFamilyPrimary: (orgType: string) => boolean;
+  
+  // Check if user has any primary (church OR family)
+  hasAnyPrimary: boolean;
+  
+  // Check if user has church primary
+  hasChurchPrimary: boolean;
+  
+  // Check if user has family primary
+  hasFamilyPrimary: boolean;
 }
 
 const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
@@ -70,8 +148,11 @@ interface OrganizationProviderProps {
 
 export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ children }) => {
   const { token, isAuthenticated } = useAuth();
-  const [primaryMembership, setPrimaryMembership] = useState<Membership | null>(null);
-  const [secondaryMemberships, setSecondaryMemberships] = useState<Membership[]>([]);
+  
+  // Dual Primary System state
+  const [churchPrimary, setChurchPrimaryState] = useState<Membership | null>(null);
+  const [familyPrimary, setFamilyPrimaryState] = useState<Membership | null>(null);
+  const [groups, setGroups] = useState<Membership[]>([]);
   const [allMemberships, setAllMemberships] = useState<Membership[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -81,42 +162,46 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
-  // Fetch user's memberships
+  // Fetch user's memberships - Updated for dual primary system
   const fetchMemberships = async () => {
-    console.log('🔥 OrganizationContext v2.0 - BUILD 2025-11-22 23:35 PST - fetchMemberships called');
+    console.log('🔥 OrganizationContext v3.0 - DUAL PRIMARY SYSTEM - fetchMemberships called');
     console.log('🔥 isAuthenticated:', isAuthenticated, 'token:', token ? 'Present' : 'Missing');
     
     if (!isAuthenticated) {
       console.log('🔥 Not authenticated, clearing memberships');
-      setPrimaryMembership(null);
-      setSecondaryMemberships([]);
+      setChurchPrimaryState(null);
+      setFamilyPrimaryState(null);
+      setGroups([]);
       setAllMemberships([]);
-      // Keep loading = true because we're waiting for authentication
-      // Don't set loading = false here, or AdminRoute will check too early
       return;
     }
 
     try {
       setLoading(true);
-      console.log('🔥 Fetching memberships from API...');
+      console.log('🔥 Fetching dual-primary memberships from API...');
 
-      // Fetch all memberships in parallel
-      const [primaryRes, secondaryRes, allRes] = await Promise.all([
-        api.get('/organizations/my-memberships/primary'),
-        api.get('/organizations/my-memberships/secondary'),
+      // Fetch all membership types in parallel
+      const [churchPrimaryRes, familyPrimaryRes, groupsRes, allRes] = await Promise.all([
+        api.get('/organizations/my-memberships/church-primary').catch(() => ({ data: null })),
+        api.get('/organizations/my-memberships/family-primary').catch(() => ({ data: null })),
+        api.get('/organizations/my-memberships/groups').catch(() => ({ data: [] })),
         api.get('/organizations/my-memberships'),
       ]);
 
-      console.log('🔥 API Response - allMemberships:', allRes.data);
-      console.log('🔥 Org Admin count:', allRes.data?.filter((m: any) => m.role === 'ORG_ADMIN').length || 0);
+      console.log('🔥 API Response - churchPrimary:', churchPrimaryRes.data);
+      console.log('🔥 API Response - familyPrimary:', familyPrimaryRes.data);
+      console.log('🔥 API Response - groups:', groupsRes.data?.length || 0);
+      console.log('🔥 API Response - allMemberships:', allRes.data?.length || 0);
 
-      setPrimaryMembership(primaryRes.data || null);
-      setSecondaryMemberships(secondaryRes.data || []);
+      setChurchPrimaryState(churchPrimaryRes.data || null);
+      setFamilyPrimaryState(familyPrimaryRes.data || null);
+      setGroups(groupsRes.data || []);
       setAllMemberships(allRes.data || []);
     } catch (error) {
       console.error('Error fetching memberships:', error);
-      setPrimaryMembership(null);
-      setSecondaryMemberships([]);
+      setChurchPrimaryState(null);
+      setFamilyPrimaryState(null);
+      setGroups([]);
       setAllMemberships([]);
     } finally {
       setLoading(false);
@@ -125,13 +210,83 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
 
   const refreshMemberships = fetchMemberships;
 
-  // Join organization
+  // ========================================================================
+  // DUAL PRIMARY ACTIONS
+  // ========================================================================
+
+  // Set Church Primary
+  const setChurchPrimary = async (orgId: string): Promise<Membership> => {
+    try {
+      console.log('🏛️ Setting Church Primary to:', orgId);
+      const response = await api.post(`/organizations/${orgId}/set-church-primary`);
+      await refreshMemberships();
+      return response.data;
+    } catch (error: any) {
+      console.error('Error setting Church Primary:', error);
+      throw new Error(error.response?.data?.message || 'Failed to set Church Primary');
+    }
+  };
+
+  // Set Family Primary
+  const setFamilyPrimary = async (orgId: string): Promise<Membership> => {
+    try {
+      console.log('🏠 Setting Family Primary to:', orgId);
+      const response = await api.post(`/organizations/${orgId}/set-family-primary`);
+      await refreshMemberships();
+      return response.data;
+    } catch (error: any) {
+      console.error('Error setting Family Primary:', error);
+      throw new Error(error.response?.data?.message || 'Failed to set Family Primary');
+    }
+  };
+
+  // Join as Group (social feed only)
+  const joinAsGroup = async (orgId: string): Promise<Membership> => {
+    try {
+      console.log('👥 Joining as Group:', orgId);
+      const response = await api.post(`/organizations/${orgId}/join-as-group`);
+      await refreshMemberships();
+      return response.data;
+    } catch (error: any) {
+      console.error('Error joining as Group:', error);
+      throw new Error(error.response?.data?.message || 'Failed to join as Group');
+    }
+  };
+
+  // Clear Church Primary
+  const clearChurchPrimary = async (): Promise<void> => {
+    try {
+      console.log('🏛️ Clearing Church Primary');
+      await api.delete('/organizations/my-church-primary');
+      await refreshMemberships();
+    } catch (error: any) {
+      console.error('Error clearing Church Primary:', error);
+      throw new Error(error.response?.data?.message || 'Failed to clear Church Primary');
+    }
+  };
+
+  // Clear Family Primary
+  const clearFamilyPrimary = async (): Promise<void> => {
+    try {
+      console.log('🏠 Clearing Family Primary');
+      await api.delete('/organizations/my-family-primary');
+      await refreshMemberships();
+    } catch (error: any) {
+      console.error('Error clearing Family Primary:', error);
+      throw new Error(error.response?.data?.message || 'Failed to clear Family Primary');
+    }
+  };
+
+  // ========================================================================
+  // LEGACY ACTIONS (backward compatibility)
+  // ========================================================================
+
+  // Join organization (legacy)
   const joinOrganization = async (orgId: string, isPrimary: boolean = false): Promise<Membership> => {
     try {
       const response = await api.post(`/organizations/${orgId}/join`, null, {
         params: { isPrimary },
       });
-
       await refreshMemberships();
       return response.data;
     } catch (error: any) {
@@ -151,41 +306,26 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
     }
   };
 
-  // Switch primary organization
+  // Switch primary organization (legacy - now maps to setChurchPrimary)
   const switchPrimaryOrganization = async (orgId: string): Promise<Membership> => {
-    try {
-      const response = await api.post(`/organizations/${orgId}/switch-primary`);
-      await refreshMemberships();
-      return response.data;
-    } catch (error: any) {
-      console.error('Error switching primary organization:', error);
-      throw new Error(error.response?.data?.message || 'Failed to switch primary organization. You may need to wait 30 days between switches.');
-    }
+    console.log('⚠️ Using legacy switchPrimaryOrganization - this now maps to setChurchPrimary');
+    return setChurchPrimary(orgId);
   };
 
-  // Check if can switch primary
+  // Can switch primary (legacy - always true now, no cooldown!)
   const canSwitchPrimary = async (): Promise<boolean> => {
-    try {
-      const response = await api.get('/organizations/switch-primary/can-switch');
-      return response.data;
-    } catch (error) {
-      console.error('Error checking switch eligibility:', error);
-      return false;
-    }
+    return true; // No more cooldown!
   };
 
-  // Get days until can switch
+  // Get days until can switch (legacy - always 0 now, no cooldown!)
   const getDaysUntilCanSwitch = async (): Promise<number> => {
-    try {
-      const response = await api.get('/organizations/switch-primary/days-until');
-      return response.data;
-    } catch (error) {
-      console.error('Error getting days until switch:', error);
-      return 30; // Default to max cooldown
-    }
+    return 0; // No more cooldown!
   };
 
-  // Search organizations
+  // ========================================================================
+  // ORGANIZATION QUERIES
+  // ========================================================================
+
   const searchOrganizations = async (
     query: string,
     page: number = 0,
@@ -205,7 +345,6 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
     }
   };
 
-  // Get organization by ID
   const getOrganizationById = async (orgId: string): Promise<Organization> => {
     try {
       const response = await api.get(`/organizations/${orgId}`);
@@ -216,7 +355,6 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
     }
   };
 
-  // Get organization by slug
   const getOrganizationBySlug = async (slug: string): Promise<Organization> => {
     try {
       const response = await api.get(`/organizations/slug/${slug}`);
@@ -227,25 +365,68 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
     }
   };
 
+  // ========================================================================
+  // HELPER METHODS
+  // ========================================================================
+
+  const canBeChurchPrimary = (orgType: string): boolean => {
+    return CHURCH_SLOT_TYPES.includes(orgType);
+  };
+
+  const canBeFamilyPrimary = (orgType: string): boolean => {
+    return FAMILY_SLOT_TYPES.includes(orgType);
+  };
+
+  // Computed properties
+  const hasChurchPrimary = churchPrimary !== null;
+  const hasFamilyPrimary = familyPrimary !== null;
+  const hasAnyPrimary = hasChurchPrimary || hasFamilyPrimary;
+
   // Initialize memberships on mount and when auth changes
   useEffect(() => {
     fetchMemberships();
   }, [isAuthenticated, token]);
 
   const value: OrganizationContextType = {
-    primaryMembership,
-    secondaryMemberships,
+    // Dual Primary System
+    churchPrimary,
+    familyPrimary,
+    groups,
     allMemberships,
+    
+    // Backward compatibility (deprecated)
+    primaryMembership: churchPrimary, // Maps to churchPrimary
+    secondaryMemberships: groups,     // Maps to groups
+    
+    // Loading
     loading,
+    
+    // Dual Primary Actions
+    setChurchPrimary,
+    setFamilyPrimary,
+    joinAsGroup,
+    clearChurchPrimary,
+    clearFamilyPrimary,
+    
+    // Legacy Actions
     joinOrganization,
     leaveOrganization,
     switchPrimaryOrganization,
     canSwitchPrimary,
     getDaysUntilCanSwitch,
     refreshMemberships,
+    
+    // Organization Queries
     searchOrganizations,
     getOrganizationById,
     getOrganizationBySlug,
+    
+    // Helpers
+    canBeChurchPrimary,
+    canBeFamilyPrimary,
+    hasAnyPrimary,
+    hasChurchPrimary,
+    hasFamilyPrimary,
   };
 
   return (
