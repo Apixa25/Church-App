@@ -3,12 +3,15 @@
 /* Feed View Toggle */
 .feed-view-toggle {
   display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-primary);
   border-radius: var(--border-radius-md);
   padding: 4px;
   margin-bottom: 16px;
   box-shadow: var(--shadow-sm);
+  align-items: center;
 }
 
 .feed-toggle-btn {
@@ -321,13 +324,28 @@
   }
 
   .feed-toggle-btn {
-    padding: 12px 14px;
-    font-size: 14px;
+    padding: 10px 12px;
+    font-size: 13px;
+    flex: 0 0 auto;
   }
+
 
   .create-post-btn {
     padding: 12px 16px;
     font-size: 15px;
+  }
+
+  /* Ensure the feed view toggle fits properly on mobile */
+  .feed-view-toggle {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .feed-view-toggle::-webkit-scrollbar {
+    display: none;
   }
 }
 

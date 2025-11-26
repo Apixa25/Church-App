@@ -22,54 +22,64 @@ const SwitcherContainer = styled.div`
   position: relative;
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
 `;
 
 const SwitcherButton = styled.button`
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 12px;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg-elevated, #2a2a3e);
+  border: 1px solid var(--border-primary, #3a3a4e);
+  border-radius: var(--border-radius-sm, 6px);
   cursor: pointer;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
-  color: white;
+  color: var(--text-primary, #fff);
   transition: all 0.2s ease;
-  min-width: 180px;
+  white-space: nowrap;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.25);
-    border-color: rgba(255, 255, 255, 0.5);
-    transform: translateY(-1px);
+    background: var(--bg-tertiary, #1e1e2e);
+    border-color: var(--border-glow, #5b7fff);
+    box-shadow: 0 0 8px var(--button-primary-glow, rgba(91, 127, 255, 0.3));
   }
 
   &:active {
-    transform: translateY(0);
+    transform: scale(0.98);
+  }
+
+  @media (max-width: 480px) {
+    padding: 10px 12px;
+    font-size: 13px;
+    gap: 6px;
   }
 `;
 
 const OrgIcon = styled.span`
-  font-size: 18px;
+  font-size: 16px;
+  flex-shrink: 0;
 `;
 
 const OrgLogo = styled.img`
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
   object-fit: cover;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid var(--border-primary, #3a3a4e);
+  flex-shrink: 0;
 `;
 
 const OrgName = styled.span`
-  flex: 1;
-  text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 150px;
+  max-width: 100px;
+  
+  @media (max-width: 480px) {
+    max-width: 70px;
+  }
 `;
 
 const DropdownArrow = styled.span<{ $isOpen: boolean }>`
@@ -81,23 +91,32 @@ const DropdownArrow = styled.span<{ $isOpen: boolean }>`
 const Dropdown = styled.div<{ $isOpen: boolean }>`
   position: absolute;
   top: calc(100% + 8px);
-  left: 0;
   right: 0;
-  min-width: 240px;
-  background: white;
+  min-width: 260px;
+  background: var(--bg-tertiary, #1e1e2e);
+  border: 1px solid var(--border-primary, #3a3a4e);
   border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
   z-index: 1000;
   overflow: hidden;
   opacity: ${props => props.$isOpen ? 1 : 0};
   visibility: ${props => props.$isOpen ? 'visible' : 'hidden'};
   transform: ${props => props.$isOpen ? 'translateY(0) scale(1)' : 'translateY(-10px) scale(0.95)'};
   transition: all 0.2s ease;
+
+  @media (max-width: 480px) {
+    position: fixed;
+    top: auto;
+    bottom: 80px;
+    left: 16px;
+    right: 16px;
+    min-width: auto;
+  }
 `;
 
 const DropdownHeader = styled.div`
   padding: 12px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
   color: white;
 `;
 
@@ -117,6 +136,7 @@ const DropdownSubtitle = styled.div`
 
 const DropdownOptions = styled.div`
   padding: 8px;
+  background: var(--bg-secondary, #252538);
 `;
 
 const OptionButton = styled.button<{ $isActive: boolean }>`
@@ -125,8 +145,8 @@ const OptionButton = styled.button<{ $isActive: boolean }>`
   align-items: center;
   gap: 12px;
   padding: 12px;
-  background: ${props => props.$isActive ? 'linear-gradient(135deg, #f0f4ff 0%, #e8f0ff 100%)' : 'transparent'};
-  border: 2px solid ${props => props.$isActive ? '#667eea' : 'transparent'};
+  background: ${props => props.$isActive ? 'var(--bg-elevated, #2a2a3e)' : 'transparent'};
+  border: 2px solid ${props => props.$isActive ? 'var(--accent-primary, #667eea)' : 'transparent'};
   border-radius: 10px;
   cursor: pointer;
   text-align: left;
@@ -138,7 +158,8 @@ const OptionButton = styled.button<{ $isActive: boolean }>`
   }
 
   &:hover {
-    background: ${props => props.$isActive ? 'linear-gradient(135deg, #f0f4ff 0%, #e8f0ff 100%)' : '#f5f5f5'};
+    background: var(--bg-elevated, #2a2a3e);
+    border-color: var(--border-glow, #5b7fff);
   }
 `;
 
@@ -149,7 +170,7 @@ const OptionIcon = styled.span`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f0f0f0;
+  background: var(--bg-tertiary, #1e1e2e);
   border-radius: 8px;
 `;
 
@@ -158,6 +179,7 @@ const OptionLogo = styled.img`
   height: 36px;
   border-radius: 8px;
   object-fit: cover;
+  border: 1px solid var(--border-primary, #3a3a4e);
 `;
 
 const OptionContent = styled.div`
@@ -168,7 +190,7 @@ const OptionContent = styled.div`
 const OptionName = styled.div`
   font-size: 14px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-primary, #fff);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -176,15 +198,16 @@ const OptionName = styled.div`
 
 const OptionType = styled.div`
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary, #a0a0b0);
   margin-top: 2px;
 `;
 
 const ActiveIndicator = styled.div`
   width: 8px;
   height: 8px;
-  background: #667eea;
+  background: var(--accent-primary, #667eea);
   border-radius: 50%;
+  box-shadow: 0 0 8px var(--accent-primary, #667eea);
 `;
 
 const ContextSwitcher: React.FC = () => {
