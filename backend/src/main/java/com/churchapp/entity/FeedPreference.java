@@ -37,7 +37,7 @@ public class FeedPreference {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "active_filter", nullable = false, length = 30)
-    private FeedFilter activeFilter = FeedFilter.ALL;
+    private FeedFilter activeFilter = FeedFilter.EVERYTHING;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "selected_group_ids", columnDefinition = "jsonb")
@@ -52,8 +52,9 @@ public class FeedPreference {
     private LocalDateTime updatedAt;
 
     public enum FeedFilter {
-        ALL,
-        PRIMARY_ONLY,
-        SELECTED_GROUPS
+        EVERYTHING,      // All posts including Global Feed
+        ALL,             // User's orgs and groups (no Global Feed)
+        PRIMARY_ONLY,    // Only active primary organization
+        SELECTED_GROUPS  // Only selected groups
     }
 }

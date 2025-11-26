@@ -370,7 +370,11 @@ const PostComposer: React.FC<PostComposerProps> = ({
                 id="organization"
                 value={selectedOrganizationId || ''}
                 onChange={(e) => {
-                  setSelectedOrganizationId(e.target.value || undefined);
+                  const value = e.target.value;
+                  // If empty string (Global Feed), use the actual Global Organization UUID
+                  setSelectedOrganizationId(
+                    value === '' ? '00000000-0000-0000-0000-000000000001' : (value || undefined)
+                  );
                   setSelectedGroupId(undefined); // Reset group when org changes
                 }}
                 className="organization-select"

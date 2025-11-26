@@ -100,7 +100,7 @@ public class FeedFilterService {
 
         FeedPreference preference = new FeedPreference();
         preference.setUser(user);
-        preference.setActiveFilter(FeedPreference.FeedFilter.ALL);
+        preference.setActiveFilter(FeedPreference.FeedFilter.EVERYTHING);
         preference.setSelectedGroupIds(new ArrayList<>());
         preference.setUpdatedAt(LocalDateTime.now());
 
@@ -181,6 +181,7 @@ public class FeedFilterService {
                     .filter(userGroupIds::contains)
                     .collect(Collectors.toList());
 
+            case EVERYTHING:
             case ALL:
             default:
                 // Show all unmuted groups
@@ -206,8 +207,8 @@ public class FeedFilterService {
         if (preference.getActiveFilter() != FeedPreference.FeedFilter.PRIMARY_ONLY) {
             visibleOrgs.addAll(getUserSecondaryOrgIds(userId));
             
-            // When filter is ALL, also include Global org so users can see posts from social-only users
-            if (preference.getActiveFilter() == FeedPreference.FeedFilter.ALL) {
+            // When filter is EVERYTHING, include Global org so users can see posts from social-only users
+            if (preference.getActiveFilter() == FeedPreference.FeedFilter.EVERYTHING) {
                 visibleOrgs.add(GLOBAL_ORG_ID);
             }
         }

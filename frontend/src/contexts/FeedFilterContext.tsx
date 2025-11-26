@@ -6,7 +6,7 @@ import { useActiveContext } from './ActiveContextContext';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
 
-export type FeedFilter = 'ALL' | 'PRIMARY_ONLY' | 'SELECTED_GROUPS';
+export type FeedFilter = 'EVERYTHING' | 'ALL' | 'PRIMARY_ONLY' | 'SELECTED_GROUPS';
 
 export interface FeedPreference {
   id: string;
@@ -149,7 +149,7 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
         setPreference({
           id: '',
           userId: '',
-          activeFilter: 'ALL',
+          activeFilter: 'EVERYTHING',
           selectedGroupIds: [],
           updatedAt: new Date().toISOString(),
         });
@@ -170,7 +170,7 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
       setPreference({
         id: '',
         userId: '',
-        activeFilter: 'ALL',
+        activeFilter: 'EVERYTHING',
         selectedGroupIds: [],
         updatedAt: new Date().toISOString(),
       });
@@ -200,7 +200,7 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
     }
   };
 
-  // Reset filter to ALL
+  // Reset filter to EVERYTHING (default)
   const resetFilter = async (): Promise<void> => {
     try {
       await api.delete('/feed-preferences');
@@ -218,7 +218,7 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
 
   const value: FeedFilterContextType = {
     preference,
-    activeFilter: preference?.activeFilter || 'ALL',
+    activeFilter: preference?.activeFilter || 'EVERYTHING',
     selectedGroupIds: preference?.selectedGroupIds || [],
     feedParameters,
     visibleGroupIds,
