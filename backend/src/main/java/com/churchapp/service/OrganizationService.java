@@ -123,7 +123,19 @@ public class OrganizationService {
         return organizationRepository.save(organization);
     }
 
+    /**
+     * Get organization by ID - only returns non-deleted organizations.
+     * Use this for all user-facing operations.
+     */
     public Organization getOrganizationById(UUID orgId) {
+        return organizationRepository.findActiveById(orgId)
+            .orElseThrow(() -> new RuntimeException("Organization not found with id: " + orgId));
+    }
+    
+    /**
+     * Get organization by ID including deleted - for admin operations only.
+     */
+    public Organization getOrganizationByIdIncludingDeleted(UUID orgId) {
         return organizationRepository.findById(orgId)
             .orElseThrow(() -> new RuntimeException("Organization not found with id: " + orgId));
     }
@@ -244,9 +256,13 @@ public class OrganizationService {
         userRepository.clearFamilyPrimaryOrganization(orgId);
         
         // 12. Soft delete the organization
+        // Modify slug to free it up for reuse (append timestamp to make it unique)
+        String originalSlug = org.getSlug();
+        org.setSlug(originalSlug + "-deleted-" + System.currentTimeMillis());
         org.setDeletedAt(LocalDateTime.now());
         org.setStatus(Organization.OrganizationStatus.CANCELLED);
         organizationRepository.save(org);
+        log.info("Organization slug changed from '{}' to '{}' to free up for reuse", originalSlug, org.getSlug());
         
         log.warn("Organization {} deleted successfully", orgId);
     }

@@ -16,23 +16,37 @@ import java.util.UUID;
 @Repository
 public interface OrganizationRepository extends JpaRepository<Organization, UUID> {
 
-    Optional<Organization> findBySlug(String slug);
+    // Find by slug - only non-deleted organizations
+    @Query("SELECT o FROM Organization o WHERE o.slug = :slug AND o.deletedAt IS NULL")
+    Optional<Organization> findBySlug(@Param("slug") String slug);
+    
+    // Find by slug including deleted (for admin purposes)
+    @Query("SELECT o FROM Organization o WHERE o.slug = :slug")
+    Optional<Organization> findBySlugIncludingDeleted(@Param("slug") String slug);
 
-    boolean existsBySlug(String slug);
+    // Check slug exists - only among non-deleted organizations
+    @Query("SELECT CASE WHEN COUNT(o) > 0 THEN true ELSE false END FROM Organization o WHERE o.slug = :slug AND o.deletedAt IS NULL")
+    boolean existsBySlug(@Param("slug") String slug);
+
+    // Find active (non-deleted) organization by ID
+    @Query("SELECT o FROM Organization o WHERE o.id = :id AND o.deletedAt IS NULL")
+    Optional<Organization> findActiveById(@Param("id") UUID id);
 
     List<Organization> findByType(Organization.OrganizationType type);
 
     List<Organization> findByStatus(Organization.OrganizationStatus status);
 
-    @Query("SELECT o FROM Organization o WHERE o.status = :status AND o.type = :type")
+    @Query("SELECT o FROM Organization o WHERE o.status = :status AND o.type = :type AND o.deletedAt IS NULL")
     List<Organization> findByStatusAndType(
         @Param("status") Organization.OrganizationStatus status,
         @Param("type") Organization.OrganizationType type
     );
 
+    // Search organizations - only non-deleted
     @Query("SELECT o FROM Organization o WHERE " +
+           "o.deletedAt IS NULL AND (" +
            "LOWER(o.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
-           "OR LOWER(o.slug) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
+           "OR LOWER(o.slug) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
     Page<Organization> searchOrganizations(@Param("searchTerm") String searchTerm, Pageable pageable);
 
     @Query("SELECT o FROM Organization o WHERE o.status = 'ACTIVE' AND o.deletedAt IS NULL " +
