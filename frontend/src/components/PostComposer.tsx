@@ -5,6 +5,12 @@ import { useOrganization } from '../contexts/OrganizationContext';
 import { useGroup } from '../contexts/GroupContext';
 import './PostComposer.css';
 
+// ============================================================================
+// FEATURE FLAGS - Toggle these to show/hide post composer features
+// ============================================================================
+const SHOW_POST_TYPE_SELECTOR = false; // Set to true to enable different post types
+// ============================================================================
+
 interface PostComposerProps {
   onPostCreated?: (post: any) => void;
   onCancel?: () => void;
@@ -23,7 +29,7 @@ interface PostComposerProps {
 const PostComposer: React.FC<PostComposerProps> = ({
   onPostCreated,
   onCancel,
-  placeholder = "What's happening in your church community?",
+  placeholder = "Share what's happening in your community...",
   replyTo,
   quoteTo
 }) => {
@@ -247,21 +253,23 @@ const PostComposer: React.FC<PostComposerProps> = ({
       )}
 
       <form onSubmit={handleSubmit} className="composer-form">
-        {/* Post Type Selector */}
-        <div className="post-type-selector">
-          {postTypes.map(({ type, label, icon, description }) => (
-            <button
-              key={type}
-              type="button"
-              className={`post-type-button ${selectedPostType === type ? 'active' : ''}`}
-              onClick={() => setSelectedPostType(type)}
-              title={description}
-            >
-              <span className="post-type-icon">{icon}</span>
-              <span className="post-type-label">{label}</span>
-            </button>
-          ))}
-        </div>
+        {/* Post Type Selector - Hidden by default, can be re-enabled with SHOW_POST_TYPE_SELECTOR flag */}
+        {SHOW_POST_TYPE_SELECTOR && (
+          <div className="post-type-selector">
+            {postTypes.map(({ type, label, icon, description }) => (
+              <button
+                key={type}
+                type="button"
+                className={`post-type-button ${selectedPostType === type ? 'active' : ''}`}
+                onClick={() => setSelectedPostType(type)}
+                title={description}
+              >
+                <span className="post-type-icon">{icon}</span>
+                <span className="post-type-label">{label}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Main Content Area */}
         <div className="composer-content">
