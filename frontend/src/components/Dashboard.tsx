@@ -305,7 +305,7 @@ const Dashboard: React.FC = () => {
                   <PostComposer
                     onPostCreated={handlePostCreated}
                     onCancel={() => setShowComposer(false)}
-                    placeholder="Share what's happening in your church community..."
+                    placeholder="Share what's happening in your community..."
                   />
                 </div>
               </div>
