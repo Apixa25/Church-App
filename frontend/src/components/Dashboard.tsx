@@ -196,8 +196,6 @@ const Dashboard: React.FC = () => {
               <span className="wheat-emoji">🌾</span>
               {displayOrgName}
             </h1>
-            {/* Context Switcher - only shows when user has both Church and Family primaries */}
-            {showContextSwitcher && <ContextSwitcher />}
           </div>
           <div className="user-info">
             <div className="user-details">
@@ -273,6 +271,8 @@ const Dashboard: React.FC = () => {
               )}
               {/* Multi-tenant feed filter */}
               {feedView === 'social' && <FeedFilterSelector />}
+              {/* Context Switcher - only shows when user has both Church and Family primaries */}
+              {showContextSwitcher && <ContextSwitcher />}
             </div>
 
             {/* Create Post Button */}
