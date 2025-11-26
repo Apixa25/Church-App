@@ -34,7 +34,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const [connectionStatus, setConnectionStatus] = useState({
     connected: false,
     url: '',
-    reconnectAttempts: 0
+    reconnectAttempts: -1  // -1 means "never attempted connection yet"
   });
 
   // Update connection status

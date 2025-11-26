@@ -276,6 +276,12 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
     primaryMembership,
     secondaryMemberships,
     loading,
+    // Dual Primary System - use new methods
+    setChurchPrimary,
+    setFamilyPrimary,
+    canBeChurchPrimary,
+    canBeFamilyPrimary,
+    // Legacy (no longer needed but keep for reference)
     switchPrimaryOrganization,
     canSwitchPrimary,
     getDaysUntilCanSwitch,
@@ -357,17 +363,27 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
     }
   }, [isOpen]);
 
-  const handleSwitchPrimary = async (orgId: string, orgName: string) => {
-    if (!canSwitch) {
-      alert(`You must wait ${daysUntilSwitch} more days before switching your primary organization.`);
-      return;
-    }
+  const handleSwitchPrimary = async (orgId: string, orgName: string, orgType?: string) => {
+    // No more cooldown check needed! Users can switch freely now.
+    // Keeping the check structure in case we want to add rate limiting later.
 
     try {
       setSwitching(orgId);
-      await switchPrimaryOrganization(orgId);
+      
+      // Dual Primary System: Detect organization type and call appropriate endpoint
+      if (orgType && canBeFamilyPrimary(orgType)) {
+        // FAMILY type organizations go to Family Primary slot
+        console.log('🏠 Setting Family Primary:', orgName, '(type:', orgType, ')');
+        await setFamilyPrimary(orgId);
+      } else {
+        // CHURCH, MINISTRY, NONPROFIT, GENERAL go to Church Primary slot
+        console.log('⛪ Setting Church Primary:', orgName, '(type:', orgType, ')');
+        await setChurchPrimary(orgId);
+      }
+      
       setIsOpen(false);
     } catch (err: any) {
+      console.error('Failed to switch primary organization:', err);
       alert(err.message || 'Failed to switch primary organization');
     } finally {
       setSwitching(null);
@@ -443,9 +459,15 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
                       <OrgItemActions>
                         <SecondaryBadge>SECONDARY</SecondaryBadge>
                         <ActionButton
-                          onClick={() => handleSwitchPrimary(membership.organizationId, membership.organizationName || '')}
-                          disabled={!canSwitch || switching === membership.organizationId}
-                          title={canSwitch ? 'Switch to primary' : `Wait ${daysUntilSwitch} days`}
+                          onClick={() => handleSwitchPrimary(
+                            membership.organizationId, 
+                            membership.organizationName || '',
+                            membership.organizationType
+                          )}
+                          disabled={switching === membership.organizationId}
+                          title={membership.organizationType === 'FAMILY' 
+                            ? 'Set as Family Primary' 
+                            : 'Set as Church Primary'}
                         >
                           {switching === membership.organizationId ? '...' : 'Switch'}
                         </ActionButton>
@@ -492,8 +514,15 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
                       </OrgItemInfo>
                       <OrgItemActions>
                         <ActionButton
-                          onClick={() => handleSwitchPrimary(membership.organizationId, membership.organizationName || '')}
+                          onClick={() => handleSwitchPrimary(
+                            membership.organizationId, 
+                            membership.organizationName || '',
+                            membership.organizationType
+                          )}
                           disabled={switching === membership.organizationId}
+                          title={membership.organizationType === 'FAMILY' 
+                            ? 'Set as Family Primary' 
+                            : 'Set as Church Primary'}
                         >
                           {switching === membership.organizationId ? '...' : 'Make Primary'}
                         </ActionButton>

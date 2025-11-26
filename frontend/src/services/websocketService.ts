@@ -94,7 +94,7 @@ class WebSocketService {
   private client: Client | null = null;
   private subscriptions: Map<string, StompSubscription> = new Map();
   private isConnected = false;
-  private reconnectAttempts = 0;
+  private reconnectAttempts = -1;  // -1 means "never attempted connection yet"
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
   private token: string | null = null;
