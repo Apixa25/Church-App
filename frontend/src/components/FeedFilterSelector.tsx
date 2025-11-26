@@ -312,7 +312,7 @@ const FeedFilterSelector: React.FC = () => {
     }
   }, [isOpen]);
 
-  const handleFilterChange = (filter: 'ALL' | 'PRIMARY_ONLY' | 'SELECTED_GROUPS') => {
+  const handleFilterChange = (filter: 'EVERYTHING' | 'ALL' | 'PRIMARY_ONLY' | 'SELECTED_GROUPS') => {
     setTempFilter(filter);
     setError(null);
 
@@ -354,8 +354,10 @@ const FeedFilterSelector: React.FC = () => {
 
   const getFilterLabel = (): string => {
     switch (activeFilter) {
+      case 'EVERYTHING':
+        return 'Everything';
       case 'ALL':
-        return 'All Posts';
+        return 'All My Groups';
       case 'PRIMARY_ONLY':
         // Context-aware: show which primary org is being filtered
         if (activeContext === 'church' && churchPrimary) {
@@ -390,7 +392,7 @@ const FeedFilterSelector: React.FC = () => {
       <SelectorButton onClick={() => setIsOpen(!isOpen)}>
         <FilterIcon>🔍</FilterIcon>
         <FilterLabel>{getFilterLabel()}</FilterLabel>
-        {activeFilter !== 'ALL' && <ActiveFilterBadge>Active</ActiveFilterBadge>}
+        {activeFilter !== 'EVERYTHING' && <ActiveFilterBadge>Active</ActiveFilterBadge>}
         <DropdownIcon $isOpen={isOpen}>▼</DropdownIcon>
       </SelectorButton>
 
@@ -406,12 +408,25 @@ const FeedFilterSelector: React.FC = () => {
 
         <DropdownSection>
           <FilterOption
+            $isActive={tempFilter === 'EVERYTHING'}
+            onClick={() => handleFilterChange('EVERYTHING')}
+          >
+            <RadioCircle $isActive={tempFilter === 'EVERYTHING'} />
+            <OptionContent>
+              <OptionTitle>🌐 Everything</OptionTitle>
+              <OptionDescription>
+                See posts from your Church, Family, Groups, and the Global Feed
+              </OptionDescription>
+            </OptionContent>
+          </FilterOption>
+
+          <FilterOption
             $isActive={tempFilter === 'ALL'}
             onClick={() => handleFilterChange('ALL')}
           >
             <RadioCircle $isActive={tempFilter === 'ALL'} />
             <OptionContent>
-              <OptionTitle>🌐 All Posts</OptionTitle>
+              <OptionTitle>📋 All My Groups</OptionTitle>
               <OptionDescription>
                 {(hasChurchPrimary || hasFamilyPrimary)
                   ? 'See posts from your Church, Family, and all Groups you\'re in'
