@@ -254,12 +254,15 @@ const Dashboard: React.FC = () => {
           <div className="dashboard-left">
             {/* Feed View Toggle */}
             <div className="feed-view-toggle">
-              <button
-                className={`feed-toggle-btn ${feedView === 'social' ? 'active' : ''}`}
-                onClick={() => handleFeedViewChange('social')}
-              >
-                🌟 Social Feed
-              </button>
+              {/* Only show Social Feed button when Activity Feed is selected (to switch back) */}
+              {feedView !== 'social' && (
+                <button
+                  className="feed-toggle-btn"
+                  onClick={() => handleFeedViewChange('social')}
+                >
+                  🌟 Social Feed
+                </button>
+              )}
               {/* Only show Activity Feed button if user has primary org */}
               {hasPrimaryOrg && (
                 <button
