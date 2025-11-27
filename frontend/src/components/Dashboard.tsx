@@ -42,9 +42,13 @@ const Dashboard: React.FC = () => {
   // Legacy compatibility: primaryMembership maps to the currently active context
   const primaryMembership = activeMembership;
   
-  // Track previous context to detect changes
+  // Track previous context to detect changes (for filter updates)
   const prevContextRef = useRef<string | null>(null);
   const prevOrgIdRef = useRef<string | null>(null);
+  
+  // Track previous context separately for dashboard re-fetch
+  const prevDashboardContextRef = useRef<string | null>(null);
+  const prevDashboardOrgIdRef = useRef<string | null>(null);
   
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
@@ -241,30 +245,52 @@ const Dashboard: React.FC = () => {
   }, [activeContext, activeOrganizationId, setFilter]);
 
   // Re-fetch dashboard data when active context or organization changes
+  // Use activeOrganizationId as the primary trigger since it changes when context switches
   useEffect(() => {
-    console.log('🔄 Dashboard - Context change useEffect triggered');
-    console.log('🔄 Dashboard - prevContextRef.current:', prevContextRef.current);
-    console.log('🔄 Dashboard - activeContext:', activeContext);
-    console.log('🔄 Dashboard - prevOrgIdRef.current:', prevOrgIdRef.current);
-    console.log('🔄 Dashboard - activeOrganizationId:', activeOrganizationId);
+    // Only fetch if we have a valid organizationId and context
+    if (!activeOrganizationId || (activeContext !== 'church' && activeContext !== 'family')) {
+      console.log('🔄 Dashboard - Skipping fetch: no orgId or invalid context', { activeOrganizationId, activeContext });
+      return;
+    }
+
+    const currentContext = activeContext || 'gathering';
+    const currentOrgId = activeOrganizationId || null;
     
-    // Skip on initial mount (when prevContextRef is null)
-    if (prevContextRef.current === null) {
-      console.log('🔄 Dashboard - Skipping initial mount in context change useEffect');
+    console.log('🔄 Dashboard - Context change useEffect triggered');
+    console.log('🔄 Dashboard - prevDashboardContextRef.current:', prevDashboardContextRef.current);
+    console.log('🔄 Dashboard - currentContext:', currentContext);
+    console.log('🔄 Dashboard - prevDashboardOrgIdRef.current:', prevDashboardOrgIdRef.current);
+    console.log('🔄 Dashboard - currentOrgId:', currentOrgId);
+    
+    // Skip on initial mount (when prevDashboardContextRef is null)
+    if (prevDashboardContextRef.current === null) {
+      console.log('🔄 Dashboard - Initial mount, setting refs and will fetch on next change');
+      prevDashboardContextRef.current = currentContext;
+      prevDashboardOrgIdRef.current = currentOrgId;
       return;
     }
 
     // Check if context or organization actually changed
-    const contextChanged = prevContextRef.current !== (activeContext || 'gathering');
-    const orgChanged = prevOrgIdRef.current !== (activeOrganizationId || null);
+    const contextChanged = prevDashboardContextRef.current !== currentContext;
+    const orgChanged = prevDashboardOrgIdRef.current !== currentOrgId;
 
     console.log('🔄 Dashboard - contextChanged:', contextChanged, 'orgChanged:', orgChanged);
+    console.log('🔄 Dashboard - prevContext:', prevDashboardContextRef.current, 'currentContext:', currentContext);
+    console.log('🔄 Dashboard - prevOrgId:', prevDashboardOrgIdRef.current, 'currentOrgId:', currentOrgId);
 
-    if ((contextChanged || orgChanged) && (activeContext === 'church' || activeContext === 'family')) {
-      console.log('🔄 Context changed, re-fetching dashboard data for:', activeOrganizationId);
+    if (contextChanged || orgChanged) {
+      console.log('🔄 Context/Org changed, re-fetching dashboard data for:', activeOrganizationId);
+      // Update refs BEFORE fetching to prevent duplicate calls
+      prevDashboardContextRef.current = currentContext;
+      prevDashboardOrgIdRef.current = currentOrgId;
+      // Force a fresh fetch - clear old data first to show loading state
+      setDashboardData(null);
       fetchDashboardData();
     } else {
-      console.log('🔄 Dashboard - No change detected or not church/family context');
+      console.log('🔄 Dashboard - No change detected');
+      // Still update refs even if no fetch
+      prevDashboardContextRef.current = currentContext;
+      prevDashboardOrgIdRef.current = currentOrgId;
     }
   }, [activeContext, activeOrganizationId, fetchDashboardData]);
 
