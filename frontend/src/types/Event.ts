@@ -48,6 +48,7 @@ export interface EventRequest {
   requiresApproval?: boolean;
   bringListEnabled?: boolean;
   bringItems?: EventBringItemInput[];
+  organizationId?: string; // Organization context for multi-tenant support
 }
 
 export interface EventRsvp {
