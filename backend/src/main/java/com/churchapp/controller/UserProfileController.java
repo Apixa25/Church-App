@@ -7,6 +7,7 @@ import com.churchapp.entity.ProfileView;
 import com.churchapp.entity.UserBlock;
 import com.churchapp.entity.UserFollow;
 import com.churchapp.security.JwtUtil;
+import com.churchapp.repository.UserRepository;
 import com.churchapp.service.ProfileAnalyticsService;
 import com.churchapp.service.FollowerAnalyticsService;
 import com.churchapp.service.UserBlockService;
@@ -18,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.User;
@@ -42,6 +44,7 @@ public class UserProfileController {
     private final ProfileAnalyticsService profileAnalyticsService;
     private final FollowerAnalyticsService followerAnalyticsService;
     private final JwtUtil jwtUtil;
+    private final UserRepository userRepository;
     
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getMyProfile(@AuthenticationPrincipal User user) {
@@ -54,9 +57,16 @@ public class UserProfileController {
     }
     
     @GetMapping("/{userId}")
-    public ResponseEntity<UserProfileResponse> getUserProfile(@PathVariable UUID userId) {
+    public ResponseEntity<UserProfileResponse> getUserProfile(
+            @PathVariable UUID userId,
+            @AuthenticationPrincipal User currentUser) {
         try {
-            UserProfileResponse profile = userProfileService.getUserProfile(userId);
+            UUID currentUserId = currentUser != null ? 
+                userRepository.findByEmail(currentUser.getUsername())
+                    .map(com.churchapp.entity.User::getId)
+                    .orElse(null) : null;
+            
+            UserProfileResponse profile = userProfileService.getUserProfile(userId, currentUserId);
             return ResponseEntity.ok(profile);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
@@ -492,6 +502,46 @@ public class UserProfileController {
         }
     }
     
+    // ========================================================================
+    // SOCIAL SCORE - USER LIKES (HEARTS) ENDPOINTS
+    // ========================================================================
+
+    /**
+     * Like a user (give them a heart)
+     * POST /api/profile/{userId}/like
+     */
+    @PostMapping("/{userId}/like")
+    public ResponseEntity<Void> likeUser(
+            @PathVariable UUID userId,
+            @AuthenticationPrincipal User user) {
+        try {
+            userProfileService.likeUser(user.getUsername(), userId);
+            return ResponseEntity.ok().build();
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        } catch (Exception e) {
+            log.error("Error liking user", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Unlike a user (remove heart)
+     * DELETE /api/profile/{userId}/like
+     */
+    @DeleteMapping("/{userId}/like")
+    public ResponseEntity<Void> unlikeUser(
+            @PathVariable UUID userId,
+            @AuthenticationPrincipal User user) {
+        try {
+            userProfileService.unlikeUser(user.getUsername(), userId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("Error unliking user", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     private int calculateCompletionPercentage(UserProfileResponse profile) {
         int completedFields = 0;
         int totalFields = 4; // name, email, bio, profilePicUrl

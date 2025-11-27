@@ -34,6 +34,8 @@ export interface User {
   followerCount?: number;
   followingCount?: number;
   postsCount?: number;
+  heartsCount?: number;
+  isLikedByCurrentUser?: boolean;
 }
 
 interface AuthContextType {

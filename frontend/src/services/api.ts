@@ -91,6 +91,13 @@ export const profileAPI = {
   
   getUserMemberships: (userId: string) =>
     api.get(`/organizations/users/${userId}/memberships`),
+  
+  // Social score - user likes (hearts)
+  likeUser: (userId: string) =>
+    api.post(`/profile/${userId}/like`),
+  
+  unlikeUser: (userId: string) =>
+    api.delete(`/profile/${userId}/like`),
 };
 
 export default api;

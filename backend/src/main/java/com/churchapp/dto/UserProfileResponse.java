@@ -46,6 +46,10 @@ public class UserProfileResponse {
     private Long followerCount;
     private Long followingCount;
     
+    // Social score - hearts
+    private Integer heartsCount;
+    private Boolean isLikedByCurrentUser;
+    
     public static UserProfileResponse fromUser(User user) {
         return new UserProfileResponse(
             user.getId(),
@@ -75,7 +79,9 @@ public class UserProfileResponse {
             user.getUpdatedAt(),
             user.getLastLogin(),
             null, // followerCount will be set by service
-            null  // followingCount will be set by service
+            null, // followingCount will be set by service
+            user.getHeartsCount() != null ? user.getHeartsCount() : 0, // heartsCount
+            null  // isLikedByCurrentUser will be set by service
         );
     }
 }
