@@ -1,6 +1,7 @@
 package com.churchapp.service;
 
 import com.churchapp.dto.EventBringItemRequest;
+import com.churchapp.dto.EventNotificationEvent;
 import com.churchapp.entity.ChatGroup;
 import com.churchapp.entity.Event;
 import com.churchapp.entity.Organization;
@@ -16,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +38,7 @@ public class EventService {
     private final EventBringListService eventBringListService;
     private final OrganizationRepository organizationRepository;
     private final UserOrganizationMembershipRepository membershipRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public Event createEvent(UUID creatorId, Event eventRequest, Boolean bringListEnabled, List<EventBringItemRequest> bringItems, UUID organizationId) {
         User creator = userRepository.findById(creatorId)
@@ -120,6 +123,9 @@ public class EventService {
         
         log.info("Event created with id: {} by user: {}", savedEvent.getId(), creatorId);
         
+        // Send WebSocket notification for new event
+        notifyEventCreated(savedEvent);
+        
         return savedEvent;
     }
     
@@ -184,6 +190,14 @@ public class EventService {
         }
         
         log.info("Event updated with id: {} by user: {}", eventId, userId);
+        
+        // Send WebSocket notification for event update
+        notifyEventUpdated(updatedEvent);
+        
+        // If status changed to CANCELLED, also send cancel notification
+        if (eventUpdate.getStatus() == Event.EventStatus.CANCELLED) {
+            notifyEventCancelled(updatedEvent);
+        }
         
         return updatedEvent;
     }
@@ -360,6 +374,95 @@ public class EventService {
     public long countRecentEvents(int daysBack) {
         LocalDateTime cutoff = LocalDateTime.now().minusDays(daysBack);
         return eventRepository.countByCreatedAtAfter(cutoff);
+    }
+    
+    /**
+     * Send WebSocket notification for new event created
+     */
+    private void notifyEventCreated(Event event) {
+        try {
+            User creator = event.getCreator();
+            UUID groupId = event.getGroup() != null ? event.getGroup().getId() : null;
+            UUID organizationId = event.getOrganization() != null ? event.getOrganization().getId() : null;
+            
+            EventNotificationEvent notificationEvent = EventNotificationEvent.eventCreated(
+                event.getId(),
+                creator.getId(),
+                creator.getName(),
+                event.getTitle(),
+                event.getDescription(),
+                event.getLocation(),
+                event.getStartTime(),
+                event.getEndTime(),
+                organizationId,
+                groupId
+            );
+            
+            // Broadcast to all connected users - frontend will filter by organization
+            messagingTemplate.convertAndSend("/topic/events", notificationEvent);
+            log.info("Broadcasted event created notification for event: {}", event.getId());
+            
+        } catch (Exception e) {
+            log.error("Error sending event created notification: {}", e.getMessage());
+        }
+    }
+    
+    /**
+     * Send WebSocket notification for event update
+     */
+    private void notifyEventUpdated(Event event) {
+        try {
+            User creator = event.getCreator();
+            UUID groupId = event.getGroup() != null ? event.getGroup().getId() : null;
+            UUID organizationId = event.getOrganization() != null ? event.getOrganization().getId() : null;
+            
+            EventNotificationEvent notificationEvent = EventNotificationEvent.eventUpdated(
+                event.getId(),
+                creator.getId(),
+                creator.getName(),
+                event.getTitle(),
+                event.getDescription(),
+                event.getLocation(),
+                event.getStartTime(),
+                event.getEndTime(),
+                organizationId,
+                groupId
+            );
+            
+            // Broadcast to all connected users - frontend will filter by organization
+            messagingTemplate.convertAndSend("/topic/events", notificationEvent);
+            log.info("Broadcasted event updated notification for event: {}", event.getId());
+            
+        } catch (Exception e) {
+            log.error("Error sending event updated notification: {}", e.getMessage());
+        }
+    }
+    
+    /**
+     * Send WebSocket notification for event cancelled
+     */
+    private void notifyEventCancelled(Event event) {
+        try {
+            User creator = event.getCreator();
+            UUID groupId = event.getGroup() != null ? event.getGroup().getId() : null;
+            UUID organizationId = event.getOrganization() != null ? event.getOrganization().getId() : null;
+            
+            EventNotificationEvent notificationEvent = EventNotificationEvent.eventCancelled(
+                event.getId(),
+                creator.getId(),
+                creator.getName(),
+                event.getTitle(),
+                organizationId,
+                groupId
+            );
+            
+            // Broadcast to all connected users - frontend will filter by organization
+            messagingTemplate.convertAndSend("/topic/events", notificationEvent);
+            log.info("Broadcasted event cancelled notification for event: {}", event.getId());
+            
+        } catch (Exception e) {
+            log.error("Error sending event cancelled notification: {}", e.getMessage());
+        }
     }
     
     /**

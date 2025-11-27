@@ -1,229 +1,60 @@
-import React, { useState, useEffect } from 'react';
-import webSocketService, { EventUpdate, EventRsvpUpdate } from '../services/websocketService';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useEventNotifications, EventNotification } from '../hooks/useEventNotifications';
+import { formatRelativeDate } from '../utils/dateUtils';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import './EventNotifications.css';
 
-interface EventNotification {
-  id: string;
-  type: 'event' | 'rsvp';
-  title: string;
-  message: string;
-  timestamp: Date;
-  eventId: string;
-}
-
 const EventNotifications: React.FC = () => {
-  const { isAuthenticated } = useAuth();
-  const { isConnected, ensureConnection } = useWebSocket();
-  const [notifications, setNotifications] = useState<EventNotification[]>([]);
+  const navigate = useNavigate();
+  const {
+    notifications,
+    unreadCount,
+    isConnected,
+    markAsRead,
+    markAllAsRead,
+    removeNotification,
+    clearAllNotifications
+  } = useEventNotifications();
+
   const [showNotifications, setShowNotifications] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
-    // Don't attempt connection if user is not authenticated
-    if (!isAuthenticated) {
-      console.log('⚠️ User not authenticated, skipping event notification WebSocket connection');
-      return;
+  const handleNotificationClick = (notification: EventNotification) => {
+    markAsRead(notification.id);
+    if (notification.actionUrl) {
+      navigate(notification.actionUrl);
     }
+    setShowNotifications(false);
+  };
 
-    let eventUnsubscribe: (() => void) | null = null;
-    let rsvpUnsubscribe: (() => void) | null = null;
-    let userEventUnsubscribe: (() => void) | null = null;
-    let setupTimeout: NodeJS.Timeout | null = null;
+  const formatTimestamp = (timestamp: string) => {
+    return formatRelativeDate(timestamp);
+  };
 
-    const setupSubscriptions = async () => {
-      try {
-        // Use shared WebSocket context to ensure connection
-        await ensureConnection();
-
-        // Double-check connection is ready before subscribing
-        if (!webSocketService.isWebSocketConnected()) {
-          console.warn('⚠️ WebSocket not connected after ensureConnection, retrying...');
-          // Wait a bit and try again
-          await new Promise(resolve => setTimeout(resolve, 500));
-          if (!webSocketService.isWebSocketConnected()) {
-            console.error('❌ WebSocket still not connected after retry');
-            return;
-          }
-        }
-
-        // Subscribe to event updates
-        eventUnsubscribe = await webSocketService.subscribeToEventUpdates((update: EventUpdate) => {
-          const notification: EventNotification = {
-            id: `event-${update.eventId}-${Date.now()}`,
-            type: 'event',
-            title: getEventUpdateTitle(update),
-            message: getEventUpdateMessage(update),
-            timestamp: new Date(),
-            eventId: update.eventId
-          };
-
-          addNotification(notification);
-        });
-
-        // Subscribe to RSVP updates
-        rsvpUnsubscribe = webSocketService.subscribeToRsvpUpdates((update: EventRsvpUpdate) => {
-          const notification: EventNotification = {
-            id: `rsvp-${update.eventId}-${update.userId}-${Date.now()}`,
-            type: 'rsvp',
-            title: 'RSVP Update',
-            message: getRsvpUpdateMessage(update),
-            timestamp: new Date(),
-            eventId: update.eventId
-          };
-
-          addNotification(notification);
-        });
-
-        // Subscribe to personal event notifications
-        userEventUnsubscribe = webSocketService.subscribeToUserEventNotifications((notification) => {
-          const eventNotification: EventNotification = {
-            id: `user-event-${Date.now()}`,
-            type: 'event',
-            title: notification.type,
-            message: notification.content || 'You have a new event notification',
-            timestamp: new Date(),
-            eventId: notification.userId || 'unknown'
-          };
-
-          addNotification(eventNotification);
-        });
-
-        console.log('✅ Event notifications WebSocket connected successfully');
-      } catch (error) {
-        console.error('❌ Failed to connect WebSocket for event notifications:', error);
-        // Retry after a delay if connection failed
-        if (setupTimeout) clearTimeout(setupTimeout);
-        setupTimeout = setTimeout(() => {
-          if (webSocketService.isWebSocketConnected()) {
-            setupSubscriptions();
-          }
-        }, 2000);
-      }
+  const getNotificationIcon = (type: EventNotification['type']) => {
+    const iconMap = {
+      event_created: '📅',
+      event_updated: '✏️',
+      event_cancelled: '❌'
     };
-
-    // Setup subscriptions when WebSocket is connected, or try to connect if not
-    if (isConnected) {
-      setupSubscriptions();
-    } else {
-      // If not connected, try to ensure connection and then setup
-      ensureConnection()
-        .then(() => {
-          setupSubscriptions();
-        })
-        .catch((error) => {
-          console.error('❌ Failed to ensure connection for event notifications:', error);
-        });
-    }
-
-    return () => {
-      if (setupTimeout) clearTimeout(setupTimeout);
-      // Clean up subscriptions
-      if (eventUnsubscribe) {
-        eventUnsubscribe();
-      }
-      if (rsvpUnsubscribe) {
-        rsvpUnsubscribe();
-      }
-      if (userEventUnsubscribe) {
-        userEventUnsubscribe();
-      }
-    };
-  }, [isAuthenticated, isConnected, ensureConnection]);
-
-  const addNotification = (notification: EventNotification) => {
-    setNotifications(prev => [notification, ...prev.slice(0, 9)]); // Keep only 10 most recent
-    setUnreadCount(prev => prev + 1);
-
-    // Auto-remove notification after 10 seconds
-    setTimeout(() => {
-      removeNotification(notification.id);
-    }, 10000);
-  };
-
-  const removeNotification = (notificationId: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== notificationId));
-  };
-
-  const markAsRead = () => {
-    setUnreadCount(0);
-  };
-
-  const getEventUpdateTitle = (update: EventUpdate): string => {
-    switch (update.type) {
-      case 'event_created':
-        return '📅 New Event Created';
-      case 'event_updated':
-        return '✏️ Event Updated';
-      case 'event_cancelled':
-        return '❌ Event Cancelled';
-      case 'event_deleted':
-        return '🗑️ Event Deleted';
-      default:
-        return '📅 Event Update';
-    }
-  };
-
-  const getEventUpdateMessage = (update: EventUpdate): string => {
-    switch (update.type) {
-      case 'event_created':
-        return `New event "${update.eventTitle}" has been created`;
-      case 'event_updated':
-        return `Event "${update.eventTitle}" has been updated`;
-      case 'event_cancelled':
-        return `Event "${update.eventTitle}" has been cancelled`;
-      case 'event_deleted':
-        return `An event has been deleted`;
-      default:
-        return `Event "${update.eventTitle}" has been updated`;
-    }
-  };
-
-  const getRsvpUpdateMessage = (update: EventRsvpUpdate): string => {
-    const userName = update.userName || 'Someone';
-    const eventTitle = update.eventTitle || 'an event';
-    
-    switch (update.response?.toLowerCase()) {
-      case 'yes':
-        return `${userName} is attending "${eventTitle}"`;
-      case 'no':
-        return `${userName} can't attend "${eventTitle}"`;
-      case 'maybe':
-        return `${userName} might attend "${eventTitle}"`;
-      default:
-        return `${userName} updated their RSVP for "${eventTitle}"`;
-    }
-  };
-
-  const formatTimestamp = (timestamp: Date): string => {
-    const now = new Date();
-    const diffInMs = now.getTime() - timestamp.getTime();
-    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-
-    if (diffInMinutes < 1) {
-      return 'Just now';
-    } else if (diffInMinutes < 60) {
-      return `${diffInMinutes}m ago`;
-    } else {
-      const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-      return `${diffInHours}h ago`;
-    }
+    return iconMap[type] || '🔔';
   };
 
   return (
     <div className="event-notifications">
       <button
-        className="notification-toggle"
+        className={`notification-toggle ${unreadCount > 0 ? 'has-unread' : ''}`}
         onClick={() => {
           setShowNotifications(!showNotifications);
-          if (!showNotifications) markAsRead();
+          if (!showNotifications && unreadCount > 0) {
+            markAllAsRead();
+          }
         }}
-        title="Event Notifications - Click to view event updates and RSVPs"
+        title="Event Notifications - Click to view event updates"
       >
         🔔
         {unreadCount > 0 && (
-          <span className="notification-badge">{unreadCount}</span>
+          <span className="notification-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
         )}
       </button>
 
@@ -231,32 +62,69 @@ const EventNotifications: React.FC = () => {
         <div className="notification-dropdown">
           <div className="notification-header">
             <h3>Event Notifications</h3>
-            <button
-              className="close-btn"
-              onClick={() => setShowNotifications(false)}
-            >
-              ✕
-            </button>
+            <div className="notification-actions">
+              {isConnected ? (
+                <span className="connection-status connected">🟢 Live</span>
+              ) : (
+                <span className="connection-status disconnected">🔴 Offline</span>
+              )}
+              {unreadCount > 0 && (
+                <button 
+                  onClick={markAllAsRead}
+                  className="mark-all-read"
+                  title="Mark all as read"
+                >
+                  ✓
+                </button>
+              )}
+              <button 
+                onClick={clearAllNotifications}
+                className="clear-all"
+                title="Clear all notifications"
+              >
+                🗑️
+              </button>
+              <button 
+                onClick={() => setShowNotifications(false)}
+                className="close-dropdown"
+              >
+                ×
+              </button>
+            </div>
           </div>
 
           <div className="notification-list">
             {notifications.length === 0 ? (
               <div className="no-notifications">
-                <p>No recent notifications</p>
+                <p>No event notifications yet</p>
+                <small>You'll be notified of new events and updates</small>
               </div>
             ) : (
-              notifications.map(notification => (
-                <div key={notification.id} className={`notification-item ${notification.type}`}>
+              notifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`notification-item ${!notification.read ? 'unread' : ''}`}
+                  onClick={() => handleNotificationClick(notification)}
+                >
+                  <div className="notification-icon">
+                    {getNotificationIcon(notification.type)}
+                  </div>
+                  
                   <div className="notification-content">
                     <div className="notification-title">{notification.title}</div>
                     <div className="notification-message">{notification.message}</div>
                     <div className="notification-time">{formatTimestamp(notification.timestamp)}</div>
                   </div>
+
                   <button
                     className="remove-notification"
-                    onClick={() => removeNotification(notification.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeNotification(notification.id);
+                    }}
+                    title="Remove notification"
                   >
-                    ✕
+                    ×
                   </button>
                 </div>
               ))
@@ -265,11 +133,14 @@ const EventNotifications: React.FC = () => {
 
           {notifications.length > 0 && (
             <div className="notification-footer">
-              <button
-                className="clear-all-btn"
-                onClick={() => setNotifications([])}
+              <button 
+                onClick={() => {
+                  navigate('/calendar');
+                  setShowNotifications(false);
+                }}
+                className="view-all-events"
               >
-                Clear All
+                View Calendar →
               </button>
             </div>
           )}
