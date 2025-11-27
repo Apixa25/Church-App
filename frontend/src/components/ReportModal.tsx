@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import './ReportModal.css';
 
 interface ReportModalProps {
@@ -29,6 +30,27 @@ const ReportModal: React.FC<ReportModalProps> = ({
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      // Save current scroll position and prevent scrolling
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+
+      return () => {
+        // Restore scroll position when modal closes
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -64,7 +86,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
     }
   };
 
-  return (
+  const modalContent = (
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content report-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
@@ -152,6 +174,11 @@ const ReportModal: React.FC<ReportModalProps> = ({
       </div>
     </div>
   );
+
+  if (!isOpen) return null;
+
+  // Use portal to render modal directly to document.body, ensuring it's always on top
+  return createPortal(modalContent, document.body);
 };
 
 export default ReportModal;
