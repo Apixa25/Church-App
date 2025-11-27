@@ -286,6 +286,10 @@ const Dashboard: React.FC = () => {
       // Force a fresh fetch - clear old data first to show loading state
       setDashboardData(null);
       fetchDashboardData();
+      // CRITICAL FIX: Also refresh the feed when context changes
+      // This ensures the feed updates with the new organization's data
+      // This matches the behavior when navigating to Announcements and back
+      setFeedRefreshKey(prev => prev + 1);
     } else {
       console.log('🔄 Dashboard - No change detected');
       // Still update refs even if no fetch
