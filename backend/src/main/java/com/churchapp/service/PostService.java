@@ -97,10 +97,22 @@ public class PostService {
         }
 
         Post savedPost = postRepository.save(post);
-        log.info("Created new post with ID: {} by user: {} in org: {} group: {}",
-            savedPost.getId(), userEmail,
-            post.getOrganization() != null ? post.getOrganization().getId() : null,
-            post.getGroup() != null ? post.getGroup().getId() : null);
+        
+        // LOG POST CREATION - Using both log.info and System.out to ensure visibility
+        String postOrgId = post.getOrganization() != null ? post.getOrganization().getId().toString() : "null";
+        String postOrgName = post.getOrganization() != null ? post.getOrganization().getName() : "null";
+        String postGroupId = post.getGroup() != null ? post.getGroup().getId().toString() : "null";
+        
+        log.info("Created new post with ID: {} by user: {} in org: {} ({}) group: {}",
+            savedPost.getId(), userEmail, postOrgId, postOrgName, postGroupId);
+        
+        System.out.println("===== POST CREATED =====");
+        System.out.println("Post ID: " + savedPost.getId());
+        System.out.println("User: " + userEmail);
+        System.out.println("Organization ID: " + postOrgId);
+        System.out.println("Organization Name: " + postOrgName);
+        System.out.println("Group ID: " + postGroupId);
+        System.out.println("========================");
 
         // Process hashtags in content
         processHashtags(savedPost);
@@ -208,19 +220,19 @@ public class PostService {
         // Use empty list instead of null for better query performance
         List<UUID> blockedIds = blockedUserIds.isEmpty() ? null : blockedUserIds;
 
-        // Check if user has primary org
-        if (params.getPrimaryOrgId() == null) {
+        // Check if user has primary org(s) - supports dual-primary system
+        if (params.getPrimaryOrgIds().isEmpty()) {
             // Social-only user - show global org + their groups
             UUID globalOrgId = UUID.fromString("00000000-0000-0000-0000-000000000001");
             return postRepository.findGlobalUserFeed(params.getGroupIds(), globalOrgId, blockedIds, pageable);
         } else {
-            // User with primary org - use unified query that handles:
-            // - Primary org (all visibility levels)
+            // User with primary org(s) - use unified query that handles:
+            // - Primary orgs (all visibility levels) - supports dual-primary: churchPrimary + familyPrimary
             // - Secondary orgs including Global org (PUBLIC only)
             // - Groups (based on group visibility)
             // The getFeedParameters method now includes Global org in secondaryOrgIds when filter is ALL
             return postRepository.findMultiTenantFeed(
-                params.getPrimaryOrgId(),
+                params.getPrimaryOrgIds(), // Now a list supporting dual-primary system
                 params.getSecondaryOrgIds(),
                 params.getGroupIds(),
                 blockedIds,
@@ -272,9 +284,10 @@ public class PostService {
         // Use empty list instead of null for better query performance
         List<UUID> blockedIds = blockedUserIds.isEmpty() ? null : blockedUserIds;
 
-        // If user has primary org, show trending from that org
-        if (params.getPrimaryOrgId() != null) {
-            return postRepository.findTrendingPostsByOrganization(params.getPrimaryOrgId(), since, blockedIds, pageable);
+        // If user has primary org(s), show trending from first primary org (churchPrimary)
+        // Note: For dual-primary system, we use churchPrimary for trending
+        if (!params.getPrimaryOrgIds().isEmpty()) {
+            return postRepository.findTrendingPostsByOrganization(params.getPrimaryOrgIds().get(0), since, blockedIds, pageable);
         } else {
             // Social-only user - show global trending
             return postRepository.findTrendingPosts(since, blockedIds, pageable);

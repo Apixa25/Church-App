@@ -76,7 +76,8 @@ public class FeedPreferenceController {
             FeedPreference updated = feedFilterService.updateFeedPreference(
                 userId,
                 filter,
-                selectedGroupIds
+                selectedGroupIds,
+                request.getSelectedOrganizationId()
             );
 
             // Create response with userId explicitly set to avoid lazy loading issues
@@ -116,7 +117,7 @@ public class FeedPreferenceController {
         log.info("User {} resetting feed preference to ALL", userId);
 
         // Reset to default (ALL)
-        feedFilterService.updateFeedPreference(userId, FeedPreference.FeedFilter.ALL, null);
+        feedFilterService.updateFeedPreference(userId, FeedPreference.FeedFilter.ALL, null, null);
 
         return ResponseEntity.noContent().build();
     }

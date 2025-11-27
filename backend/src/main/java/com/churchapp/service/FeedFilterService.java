@@ -39,7 +39,7 @@ public class FeedFilterService {
             .orElseGet(() -> createDefaultPreference(userId));
     }
 
-    public FeedPreference updateFeedPreference(UUID userId, FeedPreference.FeedFilter filter, List<UUID> selectedGroupIds) {
+    public FeedPreference updateFeedPreference(UUID userId, FeedPreference.FeedFilter filter, List<UUID> selectedGroupIds, UUID selectedOrganizationId) {
         try {
             FeedPreference preference = feedPreferenceRepository.findByUserId(userId)
                 .orElseGet(() -> createDefaultPreference(userId));
@@ -73,6 +73,14 @@ public class FeedFilterService {
                     preference.setSelectedGroupIds(new ArrayList<>());
                 }
                 // If null and filter is SELECTED_GROUPS, keep existing selection
+            }
+
+            // Update selectedOrganizationId for PRIMARY_ONLY filter
+            if (filter == FeedPreference.FeedFilter.PRIMARY_ONLY) {
+                preference.setSelectedOrganizationId(selectedOrganizationId);
+            } else {
+                // Clear selectedOrganizationId for other filters
+                preference.setSelectedOrganizationId(null);
             }
 
             preference.setUpdatedAt(LocalDateTime.now());
@@ -120,6 +128,7 @@ public class FeedFilterService {
 
     /**
      * Get the user's primary organization ID (nullable for global users)
+     * Note: This returns the churchPrimary. For dual-primary support, use getAllPrimaryOrgIds().
      */
     public UUID getUserPrimaryOrgId(UUID userId) {
         User user = userRepository.findById(userId)
@@ -128,6 +137,24 @@ public class FeedFilterService {
         return user.getPrimaryOrganization() != null
             ? user.getPrimaryOrganization().getId()
             : null;
+    }
+
+    /**
+     * Get ALL primary organization IDs (supports dual-primary system: churchPrimary + familyPrimary)
+     * Posts from these orgs show all visibility levels in the feed
+     */
+    public List<UUID> getAllPrimaryOrgIds(UUID userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<UUID> primaryOrgIds = new ArrayList<>();
+        if (user.getPrimaryOrganization() != null) {
+            primaryOrgIds.add(user.getPrimaryOrganization().getId()); // churchPrimary
+        }
+        if (user.getFamilyPrimaryOrganization() != null) {
+            primaryOrgIds.add(user.getFamilyPrimaryOrganization().getId()); // familyPrimary
+        }
+        return primaryOrgIds;
     }
 
     /**
@@ -191,26 +218,37 @@ public class FeedFilterService {
 
     /**
      * Calculate which organization IDs should be visible based on filter
+     * Supports dual-primary system with selectedOrganizationId for PRIMARY_ONLY filter
      */
     public List<UUID> getVisibleOrgIds(UUID userId) {
         FeedPreference preference = getFeedPreference(userId);
-        UUID primaryOrgId = getUserPrimaryOrgId(userId);
+        List<UUID> allPrimaryOrgIds = getAllPrimaryOrgIds(userId);
 
         List<UUID> visibleOrgs = new ArrayList<>();
 
-        // Always include primary org if user has one
-        if (primaryOrgId != null) {
-            visibleOrgs.add(primaryOrgId);
+        // Handle PRIMARY_ONLY filter - only show selected organization
+        if (preference.getActiveFilter() == FeedPreference.FeedFilter.PRIMARY_ONLY) {
+            if (preference.getSelectedOrganizationId() != null) {
+                // Filter by the specifically selected organization
+                visibleOrgs.add(preference.getSelectedOrganizationId());
+            } else {
+                // Fallback: if no selectedOrganizationId, use first primary org (churchPrimary)
+                if (!allPrimaryOrgIds.isEmpty()) {
+                    visibleOrgs.add(allPrimaryOrgIds.get(0));
+                }
+            }
+            return visibleOrgs;
         }
 
-        // Add secondary orgs unless filter is PRIMARY_ONLY
-        if (preference.getActiveFilter() != FeedPreference.FeedFilter.PRIMARY_ONLY) {
-            visibleOrgs.addAll(getUserSecondaryOrgIds(userId));
-            
-            // When filter is EVERYTHING, include Global org so users can see posts from social-only users
-            if (preference.getActiveFilter() == FeedPreference.FeedFilter.EVERYTHING) {
-                visibleOrgs.add(GLOBAL_ORG_ID);
-            }
+        // For other filters, include all primary orgs
+        visibleOrgs.addAll(allPrimaryOrgIds);
+
+        // Add secondary orgs
+        visibleOrgs.addAll(getUserSecondaryOrgIds(userId));
+        
+        // When filter is EVERYTHING, include Global org so users can see posts from social-only users
+        if (preference.getActiveFilter() == FeedPreference.FeedFilter.EVERYTHING) {
+            visibleOrgs.add(GLOBAL_ORG_ID);
         }
 
         return visibleOrgs;
@@ -236,39 +274,61 @@ public class FeedFilterService {
 
     /**
      * Get complete feed parameters for a user based on their preferences
+     * Supports dual-primary system (churchPrimary + familyPrimary)
+     * When PRIMARY_ONLY filter is active, uses selectedOrganizationId to filter by specific org
      */
     public FeedParameters getFeedParameters(UUID userId) {
+        FeedPreference preference = getFeedPreference(userId);
+        List<UUID> allPrimaryOrgIds = getAllPrimaryOrgIds(userId);
+        
+        // For PRIMARY_ONLY filter, only include the selected organization as primary
+        List<UUID> primaryOrgIdsForFeed;
+        if (preference.getActiveFilter() == FeedPreference.FeedFilter.PRIMARY_ONLY 
+            && preference.getSelectedOrganizationId() != null) {
+            // Only include the selected organization
+            primaryOrgIdsForFeed = List.of(preference.getSelectedOrganizationId());
+        } else {
+            // Include all primary orgs
+            primaryOrgIdsForFeed = allPrimaryOrgIds;
+        }
+        
         // Use getVisibleOrgIds to respect filter preferences
         List<UUID> visibleOrgIds = getVisibleOrgIds(userId);
-        UUID primaryOrgId = getUserPrimaryOrgId(userId);
         
-        // Extract secondary orgs (exclude primary org, but include Global org if it's in visibleOrgs)
+        // Extract secondary orgs (exclude ALL primary orgs, but include Global org if it's in visibleOrgs)
         // Global org should be included in secondaryOrgIds when filter is ALL so posts from social-only users are visible
         List<UUID> secondaryOrgIds = visibleOrgIds.stream()
-            .filter(orgId -> !orgId.equals(primaryOrgId))
+            .filter(orgId -> !allPrimaryOrgIds.contains(orgId))
             .collect(Collectors.toList());
         
         List<UUID> groupIds = getVisibleGroupIds(userId);
 
-        return new FeedParameters(primaryOrgId, secondaryOrgIds, groupIds);
+        return new FeedParameters(primaryOrgIdsForFeed, secondaryOrgIds, groupIds);
     }
 
     /**
      * Simple data class to hold feed query parameters
+     * Supports dual-primary system (churchPrimary + familyPrimary)
      */
     public static class FeedParameters {
-        private final UUID primaryOrgId;
+        private final List<UUID> primaryOrgIds; // Changed to list to support dual-primary system
         private final List<UUID> secondaryOrgIds;
         private final List<UUID> groupIds;
 
-        public FeedParameters(UUID primaryOrgId, List<UUID> secondaryOrgIds, List<UUID> groupIds) {
-            this.primaryOrgId = primaryOrgId;
+        public FeedParameters(List<UUID> primaryOrgIds, List<UUID> secondaryOrgIds, List<UUID> groupIds) {
+            this.primaryOrgIds = primaryOrgIds != null ? primaryOrgIds : new ArrayList<>();
             this.secondaryOrgIds = secondaryOrgIds != null ? secondaryOrgIds : new ArrayList<>();
             this.groupIds = groupIds != null ? groupIds : new ArrayList<>();
         }
 
+        public List<UUID> getPrimaryOrgIds() {
+            return primaryOrgIds;
+        }
+
+        // Backward compatibility - returns first primary org ID (for code that still expects single primary)
+        @Deprecated
         public UUID getPrimaryOrgId() {
-            return primaryOrgId;
+            return primaryOrgIds.isEmpty() ? null : primaryOrgIds.get(0);
         }
 
         public List<UUID> getSecondaryOrgIds() {
@@ -280,7 +340,7 @@ public class FeedFilterService {
         }
 
         public boolean hasPrimaryOrg() {
-            return primaryOrgId != null;
+            return !primaryOrgIds.isEmpty();
         }
     }
 }

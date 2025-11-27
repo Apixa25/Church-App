@@ -282,7 +282,7 @@ const FeedFilterSelector: React.FC = () => {
   } = useGroup();
 
   // Dual Primary System - context awareness
-  const { activeContext, activeOrganizationName } = useActiveContext();
+  const { activeContext, activeOrganizationName, activeOrganizationId } = useActiveContext();
   const { hasChurchPrimary, hasFamilyPrimary, churchPrimary, familyPrimary } = useOrganization();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -343,7 +343,11 @@ const FeedFilterSelector: React.FC = () => {
         return;
       }
 
-      await setFilter(tempFilter, tempSelectedGroups);
+      // For PRIMARY_ONLY filter, pass the active organization ID
+      // Convert null to undefined for type compatibility
+      const selectedOrgId = tempFilter === 'PRIMARY_ONLY' ? (activeOrganizationId || undefined) : undefined;
+
+      await setFilter(tempFilter, tempSelectedGroups, selectedOrgId);
       setIsOpen(false);
     } catch (err: any) {
       setError(err.message || 'Failed to update feed filter');
