@@ -1,5 +1,5 @@
 -- Migration: Add user_blocks table for blocking functionality
--- This allows users to block other users, hiding their content from feeds
+-- This allows users to block other users, implementing mutual blocking (both users cannot see each other's content)
 
 CREATE TABLE user_blocks (
     blocker_id UUID NOT NULL,
@@ -17,5 +17,5 @@ CREATE INDEX idx_user_blocks_blocked_id ON user_blocks(blocked_id);
 CREATE INDEX idx_user_blocks_created_at ON user_blocks(created_at);
 
 -- Add comment for documentation
-COMMENT ON TABLE user_blocks IS 'Stores user blocking relationships. When user A blocks user B, user A will not see user B''s posts, comments, or profile in search results.';
+COMMENT ON TABLE user_blocks IS 'Stores user blocking relationships. When user A blocks user B, it implements mutual blocking: user A will not see user B''s posts, comments, or profile, and user B will not see user A''s posts, comments, or profile.';
 

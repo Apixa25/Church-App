@@ -65,10 +65,10 @@ public class FeedService {
     }
 
     /**
-     * Get chronological feed for a specific user (filters blocked users)
+     * Get chronological feed for a specific user (filters blocked users - mutual blocking)
      */
     private Page<Post> getChronologicalFeed(UUID userId, Pageable pageable) {
-        List<UUID> blockedUserIds = userBlockService.getBlockedUserIds(userId);
+        List<UUID> blockedUserIds = userBlockService.getMutuallyBlockedUserIds(userId);
         List<UUID> blockedIds = blockedUserIds.isEmpty() ? null : blockedUserIds;
         return postRepository.findMainPostsForFeed(blockedIds, pageable);
     }
@@ -100,11 +100,11 @@ public class FeedService {
     }
 
     /**
-     * Get trending feed for a specific user (filters blocked users)
+     * Get trending feed for a specific user (filters blocked users - mutual blocking)
      */
     private Page<Post> getTrendingFeed(UUID userId, Pageable pageable) {
         LocalDateTime since = LocalDateTime.now().minusDays(7);
-        List<UUID> blockedUserIds = userBlockService.getBlockedUserIds(userId);
+        List<UUID> blockedUserIds = userBlockService.getMutuallyBlockedUserIds(userId);
         List<UUID> blockedIds = blockedUserIds.isEmpty() ? null : blockedUserIds;
         Page<Post> trendingPosts = postRepository.findTrendingPosts(since, blockedIds, pageable);
 

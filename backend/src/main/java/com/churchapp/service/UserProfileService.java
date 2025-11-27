@@ -264,9 +264,9 @@ public class UserProfileService {
             predicates.add(criteriaBuilder.isNull(root.get("deletedAt")));
             predicates.add(criteriaBuilder.equal(root.get("isBanned"), false));
             
-            // Exclude blocked users if searcherUserId is provided
+            // Exclude blocked users (mutual blocking) if searcherUserId is provided
             if (searcherUserId != null) {
-                List<UUID> blockedUserIds = userBlockService.getBlockedUserIds(searcherUserId);
+                List<UUID> blockedUserIds = userBlockService.getMutuallyBlockedUserIds(searcherUserId);
                 if (!blockedUserIds.isEmpty()) {
                     predicates.add(criteriaBuilder.not(root.get("id").in(blockedUserIds)));
                 }

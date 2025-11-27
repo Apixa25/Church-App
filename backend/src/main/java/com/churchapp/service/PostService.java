@@ -189,14 +189,39 @@ public class PostService {
         return postRepository.findById(postId);
     }
 
-    public Page<Post> getUserPosts(UUID userId, Pageable pageable) {
+    public Page<Post> getUserPosts(UUID userId, UUID viewerUserId, Pageable pageable) {
+        // If viewing own profile or no viewer, return all posts
+        if (viewerUserId == null || userId.equals(viewerUserId)) {
+            return postRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+        }
+        
+        // For mutual blocking: check if viewer has blocked this user OR user has blocked viewer
+        List<UUID> mutuallyBlocked = userBlockService.getMutuallyBlockedUserIds(viewerUserId);
+        if (mutuallyBlocked.contains(userId)) {
+            // Return empty page if there's a mutual block relationship
+            return new PageImpl<>(List.of(), pageable, 0);
+        }
+        
         return postRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
     }
 
     /**
      * Get posts with media by a specific user
+     * Filters based on mutual blocking when viewing another user's profile
      */
-    public Page<Post> getUserPostsWithMedia(UUID userId, Pageable pageable) {
+    public Page<Post> getUserPostsWithMedia(UUID userId, UUID viewerUserId, Pageable pageable) {
+        // If viewing own profile or no viewer, return all posts
+        if (viewerUserId == null || userId.equals(viewerUserId)) {
+            return postRepository.findPostsWithMediaByUserId(userId, pageable);
+        }
+        
+        // For mutual blocking: check if viewer has blocked this user OR user has blocked viewer
+        List<UUID> mutuallyBlocked = userBlockService.getMutuallyBlockedUserIds(viewerUserId);
+        if (mutuallyBlocked.contains(userId)) {
+            // Return empty page if there's a mutual block relationship
+            return new PageImpl<>(List.of(), pageable, 0);
+        }
+        
         return postRepository.findPostsWithMediaByUserId(userId, pageable);
     }
 
@@ -217,15 +242,15 @@ public class PostService {
 
     /**
      * Get multi-tenant feed based on user's organizations and groups
-     * Excludes posts from blocked users
+     * Excludes posts from blocked users (mutual blocking)
      * Includes posts from followed users when filter is ALL or EVERYTHING
      */
     public Page<Post> getMultiTenantFeed(UUID userId, Pageable pageable) {
         FeedFilterService.FeedParameters params = feedFilterService.getFeedParameters(userId);
         FeedPreference preference = feedFilterService.getFeedPreference(userId);
 
-        // Get blocked user IDs to filter out
-        List<UUID> blockedUserIds = userBlockService.getBlockedUserIds(userId);
+        // Get mutually blocked user IDs to filter out (users viewer blocked + users who blocked viewer)
+        List<UUID> blockedUserIds = userBlockService.getMutuallyBlockedUserIds(userId);
         // Use empty list instead of null for better query performance
         List<UUID> blockedIds = blockedUserIds.isEmpty() ? null : blockedUserIds;
 
@@ -291,13 +316,13 @@ public class PostService {
             return new PageImpl<>(List.of(), pageable, 0);
         }
 
-        // Get blocked user IDs to filter out
-        List<UUID> blockedUserIds = userBlockService.getBlockedUserIds(userId);
+        // Get mutually blocked user IDs to filter out (users viewer blocked + users who blocked viewer)
+        List<UUID> blockedUserIds = userBlockService.getMutuallyBlockedUserIds(userId);
         // Use empty list instead of null for better query performance
         List<UUID> blockedIds = blockedUserIds.isEmpty() ? null : blockedUserIds;
 
         // Get posts from followed users (works globally across all organizations)
-        // Excludes posts from blocked users
+        // Excludes posts from blocked users (mutual blocking)
         return postRepository.findPostsByFollowingUsers(followingIds, blockedIds, pageable);
     }
 
@@ -306,8 +331,8 @@ public class PostService {
         FeedFilterService.FeedParameters params = feedFilterService.getFeedParameters(userId);
         LocalDateTime since = LocalDateTime.now().minusDays(7);
 
-        // Get blocked user IDs to filter out
-        List<UUID> blockedUserIds = userBlockService.getBlockedUserIds(userId);
+        // Get mutually blocked user IDs to filter out (users viewer blocked + users who blocked viewer)
+        List<UUID> blockedUserIds = userBlockService.getMutuallyBlockedUserIds(userId);
         // Use empty list instead of null for better query performance
         List<UUID> blockedIds = blockedUserIds.isEmpty() ? null : blockedUserIds;
 
