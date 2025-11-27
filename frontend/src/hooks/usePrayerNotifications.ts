@@ -19,11 +19,55 @@ export interface PrayerNotification {
   actionUrl?: string;
 }
 
+// LocalStorage key for prayer notifications (user-specific)
+const getStorageKey = (userId: string | undefined) => 
+  userId ? `prayer_notifications_${userId}` : null;
+
+// Load notifications from localStorage
+const loadNotificationsFromStorage = (userId: string | undefined): PrayerNotification[] => {
+  const storageKey = getStorageKey(userId);
+  if (!storageKey) return [];
+  
+  try {
+    const stored = localStorage.getItem(storageKey);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return Array.isArray(parsed) ? parsed : [];
+    }
+  } catch (error) {
+    console.error('Error loading prayer notifications from localStorage:', error);
+  }
+  return [];
+};
+
+// Save notifications to localStorage
+const saveNotificationsToStorage = (userId: string | undefined, notifications: PrayerNotification[]) => {
+  const storageKey = getStorageKey(userId);
+  if (!storageKey) return;
+  
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(notifications));
+  } catch (error) {
+    console.error('Error saving prayer notifications to localStorage:', error);
+  }
+};
+
+// Calculate unread count from notifications array
+const calculateUnreadCount = (notifications: PrayerNotification[]): number => {
+  return notifications.filter(n => !n.read).length;
+};
+
 export const usePrayerNotifications = () => {
   const { user } = useAuth();
   const { isConnected, ensureConnection } = useWebSocket();
-  const [notifications, setNotifications] = useState<PrayerNotification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  
+  // Initialize state from localStorage
+  const [notifications, setNotifications] = useState<PrayerNotification[]>(() => 
+    loadNotificationsFromStorage(user?.userId)
+  );
+  const [unreadCount, setUnreadCount] = useState(() => 
+    calculateUnreadCount(loadNotificationsFromStorage(user?.userId))
+  );
 
   const addNotification = useCallback((notification: PrayerNotification) => {
     setNotifications(prev => {
@@ -33,50 +77,93 @@ export const usePrayerNotifications = () => {
       
       // Add new notification at the beginning
       const updated = [notification, ...prev].slice(0, 50); // Keep only last 50 notifications
+      
+      // Save to localStorage
+      saveNotificationsToStorage(user?.userId, updated);
+      
+      // Update unread count based on actual notifications
+      const newUnreadCount = calculateUnreadCount(updated);
+      setUnreadCount(newUnreadCount);
+      
       return updated;
     });
-    
-    if (!notification.read) {
-      setUnreadCount(prev => prev + 1);
-    }
-  }, []);
+  }, [user?.userId]);
 
   const markAsRead = useCallback((notificationId: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
+    setNotifications(prev => {
+      const updated = prev.map(notification => 
         notification.id === notificationId 
           ? { ...notification, read: true }
           : notification
-      )
-    );
-    
-    setUnreadCount(prev => Math.max(0, prev - 1));
-  }, []);
+      );
+      
+      // Save to localStorage
+      saveNotificationsToStorage(user?.userId, updated);
+      
+      // Update unread count based on actual notifications
+      const newUnreadCount = calculateUnreadCount(updated);
+      setUnreadCount(newUnreadCount);
+      
+      return updated;
+    });
+  }, [user?.userId]);
 
   const markAllAsRead = useCallback(() => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
-    );
-    setUnreadCount(0);
-  }, []);
+    setNotifications(prev => {
+      const updated = prev.map(notification => ({ ...notification, read: true }));
+      
+      // Save to localStorage
+      saveNotificationsToStorage(user?.userId, updated);
+      
+      // Update unread count
+      setUnreadCount(0);
+      
+      return updated;
+    });
+  }, [user?.userId]);
 
   const removeNotification = useCallback((notificationId: string) => {
     setNotifications(prev => {
       const filtered = prev.filter(n => n.id !== notificationId);
-      const removedNotification = prev.find(n => n.id === notificationId);
       
-      if (removedNotification && !removedNotification.read) {
-        setUnreadCount(current => Math.max(0, current - 1));
-      }
+      // Save to localStorage
+      saveNotificationsToStorage(user?.userId, filtered);
+      
+      // Update unread count based on actual notifications
+      const newUnreadCount = calculateUnreadCount(filtered);
+      setUnreadCount(newUnreadCount);
       
       return filtered;
     });
-  }, []);
+  }, [user?.userId]);
 
   const clearAllNotifications = useCallback(() => {
     setNotifications([]);
     setUnreadCount(0);
-  }, []);
+    
+    // Clear from localStorage
+    const storageKey = getStorageKey(user?.userId);
+    if (storageKey) {
+      try {
+        localStorage.removeItem(storageKey);
+      } catch (error) {
+        console.error('Error clearing prayer notifications from localStorage:', error);
+      }
+    }
+  }, [user?.userId]);
+
+  // Load notifications from localStorage when user changes
+  useEffect(() => {
+    if (user?.userId) {
+      const loadedNotifications = loadNotificationsFromStorage(user.userId);
+      setNotifications(loadedNotifications);
+      setUnreadCount(calculateUnreadCount(loadedNotifications));
+    } else {
+      // Clear notifications if user logs out
+      setNotifications([]);
+      setUnreadCount(0);
+    }
+  }, [user?.userId]);
 
   // Use refs to store current values to avoid stale closures
   const userRef = useRef(user);
