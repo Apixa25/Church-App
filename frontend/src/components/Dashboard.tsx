@@ -148,7 +148,7 @@ const Dashboard: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [hasPrimaryOrg, activeOrganizationId, activeContext]);
+  }, [hasPrimaryOrg, activeOrganizationId]);
 
   // Auto-refresh every 5 minutes (only after initial load)
   useEffect(() => {
@@ -248,9 +248,24 @@ const Dashboard: React.FC = () => {
   // Re-fetch dashboard data when active context or organization changes
   // Use activeOrganizationId as the primary trigger since it changes when context switches
   useEffect(() => {
-    // Only fetch if we have a valid organizationId and context
-    if (!activeOrganizationId || (activeContext !== 'church' && activeContext !== 'family')) {
-      console.log('🔄 Dashboard - Skipping fetch: no orgId or invalid context', { activeOrganizationId, activeContext });
+    // Allow fetching even without organizationId (for admins or users without primary org)
+    // But only if we're authenticated and not in a transitional state
+    const shouldFetch = user && (
+      // Has valid organizationId with church/family context
+      (activeOrganizationId && (activeContext === 'church' || activeContext === 'family')) ||
+      // Or in gathering context (no primary org) - still fetch for admin actions
+      (activeContext === 'gathering' && !activeOrganizationId)
+    );
+    
+    if (!shouldFetch) {
+      console.log('🔄 Dashboard - Skipping fetch: conditions not met', { 
+        activeOrganizationId, 
+        activeContext, 
+        hasUser: !!user 
+      });
+      // Update refs even when skipping to prevent false change detection on next render
+      prevDashboardContextRef.current = activeContext || 'gathering';
+      prevDashboardOrgIdRef.current = activeOrganizationId || null;
       return;
     }
 
@@ -269,13 +284,13 @@ const Dashboard: React.FC = () => {
       prevDashboardContextRef.current = currentContext;
       prevDashboardOrgIdRef.current = currentOrgId;
       
-      // If we have a valid organizationId on initial mount, fetch the data
+      // Fetch data on initial mount if conditions are met
       // This handles the case when user first logs in and contexts are ready
-      if (activeOrganizationId && (activeContext === 'church' || activeContext === 'family')) {
-        console.log('🔄 Dashboard - Initial mount with valid orgId, fetching dashboard data');
+      if (shouldFetch) {
+        console.log('🔄 Dashboard - Initial mount with valid conditions, fetching dashboard data');
         fetchDashboardData();
       } else {
-        console.log('🔄 Dashboard - Initial mount but no valid orgId yet, will fetch when context is ready');
+        console.log('🔄 Dashboard - Initial mount but conditions not met yet, will fetch when ready');
       }
       return;
     }
@@ -306,7 +321,8 @@ const Dashboard: React.FC = () => {
       prevDashboardContextRef.current = currentContext;
       prevDashboardOrgIdRef.current = currentOrgId;
     }
-  }, [activeContext, activeOrganizationId, fetchDashboardData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeContext, activeOrganizationId]);
 
   // Determine if this is "The Gathering" global organization (no active context)
   const isGatheringGlobal = activeContext === 'gathering' ||
