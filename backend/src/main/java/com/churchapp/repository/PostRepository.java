@@ -110,6 +110,10 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     @Query("SELECT p FROM Post p WHERE p.mediaUrls IS NOT EMPTY AND p.isAnonymous = false ORDER BY p.createdAt DESC")
     Page<Post> findPostsWithMedia(Pageable pageable);
 
+    // Posts with media by specific user
+    @Query("SELECT p FROM Post p WHERE p.user.id = :userId AND p.mediaUrls IS NOT EMPTY AND p.isAnonymous = false ORDER BY p.createdAt DESC")
+    Page<Post> findPostsWithMediaByUserId(@Param("userId") UUID userId, Pageable pageable);
+
     // Posts by location
     Page<Post> findByLocationOrderByCreatedAtDesc(String location, Pageable pageable);
 

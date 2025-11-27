@@ -204,6 +204,37 @@ public class PostInteractionService {
         return postCommentRepository.countByPostId(postId);
     }
 
+    /**
+     * Get all comments/replies made by a specific user
+     * Includes both top-level comments and nested replies
+     */
+    public Page<PostComment> getUserComments(UUID userId, UUID viewerUserId, Pageable pageable) {
+        Page<PostComment> allComments = postCommentRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+        
+        // If no viewer user ID provided, return all comments
+        if (viewerUserId == null) {
+            return allComments;
+        }
+        
+        // Filter out comments from blocked users (if viewing another user's comments)
+        if (!userId.equals(viewerUserId)) {
+            List<UUID> blockedUserIds = userBlockService.getBlockedUserIds(viewerUserId);
+            if (!blockedUserIds.isEmpty()) {
+                List<PostComment> filteredComments = allComments.getContent().stream()
+                    .filter(comment -> !blockedUserIds.contains(comment.getUser().getId()))
+                    .collect(java.util.stream.Collectors.toList());
+                
+                return new org.springframework.data.domain.PageImpl<>(
+                    filteredComments,
+                    pageable,
+                    filteredComments.size()
+                );
+            }
+        }
+        
+        return allComments;
+    }
+
     // ========== SHARE OPERATIONS ==========
 
     @Transactional

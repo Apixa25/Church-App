@@ -173,6 +173,48 @@ public class PostController {
         return ResponseEntity.ok(responses);
     }
 
+    @GetMapping("/user/{userId}/comments")
+    public ResponseEntity<Page<CommentResponse>> getUserComments(
+            @PathVariable UUID userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal User user) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        
+        // Get viewer's user ID to filter blocked users
+        UUID viewerUserId = null;
+        if (user != null) {
+            try {
+                com.churchapp.entity.User viewer = userRepository.findByEmail(user.getUsername()).orElse(null);
+                if (viewer != null) {
+                    viewerUserId = viewer.getId();
+                }
+            } catch (Exception e) {
+                // If we can't get viewer ID, continue without filtering
+            }
+        }
+        
+        Page<PostComment> comments = postInteractionService.getUserComments(userId, viewerUserId, pageable);
+        Page<CommentResponse> responses = comments.map(CommentResponse::fromEntity);
+
+        return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/user/{userId}/media")
+    public ResponseEntity<Page<PostResponse>> getUserMediaPosts(
+            @PathVariable UUID userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal User user) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Post> posts = postService.getUserPostsWithMedia(userId, pageable);
+        Page<PostResponse> responses = postResponseMapper.mapPage(posts, resolveUserId(user));
+
+        return ResponseEntity.ok(responses);
+    }
+
     @DeleteMapping("/{postId}")
     public ResponseEntity<Void> deletePost(
             @PathVariable UUID postId,

@@ -48,6 +48,37 @@ export const getUserPosts = async (
   return response.data;
 };
 
+export const getUserComments = async (
+  userId: string,
+  page: number = 0,
+  size: number = 20
+): Promise<CommentsResponse> => {
+  const response = await api.get(`/posts/user/${userId}/comments`, {
+    params: { page, size }
+  });
+  // Backend returns Page<CommentResponse>, need to map to CommentsResponse
+  return {
+    content: response.data.content || [],
+    totalElements: response.data.totalElements || 0,
+    totalPages: response.data.totalPages || 0,
+    size: response.data.size || size,
+    number: response.data.number || page,
+    first: response.data.first !== undefined ? response.data.first : page === 0,
+    last: response.data.last !== undefined ? response.data.last : false
+  };
+};
+
+export const getUserMediaPosts = async (
+  userId: string,
+  page: number = 0,
+  size: number = 20
+): Promise<FeedResponse> => {
+  const response = await api.get(`/posts/user/${userId}/media`, {
+    params: { page, size }
+  });
+  return response.data;
+};
+
 export const deletePost = async (postId: string): Promise<void> => {
   await api.delete(`/posts/${postId}`);
 };
@@ -157,7 +188,16 @@ export const getPostComments = async (
   const response = await api.get(`/posts/${postId}/comments`, {
     params: { page, size }
   });
-  return response.data;
+  // Backend returns Page<CommentResponse>, need to map to CommentsResponse
+  return {
+    content: response.data.content || [],
+    totalElements: response.data.totalElements || 0,
+    totalPages: response.data.totalPages || 0,
+    size: response.data.size || size,
+    number: response.data.number || page,
+    first: response.data.first !== undefined ? response.data.first : page === 0,
+    last: response.data.last !== undefined ? response.data.last : false
+  };
 };
 
 export const deleteComment = async (commentId: string): Promise<void> => {
