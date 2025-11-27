@@ -2,6 +2,7 @@ package com.churchapp.service;
 
 import com.churchapp.entity.*;
 import com.churchapp.repository.DonationSubscriptionRepository;
+import com.churchapp.repository.OrganizationRepository;
 import com.stripe.exception.StripeException;
 import com.stripe.model.*;
 import com.stripe.param.*;
@@ -15,6 +16,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +25,7 @@ public class StripeSubscriptionService {
 
     private final DonationSubscriptionRepository subscriptionRepository;
     private final StripeCustomerService stripeCustomerService;
+    private final OrganizationRepository organizationRepository;
 
     /**
      * Create a recurring donation subscription
@@ -30,9 +33,24 @@ public class StripeSubscriptionService {
     @Transactional
     public DonationSubscription createSubscription(User user, BigDecimal amount, DonationCategory category,
                                                   RecurringFrequency frequency, String purpose,
-                                                  String paymentMethodId) throws StripeException {
-        log.info("Creating subscription for user {} with amount ${} every {}",
-            user.getId(), amount, frequency.getDisplayName());
+                                                  String paymentMethodId, UUID organizationId) throws StripeException {
+        log.info("Creating subscription for user {} with amount ${} every {} for organization {}",
+            user.getId(), amount, frequency.getDisplayName(), organizationId);
+
+        // Determine which organization to use
+        Organization organization = null;
+        if (organizationId != null) {
+            // Use provided organizationId (from active context - Church or Family)
+            organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new RuntimeException("Organization not found with id: " + organizationId));
+            log.info("Using provided organizationId: {} ({})", organization.getName(), organizationId);
+        } else if (user.getChurchPrimaryOrganization() != null) {
+            // Fallback to church primary for backward compatibility
+            organization = user.getChurchPrimaryOrganization();
+            log.info("No organizationId provided, using church primary: {} ({})", organization.getName(), organization.getId());
+        } else {
+            throw new RuntimeException("Cannot create subscription without an organization. Please select an organization first.");
+        }
 
         // Get or create Stripe customer
         Customer customer = stripeCustomerService.getOrCreateCustomer(user);
@@ -49,6 +67,8 @@ public class StripeSubscriptionService {
         // Build metadata
         Map<String, String> metadata = new HashMap<>();
         metadata.put("user_id", user.getId().toString());
+        metadata.put("organization_id", organization.getId().toString());
+        metadata.put("organization_name", organization.getName());
         metadata.put("category", category.name());
         metadata.put("frequency", frequency.name());
         metadata.put("church_app", "true");
@@ -76,6 +96,7 @@ public class StripeSubscriptionService {
         // Create our database record
         DonationSubscription subscription = new DonationSubscription();
         subscription.setUser(user);
+        subscription.setOrganization(organization); // Multi-tenant: link to organization
         subscription.setStripeSubscriptionId(stripeSubscription.getId());
         subscription.setStripeCustomerId(customer.getId());
         subscription.setStripePriceId(price.getId());

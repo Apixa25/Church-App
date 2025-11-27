@@ -67,13 +67,14 @@ public class DonationController {
             // Validate amount
             StripeUtil.validateDonationAmount(request.getAmount());
 
-            // Create payment intent
+            // Create payment intent with organizationId from request (active context)
             PaymentIntent paymentIntent = stripePaymentService.createPaymentIntent(
                 user,
                 request.getAmount(),
                 request.getCategory(),
                 request.getPurpose(),
-                request.getReceiptEmail()
+                request.getReceiptEmail(),
+                request.getOrganizationId() // Pass organizationId from active context
             );
 
             // Build response
@@ -162,14 +163,15 @@ public class DonationController {
             // Validate amount
             StripeUtil.validateDonationAmount(request.getAmount());
 
-            // Create subscription
+            // Create subscription with organizationId from request (active context)
             DonationSubscription subscription = stripeSubscriptionService.createSubscription(
                 user,
                 request.getAmount(),
                 request.getCategory(),
                 request.getFrequency(),
                 request.getPurpose(),
-                request.getPaymentMethodId()
+                request.getPaymentMethodId(),
+                request.getOrganizationId() // Pass organizationId from active context
             );
 
             SubscriptionResponse response = mapSubscriptionToResponse(subscription);

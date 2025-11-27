@@ -29,6 +29,10 @@ public class PaymentIntentRequest {
     @Email(message = "Invalid email format")
     private String receiptEmail;
 
+    // Organization ID for context-aware donations (Church or Family)
+    // If not provided, falls back to user's church primary organization
+    private java.util.UUID organizationId;
+
     // For frontend integration
     private String returnUrl;
     private String confirmationMethod = "automatic";
