@@ -154,26 +154,39 @@
 
 /* Post Media */
 .post-media {
-  margin-bottom: 16px;
+  margin-bottom: 4px;
   border-radius: var(--border-radius-md);
   overflow: hidden;
 }
 
 .media-item {
+  margin-bottom: 0;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--border-radius-md);
+  background: var(--bg-secondary);
+}
+
+.media-item:not(:last-child) {
   margin-bottom: 8px;
 }
 
 .media-image {
   width: 100%;
-  max-height: 400px;
+  height: 100%;
   object-fit: cover;
-  border-radius: var(--border-radius-md);
+  object-position: center;
+  display: block;
 }
 
 .media-video {
   width: 100%;
-  max-height: 400px;
-  border-radius: var(--border-radius-md);
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
 }
 
 /* Post Actions */
@@ -181,7 +194,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding-top: 12px;
+  padding-top: 8px;
   border-top: 1px solid var(--border-primary);
 }
 
