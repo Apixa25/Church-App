@@ -56,6 +56,7 @@ public class PrayerRequestController {
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "isAnonymous", required = false, defaultValue = "false") Boolean isAnonymous,
             @RequestParam(value = "category", required = false) String category,
+            @RequestParam(value = "organizationId", required = false) UUID organizationId,
             @RequestParam(value = "image", required = false) MultipartFile imageFile) {
         try {
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
@@ -65,6 +66,7 @@ public class PrayerRequestController {
             request.setTitle(title);
             request.setDescription(description);
             request.setIsAnonymous(isAnonymous != null ? isAnonymous : false);
+            request.setOrganizationId(organizationId); // Pass organizationId from active context
             
             // Parse category
             if (category != null && !category.trim().isEmpty()) {
@@ -200,11 +202,12 @@ public class PrayerRequestController {
     @GetMapping
     public ResponseEntity<?> getAllPrayerRequests(@AuthenticationPrincipal User user,
                                                 @RequestParam(defaultValue = "0") int page,
-                                                @RequestParam(defaultValue = "20") int size) {
+                                                @RequestParam(defaultValue = "20") int size,
+                                                @RequestParam(required = false) UUID organizationId) {
         try {
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
             Page<PrayerRequestResponse> prayerRequests = prayerRequestService.getAllPrayerRequests(
-                currentProfile.getUserId(), page, size);
+                currentProfile.getUserId(), organizationId, page, size);
             Page<PrayerRequestResponse> enrichedRequests = enrichWithInteractions(prayerRequests);
             return ResponseEntity.ok(enrichedRequests);
         } catch (RuntimeException e) {

@@ -69,6 +69,9 @@ export const prayerAPI = {
     if (data.category) {
       formData.append('category', data.category);
     }
+    if (data.organizationId) {
+      formData.append('organizationId', data.organizationId);
+    }
     if (imageFile) {
       formData.append('image', imageFile);
     }
@@ -123,9 +126,9 @@ export const prayerAPI = {
     api.delete(`/prayers/${id}`),
 
   // Get all prayer requests (paginated)
-  getAllPrayerRequests: (page: number = 0, size: number = 20) =>
+  getAllPrayerRequests: (page: number = 0, size: number = 20, organizationId?: string) =>
     api.get<PrayerListResponse>('/prayers', {
-      params: { page, size }
+      params: { page, size, organizationId }
     }),
 
   // Get my prayer requests

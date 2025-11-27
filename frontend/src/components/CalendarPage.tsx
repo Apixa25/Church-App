@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { eventAPI } from '../services/eventApi';
 import { Event, EventCategory, EventStatus } from '../types/Event';
+import { useActiveContext } from '../contexts/ActiveContextContext';
 import CalendarView from './CalendarView';
 import EventList from './EventList';
 import EventCreateForm from './EventCreateForm';
@@ -12,6 +13,7 @@ interface CalendarPageProps {}
 
 const CalendarPage: React.FC<CalendarPageProps> = () => {
   const navigate = useNavigate();
+  const { activeOrganizationId } = useActiveContext();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +37,8 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
         page: 0,
         size: 100, // Load more events for calendar view
         category: filters.category || undefined,
-        status: filters.status || undefined
+        status: filters.status || undefined,
+        organizationId: activeOrganizationId || undefined // Pass active organization from context
       });
       
       setEvents(response.data.events);
@@ -68,7 +71,7 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
     }
   };
 
-  // Load events on mount and when filters change
+  // Load events on mount and when filters or organization context change
   useEffect(() => {
     if (filters.search) {
       const debounceTimer = setTimeout(() => {
@@ -78,7 +81,7 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
     } else {
       loadEvents();
     }
-  }, [filters]);
+  }, [filters, activeOrganizationId]); // Re-fetch when organization context changes
 
   // WebSocket subscriptions for real-time updates
   useEffect(() => {

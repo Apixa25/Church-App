@@ -7,6 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -26,4 +28,6 @@ public class PrayerRequestRequest {
     private PrayerRequest.PrayerCategory category = PrayerRequest.PrayerCategory.GENERAL;
     
     private PrayerRequest.PrayerStatus status = PrayerRequest.PrayerStatus.ACTIVE;
+    
+    private UUID organizationId; // Organization context for multi-tenant support
 }

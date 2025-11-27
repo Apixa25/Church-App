@@ -34,18 +34,26 @@ public class EventService {
     private final EventBringListService eventBringListService;
     private final OrganizationRepository organizationRepository;
 
-    public Event createEvent(UUID creatorId, Event eventRequest, Boolean bringListEnabled, List<EventBringItemRequest> bringItems) {
+    public Event createEvent(UUID creatorId, Event eventRequest, Boolean bringListEnabled, List<EventBringItemRequest> bringItems, UUID organizationId) {
         User creator = userRepository.findById(creatorId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + creatorId));
 
-        // Events REQUIRE a primary organization
-        if (creator.getPrimaryOrganization() == null) {
-            throw new RuntimeException("Cannot create event without a primary organization. Please join a church first.");
+        // Determine organization - prioritize provided organizationId, then use primary organization
+        Organization targetOrganization;
+        if (organizationId != null) {
+            // Use the provided organizationId from the active context
+            targetOrganization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new RuntimeException("Organization not found with id: " + organizationId));
+        } else if (creator.getChurchPrimaryOrganization() != null) {
+            // Fall back to church primary if no organizationId provided
+            targetOrganization = creator.getChurchPrimaryOrganization();
+        } else {
+            throw new RuntimeException("Cannot create event without an organization. Please join a church or family first.");
         }
 
-        log.info("Creating event - Title: '{}', StartTime: '{}', EndTime: '{}', Category: '{}', Status: '{}'",
+        log.info("Creating event - Title: '{}', StartTime: '{}', EndTime: '{}', Category: '{}', Status: '{}', Organization: '{}'",
                 eventRequest.getTitle(), eventRequest.getStartTime(), eventRequest.getEndTime(),
-                eventRequest.getCategory(), eventRequest.getStatus());
+                eventRequest.getCategory(), eventRequest.getStatus(), targetOrganization.getId());
 
         Event event = new Event();
         event.setTitle(eventRequest.getTitle().trim());
@@ -54,7 +62,7 @@ public class EventService {
         event.setEndTime(eventRequest.getEndTime());
         event.setLocation(eventRequest.getLocation() != null ? eventRequest.getLocation().trim() : null);
         event.setCreator(creator);
-        event.setOrganization(creator.getPrimaryOrganization()); // Always org-scoped
+        event.setOrganization(targetOrganization); // Always org-scoped
         // Map problematic categories to working ones based on user testing
         Event.EventCategory mappedCategory = mapCategoryToWorkingValue(eventRequest.getCategory());
         event.setCategory(mappedCategory);
@@ -208,33 +216,49 @@ public class EventService {
     }
 
     /**
-     * Get all events for user's primary organization
+     * Get all events for user's active organization
      */
-    public Page<Event> getEventsForUser(UUID userId, int page, int size) {
+    public Page<Event> getEventsForUser(UUID userId, UUID organizationId, int page, int size) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (user.getPrimaryOrganization() == null) {
-            throw new RuntimeException("Cannot view events without a primary organization");
+        // Use provided organizationId, or fall back to primary organization
+        UUID targetOrganizationId;
+        if (organizationId != null) {
+            // Use the provided organizationId from the active context
+            targetOrganizationId = organizationId;
+        } else if (user.getChurchPrimaryOrganization() != null) {
+            // Fall back to church primary if no organizationId provided
+            targetOrganizationId = user.getChurchPrimaryOrganization().getId();
+        } else {
+            throw new RuntimeException("Cannot view events without an organization");
         }
 
         Pageable pageable = PageRequest.of(page, size);
-        return eventRepository.findByOrganizationId(user.getPrimaryOrganization().getId(), pageable);
+        return eventRepository.findByOrganizationId(targetOrganizationId, pageable);
     }
 
     /**
-     * Get upcoming events for user's primary organization
+     * Get upcoming events for user's active organization
      */
-    public List<Event> getUpcomingEventsForUser(UUID userId) {
+    public List<Event> getUpcomingEventsForUser(UUID userId, UUID organizationId) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (user.getPrimaryOrganization() == null) {
-            throw new RuntimeException("Cannot view events without a primary organization");
+        // Use provided organizationId, or fall back to primary organization
+        UUID targetOrganizationId;
+        if (organizationId != null) {
+            // Use the provided organizationId from the active context
+            targetOrganizationId = organizationId;
+        } else if (user.getChurchPrimaryOrganization() != null) {
+            // Fall back to church primary if no organizationId provided
+            targetOrganizationId = user.getChurchPrimaryOrganization().getId();
+        } else {
+            throw new RuntimeException("Cannot view events without an organization");
         }
 
         return eventRepository.findUpcomingByOrganizationId(
-            user.getPrimaryOrganization().getId(),
+            targetOrganizationId,
             LocalDateTime.now()
         );
     }

@@ -53,4 +53,6 @@ public class EventRequest {
 
     @Valid
     private List<EventBringItemRequest> bringItems;
+    
+    private UUID organizationId; // Organization context for multi-tenant support
 }

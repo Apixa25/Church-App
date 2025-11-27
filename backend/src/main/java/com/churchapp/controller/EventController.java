@@ -64,7 +64,8 @@ public class EventController {
                 currentProfile.getUserId(),
                 eventEntity,
                 request.getBringListEnabled(),
-                request.getBringItems()
+                request.getBringItems(),
+                request.getOrganizationId() // Pass organizationId from active context
             );
             
             EventResponse response = EventResponse.fromEvent(createdEvent);
@@ -161,6 +162,7 @@ public class EventController {
                                      @RequestParam(required = false) String status,
                                      @RequestParam(required = false) UUID creatorId,
                                      @RequestParam(required = false) UUID groupId,
+                                     @RequestParam(required = false) UUID organizationId,
                                      @AuthenticationPrincipal User user) {
         try {
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
@@ -178,8 +180,8 @@ public class EventController {
             } else if (groupId != null) {
                 eventsPage = eventService.getEventsByGroup(groupId, page, size);
             } else {
-                // Multi-tenant: Get events for user's primary organization
-                eventsPage = eventService.getEventsForUser(currentProfile.getUserId(), page, size);
+                // Multi-tenant: Get events for user's active organization (from context)
+                eventsPage = eventService.getEventsForUser(currentProfile.getUserId(), organizationId, page, size);
             }
             
             // Convert to response DTOs with RSVP summaries
@@ -216,7 +218,10 @@ public class EventController {
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
 
             // Multi-tenant: Get upcoming events for user's primary organization
-            List<Event> upcomingEvents = eventService.getUpcomingEventsForUser(currentProfile.getUserId());
+            List<Event> upcomingEvents = eventService.getUpcomingEventsForUser(
+                currentProfile.getUserId(), 
+                null // organizationId can be passed as query param if needed in future
+            );
 
             List<EventResponse> eventResponses = upcomingEvents.stream()
                 .map(event -> {

@@ -8,6 +8,7 @@ import {
   PRAYER_STATUS_LABELS
 } from '../types/Prayer';
 import { prayerAPI, handleApiError } from '../services/prayerApi';
+import { useActiveContext } from '../contexts/ActiveContextContext';
 import PrayerRequestCard from './PrayerRequestCard';
 
 interface PrayerRequestListProps {
@@ -32,6 +33,7 @@ const PrayerRequestList: React.FC<PrayerRequestListProps> = ({
   compact = false,
   filter = {}
 }) => {
+  const { activeOrganizationId } = useActiveContext();
   const [prayers, setPrayers] = useState<PrayerRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,8 +109,8 @@ const PrayerRequestList: React.FC<PrayerRequestListProps> = ({
         setHasMore(!prayerList.last);
         
       } else {
-        // Load all prayers
-        response = await prayerAPI.getAllPrayerRequests(pageNum, pageSize);
+        // Load all prayers for the active organization
+        response = await prayerAPI.getAllPrayerRequests(pageNum, pageSize, activeOrganizationId || undefined);
         const prayerList = response.data as PrayerListResponse;
         
         if (append) {
@@ -129,7 +131,7 @@ const PrayerRequestList: React.FC<PrayerRequestListProps> = ({
       setLoading(false);
       setRefreshing(false);
     }
-  }, [filter]);
+  }, [filter, activeOrganizationId]); // Include activeOrganizationId in dependencies
 
   useEffect(() => {
     setPage(0);

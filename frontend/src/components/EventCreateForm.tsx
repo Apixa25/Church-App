@@ -4,6 +4,7 @@ import DatePicker from 'react-datepicker';
 import { eventAPI, EVENT_CATEGORY_OPTIONS } from '../services/eventApi';
 import { Event, EventRequest, EventCategory, EventBringItemInput } from '../types/Event';
 import { parseEventDate } from '../utils/dateUtils';
+import { useActiveContext } from '../contexts/ActiveContextContext';
 import 'react-datepicker/dist/react-datepicker.css';
 import './EventCreateForm.css';
 import BringListEditor from './BringListEditor';
@@ -21,6 +22,7 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
   initialDate,
   editEvent
 }) => {
+  const { activeOrganizationId } = useActiveContext();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<Date>(() => {
@@ -113,6 +115,7 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
           ? parseInt(data.maxAttendees.toString(), 10) 
           : undefined,
         bringListEnabled: data.bringListEnabled || false,
+        organizationId: activeOrganizationId || undefined, // Pass active organization from context
         bringItems: (data.bringItems || [])
           .map(item => ({
             name: item.name?.trim() || '',
