@@ -30,11 +30,23 @@ const EventNotifications: React.FC = () => {
     let eventUnsubscribe: (() => void) | null = null;
     let rsvpUnsubscribe: (() => void) | null = null;
     let userEventUnsubscribe: (() => void) | null = null;
+    let setupTimeout: NodeJS.Timeout | null = null;
 
     const setupSubscriptions = async () => {
       try {
         // Use shared WebSocket context to ensure connection
         await ensureConnection();
+
+        // Double-check connection is ready before subscribing
+        if (!webSocketService.isWebSocketConnected()) {
+          console.warn('⚠️ WebSocket not connected after ensureConnection, retrying...');
+          // Wait a bit and try again
+          await new Promise(resolve => setTimeout(resolve, 500));
+          if (!webSocketService.isWebSocketConnected()) {
+            console.error('❌ WebSocket still not connected after retry');
+            return;
+          }
+        }
 
         // Subscribe to event updates
         eventUnsubscribe = await webSocketService.subscribeToEventUpdates((update: EventUpdate) => {
@@ -81,16 +93,32 @@ const EventNotifications: React.FC = () => {
         console.log('✅ Event notifications WebSocket connected successfully');
       } catch (error) {
         console.error('❌ Failed to connect WebSocket for event notifications:', error);
-        // Don't retry here - the WebSocket context handles reconnection
+        // Retry after a delay if connection failed
+        if (setupTimeout) clearTimeout(setupTimeout);
+        setupTimeout = setTimeout(() => {
+          if (webSocketService.isWebSocketConnected()) {
+            setupSubscriptions();
+          }
+        }, 2000);
       }
     };
 
-    // Only setup subscriptions when WebSocket is connected
+    // Setup subscriptions when WebSocket is connected, or try to connect if not
     if (isConnected) {
       setupSubscriptions();
+    } else {
+      // If not connected, try to ensure connection and then setup
+      ensureConnection()
+        .then(() => {
+          setupSubscriptions();
+        })
+        .catch((error) => {
+          console.error('❌ Failed to ensure connection for event notifications:', error);
+        });
     }
 
     return () => {
+      if (setupTimeout) clearTimeout(setupTimeout);
       // Clean up subscriptions
       if (eventUnsubscribe) {
         eventUnsubscribe();

@@ -128,9 +128,16 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     if (isAuthenticated && user) {
       // Small delay to ensure auth token is available
       const timer = setTimeout(() => {
-        connect().catch((error) => {
-          console.error('❌ Auto-connect WebSocket failed:', error);
-        });
+        connect()
+          .then(() => {
+            // Immediately update connection status after successful connection
+            updateConnectionStatus();
+          })
+          .catch((error) => {
+            console.error('❌ Auto-connect WebSocket failed:', error);
+            // Still update status even on failure
+            updateConnectionStatus();
+          });
       }, 500);
 
       return () => clearTimeout(timer);
@@ -138,7 +145,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       // Disconnect when user logs out
       disconnect();
     }
-  }, [isAuthenticated, user, connect, disconnect]);
+  }, [isAuthenticated, user, connect, disconnect, updateConnectionStatus]);
 
   const value: WebSocketContextType = {
     isConnected,
