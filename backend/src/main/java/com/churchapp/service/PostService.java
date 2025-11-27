@@ -211,31 +211,51 @@ public class PostService {
     /**
      * Get multi-tenant feed based on user's organizations and groups
      * Excludes posts from blocked users
+     * Includes posts from followed users when filter is ALL or EVERYTHING
      */
     public Page<Post> getMultiTenantFeed(UUID userId, Pageable pageable) {
         FeedFilterService.FeedParameters params = feedFilterService.getFeedParameters(userId);
+        FeedPreference preference = feedFilterService.getFeedPreference(userId);
 
         // Get blocked user IDs to filter out
         List<UUID> blockedUserIds = userBlockService.getBlockedUserIds(userId);
         // Use empty list instead of null for better query performance
         List<UUID> blockedIds = blockedUserIds.isEmpty() ? null : blockedUserIds;
 
+        // Get followed user IDs if filter is ALL or EVERYTHING
+        List<UUID> followingIds = null;
+        if (preference.getActiveFilter() == FeedPreference.FeedFilter.ALL 
+            || preference.getActiveFilter() == FeedPreference.FeedFilter.EVERYTHING) {
+            followingIds = userFollowService.getFollowingIds(userId);
+            // Use null if empty for query performance
+            if (followingIds.isEmpty()) {
+                followingIds = null;
+            }
+        }
+
         // Check if user has primary org(s) - supports dual-primary system
         if (params.getPrimaryOrgIds().isEmpty()) {
-            // Social-only user - show global org + their groups
+            // Social-only user - show global org + their groups + followed users
             UUID globalOrgId = UUID.fromString("00000000-0000-0000-0000-000000000001");
-            return postRepository.findGlobalUserFeed(params.getGroupIds(), globalOrgId, blockedIds, pageable);
+            return postRepository.findGlobalUserFeed(
+                params.getGroupIds(), 
+                globalOrgId, 
+                blockedIds,
+                followingIds,
+                pageable
+            );
         } else {
             // User with primary org(s) - use unified query that handles:
             // - Primary orgs (all visibility levels) - supports dual-primary: churchPrimary + familyPrimary
             // - Secondary orgs including Global org (PUBLIC only)
             // - Groups (based on group visibility)
-            // The getFeedParameters method now includes Global org in secondaryOrgIds when filter is ALL
+            // - Followed users (when filter is ALL or EVERYTHING) - regardless of organization/group
             return postRepository.findMultiTenantFeed(
                 params.getPrimaryOrgIds(), // Now a list supporting dual-primary system
                 params.getSecondaryOrgIds(),
                 params.getGroupIds(),
                 blockedIds,
+                followingIds, // Add followed user IDs
                 pageable
             );
         }
