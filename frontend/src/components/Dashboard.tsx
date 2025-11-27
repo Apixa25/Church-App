@@ -66,17 +66,6 @@ const Dashboard: React.FC = () => {
   const [isLikedByCurrentUser, setIsLikedByCurrentUser] = useState(false);
   const [heartLoading, setHeartLoading] = useState(false);
 
-  useEffect(() => {
-    fetchDashboardData();
-    
-    // Auto-refresh every 5 minutes
-    const interval = setInterval(() => {
-      fetchDashboardData();
-    }, 5 * 60 * 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
   // Load hearts data for current user
   useEffect(() => {
     const loadHeartsData = async () => {
@@ -160,6 +149,18 @@ const Dashboard: React.FC = () => {
       setIsLoading(false);
     }
   }, [hasPrimaryOrg, activeOrganizationId, activeContext]);
+
+  // Auto-refresh every 5 minutes (only after initial load)
+  useEffect(() => {
+    // Only set up auto-refresh if we have dashboard data (meaning initial load completed)
+    if (!dashboardData) return;
+    
+    const interval = setInterval(() => {
+      fetchDashboardData();
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [dashboardData, fetchDashboardData]);
 
   const handleLogout = () => {
     logout();
@@ -262,11 +263,20 @@ const Dashboard: React.FC = () => {
     console.log('🔄 Dashboard - prevDashboardOrgIdRef.current:', prevDashboardOrgIdRef.current);
     console.log('🔄 Dashboard - currentOrgId:', currentOrgId);
     
-    // Skip on initial mount (when prevDashboardContextRef is null)
+    // Handle initial mount - fetch data if we have a valid organizationId
     if (prevDashboardContextRef.current === null) {
-      console.log('🔄 Dashboard - Initial mount, setting refs and will fetch on next change');
+      console.log('🔄 Dashboard - Initial mount, checking if we should fetch');
       prevDashboardContextRef.current = currentContext;
       prevDashboardOrgIdRef.current = currentOrgId;
+      
+      // If we have a valid organizationId on initial mount, fetch the data
+      // This handles the case when user first logs in and contexts are ready
+      if (activeOrganizationId && (activeContext === 'church' || activeContext === 'family')) {
+        console.log('🔄 Dashboard - Initial mount with valid orgId, fetching dashboard data');
+        fetchDashboardData();
+      } else {
+        console.log('🔄 Dashboard - Initial mount but no valid orgId yet, will fetch when context is ready');
+      }
       return;
     }
 
