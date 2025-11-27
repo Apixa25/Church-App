@@ -128,11 +128,10 @@ const DonationPage: React.FC = () => {
               🏠 Back Home
             </button>
           </div>
-          <h1>Giving & Donations</h1>
           {activeOrganizationName && activeOrganizationId && (
-            <p className="donation-org-info">
-              <strong>Donating to: {activeOrganizationName}</strong>
-            </p>
+            <h1 className="donation-org-info">
+              Donating to: {activeOrganizationName}
+            </h1>
           )}
           <p>Your generosity makes a difference in our community</p>
         </header>
