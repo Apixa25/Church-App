@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useActiveContext } from '../contexts/ActiveContextContext';
+import { useFeedFilter } from '../contexts/FeedFilterContext';
 import { useNavigate } from 'react-router-dom';
 import dashboardApi, { DashboardResponse } from '../services/dashboardApi';
 import ActivityFeed from './ActivityFeed';
@@ -29,12 +30,20 @@ const Dashboard: React.FC = () => {
     activeMembership, 
     activeOrganizationName, 
     activeOrganizationLogo,
+    activeOrganizationId,
     hasAnyPrimary,
     showContextSwitcher 
   } = useActiveContext();
   
+  // Feed filter context - to auto-update filter when context changes
+  const { setFilter, activeFilter } = useFeedFilter();
+  
   // Legacy compatibility: primaryMembership maps to the currently active context
   const primaryMembership = activeMembership;
+  
+  // Track previous context to detect changes
+  const prevContextRef = useRef<string | null>(null);
+  const prevOrgIdRef = useRef<string | null>(null);
   
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
@@ -153,6 +162,40 @@ const Dashboard: React.FC = () => {
       setFeedView('social');
     }
   }, [hasPrimaryOrg, feedView]);
+
+  // Auto-refresh feed and update filter when context changes
+  useEffect(() => {
+    // Skip on initial mount (when prevContextRef is null)
+    if (prevContextRef.current === null) {
+      prevContextRef.current = activeContext || 'gathering';
+      prevOrgIdRef.current = activeOrganizationId || null;
+      return;
+    }
+
+    // Check if context or organization actually changed
+    const contextChanged = prevContextRef.current !== (activeContext || 'gathering');
+    const orgChanged = prevOrgIdRef.current !== (activeOrganizationId || null);
+
+    if ((contextChanged || orgChanged) && activeOrganizationId && (activeContext === 'church' || activeContext === 'family')) {
+      // Context changed - automatically set filter to PRIMARY_ONLY for the new organization
+      console.log('🔄 Context changed, auto-updating filter to PRIMARY_ONLY for:', activeOrganizationId);
+      
+      setFilter('PRIMARY_ONLY', [], activeOrganizationId)
+        .then(() => {
+          // Force feed refresh after filter is updated
+          setFeedRefreshKey(prev => prev + 1);
+        })
+        .catch((error) => {
+          console.error('Failed to update filter on context change:', error);
+          // Still refresh the feed even if filter update fails
+          setFeedRefreshKey(prev => prev + 1);
+        });
+    }
+
+    // Update refs for next comparison
+    prevContextRef.current = activeContext || 'gathering';
+    prevOrgIdRef.current = activeOrganizationId || null;
+  }, [activeContext, activeOrganizationId, setFilter]);
 
   // Determine if this is "The Gathering" global organization (no active context)
   const isGatheringGlobal = activeContext === 'gathering' ||
