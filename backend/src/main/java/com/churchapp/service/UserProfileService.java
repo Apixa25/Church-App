@@ -3,7 +3,9 @@ package com.churchapp.service;
 import com.churchapp.dto.UserProfileRequest;
 import com.churchapp.dto.UserProfileResponse;
 import com.churchapp.entity.User;
+import com.churchapp.entity.UserLike;
 import com.churchapp.repository.UserRepository;
+import com.churchapp.repository.UserLikeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -16,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -28,6 +31,7 @@ public class UserProfileService {
     private final FileUploadService fileUploadService;
     private final UserFollowService userFollowService;
     private final UserBlockService userBlockService;
+    private final UserLikeRepository userLikeRepository;
     
     public UserProfileResponse getUserProfile(UUID userId) {
         User user = userRepository.findById(userId)
@@ -37,6 +41,19 @@ public class UserProfileService {
         // Add follower/following counts
         response.setFollowerCount(userFollowService.getFollowerCount(userId));
         response.setFollowingCount(userFollowService.getFollowingCount(userId));
+        // Add hearts count
+        response.setHeartsCount(user.getHeartsCount() != null ? user.getHeartsCount() : 0);
+        return response;
+    }
+    
+    public UserProfileResponse getUserProfile(UUID userId, UUID currentUserId) {
+        UserProfileResponse response = getUserProfile(userId);
+        // Add whether current user has liked this profile
+        if (currentUserId != null) {
+            response.setIsLikedByCurrentUser(isUserLikedByCurrentUser(userId, currentUserId));
+        } else {
+            response.setIsLikedByCurrentUser(false);
+        }
         return response;
     }
     
@@ -48,6 +65,8 @@ public class UserProfileService {
         // Add follower/following counts
         response.setFollowerCount(userFollowService.getFollowerCount(user.getId()));
         response.setFollowingCount(userFollowService.getFollowingCount(user.getId()));
+        // Add hearts count
+        response.setHeartsCount(user.getHeartsCount() != null ? user.getHeartsCount() : 0);
         return response;
     }
     
@@ -266,5 +285,63 @@ public class UserProfileService {
             
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
+    }
+
+    // ========================================================================
+    // SOCIAL SCORE - USER LIKES (HEARTS) METHODS
+    // ========================================================================
+
+    @Transactional
+    public void likeUser(String userEmail, UUID likedUserId) {
+        User user = userRepository.findByEmail(userEmail)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        User likedUser = userRepository.findById(likedUserId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + likedUserId));
+
+        // Check if already liked
+        if (userLikeRepository.existsById_UserIdAndId_LikedUserId(user.getId(), likedUserId)) {
+            throw new IllegalStateException("User already liked");
+        }
+
+        // Create like
+        UserLike.UserLikeId likeId = new UserLike.UserLikeId(user.getId(), likedUserId);
+        UserLike like = new UserLike();
+        like.setId(likeId);
+        userLikeRepository.save(like);
+
+        // Update hearts count
+        likedUser.incrementHeartsCount();
+        userRepository.save(likedUser);
+
+        log.info("User {} liked user {}", userEmail, likedUserId);
+    }
+
+    @Transactional
+    public void unlikeUser(String userEmail, UUID likedUserId) {
+        User user = userRepository.findByEmail(userEmail)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        User likedUser = userRepository.findById(likedUserId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + likedUserId));
+
+        // Find and delete like
+        Optional<UserLike> like = userLikeRepository.findById_UserIdAndId_LikedUserId(user.getId(), likedUserId);
+        if (like.isPresent()) {
+            userLikeRepository.delete(like.get());
+
+            // Update hearts count
+            likedUser.decrementHeartsCount();
+            userRepository.save(likedUser);
+
+            log.info("User {} unliked user {}", userEmail, likedUserId);
+        }
+    }
+
+    public boolean isUserLikedByCurrentUser(UUID likedUserId, UUID currentUserId) {
+        if (currentUserId == null) {
+            return false;
+        }
+        return userLikeRepository.existsById_UserIdAndId_LikedUserId(currentUserId, likedUserId);
     }
 }

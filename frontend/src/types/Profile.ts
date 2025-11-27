@@ -27,6 +27,8 @@ export interface UserProfile {
   lastLogin?: string;
   followerCount?: number;
   followingCount?: number;
+  heartsCount?: number;
+  isLikedByCurrentUser?: boolean;
 }
 
 export interface ProfileUpdateRequest {

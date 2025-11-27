@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Post } from '../types/Post';
 import { getUserProfile, getUserPosts, getBookmarkedPosts, followUser, unfollowUser, getUserShareStats } from '../services/postApi';
+import { profileAPI } from '../services/api';
 import FollowersList from './FollowersList';
 import FollowingList from './FollowingList';
 import { useAuth, User } from '../contexts/AuthContext';
@@ -36,6 +37,11 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
   const [hasMoreBookmarks, setHasMoreBookmarks] = useState(true);
   const [bookmarksError, setBookmarksError] = useState<string>('');
   const [sharesReceived, setSharesReceived] = useState(0);
+  
+  // Social score - hearts state
+  const [heartsCount, setHeartsCount] = useState(0);
+  const [isLikedByCurrentUser, setIsLikedByCurrentUser] = useState(false);
+  const [heartLoading, setHeartLoading] = useState(false);
 
   const bookmarksPageRef = useRef(0);
 
@@ -80,6 +86,9 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
 
       const profile = await getUserProfile(targetUserId);
       setProfileUser(profile);
+      // Set hearts data from profile
+      setHeartsCount(profile.heartsCount || 0);
+      setIsLikedByCurrentUser(profile.isLikedByCurrentUser || false);
 
       try {
         const stats = await getUserShareStats(targetUserId);
@@ -199,6 +208,21 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
 
   const handleEditProfile = () => {
     navigate('/profile/edit');
+  };
+
+  const handleHeartClick = async () => {
+    if (!targetUserId || heartLoading || isLikedByCurrentUser) return;
+
+    setHeartLoading(true);
+    try {
+      await profileAPI.likeUser(targetUserId);
+      setHeartsCount(prev => prev + 1);
+      setIsLikedByCurrentUser(true);
+    } catch (error) {
+      console.error('Error liking user:', error);
+    } finally {
+      setHeartLoading(false);
+    }
   };
 
   const handleBookmarkPostUpdate = useCallback((updatedPost: Post) => {
@@ -322,6 +346,24 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
               ) : (
                 <div className="avatar-placeholder">
                   {profileUser.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              
+              {/* Heart Button */}
+              <button
+                onClick={handleHeartClick}
+                disabled={heartLoading || isLikedByCurrentUser}
+                className={`profile-heart-button ${isLikedByCurrentUser ? 'liked' : ''}`}
+                aria-label={isLikedByCurrentUser ? 'Already liked' : 'Give heart'}
+                title={isLikedByCurrentUser ? 'Already liked' : 'Give heart'}
+              >
+                ❤️
+              </button>
+              
+              {/* Hearts Count */}
+              {heartsCount > 0 && (
+                <div className="profile-hearts-count">
+                  {heartsCount}
                 </div>
               )}
             </div>

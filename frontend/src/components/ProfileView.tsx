@@ -64,6 +64,11 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
 
+  // Social score - hearts state
+  const [heartsCount, setHeartsCount] = useState(0);
+  const [isLikedByCurrentUser, setIsLikedByCurrentUser] = useState(false);
+  const [heartLoading, setHeartLoading] = useState(false);
+
   // Organization memberships state (for viewing other users' profiles)
   const [organizationMemberships, setOrganizationMemberships] = useState<Membership[]>([]);
   const [membershipsLoading, setMembershipsLoading] = useState(false);
@@ -98,6 +103,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
       
       setProfile(response.data);
       setImageError(false); // Reset image error when profile loads
+      // Set hearts data
+      setHeartsCount(response.data.heartsCount || 0);
+      setIsLikedByCurrentUser(response.data.isLikedByCurrentUser || false);
 
       if (targetUserId) {
         await loadShareStats(targetUserId);
@@ -375,6 +383,22 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
     }
   };
 
+  const handleHeartClick = async () => {
+    if (!userId || heartLoading || isLikedByCurrentUser) return;
+
+    setHeartLoading(true);
+    try {
+      await profileAPI.likeUser(userId);
+      setHeartsCount(prev => prev + 1);
+      setIsLikedByCurrentUser(true);
+    } catch (error) {
+      console.error('Error liking user:', error);
+      // Optionally show error message to user
+    } finally {
+      setHeartLoading(false);
+    }
+  };
+
   const handleMessageUser = async () => {
     if (!profile?.email || isOwnProfile) return;
 
@@ -566,6 +590,24 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
               ) : (
                 <div className="profile-picture-placeholder-large">
                   <span>{profile.name ? profile.name.charAt(0).toUpperCase() : '👤'}</span>
+                </div>
+              )}
+              
+              {/* Heart Button - positioned overlapping bottom-left */}
+              <button
+                onClick={handleHeartClick}
+                disabled={heartLoading || isLikedByCurrentUser}
+                className={`profile-heart-button ${isLikedByCurrentUser ? 'liked' : ''}`}
+                aria-label={isLikedByCurrentUser ? 'Already liked' : 'Give heart'}
+                title={isLikedByCurrentUser ? 'Already liked' : 'Give heart'}
+              >
+                ❤️
+              </button>
+              
+              {/* Hearts Count - overlapping bottom-left */}
+              {heartsCount > 0 && (
+                <div className="profile-hearts-count">
+                  {heartsCount}
                 </div>
               )}
             </div>

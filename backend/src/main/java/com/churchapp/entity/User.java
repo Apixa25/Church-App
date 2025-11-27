@@ -142,6 +142,10 @@ public class User {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    // Social score - hearts count
+    @Column(name = "hearts_count", nullable = false, columnDefinition = "INT DEFAULT 0 NOT NULL")
+    private Integer heartsCount = 0;
+
     // Multi-tenant organization fields - Dual Primary System
     // Church Primary: Can hold CHURCH, MINISTRY, NONPROFIT, GENERAL type organizations
     @ManyToOne(fetch = FetchType.LAZY)
@@ -213,5 +217,25 @@ public class User {
      */
     public boolean hasFamilyPrimary() {
         return familyPrimaryOrganization != null;
+    }
+
+    // ========================================================================
+    // SOCIAL SCORE - HEARTS COUNT METHODS
+    // ========================================================================
+
+    /**
+     * Increment hearts count (when user receives a heart)
+     */
+    public void incrementHeartsCount() {
+        this.heartsCount = this.heartsCount + 1;
+    }
+
+    /**
+     * Decrement hearts count (when user loses a heart)
+     */
+    public void decrementHeartsCount() {
+        if (this.heartsCount > 0) {
+            this.heartsCount = this.heartsCount - 1;
+        }
     }
 }
