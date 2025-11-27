@@ -180,6 +180,7 @@
   z-index: 9;
   pointer-events: none;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  transform: translateY(3px);
 }
 
 .avatar-image,
