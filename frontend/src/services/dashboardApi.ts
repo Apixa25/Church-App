@@ -115,8 +115,9 @@ export interface MetricsDashboardData {
 }
 
 const dashboardApi = {
-  getDashboard: async (): Promise<DashboardResponse> => {
-    const response = await api.get('/dashboard');
+  getDashboard: async (organizationId?: string): Promise<DashboardResponse> => {
+    const params = organizationId ? { organizationId } : {};
+    const response = await api.get('/dashboard', { params });
     return response.data;
   },
 
@@ -483,11 +484,14 @@ const dashboardApi = {
    * @param hasPrimaryOrgOverride - Optional: If you already know whether the user has a primary org
    *                                 (e.g., from OrganizationContext), pass it here to skip the API check.
    *                                 This prevents unnecessary 404 errors for users without a primary org.
+   * @param organizationId - Optional: The organization ID to fetch data for (for context switching).
+   *                          If provided, dashboard data will be scoped to this organization.
    */
-  getDashboardWithAll: async (hasPrimaryOrgOverride?: boolean): Promise<DashboardResponse> => {
+  getDashboardWithAll: async (hasPrimaryOrgOverride?: boolean, organizationId?: string): Promise<DashboardResponse> => {
     try {
-      // Get the main dashboard data
-      const dashboardResponse = await api.get('/dashboard');
+      // Get the main dashboard data with organizationId if provided
+      const params = organizationId ? { organizationId } : {};
+      const dashboardResponse = await api.get('/dashboard', { params });
       const dashboardData = dashboardResponse.data;
 
       // Check if user has primary organization
@@ -576,7 +580,8 @@ const dashboardApi = {
     } catch (error) {
       console.error('Error getting dashboard with all features:', error);
       // Fallback to regular dashboard
-      const response = await api.get('/dashboard');
+      const params = organizationId ? { organizationId } : {};
+      const response = await api.get('/dashboard', { params });
       return response.data;
     }
   },

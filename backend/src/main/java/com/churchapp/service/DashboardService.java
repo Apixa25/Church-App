@@ -37,19 +37,21 @@ public class DashboardService {
     private final DonationRepository donationRepository;
     private final UserOrganizationMembershipRepository membershipRepository;
     
-    public DashboardResponse getDashboardData(String currentUserEmail) {
+    public DashboardResponse getDashboardData(String currentUserEmail, UUID organizationId) {
         User currentUser = userRepository.findByEmail(currentUserEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
         
-        // Get user's primary organization for filtering
-        UUID organizationId = currentUser.getPrimaryOrganization() != null 
-            ? currentUser.getPrimaryOrganization().getId() 
-            : null;
+        // Use provided organizationId, or fall back to church primary for backward compatibility
+        UUID orgId = organizationId != null 
+            ? organizationId 
+            : (currentUser.getChurchPrimaryOrganization() != null 
+                ? currentUser.getChurchPrimaryOrganization().getId() 
+                : null);
         
         return new DashboardResponse(
-            getRecentActivity(organizationId),
-            getDashboardStats(organizationId),
-            getQuickActions(currentUser),
+            getRecentActivity(orgId),
+            getDashboardStats(orgId),
+            getQuickActions(currentUser, orgId), // Pass orgId to check membership
             getNotificationSummary(currentUser),
             LocalDateTime.now()
         );
@@ -273,7 +275,7 @@ public class DashboardService {
         );
     }
     
-    private List<QuickAction> getQuickActions(User currentUser) {
+    private List<QuickAction> getQuickActions(User currentUser, UUID organizationId) {
         List<QuickAction> actions = new ArrayList<>();
         
         // Profile actions - available to all users
@@ -297,10 +299,18 @@ public class DashboardService {
             "Open Chats"
         ));
         
-        // Check if user has primary organization
-        boolean hasPrimaryOrg = currentUser.getPrimaryOrganization() != null;
+        // Check if user has membership in the specified organization
+        boolean hasPrimaryOrg = false;
+        if (organizationId != null) {
+            // Check if user is a member of this organization (church OR family primary, or any membership)
+            hasPrimaryOrg = membershipRepository
+                .existsByUserIdAndOrganizationId(currentUser.getId(), organizationId);
+        } else {
+            // Fallback: check if user has church primary (backward compatibility)
+            hasPrimaryOrg = currentUser.getChurchPrimaryOrganization() != null;
+        }
         
-        // Organization-specific actions - only show if user has primary org
+        // Organization-specific actions - only show if user has membership in the organization
         if (hasPrimaryOrg) {
             actions.add(QuickAction.create(
                 "announcements",

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/dashboard")
@@ -20,9 +21,11 @@ public class DashboardController {
     private final DashboardService dashboardService;
     
     @GetMapping
-    public ResponseEntity<DashboardResponse> getDashboard(@AuthenticationPrincipal User user) {
+    public ResponseEntity<DashboardResponse> getDashboard(
+            @AuthenticationPrincipal User user,
+            @RequestParam(required = false) UUID organizationId) {
         try {
-            DashboardResponse dashboard = dashboardService.getDashboardData(user.getUsername());
+            DashboardResponse dashboard = dashboardService.getDashboardData(user.getUsername(), organizationId);
             return ResponseEntity.ok(dashboard);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
@@ -30,9 +33,11 @@ public class DashboardController {
     }
     
     @GetMapping("/activity")
-    public ResponseEntity<DashboardResponse> getActivityFeed(@AuthenticationPrincipal User user) {
+    public ResponseEntity<DashboardResponse> getActivityFeed(
+            @AuthenticationPrincipal User user,
+            @RequestParam(required = false) UUID organizationId) {
         try {
-            DashboardResponse dashboard = dashboardService.getDashboardData(user.getUsername());
+            DashboardResponse dashboard = dashboardService.getDashboardData(user.getUsername(), organizationId);
             return ResponseEntity.ok(dashboard);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
@@ -40,9 +45,11 @@ public class DashboardController {
     }
     
     @GetMapping("/stats")
-    public ResponseEntity<?> getDashboardStats(@AuthenticationPrincipal User user) {
+    public ResponseEntity<?> getDashboardStats(
+            @AuthenticationPrincipal User user,
+            @RequestParam(required = false) UUID organizationId) {
         try {
-            DashboardResponse dashboard = dashboardService.getDashboardData(user.getUsername());
+            DashboardResponse dashboard = dashboardService.getDashboardData(user.getUsername(), organizationId);
             Map<String, Object> response = new HashMap<>();
             response.put("stats", dashboard.getStats());
             response.put("lastUpdated", dashboard.getLastUpdated());
@@ -55,9 +62,11 @@ public class DashboardController {
     }
     
     @GetMapping("/notifications")
-    public ResponseEntity<?> getNotifications(@AuthenticationPrincipal User user) {
+    public ResponseEntity<?> getNotifications(
+            @AuthenticationPrincipal User user,
+            @RequestParam(required = false) UUID organizationId) {
         try {
-            DashboardResponse dashboard = dashboardService.getDashboardData(user.getUsername());
+            DashboardResponse dashboard = dashboardService.getDashboardData(user.getUsername(), organizationId);
             Map<String, Object> response = new HashMap<>();
             response.put("notifications", dashboard.getNotifications());
             response.put("lastUpdated", dashboard.getLastUpdated());
@@ -70,9 +79,11 @@ public class DashboardController {
     }
     
     @GetMapping("/quick-actions")
-    public ResponseEntity<?> getQuickActions(@AuthenticationPrincipal User user) {
+    public ResponseEntity<?> getQuickActions(
+            @AuthenticationPrincipal User user,
+            @RequestParam(required = false) UUID organizationId) {
         try {
-            DashboardResponse dashboard = dashboardService.getDashboardData(user.getUsername());
+            DashboardResponse dashboard = dashboardService.getDashboardData(user.getUsername(), organizationId);
             Map<String, Object> response = new HashMap<>();
             response.put("quickActions", dashboard.getQuickActions());
             response.put("lastUpdated", dashboard.getLastUpdated());
