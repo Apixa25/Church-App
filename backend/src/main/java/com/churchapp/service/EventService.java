@@ -3,12 +3,14 @@ package com.churchapp.service;
 import com.churchapp.dto.EventBringItemRequest;
 import com.churchapp.entity.ChatGroup;
 import com.churchapp.entity.Event;
+import com.churchapp.entity.Organization;
 import com.churchapp.entity.User;
 import com.churchapp.repository.ChatGroupRepository;
 import com.churchapp.repository.EventRepository;
 import com.churchapp.repository.EventRsvpRepository;
 import com.churchapp.repository.UserRepository;
 import com.churchapp.repository.OrganizationRepository;
+import com.churchapp.repository.UserOrganizationMembershipRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -33,6 +35,7 @@ public class EventService {
     private final ChatGroupRepository chatGroupRepository;
     private final EventBringListService eventBringListService;
     private final OrganizationRepository organizationRepository;
+    private final UserOrganizationMembershipRepository membershipRepository;
 
     public Event createEvent(UUID creatorId, Event eventRequest, Boolean bringListEnabled, List<EventBringItemRequest> bringItems, UUID organizationId) {
         User creator = userRepository.findById(creatorId)
@@ -44,6 +47,12 @@ public class EventService {
             // Use the provided organizationId from the active context
             targetOrganization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new RuntimeException("Organization not found with id: " + organizationId));
+            
+            // Verify user is a member of this organization
+            boolean isMember = membershipRepository.existsByUserIdAndOrganizationId(creatorId, organizationId);
+            if (!isMember) {
+                throw new RuntimeException("You are not a member of this organization. Please join the organization before creating events.");
+            }
         } else if (creator.getChurchPrimaryOrganization() != null) {
             // Fall back to church primary if no organizationId provided
             targetOrganization = creator.getChurchPrimaryOrganization();
