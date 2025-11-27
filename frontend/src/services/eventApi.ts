@@ -36,6 +36,7 @@ export const eventAPI = {
     status?: string;
     creatorId?: string;
     groupId?: string;
+    organizationId?: string; // Organization context for multi-tenant support
   }): Promise<{ data: EventsResponse }> =>
     api.get('/events', { params }),
   

@@ -49,6 +49,7 @@ export interface PrayerRequestCreateRequest {
   imageUrl?: string;
   isAnonymous?: boolean;
   category?: PrayerCategory;
+  organizationId?: string; // Organization context for multi-tenant support
 }
 
 export interface PrayerRequestUpdateRequest {

@@ -11,6 +11,7 @@ import {
   PRAYER_STATUS_LABELS,
 } from '../types/Prayer';
 import { prayerAPI, handleApiError } from '../services/prayerApi';
+import { useActiveContext } from '../contexts/ActiveContextContext';
 
 interface PrayerRequestFormProps {
   existingPrayer?: PrayerRequest;
@@ -33,6 +34,8 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
   onCancel,
   mode = 'create'
 }) => {
+  const { activeOrganizationId } = useActiveContext();
+  
   const {
     register,
     handleSubmit,
@@ -145,7 +148,8 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
           title: data.title,
           description: data.description || undefined,
           isAnonymous: data.isAnonymous,
-          category: data.category
+          category: data.category,
+          organizationId: activeOrganizationId || undefined // Pass active organization from context
         };
         
         // If image was selected, use multipart endpoint

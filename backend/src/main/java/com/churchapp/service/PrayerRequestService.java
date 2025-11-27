@@ -51,10 +51,15 @@ public class PrayerRequestService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
-        // Set organization context - use primary org or fall back to Global Organization
+        // Set organization context - prioritize provided organizationId, then use primary org or fall back to Global Organization
         Organization organization;
-        if (user.getPrimaryOrganization() != null) {
-            organization = user.getPrimaryOrganization();
+        if (request.getOrganizationId() != null) {
+            // Use the provided organizationId from the active context
+            organization = organizationRepository.findById(request.getOrganizationId())
+                .orElseThrow(() -> new RuntimeException("Organization not found with id: " + request.getOrganizationId()));
+        } else if (user.getChurchPrimaryOrganization() != null) {
+            // Fall back to church primary if no organizationId provided
+            organization = user.getChurchPrimaryOrganization();
         } else {
             // User has no primary org - use global org
             organization = organizationRepository.findById(GLOBAL_ORG_ID)
@@ -85,10 +90,15 @@ public class PrayerRequestService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
-        // Set organization context - use primary org or fall back to Global Organization
+        // Set organization context - prioritize provided organizationId, then use primary org or fall back to Global Organization
         Organization organization;
-        if (user.getPrimaryOrganization() != null) {
-            organization = user.getPrimaryOrganization();
+        if (request.getOrganizationId() != null) {
+            // Use the provided organizationId from the active context
+            organization = organizationRepository.findById(request.getOrganizationId())
+                .orElseThrow(() -> new RuntimeException("Organization not found with id: " + request.getOrganizationId()));
+        } else if (user.getChurchPrimaryOrganization() != null) {
+            // Fall back to church primary if no organizationId provided
+            organization = user.getChurchPrimaryOrganization();
         } else {
             // User has no primary org - use global org
             organization = organizationRepository.findById(GLOBAL_ORG_ID)
@@ -127,7 +137,7 @@ public class PrayerRequestService {
 
         PrayerRequest savedPrayerRequest = prayerRequestRepository.save(prayerRequest);
         log.info("Prayer request created with id: {} by user: {} in org: {} (with image: {})",
-            savedPrayerRequest.getId(), userId, user.getPrimaryOrganization().getId(), imageUrl != null);
+            savedPrayerRequest.getId(), userId, organization.getId(), imageUrl != null);
         
         // Send WebSocket notification for new prayer request
         notifyNewPrayerRequest(savedPrayerRequest);
@@ -345,21 +355,29 @@ public class PrayerRequestService {
     }
     
     /**
-     * Get all prayer requests for user's primary organization (or global organization if no primary org)
+     * Get all prayer requests for user's active organization (or global organization if no primary org)
      */
-    public Page<PrayerRequestResponse> getAllPrayerRequests(UUID requestingUserId, int page, int size) {
+    public Page<PrayerRequestResponse> getAllPrayerRequests(UUID requestingUserId, UUID organizationId, int page, int size) {
         User user = userRepository.findById(requestingUserId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Use primary organization or fall back to Global Organization
-        UUID organizationId = (user.getPrimaryOrganization() != null)
-            ? user.getPrimaryOrganization().getId()
-            : GLOBAL_ORG_ID;
+        // Use provided organizationId, or fall back to primary organization or Global Organization
+        UUID targetOrganizationId;
+        if (organizationId != null) {
+            // Use the provided organizationId from the active context
+            targetOrganizationId = organizationId;
+        } else if (user.getChurchPrimaryOrganization() != null) {
+            // Fall back to church primary if no organizationId provided
+            targetOrganizationId = user.getChurchPrimaryOrganization().getId();
+        } else {
+            // User has no primary org - use global org
+            targetOrganizationId = GLOBAL_ORG_ID;
+        }
 
         Pageable pageable = PageRequest.of(page, size);
-        // Get prayers from user's organization (primary or global)
+        // Get prayers from the target organization
         Page<PrayerRequest> prayerRequests = prayerRequestRepository.findActiveByOrganizationId(
-            organizationId, pageable);
+            targetOrganizationId, pageable);
 
         return prayerRequests.map(prayerRequest -> {
             if (prayerRequest.getUser().getId().equals(requestingUserId)) {
@@ -488,8 +506,8 @@ public class PrayerRequestService {
             .orElseThrow(() -> new RuntimeException("User not found"));
 
         // Use primary organization or fall back to Global Organization
-        UUID organizationId = (user.getPrimaryOrganization() != null)
-            ? user.getPrimaryOrganization().getId()
+        UUID organizationId = (user.getChurchPrimaryOrganization() != null)
+            ? user.getChurchPrimaryOrganization().getId()
             : GLOBAL_ORG_ID;
 
         Map<String, Long> stats = new HashMap<>();
@@ -509,8 +527,8 @@ public class PrayerRequestService {
             .orElseThrow(() -> new RuntimeException("User not found"));
 
         // Use primary organization or fall back to Global Organization
-        UUID organizationId = (user.getPrimaryOrganization() != null)
-            ? user.getPrimaryOrganization().getId()
+        UUID organizationId = (user.getChurchPrimaryOrganization() != null)
+            ? user.getChurchPrimaryOrganization().getId()
             : GLOBAL_ORG_ID;
 
         // Get active prayers from user's organization only
