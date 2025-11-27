@@ -148,8 +148,8 @@ const PostActions: React.FC<PostActionsProps> = ({
     const action = isBlocked ? 'unblock' : 'block';
     const confirmed = window.confirm(
       isBlocked
-        ? `Are you sure you want to unblock ${post.userName}? You will see their posts again.`
-        : `Are you sure you want to block ${post.userName}? You will no longer see their posts, comments, or profile.`
+        ? `Are you sure you want to unblock ${post.userName}? You will see their posts again and they will see yours.`
+        : `Are you sure you want to block ${post.userName}? You will no longer see their posts, comments, or profile, and they will no longer see yours.`
     );
 
     if (!confirmed) return;

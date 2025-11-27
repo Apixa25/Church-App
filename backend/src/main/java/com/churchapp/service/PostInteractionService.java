@@ -178,8 +178,8 @@ public class PostInteractionService {
             return allComments;
         }
         
-        // Filter out comments from blocked users
-        List<UUID> blockedUserIds = userBlockService.getBlockedUserIds(viewerUserId);
+        // Filter out comments from blocked users (mutual blocking)
+        List<UUID> blockedUserIds = userBlockService.getMutuallyBlockedUserIds(viewerUserId);
         if (blockedUserIds.isEmpty()) {
             return allComments;
         }
@@ -216,9 +216,9 @@ public class PostInteractionService {
             return allComments;
         }
         
-        // Filter out comments from blocked users (if viewing another user's comments)
+        // Filter out comments from blocked users (mutual blocking) if viewing another user's comments
         if (!userId.equals(viewerUserId)) {
-            List<UUID> blockedUserIds = userBlockService.getBlockedUserIds(viewerUserId);
+            List<UUID> blockedUserIds = userBlockService.getMutuallyBlockedUserIds(viewerUserId);
             if (!blockedUserIds.isEmpty()) {
                 List<PostComment> filteredComments = allComments.getContent().stream()
                     .filter(comment -> !blockedUserIds.contains(comment.getUser().getId()))

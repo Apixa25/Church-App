@@ -61,7 +61,7 @@ const BlockedUsersList: React.FC<BlockedUsersListProps> = ({ isOpen, onClose }) 
 
   const handleUnblock = async (userId: string, userName: string) => {
     const confirmed = window.confirm(
-      `Are you sure you want to unblock ${userName}? You will see their posts again.`
+      `Are you sure you want to unblock ${userName}? You will see their posts again and they will see yours.`
     );
 
     if (!confirmed) return;

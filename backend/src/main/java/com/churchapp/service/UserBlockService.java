@@ -118,6 +118,27 @@ public class UserBlockService {
     }
 
     /**
+     * Get list of user IDs that should be filtered from viewer's perspective
+     * For mutual blocking: includes both users viewer has blocked AND users who have blocked viewer
+     * This ensures mutual blocking - if user A blocks user B, neither can see each other's content
+     * @param viewerId The user ID whose perspective we're filtering from
+     * @return Combined list of UUIDs that should be excluded (mutual blocking)
+     */
+    public List<UUID> getMutuallyBlockedUserIds(UUID viewerId) {
+        // Users the viewer has blocked
+        List<UUID> usersViewerBlocked = userBlockRepository.findBlockedIdsByBlockerId(viewerId);
+        
+        // Users who have blocked the viewer
+        List<UUID> usersWhoBlockedViewer = userBlockRepository.findBlockerIdsByBlockedId(viewerId);
+        
+        // Combine and deduplicate
+        java.util.Set<UUID> combined = new java.util.HashSet<>(usersViewerBlocked);
+        combined.addAll(usersWhoBlockedViewer);
+        
+        return new java.util.ArrayList<>(combined);
+    }
+
+    /**
      * Get blocked count for a user (how many users they've blocked)
      * @param blockerId The user ID
      * @return Number of blocked users

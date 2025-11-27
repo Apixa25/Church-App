@@ -167,8 +167,12 @@ public class PostController {
             @AuthenticationPrincipal User user) {
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<Post> posts = postService.getUserPosts(userId, pageable);
-        Page<PostResponse> responses = postResponseMapper.mapPage(posts, resolveUserId(user));
+        
+        // Get viewer's user ID for mutual blocking filter
+        UUID viewerUserId = resolveUserId(user);
+        
+        Page<Post> posts = postService.getUserPosts(userId, viewerUserId, pageable);
+        Page<PostResponse> responses = postResponseMapper.mapPage(posts, viewerUserId);
 
         return ResponseEntity.ok(responses);
     }
@@ -209,8 +213,12 @@ public class PostController {
             @AuthenticationPrincipal User user) {
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<Post> posts = postService.getUserPostsWithMedia(userId, pageable);
-        Page<PostResponse> responses = postResponseMapper.mapPage(posts, resolveUserId(user));
+        
+        // Get viewer's user ID for mutual blocking filter
+        UUID viewerUserId = resolveUserId(user);
+        
+        Page<Post> posts = postService.getUserPostsWithMedia(userId, viewerUserId, pageable);
+        Page<PostResponse> responses = postResponseMapper.mapPage(posts, viewerUserId);
 
         return ResponseEntity.ok(responses);
     }
