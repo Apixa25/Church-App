@@ -18,6 +18,7 @@ public class FeedPreferenceResponse {
     private UUID userId;
     private String activeFilter; // ALL, PRIMARY_ONLY, SELECTED_GROUPS
     private List<UUID> selectedGroupIds;
+    private UUID selectedOrganizationId; // For PRIMARY_ONLY filter - the specific organization ID
     private LocalDateTime updatedAt;
 
     public static FeedPreferenceResponse fromFeedPreference(FeedPreference preference) {
@@ -39,6 +40,7 @@ public class FeedPreferenceResponse {
 
         response.setActiveFilter(preference.getActiveFilter() != null ? preference.getActiveFilter().name() : null);
         response.setSelectedGroupIds(preference.getSelectedGroupIds() != null ? preference.getSelectedGroupIds() : new java.util.ArrayList<>());
+        response.setSelectedOrganizationId(preference.getSelectedOrganizationId());
         response.setUpdatedAt(preference.getUpdatedAt());
 
         return response;

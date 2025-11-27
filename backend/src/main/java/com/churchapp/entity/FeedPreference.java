@@ -43,6 +43,9 @@ public class FeedPreference {
     @Column(name = "selected_group_ids", columnDefinition = "jsonb")
     private List<UUID> selectedGroupIds = new ArrayList<>();
 
+    @Column(name = "selected_organization_id")
+    private UUID selectedOrganizationId; // When PRIMARY_ONLY is selected, filter by this specific organization
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

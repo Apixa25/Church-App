@@ -13,6 +13,7 @@ export interface FeedPreference {
   userId: string;
   activeFilter: FeedFilter;
   selectedGroupIds: string[];
+  selectedOrganizationId?: string; // For PRIMARY_ONLY filter - the specific organization ID
   updatedAt: string;
 }
 
@@ -41,7 +42,7 @@ interface FeedFilterContextType {
   loading: boolean;
 
   // Actions
-  setFilter: (filter: FeedFilter, groupIds?: string[]) => Promise<void>;
+  setFilter: (filter: FeedFilter, groupIds?: string[], selectedOrganizationId?: string) => Promise<void>;
   resetFilter: () => Promise<void>;
   refreshPreference: () => Promise<void>;
 }
@@ -186,11 +187,12 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
   const refreshPreference = fetchPreference;
 
   // Set filter
-  const setFilter = async (filter: FeedFilter, groupIds: string[] = []): Promise<void> => {
+  const setFilter = async (filter: FeedFilter, groupIds: string[] = [], selectedOrganizationId?: string): Promise<void> => {
     try {
       await api.post('/feed-preferences', {
         activeFilter: filter,
         selectedGroupIds: filter === 'SELECTED_GROUPS' ? groupIds : [],
+        selectedOrganizationId: filter === 'PRIMARY_ONLY' ? selectedOrganizationId : undefined,
       });
 
       await refreshPreference();

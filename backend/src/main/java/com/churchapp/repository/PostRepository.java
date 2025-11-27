@@ -122,13 +122,13 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     // ========================================================================
 
     // Multi-tenant feed query - shows posts from:
-    // 1. User's primary organization (all visibility levels)
+    // 1. User's primary organizations (all visibility levels) - supports dual-primary system (churchPrimary + familyPrimary)
     // 2. User's secondary organizations (PUBLIC only)
     // 3. User's unmuted groups
     // Excludes posts from blocked users
     @Query("SELECT DISTINCT p FROM Post p WHERE " +
            "(" +
-           "  (p.organization.id = :primaryOrgId) " +
+           "  (p.organization.id IN :primaryOrgIds) " +
            "  OR (p.organization.id IN :secondaryOrgIds AND p.visibility = 'PUBLIC') " +
            "  OR (p.group.id IN :groupIds)" +
            ") " +
@@ -136,7 +136,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
            "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
            "ORDER BY p.createdAt DESC")
     Page<Post> findMultiTenantFeed(
-        @Param("primaryOrgId") UUID primaryOrgId,
+        @Param("primaryOrgIds") List<UUID> primaryOrgIds,
         @Param("secondaryOrgIds") List<UUID> secondaryOrgIds,
         @Param("groupIds") List<UUID> groupIds,
         @Param("blockedUserIds") List<UUID> blockedUserIds,
