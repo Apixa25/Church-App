@@ -430,7 +430,7 @@ export const reportContent = async (
   reason: string,
   description?: string
 ): Promise<void> => {
-  await api.post(`/moderation/content/${contentType}/${contentId}/report`, {
+  await api.post(`/admin/moderation/content/${contentType}/${contentId}/report`, {
     reason,
     description: description || ''
   });

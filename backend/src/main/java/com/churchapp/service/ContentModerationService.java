@@ -1,49 +1,100 @@
 package com.churchapp.service;
 
 import com.churchapp.dto.ModerationResponse;
+import com.churchapp.entity.ContentReport;
+import com.churchapp.entity.Post;
+import com.churchapp.entity.User;
+import com.churchapp.repository.ContentReportRepository;
+import com.churchapp.repository.PostRepository;
+import com.churchapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional
 public class ContentModerationService {
 
     private final AuditLogService auditLogService;
+    private final ContentReportRepository contentReportRepository;
+    private final PostRepository postRepository;
+    private final UserRepository userRepository;
 
+    @Transactional(readOnly = true)
     public Page<ModerationResponse> getReportedContent(Pageable pageable, String contentType, String status, String priority) {
-        // TODO: Implement with actual reports repository
-        // For now, return empty page as placeholder
-        List<ModerationResponse> reports = new ArrayList<>();
+        Page<ContentReport> reports = contentReportRepository.findWithFilters(
+            contentType, status, priority, pageable);
 
-        // Sample data for testing
-        if (reports.isEmpty()) {
-            reports.add(ModerationResponse.builder()
-                .id(UUID.randomUUID())
-                .contentType("POST")
-                .contentId(UUID.randomUUID())
-                .contentPreview("Sample post content that was reported...")
-                .contentAuthor("John Doe")
-                .reportReason("Inappropriate content")
-                .reportedBy("Jane Smith")
-                .reportedAt(LocalDateTime.now().minusHours(2))
-                .status("PENDING")
-                .priority("MEDIUM")
-                .isAutoFlagged(false)
-                .reportCount(1)
-                .isVisible(true)
-                .build());
+        List<ModerationResponse> responseList = reports.getContent().stream()
+            .map(this::mapToModerationResponse)
+            .collect(Collectors.toList());
+
+        return new PageImpl<>(responseList, pageable, reports.getTotalElements());
+    }
+
+    private ModerationResponse mapToModerationResponse(ContentReport report) {
+        ModerationResponse.ModerationResponseBuilder builder = ModerationResponse.builder()
+            .id(report.getId())
+            .contentType(report.getContentType())
+            .contentId(report.getContentId())
+            .reportReason(report.getReason())
+            .reportDescription(report.getDescription())
+            .status(report.getStatus())
+            .priority(report.getPriority())
+            .isAutoFlagged(report.getIsAutoFlagged())
+            .autoFlagReason(report.getAutoFlagReason())
+            .reportCount(report.getReportCount())
+            .reportedAt(report.getCreatedAt())
+            .createdAt(report.getCreatedAt())
+            .moderationAction(report.getModerationAction())
+            .moderationReason(report.getModerationReason())
+            .moderatedAt(report.getModeratedAt());
+
+        // Set reporter information
+        if (report.getReporter() != null) {
+            builder.reportedBy(report.getReporter().getName() != null ? report.getReporter().getName() : report.getReporter().getEmail());
+            builder.reporterId(report.getReporter().getId());
         }
 
-        return new PageImpl<>(reports, pageable, reports.size());
+        // Set moderator information
+        if (report.getModeratedBy() != null) {
+            builder.moderatedBy(report.getModeratedBy().getName() != null ? report.getModeratedBy().getName() : report.getModeratedBy().getEmail());
+            builder.moderatorId(report.getModeratedBy().getId());
+        }
+
+        // Get content details based on content type
+        try {
+            if ("POST".equalsIgnoreCase(report.getContentType())) {
+                Optional<Post> postOpt = postRepository.findById(report.getContentId());
+                if (postOpt.isPresent()) {
+                    Post post = postOpt.get();
+                    builder.contentPreview(post.getContent() != null && post.getContent().length() > 200 
+                        ? post.getContent().substring(0, 200) + "..." 
+                        : post.getContent());
+                    if (post.getUser() != null) {
+                        builder.contentAuthor(post.getUser().getName() != null ? post.getUser().getName() : post.getUser().getEmail());
+                        builder.contentAuthorId(post.getUser().getId());
+                    }
+                    builder.isVisible(true); // Post visibility logic can be enhanced later
+                }
+            }
+            // Add other content types (COMMENT, PRAYER, etc.) as needed
+        } catch (Exception e) {
+            log.warn("Error fetching content details for report {}: {}", report.getId(), e.getMessage());
+        }
+
+        return builder.build();
     }
 
     public void moderateContent(String contentType, UUID contentId, String action, String reason, UUID moderatorId, HttpServletRequest request) {
@@ -81,16 +132,81 @@ public class ContentModerationService {
     public void reportContent(String contentType, UUID contentId, String reason, String description, UUID reporterId, HttpServletRequest request) {
         log.info("Reporting {} {} by user {} for: {}", contentType, contentId, reporterId, reason);
 
-        // TODO: Create report entry in reports table
-        // TODO: Auto-flag content if it meets certain criteria
-        // TODO: Send notification to moderators
+        // Check if user has already reported this content (pending or reviewing)
+        Optional<ContentReport> existingReport = contentReportRepository
+            .findByContentTypeAndContentIdAndReporterIdAndStatusIn(
+                contentType, contentId, reporterId, 
+                Arrays.asList("PENDING", "REVIEWING"));
+
+        if (existingReport.isPresent()) {
+            log.info("User {} already has a pending/reviewing report for {} {}", reporterId, contentType, contentId);
+            // Don't create duplicate report, but still log the action
+            Map<String, String> details = new HashMap<>();
+            details.put("reason", reason);
+            details.put("description", description);
+            details.put("contentType", contentType);
+            details.put("note", "Duplicate report - already pending");
+            auditLogService.logContentAction(reporterId, "REPORT_CONTENT", contentType, contentId, details, request);
+            return;
+        }
+
+        // Get reporter user entity
+        User reporter = userRepository.findById(reporterId)
+            .orElseThrow(() -> new RuntimeException("Reporter user not found: " + reporterId));
+
+        // Count existing reports for this content to determine priority
+        long existingReportCount = contentReportRepository.countByContentTypeAndContentId(contentType, contentId);
+        String priority = determinePriority(reason, existingReportCount);
+
+        // Create new report
+        ContentReport report = ContentReport.builder()
+            .contentType(contentType.toUpperCase())
+            .contentId(contentId)
+            .reporter(reporter)
+            .reason(reason.toUpperCase())
+            .description(description)
+            .status("PENDING")
+            .priority(priority)
+            .isAutoFlagged(false)
+            .reportCount((int)(existingReportCount + 1))
+            .build();
+
+        ContentReport savedReport = contentReportRepository.save(report);
+        log.info("Created content report with ID: {} for {} {} (priority: {})", 
+            savedReport.getId(), contentType, contentId, priority);
 
         // Log the report action
         Map<String, String> details = new HashMap<>();
         details.put("reason", reason);
         details.put("description", description);
         details.put("contentType", contentType);
+        details.put("priority", priority);
+        details.put("reportId", savedReport.getId().toString());
         auditLogService.logContentAction(reporterId, "REPORT_CONTENT", contentType, contentId, details, request);
+
+        // TODO: Auto-flag content if it meets certain criteria
+        // TODO: Send notification to moderators
+    }
+
+    private String determinePriority(String reason, long existingReportCount) {
+        // High priority for serious violations
+        if (reason != null) {
+            String upperReason = reason.toUpperCase();
+            if (upperReason.contains("HARASSMENT") || upperReason.contains("HATE_SPEECH") || 
+                upperReason.contains("DISCRIMINATION")) {
+                return "HIGH";
+            }
+        }
+
+        // If content has been reported multiple times, increase priority
+        if (existingReportCount >= 5) {
+            return "HIGH";
+        } else if (existingReportCount >= 3) {
+            return "MEDIUM";
+        }
+
+        // Default priority
+        return "MEDIUM";
     }
 
     public Map<String, Object> getModerationStats(String timeRange) {
@@ -122,7 +238,7 @@ public class ContentModerationService {
 
         for (String contentIdStr : contentIds) {
             try {
-                UUID contentId = UUID.fromString(contentIdStr);
+                UUID.fromString(contentIdStr); // Validate UUID format
                 // TODO: Determine content type and moderate accordingly
                 // For now, assume it's handled by the moderateContent method
 

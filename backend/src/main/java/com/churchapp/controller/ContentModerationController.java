@@ -1,6 +1,8 @@
 package com.churchapp.controller;
 
 import com.churchapp.dto.ModerationResponse;
+import com.churchapp.entity.User;
+import com.churchapp.repository.UserRepository;
 import com.churchapp.service.ContentModerationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +28,7 @@ import java.util.UUID;
 public class ContentModerationController {
 
     private final ContentModerationService contentModerationService;
+    private final UserRepository userRepository;
 
     /**
      * Get all reported content across all sections
@@ -69,12 +72,19 @@ public class ContentModerationController {
             String action = request.get("action"); // approve, remove, hide, warn
             String reason = request.get("reason");
 
-            log.info("Moderating {} {} with action: {} by admin: {}",
-                contentType, contentId, action, auth.getName());
+            // Get user ID from email (auth.getName() returns email)
+            String email = auth.getName();
+            User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+            
+            UUID moderatorId = user.getId();
+
+            log.info("Moderating {} {} with action: {} by admin: {} (email: {})",
+                contentType, contentId, action, moderatorId, email);
 
             contentModerationService.moderateContent(
                 contentType, contentId, action, reason,
-                UUID.fromString(auth.getName()), httpRequest);
+                moderatorId, httpRequest);
 
             Map<String, String> response = new HashMap<>();
             response.put("message", "Content moderation action completed successfully");
@@ -91,8 +101,10 @@ public class ContentModerationController {
 
     /**
      * Report content for moderation
+     * This endpoint is accessible to all authenticated users, not just admins
      */
     @PostMapping("/content/{contentType}/{contentId}/report")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, String>> reportContent(
             @PathVariable String contentType,
             @PathVariable UUID contentId,
@@ -104,12 +116,19 @@ public class ContentModerationController {
             String reason = request.get("reason");
             String description = request.get("description");
 
-            log.info("Reporting {} {} by user: {} for reason: {}",
-                contentType, contentId, auth.getName(), reason);
+            // Get user ID from email (auth.getName() returns email)
+            String email = auth.getName();
+            User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+            
+            UUID reporterId = user.getId();
+
+            log.info("Reporting {} {} by user: {} (email: {}) for reason: {}",
+                contentType, contentId, reporterId, email, reason);
 
             contentModerationService.reportContent(
                 contentType, contentId, reason, description,
-                UUID.fromString(auth.getName()), httpRequest);
+                reporterId, httpRequest);
 
             Map<String, String> response = new HashMap<>();
             response.put("message", "Content reported successfully");
@@ -176,12 +195,19 @@ public class ContentModerationController {
             String action = (String) request.get("action");
             String reason = (String) request.get("reason");
 
-            log.info("Bulk moderating {} items with action: {} by admin: {}",
-                contentIds.size(), action, auth.getName());
+            // Get user ID from email (auth.getName() returns email)
+            String email = auth.getName();
+            User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+            
+            UUID moderatorId = user.getId();
+
+            log.info("Bulk moderating {} items with action: {} by admin: {} (email: {})",
+                contentIds.size(), action, moderatorId, email);
 
             Map<String, Object> result = contentModerationService.bulkModerate(
                 contentIds, action, reason,
-                UUID.fromString(auth.getName()), httpRequest);
+                moderatorId, httpRequest);
 
             return ResponseEntity.ok(result);
 
