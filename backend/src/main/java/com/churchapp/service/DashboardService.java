@@ -48,6 +48,10 @@ public class DashboardService {
                 ? currentUser.getChurchPrimaryOrganization().getId() 
                 : null);
         
+        System.out.println("📊 DashboardService.getDashboardData - organizationId param: " + organizationId);
+        System.out.println("📊 DashboardService.getDashboardData - resolved orgId: " + orgId);
+        System.out.println("📊 DashboardService.getDashboardData - user: " + currentUserEmail);
+        
         return new DashboardResponse(
             getRecentActivity(orgId),
             getDashboardStats(orgId),
@@ -200,15 +204,27 @@ public class DashboardService {
     
     private DashboardStats getDashboardStats(UUID organizationId) {
         // CRITICAL FIX: All stats must be filtered by organization
+        // Use membershipRepository to count ALL members (church primary, family primary, or groups)
+        
+        System.out.println("📈 getDashboardStats called with organizationId: " + organizationId);
         
         long totalMembers = 0L;
         long newMembersThisWeek = 0L;
         
         if (organizationId != null) {
-            // Count members of this organization only (using church primary for org context)
-            totalMembers = userRepository.countByChurchPrimaryOrganizationId(organizationId);
+            // Count ALL members of this organization (church primary, family primary, or groups)
+            totalMembers = membershipRepository.countByOrganizationId(organizationId).intValue();
+            System.out.println("📈 Total members for org " + organizationId + ": " + totalMembers);
+            
             LocalDateTime oneWeekAgo = LocalDateTime.now().minus(7, ChronoUnit.DAYS);
-            newMembersThisWeek = userRepository.countByChurchPrimaryOrganizationIdAndCreatedAtAfter(organizationId, oneWeekAgo);
+            // Count memberships created in the last week for this organization
+            List<UserOrganizationMembership> recentMemberships = membershipRepository.findByOrganizationId(organizationId);
+            newMembersThisWeek = recentMemberships.stream()
+                .filter(m -> m.getJoinedAt() != null && m.getJoinedAt().isAfter(oneWeekAgo))
+                .count();
+            System.out.println("📈 New members this week for org " + organizationId + ": " + newMembersThisWeek);
+        } else {
+            System.out.println("📈 organizationId is null, returning zero stats");
         }
         
         // Get prayer statistics - FILTER BY ORG
@@ -278,6 +294,8 @@ public class DashboardService {
     private List<QuickAction> getQuickActions(User currentUser, UUID organizationId) {
         List<QuickAction> actions = new ArrayList<>();
         
+        System.out.println("⚡ getQuickActions called for user: " + currentUser.getEmail() + ", organizationId: " + organizationId);
+        
         // Profile actions - available to all users
         actions.add(QuickAction.create(
             "view_profile",
@@ -305,9 +323,11 @@ public class DashboardService {
             // Check if user is a member of this organization (church OR family primary, or any membership)
             hasPrimaryOrg = membershipRepository
                 .existsByUserIdAndOrganizationId(currentUser.getId(), organizationId);
+            System.out.println("⚡ User membership check for org " + organizationId + ": " + hasPrimaryOrg);
         } else {
             // Fallback: check if user has church primary (backward compatibility)
             hasPrimaryOrg = currentUser.getChurchPrimaryOrganization() != null;
+            System.out.println("⚡ No organizationId provided, checking church primary: " + hasPrimaryOrg);
         }
         
         // Organization-specific actions - only show if user has membership in the organization
