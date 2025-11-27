@@ -228,12 +228,16 @@ public class DashboardService {
         }
         
         // Get prayer statistics - FILTER BY ORG
-        long activePrayerRequests = organizationId != null 
-            ? prayerRequestService.getActivePrayerCountByOrganization(organizationId) 
-            : 0L;
-        long answeredPrayerRequests = organizationId != null 
-            ? prayerRequestService.getAnsweredPrayerCountByOrganization(organizationId) 
-            : 0L;
+        long activePrayerRequests = 0L;
+        long answeredPrayerRequests = 0L;
+        if (organizationId != null) {
+            activePrayerRequests = prayerRequestService.getActivePrayerCountByOrganization(organizationId);
+            answeredPrayerRequests = prayerRequestService.getAnsweredPrayerCountByOrganization(organizationId);
+            System.out.println("📈 Active prayer requests for org " + organizationId + ": " + activePrayerRequests);
+            System.out.println("📈 Answered prayer requests for org " + organizationId + ": " + answeredPrayerRequests);
+        } else {
+            System.out.println("📈 organizationId is null, prayer counts are 0");
+        }
         
         // Get announcement statistics - FILTER BY ORG
         long totalAnnouncements = organizationId != null 
@@ -279,7 +283,7 @@ public class DashboardService {
         additionalStats.put("donationCountThisMonth", donationCountThisMonth);
         additionalStats.put("uniqueDonorsThisMonth", uniqueDonorsThisMonth);
         
-        return new DashboardStats(
+        DashboardStats stats = new DashboardStats(
             totalMembers,
             newMembersThisWeek,
             activePrayerRequests + answeredPrayerRequests, // totalPrayerRequests
@@ -289,6 +293,11 @@ public class DashboardService {
             totalAnnouncements, // Now using actual announcement count
             additionalStats
         );
+        
+        System.out.println("📈 Returning DashboardStats - activePrayerRequests: " + stats.getActivePrayerRequests());
+        System.out.println("📈 Returning DashboardStats - totalMembers: " + stats.getTotalMembers());
+        
+        return stats;
     }
     
     private List<QuickAction> getQuickActions(User currentUser, UUID organizationId) {

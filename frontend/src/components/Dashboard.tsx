@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useActiveContext } from '../contexts/ActiveContextContext';
@@ -135,14 +135,19 @@ const Dashboard: React.FC = () => {
   // Check if user has any primary organization (Church OR Family) - used to optimize API calls
   const hasPrimaryOrg = hasAnyPrimary;
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
       // Use enhanced dashboard service that includes all features (prayers, announcements, events)
       // Pass hasPrimaryOrg to avoid unnecessary 404 errors for users without a primary org
       // Pass activeOrganizationId to get context-specific data (Church or Family)
+      console.log('📊 Dashboard.fetchDashboardData - activeOrganizationId:', activeOrganizationId);
+      console.log('📊 Dashboard.fetchDashboardData - activeContext:', activeContext);
+      console.log('📊 Dashboard.fetchDashboardData - hasPrimaryOrg:', hasPrimaryOrg);
       const data = await dashboardApi.getDashboardWithAll(hasPrimaryOrg, activeOrganizationId || undefined);
+      console.log('📊 Dashboard.fetchDashboardData - received stats:', data.stats);
+      console.log('📊 Dashboard.fetchDashboardData - received quickActions count:', data.quickActions?.length);
       setDashboardData(data);
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
@@ -150,7 +155,7 @@ const Dashboard: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [hasPrimaryOrg, activeOrganizationId, activeContext]);
 
   const handleLogout = () => {
     logout();
@@ -237,8 +242,15 @@ const Dashboard: React.FC = () => {
 
   // Re-fetch dashboard data when active context or organization changes
   useEffect(() => {
+    console.log('🔄 Dashboard - Context change useEffect triggered');
+    console.log('🔄 Dashboard - prevContextRef.current:', prevContextRef.current);
+    console.log('🔄 Dashboard - activeContext:', activeContext);
+    console.log('🔄 Dashboard - prevOrgIdRef.current:', prevOrgIdRef.current);
+    console.log('🔄 Dashboard - activeOrganizationId:', activeOrganizationId);
+    
     // Skip on initial mount (when prevContextRef is null)
     if (prevContextRef.current === null) {
+      console.log('🔄 Dashboard - Skipping initial mount in context change useEffect');
       return;
     }
 
@@ -246,11 +258,15 @@ const Dashboard: React.FC = () => {
     const contextChanged = prevContextRef.current !== (activeContext || 'gathering');
     const orgChanged = prevOrgIdRef.current !== (activeOrganizationId || null);
 
+    console.log('🔄 Dashboard - contextChanged:', contextChanged, 'orgChanged:', orgChanged);
+
     if ((contextChanged || orgChanged) && (activeContext === 'church' || activeContext === 'family')) {
       console.log('🔄 Context changed, re-fetching dashboard data for:', activeOrganizationId);
       fetchDashboardData();
+    } else {
+      console.log('🔄 Dashboard - No change detected or not church/family context');
     }
-  }, [activeContext, activeOrganizationId]);
+  }, [activeContext, activeOrganizationId, fetchDashboardData]);
 
   // Determine if this is "The Gathering" global organization (no active context)
   const isGatheringGlobal = activeContext === 'gathering' ||
