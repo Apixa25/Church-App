@@ -428,6 +428,40 @@ public class UserProfileController {
     // ========================================================================
 
     /**
+     * Record a profile view
+     * POST /api/profile/users/{userId}/view
+     * Called when a user views another user's profile
+     */
+    @PostMapping("/users/{userId}/view")
+    public ResponseEntity<?> recordProfileView(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID userId) {
+        try {
+            if (user == null) {
+                // Anonymous views could be handled here if needed
+                Map<String, String> response = new HashMap<>();
+                response.put("message", "Profile view recorded (anonymous)");
+                return ResponseEntity.ok(response);
+            }
+
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            UUID viewerId = currentProfile.getUserId();
+
+            // Record the profile view
+            profileAnalyticsService.recordProfileView(viewerId, userId);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Profile view recorded");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error recording profile view: {}", e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to record profile view");
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    /**
      * Get profile views for current user (only visible to profile owner)
      * GET /api/profile/me/views
      */
