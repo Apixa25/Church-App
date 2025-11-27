@@ -35,6 +35,10 @@ public class SubscriptionRequest {
     @Size(max = 1000, message = "Notes must be less than 1000 characters")
     private String notes;
 
+    // Organization ID for context-aware donations (Church or Family)
+    // If not provided, falls back to user's church primary organization
+    private java.util.UUID organizationId;
+
     // Optional trial period in days
     private Integer trialPeriodDays;
 

@@ -9,6 +9,7 @@ export interface PaymentIntentRequest {
   category: DonationCategory;
   purpose?: string;
   receiptEmail?: string;
+  organizationId?: string; // Organization ID for context-aware donations (Church or Family)
 }
 
 export interface PaymentIntentResponse {
@@ -30,6 +31,7 @@ export interface SubscriptionRequest {
   purpose?: string;
   paymentMethodId: string;
   notes?: string;
+  organizationId?: string; // Organization ID for context-aware donations (Church or Family)
 }
 
 export interface DonationResponse {

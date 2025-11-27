@@ -3,6 +3,7 @@ import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { STRIPE_CONFIG, DonationCategory, RecurringFrequency } from '../config/stripe';
+import { useActiveContext } from '../contexts/ActiveContextContext';
 import AmountSelector from './AmountSelector';
 import CategorySelector from './CategorySelector';
 import RecurringSelector from './RecurringSelector';
@@ -31,6 +32,9 @@ const DonationPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const locationState = location.state as any;
+  
+  // Get active organization context to show which organization donations go to
+  const { activeOrganizationName, activeOrganizationId, activeContext } = useActiveContext();
 
   const [activeTab, setActiveTab] = useState<DonationTab>(
     locationState?.activeTab || 'donate'
@@ -125,6 +129,11 @@ const DonationPage: React.FC = () => {
             </button>
           </div>
           <h1>Giving & Donations</h1>
+          {activeOrganizationName && activeOrganizationId && (
+            <p className="donation-org-info">
+              <strong>Donating to: {activeOrganizationName}</strong>
+            </p>
+          )}
           <p>Your generosity makes a difference in our community</p>
         </header>
 
