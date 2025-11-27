@@ -141,7 +141,8 @@ const Dashboard: React.FC = () => {
       setError(null);
       // Use enhanced dashboard service that includes all features (prayers, announcements, events)
       // Pass hasPrimaryOrg to avoid unnecessary 404 errors for users without a primary org
-      const data = await dashboardApi.getDashboardWithAll(hasPrimaryOrg);
+      // Pass activeOrganizationId to get context-specific data (Church or Family)
+      const data = await dashboardApi.getDashboardWithAll(hasPrimaryOrg, activeOrganizationId || undefined);
       setDashboardData(data);
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
@@ -233,6 +234,23 @@ const Dashboard: React.FC = () => {
     prevContextRef.current = activeContext || 'gathering';
     prevOrgIdRef.current = activeOrganizationId || null;
   }, [activeContext, activeOrganizationId, setFilter]);
+
+  // Re-fetch dashboard data when active context or organization changes
+  useEffect(() => {
+    // Skip on initial mount (when prevContextRef is null)
+    if (prevContextRef.current === null) {
+      return;
+    }
+
+    // Check if context or organization actually changed
+    const contextChanged = prevContextRef.current !== (activeContext || 'gathering');
+    const orgChanged = prevOrgIdRef.current !== (activeOrganizationId || null);
+
+    if ((contextChanged || orgChanged) && (activeContext === 'church' || activeContext === 'family')) {
+      console.log('🔄 Context changed, re-fetching dashboard data for:', activeOrganizationId);
+      fetchDashboardData();
+    }
+  }, [activeContext, activeOrganizationId]);
 
   // Determine if this is "The Gathering" global organization (no active context)
   const isGatheringGlobal = activeContext === 'gathering' ||
