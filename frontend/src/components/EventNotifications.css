@@ -5,22 +5,17 @@
 
 .notification-toggle {
   position: relative;
-  background: #f7fafc;
-  border: 2px solid #e2e8f0;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
   cursor: pointer;
-  font-size: 18px;
-  transition: all 0.3s ease;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.2s ease;
 }
 
 .notification-toggle:hover {
-  background: #e2e8f0;
-  border-color: #cbd5e0;
+  background: rgba(0, 0, 0, 0.1);
   transform: scale(1.05);
 }
 
