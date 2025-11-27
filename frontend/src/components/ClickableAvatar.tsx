@@ -80,7 +80,7 @@ const ClickableAvatar: React.FC<ClickableAvatarProps> = ({
           {getInitial()}
         </div>
       )}
-      {showConnectionStatus && connectionStatus.reconnectAttempts >= 0 && (
+      {showConnectionStatus && (
         <div 
           className={`connection-status-indicator ${isConnected ? 'connected' : 'disconnected'}`}
           title={isConnected ? 'WebSocket Connected' : 'WebSocket Disconnected'}
