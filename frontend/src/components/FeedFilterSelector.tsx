@@ -419,7 +419,7 @@ const FeedFilterSelector: React.FC = () => {
             <OptionContent>
               <OptionTitle>🌐 Everything</OptionTitle>
               <OptionDescription>
-                See posts from your Church, Family, Groups, and the Global Feed
+                See posts from your Church, Family, Groups, the Global Feed, and users you follow
               </OptionDescription>
             </OptionContent>
           </FilterOption>
@@ -433,8 +433,8 @@ const FeedFilterSelector: React.FC = () => {
               <OptionTitle>📋 All My Groups</OptionTitle>
               <OptionDescription>
                 {(hasChurchPrimary || hasFamilyPrimary)
-                  ? 'See posts from your Church, Family, and all Groups you\'re in'
-                  : 'See posts from all groups you\'re in'}
+                  ? 'See posts from your Church, Family, all Groups you\'re in, and users you follow'
+                  : 'See posts from all groups you\'re in and users you follow'}
               </OptionDescription>
             </OptionContent>
           </FilterOption>

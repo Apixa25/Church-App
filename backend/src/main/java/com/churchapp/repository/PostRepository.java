@@ -125,14 +125,17 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     // 1. User's primary organizations (all visibility levels) - supports dual-primary system (churchPrimary + familyPrimary)
     // 2. User's secondary organizations (PUBLIC only)
     // 3. User's unmuted groups
+    // 4. Followed users (when filter is ALL or EVERYTHING) - regardless of organization/group
     // Excludes posts from blocked users
     @Query("SELECT DISTINCT p FROM Post p WHERE " +
            "(" +
            "  (p.organization.id IN :primaryOrgIds) " +
            "  OR (p.organization.id IN :secondaryOrgIds AND p.visibility = 'PUBLIC') " +
            "  OR (p.group.id IN :groupIds)" +
+           "  OR (:followingIds IS NOT NULL AND p.user.id IN :followingIds)" +
            ") " +
            "AND p.isReply = false " +
+           "AND p.isAnonymous = false " +
            "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
            "ORDER BY p.createdAt DESC")
     Page<Post> findMultiTenantFeed(
@@ -140,14 +143,18 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
         @Param("secondaryOrgIds") List<UUID> secondaryOrgIds,
         @Param("groupIds") List<UUID> groupIds,
         @Param("blockedUserIds") List<UUID> blockedUserIds,
+        @Param("followingIds") List<UUID> followingIds,
         Pageable pageable
     );
 
     // Feed for users with NO primary organization (social-only users)
+    // Includes posts from followed users when filter is ALL or EVERYTHING
     // Excludes posts from blocked users
     @Query("SELECT DISTINCT p FROM Post p WHERE " +
-           "(p.group.id IN :groupIds OR p.organization.id = :globalOrgId) " +
+           "(p.group.id IN :groupIds OR p.organization.id = :globalOrgId " +
+           " OR (:followingIds IS NOT NULL AND p.user.id IN :followingIds)) " +
            "AND p.isReply = false " +
+           "AND p.isAnonymous = false " +
            "AND p.visibility = 'PUBLIC' " +
            "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
            "ORDER BY p.createdAt DESC")
@@ -155,6 +162,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
         @Param("groupIds") List<UUID> groupIds,
         @Param("globalOrgId") UUID globalOrgId,
         @Param("blockedUserIds") List<UUID> blockedUserIds,
+        @Param("followingIds") List<UUID> followingIds,
         Pageable pageable
     );
 
