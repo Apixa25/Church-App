@@ -167,6 +167,17 @@
   overflow: hidden;
   border-radius: var(--border-radius-md);
   background: var(--bg-secondary);
+  cursor: pointer;
+  transition: transform var(--transition-base), opacity var(--transition-base);
+}
+
+.media-item:hover {
+  opacity: 0.9;
+  transform: scale(1.01);
+}
+
+.media-item:active {
+  transform: scale(0.99);
 }
 
 .media-item:not(:last-child) {

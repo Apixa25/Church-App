@@ -8,6 +8,7 @@ import ShareModal from './ShareModal';
 import ReportModal from './ReportModal';
 import PostStatsModal from './PostStatsModal';
 import ClickableAvatar from './ClickableAvatar';
+import MediaViewer from './MediaViewer';
 import './PostCard.css';
 
 interface PostCardProps {
@@ -47,6 +48,8 @@ const PostCard: React.FC<PostCardProps> = ({
   const [showReportUserModal, setShowReportUserModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showPostStatsModal, setShowPostStatsModal] = useState(false);
+  const [showMediaViewer, setShowMediaViewer] = useState(false);
+  const [mediaViewerIndex, setMediaViewerIndex] = useState(0);
 
   useEffect(() => {
     setIsLiked(post.isLikedByCurrentUser || false);
@@ -366,6 +369,11 @@ const PostCard: React.FC<PostCardProps> = ({
     return formatRelativeDate(dateString);
   };
 
+  const handleMediaClick = (index: number) => {
+    setMediaViewerIndex(index);
+    setShowMediaViewer(true);
+  };
+
   const renderMedia = () => {
     if (!post.mediaUrls || post.mediaUrls.length === 0) return null;
 
@@ -376,7 +384,20 @@ const PostCard: React.FC<PostCardProps> = ({
           const isImage = mediaType.startsWith('image');
 
           return (
-            <div key={index} className="media-item">
+            <div 
+              key={index} 
+              className="media-item"
+              onClick={() => handleMediaClick(index)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleMediaClick(index);
+                }
+              }}
+              aria-label={`View full ${isImage ? 'image' : 'video'} ${index + 1}`}
+            >
               {isImage ? (
                 <img
                   src={url}
@@ -390,6 +411,19 @@ const PostCard: React.FC<PostCardProps> = ({
                   controls
                   className="media-video"
                   preload="metadata"
+                  onClick={(e) => {
+                    // Only open viewer if clicking outside the controls area
+                    // Check if the click target is the video element itself (not controls)
+                    if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === 'VIDEO') {
+                      // Check if click is in the bottom 25% where controls typically are
+                      const rect = (e.currentTarget as HTMLVideoElement).getBoundingClientRect();
+                      const clickY = e.clientY - rect.top;
+                      const videoHeight = rect.height;
+                      if (clickY < videoHeight * 0.75) {
+                        handleMediaClick(index);
+                      }
+                    }
+                  }}
                 />
               )}
             </div>
@@ -613,6 +647,17 @@ const PostCard: React.FC<PostCardProps> = ({
         isOpen={showPostStatsModal}
         onClose={() => setShowPostStatsModal(false)}
       />
+
+      {/* Media Viewer */}
+      {post.mediaUrls && post.mediaUrls.length > 0 && (
+        <MediaViewer
+          mediaUrls={post.mediaUrls}
+          mediaTypes={post.mediaTypes || []}
+          isOpen={showMediaViewer}
+          onClose={() => setShowMediaViewer(false)}
+          initialIndex={mediaViewerIndex}
+        />
+      )}
     </div>
   );
 };
