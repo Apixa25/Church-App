@@ -39,7 +39,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [postsError, setPostsError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'posts' | 'replies' | 'highlights' | 'articles' | 'media' | 'bookmarks' | 'analytics'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'replies' | 'media' | 'bookmarks' | 'analytics'>('posts');
   const [page, setPage] = useState(0);
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [postsCount, setPostsCount] = useState(0);
@@ -921,18 +921,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
             Replies
           </button>
           <button
-            className={`nav-tab-x ${activeTab === 'highlights' ? 'active' : ''}`}
-            onClick={() => setActiveTab('highlights')}
-          >
-            Highlights
-          </button>
-          <button
-            className={`nav-tab-x ${activeTab === 'articles' ? 'active' : ''}`}
-            onClick={() => setActiveTab('articles')}
-          >
-            Articles
-          </button>
-          <button
             className={`nav-tab-x ${activeTab === 'media' ? 'active' : ''}`}
             onClick={() => setActiveTab('media')}
           >
@@ -1094,15 +1082,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
         {activeTab === 'media' && (
           <div className="profile-tab-content">
             <MediaGrid userId={targetUserId} isOwnProfile={isOwnProfile} />
-          </div>
-        )}
-
-        {/* Other tabs content (placeholder for now) */}
-        {activeTab !== 'posts' && activeTab !== 'bookmarks' && activeTab !== 'analytics' && activeTab !== 'replies' && activeTab !== 'media' && (
-          <div className="profile-tab-content">
-            <div className="tab-placeholder">
-              <p>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} tab coming soon!</p>
-            </div>
           </div>
         )}
       </div>

@@ -60,20 +60,23 @@ public class FollowerAnalyticsService {
 
         List<FollowerSnapshot> snapshots = followerSnapshotRepository.findByUserIdAndDateRange(userId, startDate, endDate);
 
-        // Get latest snapshot for current counts
+        // Get latest snapshot for historical comparison
         FollowerSnapshot latest = followerSnapshotRepository.findFirstByUserIdOrderBySnapshotDateDesc(userId)
             .orElse(null);
 
         // Get oldest snapshot in range for comparison
         FollowerSnapshot oldest = snapshots.isEmpty() ? null : snapshots.get(snapshots.size() - 1);
 
-        // Calculate growth
-        int currentFollowers = latest != null ? latest.getFollowerCount() : 0;
+        // Always use real-time current counts, not snapshot counts
+        long currentFollowers = userFollowService.getFollowerCount(userId);
+        long currentFollowing = userFollowService.getFollowingCount(userId);
+
+        // Calculate growth based on oldest snapshot in range vs current real-time count
         int previousFollowers = oldest != null ? oldest.getFollowerCount() : 0;
-        int growth = currentFollowers - previousFollowers;
+        int growth = (int) currentFollowers - previousFollowers;
         double growthRate = previousFollowers > 0 ? ((double) growth / previousFollowers) * 100 : 0.0;
 
-        // Build chart data
+        // Build chart data from snapshots
         List<Map<String, Object>> chartData = new ArrayList<>();
         for (FollowerSnapshot snapshot : snapshots) {
             Map<String, Object> point = new HashMap<>();
@@ -83,9 +86,19 @@ public class FollowerAnalyticsService {
             chartData.add(point);
         }
 
+        // Add current real-time data point if we don't have a snapshot for today
+        // This ensures the chart shows the most up-to-date count
+        if (latest == null || !latest.getSnapshotDate().equals(LocalDate.now())) {
+            Map<String, Object> currentPoint = new HashMap<>();
+            currentPoint.put("date", LocalDate.now().toString());
+            currentPoint.put("followers", (int) currentFollowers);
+            currentPoint.put("following", (int) currentFollowing);
+            chartData.add(currentPoint);
+        }
+
         Map<String, Object> result = new HashMap<>();
-        result.put("currentFollowers", currentFollowers);
-        result.put("currentFollowing", latest != null ? latest.getFollowingCount() : 0);
+        result.put("currentFollowers", (int) currentFollowers);
+        result.put("currentFollowing", (int) currentFollowing);
         result.put("growth", growth);
         result.put("growthRate", Math.round(growthRate * 100.0) / 100.0);
         result.put("period", days);
