@@ -352,7 +352,7 @@ public class PaymentSecurityAuditTest {
         when(mockPaymentIntent.getId()).thenReturn("pi_test123");
         when(mockPaymentIntent.getStatus()).thenReturn("requires_payment_method");
 
-        when(stripePaymentService.createPaymentIntent(any(), any(), any(), any(), any()))
+        when(stripePaymentService.createPaymentIntent(any(), any(), any(), any(), any(), any(UUID.class)))
             .thenReturn(mockPaymentIntent);
 
         mockMvc.perform(post("/donations/create-payment-intent")
