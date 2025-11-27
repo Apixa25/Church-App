@@ -3,6 +3,7 @@ package com.churchapp.service;
 import com.churchapp.entity.*;
 import com.churchapp.repository.DonationSubscriptionRepository;
 import com.churchapp.repository.OrganizationRepository;
+import com.churchapp.repository.UserOrganizationMembershipRepository;
 import com.stripe.exception.StripeException;
 import com.stripe.model.*;
 import com.stripe.param.*;
@@ -26,6 +27,7 @@ public class StripeSubscriptionService {
     private final DonationSubscriptionRepository subscriptionRepository;
     private final StripeCustomerService stripeCustomerService;
     private final OrganizationRepository organizationRepository;
+    private final UserOrganizationMembershipRepository membershipRepository;
 
     /**
      * Create a recurring donation subscription
@@ -44,6 +46,12 @@ public class StripeSubscriptionService {
             organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new RuntimeException("Organization not found with id: " + organizationId));
             log.info("Using provided organizationId: {} ({})", organization.getName(), organizationId);
+            
+            // Verify user is a member of this organization
+            boolean isMember = membershipRepository.existsByUserIdAndOrganizationId(user.getId(), organizationId);
+            if (!isMember) {
+                throw new RuntimeException("You are not a member of this organization. Please join the organization before creating subscriptions.");
+            }
         } else if (user.getChurchPrimaryOrganization() != null) {
             // Fallback to church primary for backward compatibility
             organization = user.getChurchPrimaryOrganization();

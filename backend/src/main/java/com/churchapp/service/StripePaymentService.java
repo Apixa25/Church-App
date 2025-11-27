@@ -4,6 +4,7 @@ import com.churchapp.entity.*;
 import com.churchapp.repository.DonationRepository;
 import com.churchapp.repository.OrganizationRepository;
 import com.churchapp.repository.UserRepository;
+import com.churchapp.repository.UserOrganizationMembershipRepository;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.model.PaymentIntent;
@@ -30,6 +31,7 @@ public class StripePaymentService {
     private final StripeCustomerService stripeCustomerService;
     private final OrganizationRepository organizationRepository;
     private final UserRepository userRepository;
+    private final UserOrganizationMembershipRepository membershipRepository;
 
     /**
      * Create a payment intent for a one-time donation
@@ -50,6 +52,12 @@ public class StripePaymentService {
             organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new RuntimeException("Organization not found with id: " + organizationId));
             log.info("Using provided organizationId: {} ({})", organization.getName(), organizationId);
+            
+            // Verify user is a member of this organization
+            boolean isMember = membershipRepository.existsByUserIdAndOrganizationId(user.getId(), organizationId);
+            if (!isMember) {
+                throw new RuntimeException("You are not a member of this organization. Please join the organization before making donations.");
+            }
         } else if (user.getChurchPrimaryOrganization() != null) {
             // Fallback to church primary for backward compatibility
             organization = user.getChurchPrimaryOrganization();
@@ -60,7 +68,7 @@ public class StripePaymentService {
 
         // Check if organization has Stripe Connect account configured
         if (organization.getStripeConnectAccountId() == null || organization.getStripeConnectAccountId().trim().isEmpty()) {
-            throw new RuntimeException("Organization " + organization.getName() + " has not configured donation processing. Please contact your church administrator.");
+            throw new RuntimeException("Organization " + organization.getName() + " has not configured donation processing. Please contact your organization administrator.");
         }
 
         log.info("Routing donation to organization {} with Stripe Connect account {}",
