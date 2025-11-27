@@ -405,6 +405,26 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
     navigate('/groups');
   };
 
+  // Helper function to get the appropriate icon based on organization type
+  const getOrganizationIcon = (orgType?: string): string => {
+    if (!orgType) {
+      return '🏛️'; // Default to courthouse if type is unknown
+    }
+    
+    switch (orgType) {
+      case 'CHURCH':
+      case 'MINISTRY':
+      case 'NONPROFIT':
+        return '⛪'; // Church emoji for churches, ministries, and nonprofits
+      case 'GENERAL':
+        return '🏛️'; // Courthouse emoji for general organizations
+      case 'FAMILY':
+        return '🏠'; // House emoji for families
+      default:
+        return '🏛️'; // Default to courthouse
+    }
+  };
+
   if (loading) {
     return (
       <SelectorContainer>
@@ -418,7 +438,9 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
 
   // Updated text: "Find Organization" instead of "No Organization" to encourage discovery
   const displayName = primaryMembership?.organizationName || '🔍 Find Organization';
-  const displayIcon = primaryMembership ? '🏛️' : '🔍';
+  const displayIcon = primaryMembership 
+    ? getOrganizationIcon(primaryMembership.organizationType) 
+    : '🔍';
 
   const dropdownContent = isOpen && (
     <DropdownPortal ref={dropdownRef} isOpen={isOpen} top={dropdownPosition.top} left={dropdownPosition.left}>
