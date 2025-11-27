@@ -22,3 +22,4 @@ WHERE active_filter = 'ALL' OR active_filter IS NULL;
 -- where 'EVERYTHING' includes the Global Feed, while 'ALL' now means just
 -- their organizations and groups (no Global Feed)
 
+

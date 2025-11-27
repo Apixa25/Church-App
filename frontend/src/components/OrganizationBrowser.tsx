@@ -342,7 +342,7 @@ const CooldownWarning = styled.div`
   font-size: 14px;
 `;
 
-type OrgTypeFilter = 'ALL' | 'CHURCH' | 'MINISTRY' | 'NONPROFIT';
+type OrgTypeFilter = 'ALL' | 'CHURCH' | 'MINISTRY' | 'NONPROFIT' | 'FAMILY' | 'GENERAL';
 
 const OrganizationBrowser: React.FC = () => {
   const navigate = useNavigate();
@@ -350,6 +350,8 @@ const OrganizationBrowser: React.FC = () => {
     primaryMembership,
     secondaryMemberships,
     allMemberships,
+    churchPrimary,
+    familyPrimary,
     loading: contextLoading,
     joinOrganization,
     leaveOrganization,
@@ -473,7 +475,7 @@ const OrganizationBrowser: React.FC = () => {
   };
 
   const isPrimary = (orgId: string): boolean => {
-    return primaryMembership?.organizationId === orgId;
+    return churchPrimary?.organizationId === orgId || familyPrimary?.organizationId === orgId;
   };
 
   const isSecondary = (orgId: string): boolean => {
@@ -485,6 +487,8 @@ const OrganizationBrowser: React.FC = () => {
       case 'CHURCH': return 'Church';
       case 'MINISTRY': return 'Ministry';
       case 'NONPROFIT': return 'Nonprofit';
+      case 'FAMILY': return 'Family';
+      case 'GENERAL': return 'General';
       case 'GLOBAL': return 'Global Organization';
       default: return type;
     }
@@ -508,7 +512,7 @@ const OrganizationBrowser: React.FC = () => {
           <Title>Discover Organizations</Title>
         </HeaderTop>
         <Subtitle>
-          Find and join churches, ministries, and nonprofits in your community
+          Find and join churches, ministries, nonprofits, and families in your community
         </Subtitle>
 
         <SearchBar
@@ -543,6 +547,18 @@ const OrganizationBrowser: React.FC = () => {
           >
             Nonprofits
           </FilterTab>
+          <FilterTab
+            active={typeFilter === 'FAMILY'}
+            onClick={() => setTypeFilter('FAMILY')}
+          >
+            Families
+          </FilterTab>
+          <FilterTab
+            active={typeFilter === 'GENERAL'}
+            onClick={() => setTypeFilter('GENERAL')}
+          >
+            General
+          </FilterTab>
         </FilterTabs>
       </HeaderSection>
 
@@ -557,25 +573,47 @@ const OrganizationBrowser: React.FC = () => {
       {allMemberships.length > 0 && (
         <MyMembershipsSection>
           <SectionTitle>My Organizations</SectionTitle>
-          {primaryMembership && (
+          {churchPrimary && (
             <MembershipCard>
               <MembershipInfo>
                 <MembershipName>
-                  {primaryMembership.organizationName}
-                  <PrimaryBadge>PRIMARY</PrimaryBadge>
+                  {churchPrimary.organizationName}
+                  <PrimaryBadge>CHURCH PRIMARY</PrimaryBadge>
                 </MembershipName>
                 <MembershipRole>
-                  {primaryMembership.role.toLowerCase().charAt(0).toUpperCase() +
-                   primaryMembership.role.toLowerCase().slice(1)} •
-                  Joined {new Date(primaryMembership.joinedAt).toLocaleDateString()}
+                  {churchPrimary.role.toLowerCase().charAt(0).toUpperCase() +
+                   churchPrimary.role.toLowerCase().slice(1)} •
+                  Joined {new Date(churchPrimary.joinedAt).toLocaleDateString()}
                 </MembershipRole>
               </MembershipInfo>
               <Button
                 variant="danger"
-                onClick={() => handleLeave(primaryMembership.organizationId, primaryMembership.organizationName || 'this organization')}
-                disabled={actionLoading === primaryMembership.organizationId}
+                onClick={() => handleLeave(churchPrimary.organizationId, churchPrimary.organizationName || 'this organization')}
+                disabled={actionLoading === churchPrimary.organizationId}
               >
-                {actionLoading === primaryMembership.organizationId ? 'Leaving...' : 'Leave'}
+                {actionLoading === churchPrimary.organizationId ? 'Leaving...' : 'Leave'}
+              </Button>
+            </MembershipCard>
+          )}
+          {familyPrimary && (
+            <MembershipCard>
+              <MembershipInfo>
+                <MembershipName>
+                  {familyPrimary.organizationName}
+                  <PrimaryBadge>FAMILY PRIMARY</PrimaryBadge>
+                </MembershipName>
+                <MembershipRole>
+                  {familyPrimary.role.toLowerCase().charAt(0).toUpperCase() +
+                   familyPrimary.role.toLowerCase().slice(1)} •
+                  Joined {new Date(familyPrimary.joinedAt).toLocaleDateString()}
+                </MembershipRole>
+              </MembershipInfo>
+              <Button
+                variant="danger"
+                onClick={() => handleLeave(familyPrimary.organizationId, familyPrimary.organizationName || 'this organization')}
+                disabled={actionLoading === familyPrimary.organizationId}
+              >
+                {actionLoading === familyPrimary.organizationId ? 'Leaving...' : 'Leave'}
               </Button>
             </MembershipCard>
           )}
