@@ -193,6 +193,13 @@ public class PostService {
         return postRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
     }
 
+    /**
+     * Get posts with media by a specific user
+     */
+    public Page<Post> getUserPostsWithMedia(UUID userId, Pageable pageable) {
+        return postRepository.findPostsWithMediaByUserId(userId, pageable);
+    }
+
     public Page<Post> getFeed(String userEmail, String feedType, Pageable pageable) {
         User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));

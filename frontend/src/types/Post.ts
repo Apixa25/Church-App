@@ -190,6 +190,8 @@ export interface CommentsResponse {
   totalPages: number;
   size: number;
   number: number;
+  first: boolean;
+  last: boolean;
 }
 
 // Search and Filter Types

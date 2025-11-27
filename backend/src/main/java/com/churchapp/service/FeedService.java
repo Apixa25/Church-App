@@ -172,6 +172,13 @@ public class FeedService {
     }
 
     /**
+     * Get posts with media by a specific user
+     */
+    public Page<Post> getUserPostsWithMedia(UUID userId, Pageable pageable) {
+        return postRepository.findPostsWithMediaByUserId(userId, pageable);
+    }
+
+    /**
      * Get posts by location
      */
     public Page<Post> getPostsByLocation(String location, Pageable pageable) {

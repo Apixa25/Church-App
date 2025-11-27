@@ -10,6 +10,8 @@ import FollowersList from './FollowersList';
 import FollowingList from './FollowingList';
 import ProfileAnalytics from './ProfileAnalytics';
 import PostCard from './PostCard';
+import RepliesList from './RepliesList';
+import MediaGrid from './MediaGrid';
 import { parseEventDate } from '../utils/dateUtils';
 import chatApi from '../services/chatApi';
 import OrganizationSelector from './OrganizationSelector';
@@ -1083,8 +1085,20 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
           </div>
         )}
 
+        {activeTab === 'replies' && (
+          <div className="profile-tab-content">
+            <RepliesList userId={targetUserId} isOwnProfile={isOwnProfile} />
+          </div>
+        )}
+
+        {activeTab === 'media' && (
+          <div className="profile-tab-content">
+            <MediaGrid userId={targetUserId} isOwnProfile={isOwnProfile} />
+          </div>
+        )}
+
         {/* Other tabs content (placeholder for now) */}
-        {activeTab !== 'posts' && activeTab !== 'bookmarks' && activeTab !== 'analytics' && (
+        {activeTab !== 'posts' && activeTab !== 'bookmarks' && activeTab !== 'analytics' && activeTab !== 'replies' && activeTab !== 'media' && (
           <div className="profile-tab-content">
             <div className="tab-placeholder">
               <p>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} tab coming soon!</p>
