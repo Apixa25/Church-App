@@ -25,9 +25,13 @@ public class DashboardController {
             @AuthenticationPrincipal User user,
             @RequestParam(required = false) UUID organizationId) {
         try {
+            System.out.println("🎯 DashboardController.getDashboard - Received organizationId: " + organizationId);
+            System.out.println("🎯 DashboardController.getDashboard - User: " + user.getUsername());
             DashboardResponse dashboard = dashboardService.getDashboardData(user.getUsername(), organizationId);
             return ResponseEntity.ok(dashboard);
         } catch (RuntimeException e) {
+            System.err.println("❌ DashboardController.getDashboard - Error: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.badRequest().build();
         }
     }
