@@ -401,6 +401,68 @@
   box-shadow: 0 0 20px var(--button-primary-glow);
 }
 
+/* Dashboard Avatar Wrapper for Heart Button */
+.dashboard-avatar-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Dashboard Heart Button and Count - matches ProfileView styling */
+.dashboard-heart-button {
+  position: absolute;
+  bottom: -17px;
+  left: -32px;
+  width: 63px;
+  height: 63px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: white;
+  font-size: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 8;
+  padding: 0;
+  filter: none;
+  opacity: 1;
+}
+
+.dashboard-heart-button:hover:not(:disabled) {
+  transform: scale(1.1);
+}
+
+.dashboard-heart-button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.dashboard-heart-button:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+  transform: none !important;
+  filter: none;
+}
+
+.dashboard-hearts-count {
+  position: absolute;
+  bottom: -17px;
+  left: -32px;
+  width: 63px;
+  height: 63px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 21px;
+  z-index: 9;
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  transform: translateY(3px);
+}
+
 .profile-pic-container.clickable:hover .profile-pic-placeholder {
   background: var(--gradient-primary);
 }

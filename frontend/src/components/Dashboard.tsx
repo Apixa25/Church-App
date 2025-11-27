@@ -19,6 +19,7 @@ import FeedFilterSelector from './FeedFilterSelector';
 import ContextSwitcher from './ContextSwitcher';
 import { FeedType } from '../types/Post';
 import PullToRefresh from './PullToRefresh';
+import { profileAPI } from '../services/api';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -55,6 +56,11 @@ const Dashboard: React.FC = () => {
   const [showComposer, setShowComposer] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [feedRefreshKey, setFeedRefreshKey] = useState(0); // Increment to trigger feed refresh
+  
+  // Social score - hearts state
+  const [heartsCount, setHeartsCount] = useState(0);
+  const [isLikedByCurrentUser, setIsLikedByCurrentUser] = useState(false);
+  const [heartLoading, setHeartLoading] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -66,6 +72,22 @@ const Dashboard: React.FC = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Load hearts data for current user
+  useEffect(() => {
+    const loadHeartsData = async () => {
+      if (user?.userId) {
+        try {
+          const response = await profileAPI.getUserProfile(user.userId);
+          setHeartsCount(response.data.heartsCount || 0);
+          setIsLikedByCurrentUser(response.data.isLikedByCurrentUser || false);
+        } catch (error) {
+          console.error('Error loading hearts data:', error);
+        }
+      }
+    };
+    loadHeartsData();
+  }, [user?.userId]);
 
   // Refresh user data when component mounts to ensure profile picture is current
   useEffect(() => {
@@ -151,6 +173,21 @@ const Dashboard: React.FC = () => {
 
   const handleFeedTypeChange = (newFeedType: FeedType) => {
     setFeedType(newFeedType);
+  };
+
+  const handleHeartClick = async () => {
+    if (!user?.userId || heartLoading || isLikedByCurrentUser) return;
+
+    setHeartLoading(true);
+    try {
+      await profileAPI.likeUser(user.userId);
+      setHeartsCount(prev => prev + 1);
+      setIsLikedByCurrentUser(true);
+    } catch (error) {
+      console.error('Error liking user:', error);
+    } finally {
+      setHeartLoading(false);
+    }
   };
 
 
@@ -242,14 +279,33 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="user-info">
             <div className="user-details">
-              <ClickableAvatar
-                userId={user?.userId || user?.id}
-                profilePicUrl={user?.profilePicUrl}
-                userName={user?.name || 'User'}
-                size="large"
-                className="profile-pic-container"
-                showConnectionStatus={true}
-              />
+              <div className="dashboard-avatar-wrapper">
+                <ClickableAvatar
+                  userId={user?.userId || user?.id}
+                  profilePicUrl={user?.profilePicUrl}
+                  userName={user?.name || 'User'}
+                  size="large"
+                  className="profile-pic-container"
+                  showConnectionStatus={true}
+                />
+                {/* Heart Button - positioned overlapping bottom-left */}
+                <button
+                  onClick={handleHeartClick}
+                  disabled={heartLoading || isLikedByCurrentUser}
+                  className={`dashboard-heart-button ${isLikedByCurrentUser ? 'liked' : ''}`}
+                  aria-label={isLikedByCurrentUser ? 'Already liked' : 'Give heart'}
+                  title={isLikedByCurrentUser ? 'Already liked' : 'Give heart'}
+                >
+                  ❤️
+                </button>
+                
+                {/* Hearts Count - overlapping bottom-left */}
+                {heartsCount > 0 && (
+                  <div className="dashboard-hearts-count">
+                    {heartsCount}
+                  </div>
+                )}
+              </div>
               <div>
                 <p className="user-name">👋 Welcome, {user?.name}!</p>
               </div>
