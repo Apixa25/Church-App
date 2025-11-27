@@ -40,13 +40,20 @@ export interface PrayerInteractionUpdate {
 }
 
 export interface EventUpdate {
-  type: 'event_created' | 'event_updated' | 'event_cancelled' | 'event_deleted';
+  eventType: string; // "event_created", "event_updated", "event_cancelled"
   eventId: string;
-  eventTitle?: string;
-  eventStartTime?: string;
   creatorId: string;
-  content?: any;
+  creatorName?: string;
+  eventTitle?: string;
+  eventDescription?: string;
+  location?: string;
+  startTime?: string;
+  endTime?: string;
   timestamp: string;
+  organizationId?: string;
+  groupId?: string;
+  actionUrl?: string;
+  metadata?: any;
 }
 
 export interface EventRsvpUpdate {

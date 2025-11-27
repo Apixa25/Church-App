@@ -99,7 +99,7 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
           loadEvents();
           
           // Show notification (optional)
-          if (update.type === 'event_created') {
+          if (update.eventType === 'event_created') {
             // Could show toast notification here
           }
         });
