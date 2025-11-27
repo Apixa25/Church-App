@@ -124,7 +124,7 @@ public class EventService {
         log.info("Event created with id: {} by user: {}", savedEvent.getId(), creatorId);
         
         // Send WebSocket notification for new event
-        notifyEventCreated(savedEvent);
+        notifyEventCreated(savedEvent, creator);
         
         return savedEvent;
     }
@@ -191,12 +191,12 @@ public class EventService {
         
         log.info("Event updated with id: {} by user: {}", eventId, userId);
         
-        // Send WebSocket notification for event update
-        notifyEventUpdated(updatedEvent);
-        
-        // If status changed to CANCELLED, also send cancel notification
-        if (eventUpdate.getStatus() == Event.EventStatus.CANCELLED) {
-            notifyEventCancelled(updatedEvent);
+        // Send WebSocket notification - if status changed to CANCELLED, send cancel notification, otherwise send update
+        // Pass the already-loaded user to avoid lazy loading issues
+        if (eventUpdate.getStatus() != null && eventUpdate.getStatus() == Event.EventStatus.CANCELLED) {
+            notifyEventCancelled(updatedEvent, user);
+        } else {
+            notifyEventUpdated(updatedEvent, user);
         }
         
         return updatedEvent;
@@ -221,6 +221,15 @@ public class EventService {
         
         if (!isCreator && !isAdmin) {
             throw new RuntimeException("Not authorized to delete this event. Only the event creator or administrators can delete events.");
+        }
+        
+        // Notify about cancellation before actual deletion (per user requirements)
+        notifyEventCancelled(event, user);
+        
+        // Set status to CANCELLED before deleting (if not already)
+        if (event.getStatus() != Event.EventStatus.CANCELLED) {
+            event.setStatus(Event.EventStatus.CANCELLED);
+            eventRepository.save(event); // Save the status change
         }
         
         // Delete all RSVPs for this event first to avoid foreign key constraint violations
@@ -379,17 +388,26 @@ public class EventService {
     /**
      * Send WebSocket notification for new event created
      */
-    private void notifyEventCreated(Event event) {
+    private void notifyEventCreated(Event event, User creator) {
         try {
-            User creator = event.getCreator();
+            if (event == null || event.getId() == null) {
+                log.warn("Cannot send event created notification: event or event ID is null");
+                return;
+            }
+            
+            if (creator == null) {
+                log.warn("Cannot send event created notification: creator is null for event: {}", event.getId());
+                return;
+            }
+            
             UUID groupId = event.getGroup() != null ? event.getGroup().getId() : null;
             UUID organizationId = event.getOrganization() != null ? event.getOrganization().getId() : null;
             
             EventNotificationEvent notificationEvent = EventNotificationEvent.eventCreated(
                 event.getId(),
                 creator.getId(),
-                creator.getName(),
-                event.getTitle(),
+                creator.getName() != null ? creator.getName() : "Unknown",
+                event.getTitle() != null ? event.getTitle() : "Untitled Event",
                 event.getDescription(),
                 event.getLocation(),
                 event.getStartTime(),
@@ -403,24 +421,33 @@ public class EventService {
             log.info("Broadcasted event created notification for event: {}", event.getId());
             
         } catch (Exception e) {
-            log.error("Error sending event created notification: {}", e.getMessage());
+            log.error("Error sending event created notification: {}", e.getMessage(), e);
         }
     }
     
     /**
      * Send WebSocket notification for event update
      */
-    private void notifyEventUpdated(Event event) {
+    private void notifyEventUpdated(Event event, User creator) {
         try {
-            User creator = event.getCreator();
+            if (event == null || event.getId() == null) {
+                log.warn("Cannot send event updated notification: event or event ID is null");
+                return;
+            }
+            
+            if (creator == null) {
+                log.warn("Cannot send event updated notification: creator is null for event: {}", event.getId());
+                return;
+            }
+            
             UUID groupId = event.getGroup() != null ? event.getGroup().getId() : null;
             UUID organizationId = event.getOrganization() != null ? event.getOrganization().getId() : null;
             
             EventNotificationEvent notificationEvent = EventNotificationEvent.eventUpdated(
                 event.getId(),
                 creator.getId(),
-                creator.getName(),
-                event.getTitle(),
+                creator.getName() != null ? creator.getName() : "Unknown",
+                event.getTitle() != null ? event.getTitle() : "Untitled Event",
                 event.getDescription(),
                 event.getLocation(),
                 event.getStartTime(),
@@ -434,24 +461,33 @@ public class EventService {
             log.info("Broadcasted event updated notification for event: {}", event.getId());
             
         } catch (Exception e) {
-            log.error("Error sending event updated notification: {}", e.getMessage());
+            log.error("Error sending event updated notification: {}", e.getMessage(), e);
         }
     }
     
     /**
      * Send WebSocket notification for event cancelled
      */
-    private void notifyEventCancelled(Event event) {
+    private void notifyEventCancelled(Event event, User creator) {
         try {
-            User creator = event.getCreator();
+            if (event == null || event.getId() == null) {
+                log.warn("Cannot send event cancelled notification: event or event ID is null");
+                return;
+            }
+            
+            if (creator == null) {
+                log.warn("Cannot send event cancelled notification: creator is null for event: {}", event.getId());
+                return;
+            }
+            
             UUID groupId = event.getGroup() != null ? event.getGroup().getId() : null;
             UUID organizationId = event.getOrganization() != null ? event.getOrganization().getId() : null;
             
             EventNotificationEvent notificationEvent = EventNotificationEvent.eventCancelled(
                 event.getId(),
                 creator.getId(),
-                creator.getName(),
-                event.getTitle(),
+                creator.getName() != null ? creator.getName() : "Unknown",
+                event.getTitle() != null ? event.getTitle() : "Untitled Event",
                 organizationId,
                 groupId
             );
@@ -461,7 +497,7 @@ public class EventService {
             log.info("Broadcasted event cancelled notification for event: {}", event.getId());
             
         } catch (Exception e) {
-            log.error("Error sending event cancelled notification: {}", e.getMessage());
+            log.error("Error sending event cancelled notification: {}", e.getMessage(), e);
         }
     }
     

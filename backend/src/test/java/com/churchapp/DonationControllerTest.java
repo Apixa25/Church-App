@@ -113,7 +113,8 @@ public class DonationControllerTest {
             eq(BigDecimal.valueOf(50.00)),
             eq(DonationCategory.TITHES),
             eq("Weekly tithe"),
-            any()
+            any(),
+            any(UUID.class)
         )).thenReturn(mockPaymentIntent);
 
         // Act & Assert
@@ -132,7 +133,8 @@ public class DonationControllerTest {
             eq(BigDecimal.valueOf(50.00)),
             eq(DonationCategory.TITHES),
             eq("Weekly tithe"),
-            any()
+            any(),
+            any(UUID.class)
         );
     }
 
