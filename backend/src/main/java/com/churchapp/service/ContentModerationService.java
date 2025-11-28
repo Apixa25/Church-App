@@ -61,16 +61,28 @@ public class ContentModerationService {
             .moderationReason(report.getModerationReason())
             .moderatedAt(report.getModeratedAt());
 
-        // Set reporter information
-        if (report.getReporter() != null) {
-            builder.reportedBy(report.getReporter().getName() != null ? report.getReporter().getName() : report.getReporter().getEmail());
-            builder.reporterId(report.getReporter().getId());
+        // Set reporter information - safely handle lazy loading
+        try {
+            if (report.getReporter() != null) {
+                String reporterName = report.getReporter().getName();
+                String reporterEmail = report.getReporter().getEmail();
+                builder.reportedBy(reporterName != null && !reporterName.isEmpty() ? reporterName : reporterEmail);
+                builder.reporterId(report.getReporter().getId());
+            }
+        } catch (Exception e) {
+            log.warn("Error accessing reporter information for report {}: {}", report.getId(), e.getMessage());
         }
 
-        // Set moderator information
-        if (report.getModeratedBy() != null) {
-            builder.moderatedBy(report.getModeratedBy().getName() != null ? report.getModeratedBy().getName() : report.getModeratedBy().getEmail());
-            builder.moderatorId(report.getModeratedBy().getId());
+        // Set moderator information - safely handle lazy loading
+        try {
+            if (report.getModeratedBy() != null) {
+                String moderatorName = report.getModeratedBy().getName();
+                String moderatorEmail = report.getModeratedBy().getEmail();
+                builder.moderatedBy(moderatorName != null && !moderatorName.isEmpty() ? moderatorName : moderatorEmail);
+                builder.moderatorId(report.getModeratedBy().getId());
+            }
+        } catch (Exception e) {
+            log.warn("Error accessing moderator information for report {}: {}", report.getId(), e.getMessage());
         }
 
         // Get content details based on content type
@@ -79,12 +91,22 @@ public class ContentModerationService {
                 Optional<Post> postOpt = postRepository.findById(report.getContentId());
                 if (postOpt.isPresent()) {
                     Post post = postOpt.get();
-                    builder.contentPreview(post.getContent() != null && post.getContent().length() > 200 
-                        ? post.getContent().substring(0, 200) + "..." 
-                        : post.getContent());
-                    if (post.getUser() != null) {
-                        builder.contentAuthor(post.getUser().getName() != null ? post.getUser().getName() : post.getUser().getEmail());
-                        builder.contentAuthorId(post.getUser().getId());
+                    String content = post.getContent();
+                    if (content != null) {
+                        builder.contentPreview(content.length() > 200 
+                            ? content.substring(0, 200) + "..." 
+                            : content);
+                    }
+                    // Safely access post user - might be lazy loaded
+                    try {
+                        if (post.getUser() != null) {
+                            String authorName = post.getUser().getName();
+                            String authorEmail = post.getUser().getEmail();
+                            builder.contentAuthor(authorName != null && !authorName.isEmpty() ? authorName : authorEmail);
+                            builder.contentAuthorId(post.getUser().getId());
+                        }
+                    } catch (Exception e) {
+                        log.debug("Could not access post author for report {}: {}", report.getId(), e.getMessage());
                     }
                     builder.isVisible(true); // Post visibility logic can be enhanced later
                 }
