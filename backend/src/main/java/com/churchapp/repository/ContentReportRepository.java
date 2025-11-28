@@ -3,7 +3,6 @@ package com.churchapp.repository;
 import com.churchapp.entity.ContentReport;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -28,13 +27,12 @@ public interface ContentReportRepository extends JpaRepository<ContentReport, UU
     Page<ContentReport> findByContentTypeAndStatusOrderByPriorityDescCreatedAtDesc(
         String contentType, String status, Pageable pageable);
 
-    // Find reports with filters
+    // Find reports with filters - simple query, relationships loaded via EntityGraph
     @Query("SELECT r FROM ContentReport r WHERE " +
            "(:contentType IS NULL OR r.contentType = :contentType) AND " +
            "(:status IS NULL OR r.status = :status) AND " +
            "(:priority IS NULL OR r.priority = :priority) " +
            "ORDER BY r.priority DESC, r.createdAt DESC")
-    @EntityGraph(attributePaths = {"reporter", "moderatedBy"})
     Page<ContentReport> findWithFilters(
         @Param("contentType") String contentType,
         @Param("status") String status,
