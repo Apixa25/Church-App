@@ -45,7 +45,8 @@ public class ContentModerationController {
             log.info("Fetching reported content: page={}, size={}, type={}, status={}, priority={}",
                 page, size, contentType, status, priority);
 
-            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "reportedAt"));
+            // Create pageable - sort is handled in the repository query
+            Pageable pageable = PageRequest.of(page, size);
             Page<ModerationResponse> reports = contentModerationService.getReportedContent(
                 pageable, contentType, status, priority);
 

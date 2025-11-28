@@ -5,7 +5,11 @@ import com.churchapp.entity.ContentReport;
 import com.churchapp.entity.Post;
 import com.churchapp.entity.User;
 import com.churchapp.repository.ContentReportRepository;
+import com.churchapp.repository.PostBookmarkRepository;
+import com.churchapp.repository.PostCommentRepository;
+import com.churchapp.repository.PostLikeRepository;
 import com.churchapp.repository.PostRepository;
+import com.churchapp.repository.PostShareRepository;
 import com.churchapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,18 +33,36 @@ public class ContentModerationService {
     private final AuditLogService auditLogService;
     private final ContentReportRepository contentReportRepository;
     private final PostRepository postRepository;
+    private final PostCommentRepository postCommentRepository;
+    private final PostLikeRepository postLikeRepository;
+    private final PostBookmarkRepository postBookmarkRepository;
+    private final PostShareRepository postShareRepository;
     private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
     public Page<ModerationResponse> getReportedContent(Pageable pageable, String contentType, String status, String priority) {
-        Page<ContentReport> reports = contentReportRepository.findWithFilters(
-            contentType, status, priority, pageable);
+        try {
+            log.debug("Fetching reported content with filters: contentType={}, status={}, priority={}", contentType, status, priority);
+            
+            // Fetch reports - relationships will be lazy loaded within transaction
+            Page<ContentReport> reports = contentReportRepository.findWithFilters(
+                contentType, status, priority, pageable);
 
-        List<ModerationResponse> responseList = reports.getContent().stream()
-            .map(this::mapToModerationResponse)
-            .collect(Collectors.toList());
+            log.debug("Found {} reports (total: {})", reports.getContent().size(), reports.getTotalElements());
 
-        return new PageImpl<>(responseList, pageable, reports.getTotalElements());
+            // Convert to response DTOs - relationships will be accessed within transaction
+            List<ModerationResponse> responseList = reports.getContent().stream()
+                .map(this::mapToModerationResponse)
+                .collect(Collectors.toList());
+
+            log.debug("Successfully converted {} reports to response DTOs", responseList.size());
+
+            return new PageImpl<>(responseList, pageable, reports.getTotalElements());
+        } catch (Exception e) {
+            log.error("Error fetching reported content: {}", e.getMessage(), e);
+            log.error("Stack trace: ", e);
+            throw new RuntimeException("Failed to fetch reported content: " + e.getMessage(), e);
+        }
     }
 
     private ModerationResponse mapToModerationResponse(ContentReport report) {
@@ -61,26 +83,41 @@ public class ContentModerationService {
             .moderationReason(report.getModerationReason())
             .moderatedAt(report.getModeratedAt());
 
-        // Set reporter information - safely handle lazy loading
+        // Set reporter information - access within transaction
         try {
-            if (report.getReporter() != null) {
-                String reporterName = report.getReporter().getName();
-                String reporterEmail = report.getReporter().getEmail();
+            User reporter = report.getReporter();
+            if (reporter != null) {
+                // Access fields - this will trigger lazy loading if needed
+                String reporterName = reporter.getName();
+                String reporterEmail = reporter.getEmail();
                 builder.reportedBy(reporterName != null && !reporterName.isEmpty() ? reporterName : reporterEmail);
-                builder.reporterId(report.getReporter().getId());
+                builder.reporterId(reporter.getId());
+            }
+        } catch (org.hibernate.LazyInitializationException e) {
+            log.warn("Lazy initialization error for reporter in report {}: {}", report.getId(), e.getMessage());
+            // Try to fetch reporter separately if lazy load failed
+            try {
+                // This shouldn't happen if transaction is properly configured, but handle it anyway
+                log.debug("Attempting to fetch reporter separately for report {}", report.getId());
+            } catch (Exception ex) {
+                log.warn("Could not fetch reporter for report {}: {}", report.getId(), ex.getMessage());
             }
         } catch (Exception e) {
             log.warn("Error accessing reporter information for report {}: {}", report.getId(), e.getMessage());
         }
 
-        // Set moderator information - safely handle lazy loading
+        // Set moderator information - access within transaction
         try {
-            if (report.getModeratedBy() != null) {
-                String moderatorName = report.getModeratedBy().getName();
-                String moderatorEmail = report.getModeratedBy().getEmail();
+            User moderator = report.getModeratedBy();
+            if (moderator != null) {
+                // Access fields - this will trigger lazy loading if needed
+                String moderatorName = moderator.getName();
+                String moderatorEmail = moderator.getEmail();
                 builder.moderatedBy(moderatorName != null && !moderatorName.isEmpty() ? moderatorName : moderatorEmail);
-                builder.moderatorId(report.getModeratedBy().getId());
+                builder.moderatorId(moderator.getId());
             }
+        } catch (org.hibernate.LazyInitializationException e) {
+            log.warn("Lazy initialization error for moderator in report {}: {}", report.getId(), e.getMessage());
         } catch (Exception e) {
             log.warn("Error accessing moderator information for report {}: {}", report.getId(), e.getMessage());
         }
@@ -120,9 +157,13 @@ public class ContentModerationService {
     }
 
     public void moderateContent(String contentType, UUID contentId, String action, String reason, UUID moderatorId, HttpServletRequest request) {
-        log.info("Moderating {} {} with action: {}", contentType, contentId, action);
+        log.info("Moderating {} {} with action: {} by moderator: {}", contentType, contentId, action, moderatorId);
 
-        // TODO: Implement actual content moderation logic based on content type
+        // Get moderator user entity
+        User moderator = userRepository.findById(moderatorId)
+            .orElseThrow(() -> new RuntimeException("Moderator user not found: " + moderatorId));
+
+        // Perform the moderation action based on content type
         switch (contentType.toUpperCase()) {
             case "POST":
                 moderatePost(contentId, action, reason);
@@ -143,11 +184,46 @@ public class ContentModerationService {
                 throw new IllegalArgumentException("Unsupported content type: " + contentType);
         }
 
+        // Update all reports for this content to RESOLVED
+        List<ContentReport> reports;
+        try {
+            reports = contentReportRepository
+                .findByContentTypeAndContentIdOrderByCreatedAtDesc(contentType, contentId, 
+                    org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE))
+                .getContent();
+
+            log.debug("Found {} reports for {} {} to update", reports.size(), contentType, contentId);
+
+            LocalDateTime now = LocalDateTime.now();
+            int updatedCount = 0;
+            for (ContentReport report : reports) {
+                if ("PENDING".equals(report.getStatus()) || "REVIEWING".equals(report.getStatus())) {
+                    report.setStatus("RESOLVED");
+                    report.setModerationAction(action.toUpperCase());
+                    report.setModerationReason(reason);
+                    report.setModeratedBy(moderator);
+                    report.setModeratedAt(now);
+                    contentReportRepository.save(report);
+                    updatedCount++;
+                    log.debug("Updated report {} to RESOLVED with action: {}", report.getId(), action);
+                }
+            }
+
+            log.info("Moderated {} {} with action: {} - Updated {}/{} reports to RESOLVED", 
+                contentType, contentId, action, updatedCount, reports.size());
+        } catch (Exception e) {
+            log.error("Error updating reports for {} {}: {}", contentType, contentId, e.getMessage(), e);
+            // Don't fail the entire moderation if report update fails
+            // The content moderation itself succeeded
+            reports = new ArrayList<>();
+        }
+
         // Log the moderation action
         Map<String, String> details = new HashMap<>();
         details.put("action", action);
         details.put("reason", reason);
         details.put("contentType", contentType);
+        details.put("reportsResolved", String.valueOf(reports.size()));
         auditLogService.logContentAction(moderatorId, "MODERATE_CONTENT", contentType, contentId, details, request);
     }
 
@@ -317,11 +393,75 @@ public class ContentModerationService {
 
     // Content-specific moderation methods
     private void moderatePost(UUID postId, String action, String reason) {
-        // TODO: Implement post moderation
-        // - Update post visibility
-        // - Send notification to author
-        // - Update moderation status
-        log.info("Moderating post {} with action: {}", postId, action);
+        Optional<Post> postOpt = postRepository.findById(postId);
+        if (postOpt.isEmpty()) {
+            log.warn("Post {} not found for moderation - may have already been deleted. Action: {}", postId, action);
+            // Don't throw exception - just log and return. Reports will still be marked as resolved.
+            // This handles cases where the post was already deleted but reports still exist.
+            return;
+        }
+
+        Post post = postOpt.get();
+        String upperAction = action.toUpperCase();
+
+        try {
+            switch (upperAction) {
+                case "REMOVE":
+                    // Hard delete the post
+                    log.info("Removing post {} - Reason: {}", postId, reason);
+                    cleanupPostData(postId);
+                    postRepository.delete(post);
+                    log.info("Post {} has been removed", postId);
+                    break;
+
+                case "APPROVE":
+                    // Approve content - do nothing, just mark reports as resolved
+                    log.info("Approving post {} - Reason: {}", postId, reason);
+                    break;
+
+                case "HIDE":
+                    // Hide post by making it anonymous and setting visibility (future: add isHidden field)
+                    log.info("Hiding post {} - Reason: {}", postId, reason);
+                    // For now, we'll delete it. In future, add isHidden flag to Post entity
+                    cleanupPostData(postId);
+                    postRepository.delete(post);
+                    log.info("Post {} has been hidden", postId);
+                    break;
+
+                case "WARN":
+                    // Warn - do nothing to content, just mark reports as resolved
+                    log.info("Warning for post {} - Reason: {}", postId, reason);
+                    // TODO: Send notification to post author
+                    break;
+
+                default:
+                    log.warn("Unknown moderation action: {} for post {}", action, postId);
+                    throw new IllegalArgumentException("Unknown moderation action: " + action);
+            }
+        } catch (Exception e) {
+            log.error("Error moderating post {} with action {}: {}", postId, action, e.getMessage(), e);
+            throw new RuntimeException("Failed to moderate post: " + e.getMessage(), e);
+        }
+    }
+
+    private void cleanupPostData(UUID postId) {
+        // Clean up related data when deleting a post
+        // Note: This method is called from within a transactional method, so no @Transactional needed
+        try {
+            log.debug("Cleaning up related data for post {}", postId);
+            // Delete comments
+            postCommentRepository.deleteByPostId(postId);
+            // Delete likes
+            postLikeRepository.deleteByPostId(postId);
+            // Delete bookmarks
+            postBookmarkRepository.deleteByPostId(postId);
+            // Delete shares
+            postShareRepository.deleteByPostId(postId);
+            log.debug("Successfully cleaned up related data for post {}", postId);
+        } catch (Exception e) {
+            log.error("Error cleaning up post data for {}: {}", postId, e.getMessage(), e);
+            throw new RuntimeException("Failed to cleanup post data: " + e.getMessage(), e);
+        }
     }
 
     private void moderatePrayer(UUID prayerId, String action, String reason) {

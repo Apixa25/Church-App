@@ -33,7 +33,8 @@ const AdminModeration: React.FC = () => {
       setError('');
 
       if (activeTab === 'reports') {
-        const reportsResponse = await getReportedContent({ page: 0, size: 50 });
+        // Default to showing only PENDING reports
+        const reportsResponse = await getReportedContent({ page: 0, size: 50, status: 'PENDING' });
         setReportedContent(reportsResponse.content || []);
       } else if (activeTab === 'stats') {
         const stats = await getModerationStats('30d');
@@ -59,8 +60,8 @@ const AdminModeration: React.FC = () => {
       
       await moderateContent(contentType, contentId, action, reason || '');
 
-      // Refresh the reports list
-      const updatedReportsResponse = await getReportedContent({ page: 0, size: 50 });
+      // Refresh the reports list - only show PENDING reports
+      const updatedReportsResponse = await getReportedContent({ page: 0, size: 50, status: 'PENDING' });
       setReportedContent(updatedReportsResponse.content || []);
 
       // Refresh stats if on stats tab
