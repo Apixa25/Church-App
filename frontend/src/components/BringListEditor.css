@@ -1,17 +1,17 @@
 .bring-list-editor {
   margin-top: 1.5rem;
   padding: 1.5rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-primary);
   border-radius: 12px;
-  background: #f8fafc;
+  background: var(--bg-tertiary);
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
 }
 
 .bring-list-existing {
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: 10px;
   padding: 1rem;
 }
@@ -19,6 +19,7 @@
 .bring-list-existing h4 {
   margin: 0 0 0.5rem;
   font-size: 1rem;
+  color: var(--text-primary);
 }
 
 .existing-items-list {
@@ -36,12 +37,13 @@
   align-items: center;
   gap: 0.5rem;
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .existing-item .description {
   margin: 0.25rem 0 0;
   font-size: 0.85rem;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .editor-header {
@@ -53,19 +55,21 @@
 
 .editor-header h4 {
   margin: 0;
+  color: var(--text-primary);
 }
 
 .helper-text {
   margin: 0.2rem 0 0;
   font-size: 0.85rem;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .empty-state {
   padding: 1rem;
-  background: #e2e8f0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
-  color: #475569;
+  color: var(--text-secondary);
   text-align: center;
 }
 
@@ -76,8 +80,8 @@
 }
 
 .bring-list-row {
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: 12px;
   padding: 1rem;
   display: flex;
@@ -111,23 +115,32 @@
 .bring-list-row .input-group input,
 .bring-list-row .input-group textarea {
   padding: 0.6rem 0.75rem;
-  border: 1px solid #cbd5e1;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
   font-size: 0.95rem;
-  transition: border-color 0.2s ease;
+  color: var(--text-primary);
+  transition: all var(--transition-base);
 }
 
 .bring-list-row .input-group input:focus,
 .bring-list-row .input-group textarea:focus {
-  border-color: #2563eb;
+  border-color: var(--accent-primary);
   outline: none;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.2),
+              0 0 20px var(--button-primary-glow);
+  background: var(--bg-elevated);
+}
+
+.bring-list-row .input-group input::placeholder,
+.bring-list-row .input-group textarea::placeholder {
+  color: var(--text-tertiary);
 }
 
 .bring-list-row .input-group label {
   font-weight: 600;
   font-size: 0.9rem;
-  color: #334155;
+  color: var(--text-primary);
 }
 
 .bring-list-row textarea {
@@ -139,7 +152,7 @@
   align-items: center;
   gap: 0.6rem;
   font-size: 0.9rem;
-  color: #334155;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
@@ -149,12 +162,19 @@
 }
 
 .btn.btn-link.danger {
-  color: #e11d48;
+  background: none;
+  border: none;
+  color: var(--error);
   font-weight: 600;
   text-decoration: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  transition: all var(--transition-base);
 }
 
 .btn.btn-link.danger:hover {
+  color: var(--error);
   text-decoration: underline;
+  opacity: 0.9;
 }
 
