@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -52,4 +53,9 @@ public class ModerationResponse {
     private int reportCount; // How many times this content has been reported
     private boolean isVisible; // Whether content is currently visible to users
     private String category;
+    
+    // Post-specific fields for moderation
+    private List<String> mediaUrls; // Media attached to the post
+    private List<String> mediaTypes; // Media types (image/video/etc)
+    private LocalDateTime contentCreatedAt; // When the original content was created
 }
