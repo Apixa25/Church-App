@@ -114,12 +114,15 @@ public class AdminController {
 
             userManagementService.updateUserRole(userId, newRole);
 
+            // Get current admin user for audit logging
+            User currentAdmin = getCurrentUser(auth);
+
             // Log the action
             Map<String, String> details = new HashMap<>();
             details.put("newRole", newRole);
             details.put("reason", reason != null ? reason : "No reason provided");
             auditLogService.logUserAction(
-                UUID.fromString(auth.getName()),
+                currentAdmin.getId(),
                 "UPDATE_USER_ROLE",
                 details,
                 httpRequest
@@ -155,12 +158,15 @@ public class AdminController {
 
             userManagementService.banUser(userId, reason, duration);
 
+            // Get current admin user for audit logging
+            User currentAdmin = getCurrentUser(auth);
+
             // Log the action
             Map<String, String> details = new HashMap<>();
             details.put("reason", reason != null ? reason : "No reason provided");
             details.put("duration", duration != null ? duration : "permanent");
             auditLogService.logUserAction(
-                UUID.fromString(auth.getName()),
+                currentAdmin.getId(),
                 "BAN_USER",
                 details,
                 httpRequest
@@ -195,11 +201,14 @@ public class AdminController {
 
             userManagementService.unbanUser(userId);
 
+            // Get current admin user for audit logging
+            User currentAdmin = getCurrentUser(auth);
+
             // Log the action
             Map<String, String> details = new HashMap<>();
             details.put("reason", reason);
             auditLogService.logUserAction(
-                UUID.fromString(auth.getName()),
+                currentAdmin.getId(),
                 "UNBAN_USER",
                 details,
                 httpRequest
@@ -247,8 +256,9 @@ public class AdminController {
             Map<String, String> details = new HashMap<>();
             details.put("reason", reason != null ? reason : "No reason provided");
             details.put("message", message != null ? message : "No message");
+            // moderatorId is already set from getCurrentUser above
             auditLogService.logUserAction(
-                UUID.fromString(auth.getName()),
+                moderatorId,
                 "WARN_USER",
                 details,
                 httpRequest
@@ -283,11 +293,14 @@ public class AdminController {
 
             userManagementService.deleteUser(userId);
 
+            // Get current admin user for audit logging
+            User currentAdmin = getCurrentUser(auth);
+
             // Log the action
             Map<String, String> details = new HashMap<>();
             details.put("reason", reason != null ? reason : "No reason provided");
             auditLogService.logUserAction(
-                UUID.fromString(auth.getName()),
+                currentAdmin.getId(),
                 "DELETE_USER",
                 details,
                 httpRequest
