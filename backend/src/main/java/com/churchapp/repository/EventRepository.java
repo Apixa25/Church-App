@@ -155,6 +155,10 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
         @Param("now") LocalDateTime now
     );
 
+    // Find all event IDs by organization
+    @Query("SELECT e.id FROM Event e WHERE e.organization.id = :orgId")
+    List<UUID> findEventIdsByOrganizationId(@Param("orgId") UUID orgId);
+
     // Delete all events by organization
     @Modifying
     @Query("DELETE FROM Event e WHERE e.organization.id = :orgId")

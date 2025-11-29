@@ -31,6 +31,9 @@ public class OrganizationService {
     private final PrayerRequestRepository prayerRequestRepository;
     private final PrayerInteractionRepository prayerInteractionRepository;
     private final EventRepository eventRepository;
+    private final EventRsvpRepository eventRsvpRepository;
+    private final EventBringItemRepository eventBringItemRepository;
+    private final EventBringClaimRepository eventBringClaimRepository;
     private final AnnouncementRepository announcementRepository;
     private final DonationRepository donationRepository;
     private final DonationSubscriptionRepository donationSubscriptionRepository;
@@ -224,6 +227,7 @@ public class OrganizationService {
     }
 
     // Delete organization and all related data
+    @Transactional
     public void deleteOrganization(UUID orgId) {
         Organization org = getOrganizationById(orgId);
         
@@ -247,8 +251,33 @@ public class OrganizationService {
         log.info("Deleting prayer requests for organization: {}", orgId);
         prayerRequestRepository.deleteByOrganizationId(orgId);
         
-        // 4. Delete all events
+        // 4. Delete all events and their related data
         log.info("Deleting events for organization: {}", orgId);
+        // Get all event IDs for this organization first
+        List<UUID> eventIds = eventRepository.findEventIdsByOrganizationId(orgId);
+        if (!eventIds.isEmpty()) {
+            log.info("Found {} events to delete for organization: {}", eventIds.size(), orgId);
+            
+            // 4a. Delete all event RSVPs first
+            log.info("Deleting event RSVPs for organization: {}", orgId);
+            for (UUID eventId : eventIds) {
+                eventRsvpRepository.deleteByEventId(eventId);
+            }
+            
+            // 4b. Delete all event bring claims first (before items due to FK constraint)
+            log.info("Deleting event bring claims for organization: {}", orgId);
+            for (UUID eventId : eventIds) {
+                eventBringClaimRepository.deleteByEventId(eventId);
+            }
+            
+            // 4c. Delete all event bring items
+            log.info("Deleting event bring items for organization: {}", orgId);
+            for (UUID eventId : eventIds) {
+                eventBringItemRepository.deleteByEventId(eventId);
+            }
+        }
+        
+        // 4d. Now delete all events
         eventRepository.deleteByOrganizationId(orgId);
         
         // 5. Delete all announcements
@@ -267,27 +296,72 @@ public class OrganizationService {
         log.info("Deleting groups for organization: {}", orgId);
         groupRepository.deleteByOrganizationId(orgId);
         
-        // 9. Delete all user organization memberships
+        // 9. Update users with this as primary org FIRST (before deleting memberships)
+        // This prevents foreign key constraint issues
+        log.info("Updating users' primary organization references for organization: {}", orgId);
+        try {
+            userRepository.updateChurchPrimaryOrganizationToGlobal(orgId, GLOBAL_ORG_ID);
+            log.info("Updated church primary organizations to Global");
+        } catch (Exception e) {
+            log.warn("Error updating church primary organizations (may be none): {}", e.getMessage());
+        }
+        
+        try {
+            userRepository.clearFamilyPrimaryOrganization(orgId);
+            log.info("Cleared family primary organizations");
+        } catch (Exception e) {
+            log.warn("Error clearing family primary organizations (may be none): {}", e.getMessage());
+        }
+        
+        // 10. Delete all user organization memberships
         log.info("Deleting user organization memberships for organization: {}", orgId);
-        membershipRepository.deleteByOrganizationId(orgId);
+        try {
+            membershipRepository.deleteByOrganizationId(orgId);
+            log.info("Deleted all user organization memberships");
+        } catch (Exception e) {
+            log.error("Error deleting user organization memberships: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to delete user organization memberships: " + e.getMessage(), e);
+        }
         
-        // 10. Delete user organization history (both from and to)
+        // 11. Delete user organization history (both from and to)
         log.info("Deleting user organization history for organization: {}", orgId);
-        historyRepository.deleteByOrganizationId(orgId);
-        
-        // 11. Update users with this as primary org (set to Global for church, clear for family)
-        log.info("Updating users' primary organization to Global for organization: {}", orgId);
-        userRepository.updateChurchPrimaryOrganizationToGlobal(orgId, GLOBAL_ORG_ID);
-        userRepository.clearFamilyPrimaryOrganization(orgId);
+        try {
+            historyRepository.deleteByOrganizationId(orgId);
+            log.info("Deleted user organization history");
+        } catch (Exception e) {
+            log.warn("Error deleting user organization history (may be none): {}", e.getMessage());
+        }
         
         // 12. Soft delete the organization
-        // Modify slug to free it up for reuse (append timestamp to make it unique)
+        // Modify slug to free it up for reuse (ensure it doesn't exceed 100 chars)
         String originalSlug = org.getSlug();
-        org.setSlug(originalSlug + "-deleted-" + System.currentTimeMillis());
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String deletedSlug = originalSlug + "-del-" + timestamp;
+        
+        // Ensure slug doesn't exceed 100 characters (max length constraint)
+        if (deletedSlug.length() > 100) {
+            // Truncate original slug if needed to make room for "-del-" + timestamp
+            int maxOriginalLength = 100 - 5 - timestamp.length(); // 5 for "-del-"
+            if (maxOriginalLength > 0) {
+                deletedSlug = originalSlug.substring(0, Math.min(originalSlug.length(), maxOriginalLength)) 
+                            + "-del-" + timestamp;
+            } else {
+                // If timestamp itself is too long, use just a short suffix
+                deletedSlug = originalSlug.substring(0, Math.min(originalSlug.length(), 90)) + "-deleted";
+            }
+        }
+        
+        org.setSlug(deletedSlug);
         org.setDeletedAt(LocalDateTime.now());
         org.setStatus(Organization.OrganizationStatus.CANCELLED);
-        organizationRepository.save(org);
-        log.info("Organization slug changed from '{}' to '{}' to free up for reuse", originalSlug, org.getSlug());
+        
+        try {
+            organizationRepository.save(org);
+            log.info("Organization slug changed from '{}' to '{}' to free up for reuse", originalSlug, deletedSlug);
+        } catch (Exception e) {
+            log.error("Error updating organization slug during deletion: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to update organization during deletion: " + e.getMessage(), e);
+        }
         
         log.warn("Organization {} deleted successfully", orgId);
     }

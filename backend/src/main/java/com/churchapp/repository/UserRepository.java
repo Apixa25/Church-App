@@ -118,7 +118,7 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
     UUID findFamilyPrimaryOrgIdByUserId(@Param("userId") UUID userId);
 
     // Update users' church primary organization to Global when their org is deleted
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = "UPDATE users SET church_primary_organization_id = :globalOrgId " +
            "WHERE church_primary_organization_id = :orgId", nativeQuery = true)
     void updateChurchPrimaryOrganizationToGlobal(
@@ -127,7 +127,7 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
     );
     
     // Clear family primary when family org is deleted (no global fallback for families)
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = "UPDATE users SET family_primary_organization_id = NULL " +
            "WHERE family_primary_organization_id = :orgId", nativeQuery = true)
     void clearFamilyPrimaryOrganization(@Param("orgId") UUID orgId);
