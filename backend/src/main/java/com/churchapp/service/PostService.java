@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -244,86 +243,71 @@ public class PostService {
     /**
      * Get multi-tenant feed based on user's organizations and groups
      * Excludes posts from blocked users (mutual blocking)
-     * Includes posts from followed users when filter is ALL or EVERYTHING
+     * 
+     * FILTER BEHAVIOR (all logic is in FeedFilterService.getFeedParameters):
+     * - EVERYTHING: Church + Family + Groups + Global Feed + Followed Users + Org-as-Groups
+     * - ALL: Church + Family + Groups + Followed Users + Org-as-Groups (NO Global Feed)
+     * - PRIMARY_ONLY: ONLY the selected organization (no groups, no followed users, no org-as-groups)
+     * - SELECTED_GROUPS: ONLY selected groups (no orgs, no followed users, no org-as-groups)
      */
     public Page<Post> getMultiTenantFeed(UUID userId, Pageable pageable) {
+        // Get feed parameters - ALL filter logic is handled in FeedFilterService
         FeedFilterService.FeedParameters params = feedFilterService.getFeedParameters(userId);
         FeedPreference preference = feedFilterService.getFeedPreference(userId);
+        FeedPreference.FeedFilter activeFilter = preference.getActiveFilter();
 
-        // Get mutually blocked user IDs to filter out (users viewer blocked + users who blocked viewer)
+        // Get mutually blocked user IDs to filter out
         List<UUID> blockedUserIds = userBlockService.getMutuallyBlockedUserIds(userId);
-        // Use empty list instead of null for better query performance
         List<UUID> blockedIds = blockedUserIds.isEmpty() ? null : blockedUserIds;
 
-        // Get followed user IDs if filter is ALL or EVERYTHING
+        // Determine if we should include followed users
+        // Only for ALL and EVERYTHING filters
         List<UUID> followingIds = null;
-        if (preference.getActiveFilter() == FeedPreference.FeedFilter.ALL 
-            || preference.getActiveFilter() == FeedPreference.FeedFilter.EVERYTHING) {
+        if (activeFilter == FeedPreference.FeedFilter.ALL || activeFilter == FeedPreference.FeedFilter.EVERYTHING) {
             followingIds = userFollowService.getFollowingIds(userId);
-            // Use null if empty for query performance
             if (followingIds.isEmpty()) {
                 followingIds = null;
             }
         }
+        
+        // Log what we're about to query
+        log.info("📰 getMultiTenantFeed for user {}: filter={}, primaryOrgs={}, secondaryOrgs={}, groups={}, orgAsGroups={}, followingUsers={}", 
+            userId, activeFilter, 
+            params.getPrimaryOrgIds().size(), 
+            params.getSecondaryOrgIds().size(), 
+            params.getGroupIds().size(),
+            params.getOrgAsGroupIds().size(),
+            followingIds != null ? followingIds.size() : 0);
 
-        // For PRIMARY_ONLY filter, only show posts from the selected organization (no groups, no followed users, no org-as-groups)
-        if (preference.getActiveFilter() == FeedPreference.FeedFilter.PRIMARY_ONLY) {
-            return postRepository.findMultiTenantFeed(
-                params.getPrimaryOrgIds(), // Only the selected organization
-                params.getSecondaryOrgIds(), // Empty for PRIMARY_ONLY
-                params.getGroupIds(), // Empty for PRIMARY_ONLY
-                params.getOrgAsGroupIds(), // Empty for PRIMARY_ONLY
-                blockedIds,
-                null, // No followed users for PRIMARY_ONLY
-                pageable
-            );
-        }
-
-        // For SELECTED_GROUPS filter, only show posts from selected groups (no orgs, no followed users)
-        if (preference.getActiveFilter() == FeedPreference.FeedFilter.SELECTED_GROUPS) {
-            // Use a simplified query that only includes group posts
-            // Since all org lists are empty for SELECTED_GROUPS, we can use findMultiTenantFeed
-            // with empty org lists - the query will only match group posts
-            return postRepository.findMultiTenantFeed(
-                new ArrayList<>(), // No primary orgs for SELECTED_GROUPS
-                new ArrayList<>(), // No secondary orgs for SELECTED_GROUPS
-                params.getGroupIds(), // Only selected groups
-                new ArrayList<>(), // No org-as-groups for SELECTED_GROUPS
-                blockedIds,
-                null, // No followed users for SELECTED_GROUPS
-                pageable
-            );
-        }
-
-        // Check if user has primary org(s) - supports dual-primary system
-        if (params.getPrimaryOrgIds().isEmpty()) {
-            // Social-only user - show global org + their groups + org-as-groups + followed users
+        // For social-only users (no primary org), use the global user feed query
+        if (params.getPrimaryOrgIds().isEmpty() && 
+            (activeFilter == FeedPreference.FeedFilter.ALL || activeFilter == FeedPreference.FeedFilter.EVERYTHING)) {
             UUID globalOrgId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+            log.info("🌐 Using global user feed query for social-only user");
             return postRepository.findGlobalUserFeed(
                 params.getGroupIds(), 
                 globalOrgId,
-                params.getOrgAsGroupIds(), // Organizations followed as groups
+                params.getOrgAsGroupIds(),
                 blockedIds,
                 followingIds,
                 pageable
             );
-        } else {
-            // User with primary org(s) - use unified query that handles:
-            // - Primary orgs (all visibility levels) - supports dual-primary: churchPrimary + familyPrimary
-            // - Secondary orgs including Global org (PUBLIC only)
-            // - Groups (based on group visibility)
-            // - Organizations followed as groups (ALL posts - PUBLIC + ORG_ONLY)
-            // - Followed users (when filter is ALL or EVERYTHING) - regardless of organization/group
-            return postRepository.findMultiTenantFeed(
-                params.getPrimaryOrgIds(), // Now a list supporting dual-primary system
-                params.getSecondaryOrgIds(),
-                params.getGroupIds(),
-                params.getOrgAsGroupIds(), // Organizations followed as groups
-                blockedIds,
-                followingIds, // Add followed user IDs
-                pageable
-            );
         }
+
+        // Use the unified multi-tenant feed query
+        // The FeedFilterService has already set up the params correctly for each filter type:
+        // - PRIMARY_ONLY: Only selected org in primaryOrgIds, everything else is empty
+        // - SELECTED_GROUPS: Only selected groups in groupIds, everything else is empty
+        // - EVERYTHING/ALL: Full set of orgs and groups
+        return postRepository.findMultiTenantFeed(
+            params.getPrimaryOrgIds(),
+            params.getSecondaryOrgIds(),
+            params.getGroupIds(),
+            params.getOrgAsGroupIds(),
+            blockedIds,
+            followingIds,  // null for PRIMARY_ONLY and SELECTED_GROUPS
+            pageable
+        );
     }
 
     /**
