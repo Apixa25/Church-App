@@ -242,8 +242,12 @@ const PostFeed: React.FC<PostFeedProps> = ({
 
   // Refresh feed when filter changes
   useEffect(() => {
+    console.log('🔄 PostFeed: Filter changed - activeFilter:', activeFilter, 'selectedGroupIds:', selectedGroupIds);
     if (loadPostsRef.current) {
+      console.log('📥 PostFeed: Triggering feed refresh due to filter change');
       loadPostsRef.current(true);
+    } else {
+      console.warn('⚠️ PostFeed: loadPostsRef.current is not set, cannot refresh feed');
     }
   }, [activeFilter, selectedGroupIds]);
 
