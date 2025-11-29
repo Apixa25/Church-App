@@ -42,6 +42,9 @@ public class FeedFilterService {
 
     public FeedPreference updateFeedPreference(UUID userId, FeedPreference.FeedFilter filter, List<UUID> selectedGroupIds, UUID selectedOrganizationId) {
         try {
+            log.info("🔧 updateFeedPreference called: userId={}, filter={}, selectedGroupIds={}, selectedOrganizationId={}", 
+                userId, filter, selectedGroupIds, selectedOrganizationId);
+            
             FeedPreference preference = feedPreferenceRepository.findByUserId(userId)
                 .orElseGet(() -> createDefaultPreference(userId));
 
@@ -65,22 +68,18 @@ public class FeedFilterService {
 
             preference.setActiveFilter(filter);
 
-            // Always update selectedGroupIds - if null, set to empty list; if provided, use it
-            if (selectedGroupIds != null) {
-                preference.setSelectedGroupIds(selectedGroupIds);
-            } else {
-                // If null and filter is not SELECTED_GROUPS, clear the selection
-                if (filter != FeedPreference.FeedFilter.SELECTED_GROUPS) {
-                    preference.setSelectedGroupIds(new ArrayList<>());
-                }
-                // If null and filter is SELECTED_GROUPS, keep existing selection
-            }
-
-            // Update selectedOrganizationId for PRIMARY_ONLY filter
-            if (filter == FeedPreference.FeedFilter.PRIMARY_ONLY) {
+            // Handle selectedGroupIds based on filter type
+            if (filter == FeedPreference.FeedFilter.SELECTED_GROUPS) {
+                // For SELECTED_GROUPS, save the selected group IDs
+                preference.setSelectedGroupIds(selectedGroupIds != null ? selectedGroupIds : new ArrayList<>());
+                preference.setSelectedOrganizationId(null); // Clear org selection
+            } else if (filter == FeedPreference.FeedFilter.PRIMARY_ONLY) {
+                // For PRIMARY_ONLY, save the selected organization ID
                 preference.setSelectedOrganizationId(selectedOrganizationId);
+                preference.setSelectedGroupIds(new ArrayList<>()); // Clear group selection
             } else {
-                // Clear selectedOrganizationId for other filters
+                // For ALL and EVERYTHING, clear both
+                preference.setSelectedGroupIds(new ArrayList<>());
                 preference.setSelectedOrganizationId(null);
             }
 
@@ -88,11 +87,12 @@ public class FeedFilterService {
 
             FeedPreference saved = feedPreferenceRepository.save(preference);
             
-            log.info("Updated feed preference for user {} to filter: {}", userId, filter);
+            log.info("✅ Saved feed preference for user {}: filter={}, selectedOrgId={}, selectedGroupIds={}", 
+                userId, saved.getActiveFilter(), saved.getSelectedOrganizationId(), saved.getSelectedGroupIds());
 
             return saved;
         } catch (Exception e) {
-            log.error("Error updating feed preference for user {}", userId, e);
+            log.error("❌ Error updating feed preference for user {}", userId, e);
             throw new RuntimeException("Failed to update feed preference: " + e.getMessage(), e);
         }
     }
@@ -276,62 +276,96 @@ public class FeedFilterService {
     /**
      * Get complete feed parameters for a user based on their preferences
      * Supports dual-primary system (churchPrimary + familyPrimary)
-     * When PRIMARY_ONLY filter is active, uses selectedOrganizationId to filter by specific org
+     * 
+     * FILTER BEHAVIOR:
+     * - EVERYTHING: Church + Family + Groups + Global Feed + Followed Users + Org-as-Groups
+     * - ALL: Church + Family + Groups + Followed Users + Org-as-Groups (NO Global Feed)
+     * - PRIMARY_ONLY: ONLY the selected organization (no groups, no followed users, no org-as-groups)
+     * - SELECTED_GROUPS: ONLY selected groups (no orgs, no followed users, no org-as-groups)
      */
     public FeedParameters getFeedParameters(UUID userId) {
         FeedPreference preference = getFeedPreference(userId);
+        FeedPreference.FeedFilter activeFilter = preference.getActiveFilter();
         List<UUID> allPrimaryOrgIds = getAllPrimaryOrgIds(userId);
         
-        // For PRIMARY_ONLY filter, only include the selected organization as primary
-        List<UUID> primaryOrgIdsForFeed;
-        boolean isPrimaryOnlyFilter = preference.getActiveFilter() == FeedPreference.FeedFilter.PRIMARY_ONLY 
-            && preference.getSelectedOrganizationId() != null;
-        boolean isSelectedGroupsFilter = preference.getActiveFilter() == FeedPreference.FeedFilter.SELECTED_GROUPS;
+        log.info("📊 getFeedParameters for user {}: filter={}, selectedOrgId={}, selectedGroupIds={}", 
+            userId, activeFilter, preference.getSelectedOrganizationId(), preference.getSelectedGroupIds());
         
-        if (isPrimaryOnlyFilter) {
-            // Only include the selected organization
-            primaryOrgIdsForFeed = List.of(preference.getSelectedOrganizationId());
-        } else {
-            // Include all primary orgs
-            primaryOrgIdsForFeed = allPrimaryOrgIds;
-        }
-        
-        // For PRIMARY_ONLY filter, exclude secondary orgs, groups, and org-as-groups
-        if (isPrimaryOnlyFilter) {
+        // ===== FILTER 1: PRIMARY_ONLY =====
+        // Shows ONLY posts from the selected primary organization
+        // No groups, no secondary orgs, no org-as-groups
+        if (activeFilter == FeedPreference.FeedFilter.PRIMARY_ONLY) {
+            UUID selectedOrgId = preference.getSelectedOrganizationId();
+            
+            // If no org is selected, fall back to first primary org (churchPrimary)
+            if (selectedOrgId == null && !allPrimaryOrgIds.isEmpty()) {
+                selectedOrgId = allPrimaryOrgIds.get(0);
+                log.warn("⚠️ PRIMARY_ONLY filter but no selectedOrganizationId, falling back to first primary: {}", selectedOrgId);
+            }
+            
+            List<UUID> primaryOnly = selectedOrgId != null ? List.of(selectedOrgId) : new ArrayList<>();
+            
+            log.info("🎯 PRIMARY_ONLY filter - returning only org: {}", primaryOnly);
             return new FeedParameters(
-                primaryOrgIdsForFeed, 
-                new ArrayList<>(), // No secondary orgs for PRIMARY_ONLY
-                new ArrayList<>(), // No groups for PRIMARY_ONLY (already handled by getVisibleGroupIds, but being explicit)
-                new ArrayList<>()  // No org-as-groups for PRIMARY_ONLY
+                primaryOnly,       // Only the selected org
+                new ArrayList<>(), // NO secondary orgs
+                new ArrayList<>(), // NO groups
+                new ArrayList<>()  // NO org-as-groups
             );
         }
         
-        // For SELECTED_GROUPS filter, exclude all orgs and org-as-groups (only show selected groups)
-        if (isSelectedGroupsFilter) {
-            List<UUID> groupIds = getVisibleGroupIds(userId);
+        // ===== FILTER 2: SELECTED_GROUPS =====
+        // Shows ONLY posts from user-selected groups
+        // No orgs, no org-as-groups
+        if (activeFilter == FeedPreference.FeedFilter.SELECTED_GROUPS) {
+            List<UUID> selectedGroupIds = preference.getSelectedGroupIds();
+            if (selectedGroupIds == null) {
+                selectedGroupIds = new ArrayList<>();
+            }
+            
+            // Only include groups user is actually a member of
+            List<UUID> userGroupIds = getUserUnmutedGroupIds(userId);
+            List<UUID> validSelectedGroups = selectedGroupIds.stream()
+                .filter(userGroupIds::contains)
+                .collect(Collectors.toList());
+            
+            log.info("🎯 SELECTED_GROUPS filter - returning only groups: {}", validSelectedGroups);
             return new FeedParameters(
-                new ArrayList<>(), // No primary orgs for SELECTED_GROUPS - only show selected groups
-                new ArrayList<>(), // No secondary orgs for SELECTED_GROUPS
-                groupIds, // Only selected groups
-                new ArrayList<>()  // No org-as-groups for SELECTED_GROUPS
+                new ArrayList<>(), // NO primary orgs
+                new ArrayList<>(), // NO secondary orgs
+                validSelectedGroups, // Only selected groups
+                new ArrayList<>()  // NO org-as-groups
             );
         }
         
-        // Use getVisibleOrgIds to respect filter preferences
-        List<UUID> visibleOrgIds = getVisibleOrgIds(userId);
+        // ===== FILTER 3 & 4: EVERYTHING and ALL =====
+        // EVERYTHING: Church + Family + Groups + Global Feed + Org-as-Groups
+        // ALL: Church + Family + Groups + Org-as-Groups (NO Global Feed)
         
-        // Extract secondary orgs (exclude ALL primary orgs, but include Global org if it's in visibleOrgs)
-        // Global org should be included in secondaryOrgIds when filter is ALL so posts from social-only users are visible
-        List<UUID> secondaryOrgIds = visibleOrgIds.stream()
-            .filter(orgId -> !allPrimaryOrgIds.contains(orgId))
-            .collect(Collectors.toList());
+        // Primary orgs = all primary orgs (churchPrimary + familyPrimary)
+        List<UUID> primaryOrgIds = new ArrayList<>(allPrimaryOrgIds);
         
-        List<UUID> groupIds = getVisibleGroupIds(userId);
-
-        // Get organizations followed as groups (unmuted only)
+        // Secondary orgs = orgs user is a member of but not primary
+        List<UUID> secondaryOrgIds = getUserSecondaryOrgIds(userId);
+        
+        // For EVERYTHING filter, include Global org so users can see posts from social-only users
+        if (activeFilter == FeedPreference.FeedFilter.EVERYTHING) {
+            if (!secondaryOrgIds.contains(GLOBAL_ORG_ID)) {
+                secondaryOrgIds.add(GLOBAL_ORG_ID);
+            }
+            log.info("🌐 EVERYTHING filter - including Global org in secondary orgs");
+        }
+        
+        // Groups = all unmuted groups user is a member of
+        List<UUID> groupIds = getUserUnmutedGroupIds(userId);
+        
+        // Org-as-groups = organizations followed as groups (unmuted only)
         List<UUID> orgAsGroupIds = organizationGroupService.getUnmutedFollowedOrganizationIds(userId);
-
-        return new FeedParameters(primaryOrgIdsForFeed, secondaryOrgIds, groupIds, orgAsGroupIds);
+        
+        log.info("🎯 {} filter - primaryOrgs={}, secondaryOrgs={}, groups={}, orgAsGroups={}", 
+            activeFilter, primaryOrgIds.size(), secondaryOrgIds.size(), groupIds.size(), orgAsGroupIds.size());
+        
+        return new FeedParameters(primaryOrgIds, secondaryOrgIds, groupIds, orgAsGroupIds);
     }
 
     /**
