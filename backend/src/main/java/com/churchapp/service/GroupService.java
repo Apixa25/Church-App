@@ -70,10 +70,10 @@ public class GroupService {
         Group saved = groupRepository.save(group);
 
         // Log group creation for limit tracking
-        UserGroupCreationLog log = new UserGroupCreationLog();
-        log.setUser(creator);
-        log.setCreatedAt(LocalDateTime.now());
-        groupCreationLogRepository.save(log);
+        UserGroupCreationLog creationLog = new UserGroupCreationLog();
+        creationLog.setUser(creator);
+        creationLog.setCreatedAt(LocalDateTime.now());
+        groupCreationLogRepository.save(creationLog);
 
         // Auto-add creator as CREATOR
         UserGroupMembership creatorMembership = new UserGroupMembership();
