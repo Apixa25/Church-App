@@ -231,28 +231,44 @@ const AdminModeration: React.FC = () => {
                       <div className="reported-item">
                         <div className="item-header">
                           <div className="user-info">
-                            <span className="user-name">{report.reportedUserName || 'Unknown User'}</span>
+                            <span className="user-name">{report.contentAuthor || 'Unknown User'}</span>
                             <span className="item-type">{report.contentType}</span>
                           </div>
                         </div>
                         <div className="item-content">
-                          {report.contentPreview || 'Content preview not available'}
+                          <div className="post-text">{report.contentPreview || 'Content preview not available'}</div>
+                          {report.mediaUrls && report.mediaUrls.length > 0 && (
+                            <div className="post-media">
+                              <div className="media-label">📎 {report.mediaUrls.length} media file{report.mediaUrls.length > 1 ? 's' : ''} attached</div>
+                              <div className="media-thumbnails">
+                                {report.mediaUrls.slice(0, 3).map((url: string, index: number) => (
+                                  <a key={index} href={url} target="_blank" rel="noopener noreferrer" className="media-thumbnail">
+                                    {report.mediaTypes && report.mediaTypes[index]?.startsWith('image/') ? (
+                                      <img src={url} alt={`Media ${index + 1}`} />
+                                    ) : (
+                                      <div className="media-placeholder">📎 {report.mediaTypes?.[index] || 'File'}</div>
+                                    )}
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       <div className="report-details">
                         <div className="reporter-info">
                           <span className="reporter-label">Reported by:</span>
-                          <span className="reporter-name">{report.reporterName || 'Anonymous'}</span>
+                          <span className="reporter-name">{report.reportedBy || 'Anonymous'}</span>
                         </div>
                         <div className="report-reason">
                           <span className="reason-label">Reason:</span>
-                          <span className="reason-text">{report.reason}</span>
+                          <span className="reason-text">{report.reportReason || 'No reason provided'}</span>
                         </div>
-                        {report.additionalInfo && (
+                        {report.reportDescription && (
                           <div className="additional-info">
                             <span className="info-label">Details:</span>
-                            <span className="info-text">{report.additionalInfo}</span>
+                            <span className="info-text">{report.reportDescription}</span>
                           </div>
                         )}
                       </div>

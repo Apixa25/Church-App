@@ -22,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -51,9 +50,20 @@ public class ContentModerationService {
             log.debug("Found {} reports (total: {})", reports.getContent().size(), reports.getTotalElements());
 
             // Convert to response DTOs - relationships will be accessed within transaction
-            List<ModerationResponse> responseList = reports.getContent().stream()
-                .map(this::mapToModerationResponse)
-                .collect(Collectors.toList());
+            List<ModerationResponse> responseList = new ArrayList<>();
+            for (ContentReport report : reports.getContent()) {
+                try {
+                    ModerationResponse response = mapToModerationResponse(report);
+                    responseList.add(response);
+                    log.debug("Mapped report {} - contentPreview: {}, contentAuthor: {}", 
+                        report.getId(), 
+                        response.getContentPreview() != null ? "present" : "null",
+                        response.getContentAuthor() != null ? response.getContentAuthor() : "null");
+                } catch (Exception e) {
+                    log.error("Error mapping report {}: {}", report.getId(), e.getMessage(), e);
+                    // Continue with other reports even if one fails
+                }
+            }
 
             log.debug("Successfully converted {} reports to response DTOs", responseList.size());
 
@@ -128,12 +138,34 @@ public class ContentModerationService {
                 Optional<Post> postOpt = postRepository.findById(report.getContentId());
                 if (postOpt.isPresent()) {
                     Post post = postOpt.get();
+                    log.debug("Found post {} for report {}", report.getContentId(), report.getId());
+                    
                     String content = post.getContent();
-                    if (content != null) {
-                        builder.contentPreview(content.length() > 200 
-                            ? content.substring(0, 200) + "..." 
-                            : content);
+                    log.debug("Post content for report {}: length={}, content={}", 
+                        report.getId(), content != null ? content.length() : 0, 
+                        content != null && content.length() > 50 ? content.substring(0, 50) + "..." : content);
+                    
+                    // For moderation, show FULL content, not truncated preview
+                    if (content != null && !content.trim().isEmpty()) {
+                        builder.contentPreview(content); // Show full content for moderation decisions
+                        log.debug("Set contentPreview for report {} (full content, length: {})", report.getId(), content.length());
+                    } else {
+                        log.warn("Post {} has null or empty content for report {}", report.getContentId(), report.getId());
+                        builder.contentPreview("(Post content is empty or unavailable)");
                     }
+                    
+                    // Include additional post metadata for better moderation context
+                    builder.category(post.getCategory());
+                    builder.contentCreatedAt(post.getCreatedAt());
+                    
+                    // Include media information so moderators can see attached images/videos
+                    if (post.getMediaUrls() != null && !post.getMediaUrls().isEmpty()) {
+                        builder.mediaUrls(post.getMediaUrls());
+                        builder.mediaTypes(post.getMediaTypes());
+                        log.debug("Post {} has {} media files attached for report {}", 
+                            report.getContentId(), post.getMediaUrls().size(), report.getId());
+                    }
+                    
                     // Safely access post user - might be lazy loaded
                     try {
                         if (post.getUser() != null) {
@@ -141,16 +173,23 @@ public class ContentModerationService {
                             String authorEmail = post.getUser().getEmail();
                             builder.contentAuthor(authorName != null && !authorName.isEmpty() ? authorName : authorEmail);
                             builder.contentAuthorId(post.getUser().getId());
+                            log.debug("Set contentAuthor for report {}: {}", report.getId(), 
+                                authorName != null && !authorName.isEmpty() ? authorName : authorEmail);
+                        } else {
+                            log.warn("Post {} has null user for report {}", report.getContentId(), report.getId());
                         }
                     } catch (Exception e) {
-                        log.debug("Could not access post author for report {}: {}", report.getId(), e.getMessage());
+                        log.warn("Could not access post author for report {}: {}", report.getId(), e.getMessage(), e);
                     }
                     builder.isVisible(true); // Post visibility logic can be enhanced later
+                } else {
+                    log.warn("Post {} not found for report {}", report.getContentId(), report.getId());
+                    builder.contentPreview("(Post has been deleted)");
                 }
             }
             // Add other content types (COMMENT, PRAYER, etc.) as needed
         } catch (Exception e) {
-            log.warn("Error fetching content details for report {}: {}", report.getId(), e.getMessage());
+            log.error("Error fetching content details for report {}: {}", report.getId(), e.getMessage(), e);
         }
 
         return builder.build();
