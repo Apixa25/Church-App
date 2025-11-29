@@ -15,6 +15,8 @@ const FamilyGroupCreateForm: React.FC<FamilyGroupCreateFormProps> = ({ onSuccess
   const [nameType, setNameType] = useState<'text' | 'emoji'>('text');
   const [textName, setTextName] = useState('');
   const [emojiName, setEmojiName] = useState('');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,6 +67,38 @@ const FamilyGroupCreateForm: React.FC<FamilyGroupCreateFormProps> = ({ onSuccess
       // Fallback: just remove last character
       return prev.slice(0, -1);
     });
+  };
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select an image file');
+        return;
+      }
+      
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image size must be less than 5MB');
+        return;
+      }
+
+      setLogoFile(file);
+      setError(null); // Clear any previous errors
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -140,6 +174,11 @@ const FamilyGroupCreateForm: React.FC<FamilyGroupCreateFormProps> = ({ onSuccess
       formData.append('slug', slug);
       formData.append('type', 'FAMILY');
       formData.append('description', `Family group created by user`);
+      
+      // Append logo file if selected
+      if (logoFile) {
+        formData.append('logo', logoFile);
+      }
 
       const response = await axios.post(
         `${API_BASE_URL}/organizations/family-group`,
@@ -160,6 +199,8 @@ const FamilyGroupCreateForm: React.FC<FamilyGroupCreateFormProps> = ({ onSuccess
       setTextName('');
       setEmojiName('');
       setNameType('text');
+      setLogoFile(null);
+      setLogoPreview(null);
     } catch (err: any) {
       console.error('Error creating family group:', err);
       if (err.response?.status === 403) {
@@ -299,6 +340,37 @@ const FamilyGroupCreateForm: React.FC<FamilyGroupCreateFormProps> = ({ onSuccess
             </FormGroup>
           </>
         )}
+
+        <FormGroup>
+          <Label htmlFor="logo">Organization Logo / Profile Picture</Label>
+          <LogoUploadContainer>
+            {logoPreview ? (
+              <LogoPreviewWrapper>
+                <LogoPreview src={logoPreview} alt="Logo preview" />
+                <RemoveLogoButton type="button" onClick={handleRemoveLogo} disabled={isSubmitting}>
+                  ✕
+                </RemoveLogoButton>
+              </LogoPreviewWrapper>
+            ) : (
+              <LogoUploadArea>
+                <LogoUploadInput
+                  type="file"
+                  id="logo"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  disabled={isSubmitting}
+                />
+                <LogoUploadLabel htmlFor="logo">
+                  <UploadIcon>📷</UploadIcon>
+                  <span>Click to upload logo</span>
+                  <span style={{ fontSize: '12px', color: '#666' }}>
+                    PNG, JPG, GIF up to 5MB
+                  </span>
+                </LogoUploadLabel>
+              </LogoUploadArea>
+            )}
+          </LogoUploadContainer>
+        </FormGroup>
 
         <ButtonGroup>
           {onCancel && (
@@ -609,6 +681,102 @@ const ErrorMessage = styled.div`
   color: var(--error, #c33);
   font-size: 14px;
   margin-bottom: 16px;
+`;
+
+const LogoUploadContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const LogoUploadArea = styled.div`
+  position: relative;
+  border: 2px dashed var(--border-primary, #ddd);
+  border-radius: var(--border-radius-md, 4px);
+  padding: 24px;
+  text-align: center;
+  background: var(--bg-secondary, #f9f9f9);
+  transition: all 0.2s;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--accent-primary, #4a90e2);
+    background: var(--bg-tertiary, #f0f0f0);
+  }
+`;
+
+const LogoUploadInput = styled.input`
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+`;
+
+const LogoUploadLabel = styled.label`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text-primary, #333);
+
+  span {
+    font-size: 14px;
+    color: var(--text-secondary, #666);
+  }
+`;
+
+const UploadIcon = styled.span`
+  font-size: 32px;
+  line-height: 1;
+`;
+
+const LogoPreviewWrapper = styled.div`
+  position: relative;
+  display: inline-block;
+  max-width: 200px;
+  border-radius: var(--border-radius-md, 4px);
+  overflow: hidden;
+  border: 1px solid var(--border-primary, #ddd);
+`;
+
+const LogoPreview = styled.img`
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 200px;
+  object-fit: contain;
+`;
+
+const RemoveLogoButton = styled.button`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.9);
+    transform: scale(1.1);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 `;
 
 export default FamilyGroupCreateForm;
