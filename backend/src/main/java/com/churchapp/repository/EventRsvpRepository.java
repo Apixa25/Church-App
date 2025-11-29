@@ -7,6 +7,7 @@ import com.churchapp.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -85,7 +86,9 @@ public interface EventRsvpRepository extends JpaRepository<EventRsvp, EventRsvpI
     );
     
     // Delete RSVPs for a specific event (cleanup)
-    void deleteByEventId(UUID eventId);
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM EventRsvp r WHERE r.event.id = :eventId")
+    void deleteByEventId(@Param("eventId") UUID eventId);
     
     // Delete user's RSVP for a specific event
     void deleteByUserIdAndEventId(UUID userId, UUID eventId);
