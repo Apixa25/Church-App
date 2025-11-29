@@ -570,6 +570,18 @@
   transform: none !important;
 }
 
+.action-btn.ban {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--error);
+  border-color: var(--error);
+}
+
+.action-btn.ban:hover:not(:disabled) {
+  background: var(--error);
+  color: white;
+  box-shadow: 0 0 12px var(--error-glow);
+}
+
 .action-spinner {
   width: 14px;
   height: 14px;
@@ -669,15 +681,196 @@
   border: 1px solid var(--error);
 }
 
-.user-info {
+.banned-user-item .user-info {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  align-items: center;
+  flex: 1;
+}
+
+.banned-user-item .user-details {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
+.user-info {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  align-items: center;
+  flex: 1;
+}
+
+.user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border-primary);
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.user-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 15px;
+}
+
+.user-email {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.user-meta {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.status-badge {
+  padding: 2px 8px;
+  border-radius: var(--border-radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.active {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+
+.status-badge.banned {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--error);
+  border: 1px solid var(--error);
+}
+
+.status-badge.inactive {
+  background: rgba(156, 163, 175, 0.2);
+  color: var(--text-secondary);
+  border: 1px solid var(--text-secondary);
+}
+
+.warning-badge {
+  padding: 2px 8px;
+  border-radius: var(--border-radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--warning);
+  border: 1px solid var(--warning);
+}
+
 .ban-reason {
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+.ban-date {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.user-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-primary);
+  margin-bottom: 8px;
+}
+
+.users-list {
+  margin-top: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.search-results {
+  margin-top: 16px;
+}
+
+.search-results h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.report-item-small {
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-primary);
+  margin-bottom: 8px;
+}
+
+.report-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.report-type {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.report-date {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.report-item-content {
+  margin-bottom: 8px;
+}
+
+.content-preview {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.report-item-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn-small {
+  padding: 6px 12px;
+  font-size: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.action-btn-small:hover {
+  border-color: var(--accent-primary);
+  background: var(--bg-elevated);
+  color: var(--accent-primary);
+}
+
+.info-text {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .unban-btn {

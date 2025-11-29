@@ -8,8 +8,11 @@ import {
   unbanUser,
   warnUser,
   getAuditLogs,
+  getUsers,
+  getReportedContent as getContentReports,
   PageResponse,
-  AuditLog
+  AuditLog,
+  User
 } from '../services/adminApi';
 import './AdminModeration.css';
 
@@ -22,6 +25,17 @@ const AdminModeration: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string>('');
+  
+  // User Management state
+  const [users, setUsers] = useState<User[]>([]);
+  const [bannedUsers, setBannedUsers] = useState<User[]>([]);
+  const [userSearchQuery, setUserSearchQuery] = useState<string>('');
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  
+  // Content Moderation state
+  const [contentSearchQuery, setContentSearchQuery] = useState<string>('');
+  const [contentTypeFilter, setContentTypeFilter] = useState<string>('all');
+  const [contentStats, setContentStats] = useState<any>(null);
 
   useEffect(() => {
     loadData();
@@ -45,6 +59,34 @@ const AdminModeration: React.FC = () => {
         // Default to showing only PENDING reports
         const reportsResponse = await getReportedContent({ page: 0, size: 50, status: 'PENDING' });
         setReportedContent(reportsResponse.content || []);
+      } else if (activeTab === 'users') {
+        // Load banned users
+        const bannedResponse = await getUsers({ page: 0, size: 50, banned: true });
+        setBannedUsers(bannedResponse.content || []);
+        
+        // Load all users (for search)
+        if (userSearchQuery) {
+          const usersResponse = await getUsers({ page: 0, size: 50, search: userSearchQuery });
+          setUsers(usersResponse.content || []);
+        } else {
+          setUsers([]);
+        }
+      } else if (activeTab === 'content') {
+        // Load content statistics from moderation stats
+        setContentStats(moderationStats);
+        
+        // Load content reports if searching
+        if (contentSearchQuery || contentTypeFilter !== 'all') {
+          const contentType = contentTypeFilter !== 'all' ? contentTypeFilter.toUpperCase() : undefined;
+          const contentResponse = await getContentReports({ 
+            page: 0, 
+            size: 50, 
+            contentType 
+          });
+          setReportedContent(contentResponse.content || []);
+        } else {
+          setReportedContent([]);
+        }
       } else if (activeTab === 'stats') {
         const logResponse = await getAuditLogs({ page: 0, size: 50 });
         setModerationLog(logResponse.content || []);
@@ -96,8 +138,23 @@ const AdminModeration: React.FC = () => {
         await warnUser(userId, reason || 'No reason provided', reason);
       }
 
-      // Refresh data
-      loadData();
+      // Refresh data - reload stats and user lists
+      try {
+        const stats = await getModerationStats('30d');
+        setModerationStats(stats);
+        
+        if (activeTab === 'users') {
+          const bannedResponse = await getUsers({ page: 0, size: 50, banned: true });
+          setBannedUsers(bannedResponse.content || []);
+          
+          if (userSearchQuery) {
+            const usersResponse = await getUsers({ page: 0, size: 50, search: userSearchQuery });
+            setUsers(usersResponse.content || []);
+          }
+        }
+      } catch (refreshErr) {
+        console.error('Error refreshing data:', refreshErr);
+      }
     } catch (err: any) {
       console.error('Error performing user action:', err);
       setError('Failed to perform user action');
@@ -428,32 +485,133 @@ const AdminModeration: React.FC = () => {
                     type="text"
                     placeholder="Search users by name or email..."
                     className="user-search-input"
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        loadData();
+                      }
+                    }}
                   />
-                  <button className="search-btn">Search</button>
+                  <button 
+                    className="search-btn"
+                    onClick={() => loadData()}
+                  >
+                    Search
+                  </button>
                 </div>
-              </div>
-
-              <div className="tool-card">
-                <h3>🚫 Banned Users</h3>
-                <div className="banned-users-list">
-                  <div className="banned-user-item">
-                    <div className="user-info">
-                      <span className="user-name">John Doe</span>
-                      <span className="ban-reason">Violated community guidelines</span>
-                    </div>
-                    <div className="user-actions">
-                      <button className="unban-btn">Unban User</button>
+                {users.length > 0 && (
+                  <div className="search-results">
+                    <h4>Search Results ({users.length})</h4>
+                    <div className="users-list">
+                      {users.map((user) => (
+                        <div key={user.id} className="user-item">
+                          <div className="user-info">
+                            {user.profilePicUrl && (
+                              <img src={user.profilePicUrl} alt={user.name} className="user-avatar" />
+                            )}
+                            <div className="user-details">
+                              <span className="user-name">{user.name}</span>
+                              <span className="user-email">{user.email}</span>
+                              <div className="user-meta">
+                                <span className={`status-badge ${user.isBanned ? 'banned' : user.isActive ? 'active' : 'inactive'}`}>
+                                  {user.isBanned ? '🚫 Banned' : user.isActive ? '✓ Active' : '⚠️ Inactive'}
+                                </span>
+                                {user.warningCount > 0 && (
+                                  <span className="warning-badge">⚠️ {user.warningCount} warning{user.warningCount !== 1 ? 's' : ''}</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="user-actions">
+                            {user.isBanned ? (
+                              <button
+                                className="action-btn unban"
+                                onClick={() => handleUserAction(user.id, 'unban', 'Unbanned by admin')}
+                                disabled={actionLoading === user.id}
+                              >
+                                {actionLoading === user.id ? '...' : 'Unban'}
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  className="action-btn warn"
+                                  onClick={() => {
+                                    const reason = prompt('Warning reason:');
+                                    if (reason) {
+                                      handleUserAction(user.id, 'warn', reason);
+                                    }
+                                  }}
+                                  disabled={actionLoading === user.id}
+                                >
+                                  Warn
+                                </button>
+                                <button
+                                  className="action-btn ban"
+                                  onClick={() => {
+                                    const reason = prompt('Ban reason:');
+                                    if (reason) {
+                                      handleUserAction(user.id, 'ban', reason);
+                                    }
+                                  }}
+                                  disabled={actionLoading === user.id}
+                                >
+                                  Ban
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
+                )}
+              </div>
+
+              <div className="tool-card">
+                <h3>🚫 Banned Users ({bannedUsers.length})</h3>
+                <div className="banned-users-list">
+                  {bannedUsers.length === 0 ? (
+                    <div className="empty-state">
+                      <p>No banned users.</p>
+                    </div>
+                  ) : (
+                    bannedUsers.map((user) => (
+                      <div key={user.id} className="banned-user-item">
+                        <div className="user-info">
+                          {user.profilePicUrl && (
+                            <img src={user.profilePicUrl} alt={user.name} className="user-avatar" />
+                          )}
+                          <div className="user-details">
+                            <span className="user-name">{user.name}</span>
+                            <span className="user-email">{user.email}</span>
+                            {user.banReason && (
+                              <span className="ban-reason">{user.banReason}</span>
+                            )}
+                            {user.bannedAt && (
+                              <span className="ban-date">Banned: {new Date(user.bannedAt).toLocaleDateString()}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="user-actions">
+                          <button
+                            className="unban-btn"
+                            onClick={() => handleUserAction(user.id, 'unban', 'Unbanned by admin')}
+                            disabled={actionLoading === user.id}
+                          >
+                            {actionLoading === user.id ? '...' : 'Unban User'}
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
               <div className="tool-card">
-                <h3>📧 Bulk Actions</h3>
+                <h3>📧 Quick Actions</h3>
                 <div className="bulk-actions">
-                  <button className="bulk-btn warn">Warn Selected Users</button>
-                  <button className="bulk-btn suspend">Suspend Accounts</button>
-                  <button className="bulk-btn notify">Send Notification</button>
+                  <p className="info-text">Use the search above to find users, then use individual action buttons to manage them.</p>
                 </div>
               </div>
             </div>
@@ -470,21 +628,73 @@ const AdminModeration: React.FC = () => {
 
             <div className="content-tools">
               <div className="tool-card">
-                <h3>🔍 Content Search</h3>
+                <h3>🔍 Content Search & Filter</h3>
                 <div className="content-filters">
-                  <select className="filter-select">
-                    <option>All Content</option>
-                    <option>Posts</option>
-                    <option>Comments</option>
-                    <option>Media</option>
+                  <select 
+                    className="filter-select"
+                    value={contentTypeFilter}
+                    onChange={(e) => {
+                      setContentTypeFilter(e.target.value);
+                      loadData();
+                    }}
+                  >
+                    <option value="all">All Content</option>
+                    <option value="post">Posts</option>
+                    <option value="comment">Comments</option>
+                    <option value="user">Users</option>
                   </select>
                   <input
                     type="text"
                     placeholder="Search content..."
                     className="content-search-input"
+                    value={contentSearchQuery}
+                    onChange={(e) => setContentSearchQuery(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        loadData();
+                      }
+                    }}
                   />
-                  <button className="search-btn">Search</button>
+                  <button 
+                    className="search-btn"
+                    onClick={() => loadData()}
+                  >
+                    Search
+                  </button>
                 </div>
+                {reportedContent.length > 0 && (
+                  <div className="search-results">
+                    <h4>Found {reportedContent.length} report(s)</h4>
+                    <div className="reports-list">
+                      {reportedContent.slice(0, 10).map((report) => (
+                        <div key={report.id} className="report-item-small">
+                          <div className="report-item-header">
+                            <span className="report-type">{report.contentType}</span>
+                            <span className="report-date">
+                              {new Date(report.reportedAt || report.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div className="report-item-content">
+                            <span className="content-preview">
+                              {report.contentPreview?.substring(0, 100) || 'No preview available'}...
+                            </span>
+                          </div>
+                          <div className="report-item-actions">
+                            <button
+                              className="action-btn-small"
+                              onClick={() => {
+                                setActiveTab('reports');
+                                // Scroll to this report
+                              }}
+                            >
+                              View Details
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="tool-card">
@@ -492,22 +702,25 @@ const AdminModeration: React.FC = () => {
                 <div className="auto-mod-settings">
                   <div className="setting-item">
                     <label>
-                      <input type="checkbox" defaultChecked />
-                      Filter inappropriate language
+                      <input type="checkbox" defaultChecked disabled />
+                      Filter inappropriate language (Coming soon)
                     </label>
                   </div>
                   <div className="setting-item">
                     <label>
-                      <input type="checkbox" defaultChecked />
-                      Block spam content
+                      <input type="checkbox" defaultChecked disabled />
+                      Block spam content (Coming soon)
                     </label>
                   </div>
                   <div className="setting-item">
                     <label>
-                      <input type="checkbox" />
-                      Require approval for new users
+                      <input type="checkbox" disabled />
+                      Require approval for new users (Coming soon)
                     </label>
                   </div>
+                  <p className="info-text" style={{ marginTop: '12px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    Auto-moderation features are planned for a future update.
+                  </p>
                 </div>
               </div>
 
@@ -515,16 +728,20 @@ const AdminModeration: React.FC = () => {
                 <h3>📊 Content Statistics</h3>
                 <div className="content-stats">
                   <div className="stat-item">
-                    <span className="stat-number">1,247</span>
-                    <span className="stat-label">Posts Today</span>
+                    <span className="stat-number">{moderationStats?.activeReports || 0}</span>
+                    <span className="stat-label">Active Reports</span>
                   </div>
                   <div className="stat-item">
-                    <span className="stat-number">89</span>
-                    <span className="stat-label">Flagged Content</span>
+                    <span className="stat-number">{moderationStats?.moderatedToday || 0}</span>
+                    <span className="stat-label">Moderated Today</span>
                   </div>
                   <div className="stat-item">
-                    <span className="stat-number">12</span>
-                    <span className="stat-label">Removed Today</span>
+                    <span className="stat-number">{moderationStats?.contentRemoved || 0}</span>
+                    <span className="stat-label">Removed Total</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-number">{moderationStats?.contentApproved || 0}</span>
+                    <span className="stat-label">Approved Total</span>
                   </div>
                 </div>
               </div>
