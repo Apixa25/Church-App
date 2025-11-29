@@ -302,17 +302,31 @@ const AdminModeration: React.FC = () => {
                         )}
                       </button>
 
-                      <button
-                        className="action-btn hide"
-                        onClick={() => handleModerateContent(report, 'hide', 'Content hidden for review')}
-                        disabled={actionLoading === report.id}
-                      >
-                        {actionLoading === report.id ? (
-                          <div className="action-spinner"></div>
-                        ) : (
-                          <>🙈 Hide</>
-                        )}
-                      </button>
+                      {report.isHidden ? (
+                        <button
+                          className="action-btn unhide"
+                          onClick={() => handleModerateContent(report, 'unhide', 'Content unhidden after review')}
+                          disabled={actionLoading === report.id}
+                        >
+                          {actionLoading === report.id ? (
+                            <div className="action-spinner"></div>
+                          ) : (
+                            <>👁️ Unhide</>
+                          )}
+                        </button>
+                      ) : (
+                        <button
+                          className="action-btn hide"
+                          onClick={() => handleModerateContent(report, 'hide', 'Content hidden for review')}
+                          disabled={actionLoading === report.id}
+                        >
+                          {actionLoading === report.id ? (
+                            <div className="action-spinner"></div>
+                          ) : (
+                            <>🙈 Hide</>
+                          )}
+                        </button>
+                      )}
 
                       <button
                         className="action-btn warn"
