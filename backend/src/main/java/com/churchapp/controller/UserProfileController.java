@@ -13,6 +13,7 @@ import com.churchapp.service.FollowerAnalyticsService;
 import com.churchapp.service.UserBlockService;
 import com.churchapp.service.UserFollowService;
 import com.churchapp.service.UserProfileService;
+import com.churchapp.service.UserManagementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +44,7 @@ public class UserProfileController {
     private final UserBlockService userBlockService;
     private final ProfileAnalyticsService profileAnalyticsService;
     private final FollowerAnalyticsService followerAnalyticsService;
+    private final UserManagementService userManagementService;
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
     
@@ -532,6 +534,36 @@ public class UserProfileController {
             log.error("Error fetching follower growth: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to fetch follower growth");
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    /**
+     * Get warnings for current user
+     * GET /api/profile/me/warnings
+     */
+    @GetMapping("/me/warnings")
+    public ResponseEntity<?> getMyWarnings(@AuthenticationPrincipal User user) {
+        try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            List<com.churchapp.dto.UserWarningResponse> warnings = userManagementService.getUserWarnings(currentProfile.getUserId());
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("warnings", warnings);
+            response.put("warningCount", warnings.size());
+            
+            // Also include warning count from user entity for quick access
+            com.churchapp.entity.User userEntity = userRepository.findById(currentProfile.getUserId())
+                .orElse(null);
+            if (userEntity != null) {
+                response.put("totalWarningCount", userEntity.getWarningCount());
+            }
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error fetching user warnings: {}", e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to fetch warnings");
             return ResponseEntity.badRequest().body(error);
         }
     }

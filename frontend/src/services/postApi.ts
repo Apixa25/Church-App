@@ -347,6 +347,11 @@ export const invalidateCommentsCache = (postId: string): void => {
 
 // ========== USER PROFILE OPERATIONS ==========
 
+export const getMyWarnings = async (): Promise<{ warnings: any[]; warningCount: number; totalWarningCount: number }> => {
+  const response = await api.get('/profile/me/warnings');
+  return response.data;
+};
+
 export const getUserProfile = async (userId: string): Promise<any> => {
   const response = await api.get(`/users/${userId}`);
   return response.data;

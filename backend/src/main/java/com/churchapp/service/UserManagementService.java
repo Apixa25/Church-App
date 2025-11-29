@@ -166,6 +166,30 @@ public class UserManagementService {
                 userId, user.getWarningCount(), reason);
     }
 
+    /**
+     * Get all warnings for a user
+     */
+    @Transactional(readOnly = true)
+    public List<com.churchapp.dto.UserWarningResponse> getUserWarnings(UUID userId) {
+        List<UserWarning> warnings = userWarningRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        return warnings.stream().map(warning -> {
+            String moderatorName = warning.getWarnedBy() != null ? 
+                (warning.getWarnedBy().getName() != null && !warning.getWarnedBy().getName().isEmpty() ? 
+                    warning.getWarnedBy().getName() : warning.getWarnedBy().getEmail()) : 
+                "System";
+            
+            return com.churchapp.dto.UserWarningResponse.builder()
+                .id(warning.getId())
+                .reason(warning.getReason())
+                .message(warning.getMessage())
+                .contentType(warning.getContentType())
+                .contentId(warning.getContentId())
+                .moderatorName(moderatorName)
+                .createdAt(warning.getCreatedAt())
+                .build();
+        }).toList();
+    }
+
     @Transactional
     public void deleteUser(UUID userId) {
         User user = userRepository.findById(userId)

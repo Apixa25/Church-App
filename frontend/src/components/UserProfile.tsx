@@ -9,6 +9,8 @@ import { useAuth, User } from '../contexts/AuthContext';
 import PostCard from './PostCard';
 import { parseEventDate } from '../utils/dateUtils';
 import OrganizationSelector from './OrganizationSelector';
+import WarningBanner from './WarningBanner';
+import WarningsSection from './WarningsSection';
 import './UserProfile.css';
 
 interface UserProfileProps {
@@ -42,6 +44,9 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
   const [heartsCount, setHeartsCount] = useState(0);
   const [isLikedByCurrentUser, setIsLikedByCurrentUser] = useState(false);
   const [heartLoading, setHeartLoading] = useState(false);
+
+  // Warnings state
+  const [showWarningsSection, setShowWarningsSection] = useState(false);
 
   const bookmarksPageRef = useRef(0);
 
@@ -617,6 +622,20 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
 
         {activeTab === 'about' && (
           <div className="about-section">
+            {/* Warning Banner - only show on own profile */}
+            {isOwnProfile && (
+              <WarningBanner onViewWarnings={() => setShowWarningsSection(true)} />
+            )}
+
+            {/* Warnings Section Modal */}
+            {showWarningsSection && isOwnProfile && (
+              <div className="modal-overlay" onClick={() => setShowWarningsSection(false)}>
+                <div className="modal-content warnings-modal" onClick={(e) => e.stopPropagation()}>
+                  <WarningsSection onClose={() => setShowWarningsSection(false)} />
+                </div>
+              </div>
+            )}
+
             <div className="about-card">
               <h3>About {profileUser.name}</h3>
 
