@@ -22,6 +22,18 @@ interface Organization {
   stripeConnectAccountId?: string;
 }
 
+interface GroupData {
+  id: string;
+  name: string;
+  description?: string;
+  type: string;
+  memberCount: number;
+  createdAt: string;
+  creatorName?: string;
+  creatorEmail?: string;
+  tags?: string[];
+}
+
 interface StripeAccountStatus {
   hasAccount: boolean;
   accountId?: string;
@@ -53,6 +65,7 @@ interface OrganizationMetrics {
 
 const AdminOrganizationManagement: React.FC = () => {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [groups, setGroups] = useState<GroupData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -61,16 +74,34 @@ const AdminOrganizationManagement: React.FC = () => {
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [deletingOrgId, setDeletingOrgId] = useState<string | null>(null);
+  const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<Record<string, OrganizationMetrics>>({});
   const [loadingMetrics, setLoadingMetrics] = useState<Record<string, boolean>>({});
   const [updatingLimitId, setUpdatingLimitId] = useState<string | null>(null);
   const [stripeConnectOrg, setStripeConnectOrg] = useState<Organization | null>(null);
   const [stripeStatuses, setStripeStatuses] = useState<Record<string, StripeAccountStatus>>({});
   const [membersOrg, setMembersOrg] = useState<Organization | null>(null);
+  const [showingGroups, setShowingGroups] = useState(false);
 
   useEffect(() => {
-    fetchOrganizations();
-  }, []);
+    if (filterType === 'GROUPS') {
+      setShowingGroups(true);
+      fetchGroups();
+    } else {
+      setShowingGroups(false);
+      fetchOrganizations();
+    }
+  }, [filterType]);
+
+  // Re-fetch groups when search term changes (with debounce)
+  useEffect(() => {
+    if (showingGroups) {
+      const timer = setTimeout(() => {
+        fetchGroups();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [searchTerm, showingGroups]);
 
   useEffect(() => {
     // Fetch metrics and Stripe status for all organizations after they're loaded
@@ -121,6 +152,63 @@ const AdminOrganizationManagement: React.FC = () => {
       setError('Failed to load organizations');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchGroups = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const token = localStorage.getItem('authToken');
+      const response = await axios.get(`${API_BASE_URL}/groups/admin/all`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+        params: { size: 100, search: searchTerm || undefined }
+      });
+
+      // Handle paginated response
+      const groupsData = response.data.content || response.data;
+      
+      // Sort by created date (newest first)
+      const sorted = groupsData.sort((a: GroupData, b: GroupData) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+      setGroups(sorted);
+    } catch (err: any) {
+      console.error('Error fetching groups:', err);
+      setError('Failed to load groups');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteGroup = async (groupId: string, groupName: string) => {
+    const confirmMessage = `Are you sure you want to delete the group "${groupName}"?\n\n` +
+      `This will:\n` +
+      `• Remove all members from the group\n` +
+      `• Delete all group posts and content\n\n` +
+      `This action CANNOT be undone!`;
+    
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+    
+    try {
+      setDeletingGroupId(groupId);
+      setError(null);
+      const token = localStorage.getItem('authToken');
+      
+      await axios.delete(`${API_BASE_URL}/groups/admin/${groupId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      // Remove from list
+      setGroups(prev => prev.filter(g => g.id !== groupId));
+    } catch (err: any) {
+      console.error('Error deleting group:', err);
+      setError(err.response?.data?.message || 'Failed to delete group');
+    } finally {
+      setDeletingGroupId(null);
     }
   };
 
@@ -339,8 +427,16 @@ const AdminOrganizationManagement: React.FC = () => {
   const filteredOrganizations = organizations.filter(org => {
     const matchesSearch = org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          org.slug.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === 'ALL' || org.type === filterType;
+    const matchesType = filterType === 'ALL' || filterType === 'GROUPS' || org.type === filterType;
     return matchesSearch && matchesType;
+  });
+
+  const filteredGroups = groups.filter(group => {
+    if (!searchTerm) return true;
+    const matchesSearch = group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (group.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (group.creatorName || '').toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
   });
 
   const formatDate = (dateString: string) => {
@@ -371,6 +467,16 @@ const AdminOrganizationManagement: React.FC = () => {
       case 'SUSPENDED': return '#ef4444'; // --error
       case 'CANCELLED': return '#8a8a9c'; // --text-tertiary
       default: return '#8a8a9c'; // --text-tertiary
+    }
+  };
+
+  const getGroupTypeColor = (type: string) => {
+    switch (type) {
+      case 'PUBLIC': return '#10b981'; // Green
+      case 'ORG_PRIVATE': return '#8b5cf6'; // Purple
+      case 'CROSS_ORG': return '#3b82f6'; // Blue
+      case 'INVITE_ONLY': return '#f59e0b'; // Orange
+      default: return '#8a8a9c';
     }
   };
 
@@ -450,20 +556,92 @@ const AdminOrganizationManagement: React.FC = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
         />
         <FilterSelect value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-          <option value="ALL">All Types</option>
+          <option value="ALL">All Organizations</option>
           <option value="CHURCH">⛪ Churches</option>
           <option value="MINISTRY">🙏 Ministries</option>
           <option value="NONPROFIT">💝 Nonprofits</option>
           <option value="FAMILY">🏠 Families</option>
           <option value="GENERAL">🌐 General</option>
           <option value="GLOBAL">🌍 Global</option>
+          <option value="GROUPS">👥 Groups</option>
         </FilterSelect>
       </Controls>
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
 
       {isLoading ? (
-        <LoadingMessage>Loading organizations...</LoadingMessage>
+        <LoadingMessage>Loading {showingGroups ? 'groups' : 'organizations'}...</LoadingMessage>
+      ) : showingGroups ? (
+        // Groups View
+        filteredGroups.length === 0 ? (
+          <EmptyState>
+            {searchTerm ? 'No groups match your search' : 'No groups yet.'}
+          </EmptyState>
+        ) : (
+          <>
+            <Table>
+              <thead>
+                <tr>
+                  <Th>Name</Th>
+                  <Th>Type</Th>
+                  <Th>Creator</Th>
+                  <Th>Members</Th>
+                  <Th>Tags</Th>
+                  <Th>Created</Th>
+                  <Th>Actions</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredGroups.map(group => (
+                  <Tr key={group.id}>
+                    <Td>
+                      <OrgName>{group.name}</OrgName>
+                      {group.description && (
+                        <GroupDescription>{group.description.substring(0, 50)}{group.description.length > 50 ? '...' : ''}</GroupDescription>
+                      )}
+                    </Td>
+                    <Td>
+                      <Badge color={getGroupTypeColor(group.type)}>{group.type}</Badge>
+                    </Td>
+                    <Td>
+                      <CreatorInfo>
+                        <CreatorName>{group.creatorName || 'Unknown'}</CreatorName>
+                        <CreatorEmail>{group.creatorEmail || ''}</CreatorEmail>
+                      </CreatorInfo>
+                    </Td>
+                    <Td>
+                      <MemberCount>{group.memberCount}</MemberCount>
+                    </Td>
+                    <Td>
+                      <TagsContainer>
+                        {group.tags?.slice(0, 3).map((tag, idx) => (
+                          <Tag key={idx}>{tag}</Tag>
+                        ))}
+                        {group.tags && group.tags.length > 3 && (
+                          <Tag>+{group.tags.length - 3}</Tag>
+                        )}
+                      </TagsContainer>
+                    </Td>
+                    <Td>{formatDate(group.createdAt)}</Td>
+                    <Td>
+                      <ActionsGroup>
+                        <DeleteButton 
+                          onClick={() => handleDeleteGroup(group.id, group.name)}
+                          disabled={deletingGroupId === group.id}
+                        >
+                          {deletingGroupId === group.id ? 'Deleting...' : '🗑️ Delete'}
+                        </DeleteButton>
+                      </ActionsGroup>
+                    </Td>
+                  </Tr>
+                ))}
+              </tbody>
+            </Table>
+            <Stats>
+              Showing {filteredGroups.length} of {groups.length} group{groups.length !== 1 ? 's' : ''}
+            </Stats>
+          </>
+        )
       ) : filteredOrganizations.length === 0 ? (
         <EmptyState>
           {searchTerm || filterType !== 'ALL'
@@ -1145,6 +1323,47 @@ const MembersButton = styled.button`
   &:active {
     transform: translateY(0);
   }
+`;
+
+// Group-specific styled components
+const GroupDescription = styled.div`
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+`;
+
+const CreatorInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`;
+
+const CreatorName = styled.span`
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 13px;
+`;
+
+const CreatorEmail = styled.span`
+  font-size: 11px;
+  color: var(--text-tertiary);
+`;
+
+const TagsContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+`;
+
+const Tag = styled.span`
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 500;
+  border: 1px solid var(--border-primary);
 `;
 
 export default AdminOrganizationManagement;

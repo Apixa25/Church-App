@@ -313,4 +313,77 @@ public class GroupService {
     public Page<Group> findGroupsByTags(List<String> tags, Pageable pageable) {
         return groupRepository.findByTagsIn(tags, pageable);
     }
+
+    // ========================================================================
+    // ADMIN OPERATIONS
+    // ========================================================================
+
+    /**
+     * Get all groups for admin view
+     */
+    public Page<Group> getAllGroupsForAdmin(Pageable pageable) {
+        return groupRepository.findAllActiveGroups(pageable);
+    }
+
+    /**
+     * Search groups for admin
+     */
+    public Page<Group> searchGroupsForAdmin(String searchTerm, Pageable pageable) {
+        return groupRepository.searchGroupsForAdmin(searchTerm, pageable);
+    }
+
+    /**
+     * Admin delete group - PLATFORM_ADMIN can delete any group
+     * Also allows group creator to delete their own group
+     */
+    public void adminDeleteGroup(UUID groupId, UUID requestingUserId) {
+        Group group = getGroupById(groupId);
+        User requestingUser = userRepository.findById(requestingUserId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Check authorization: must be PLATFORM_ADMIN or the group creator
+        boolean isPlatformAdmin = requestingUser.getRole() == com.churchapp.entity.User.Role.PLATFORM_ADMIN;
+        boolean isCreator = group.getCreatedByUser() != null && 
+                           group.getCreatedByUser().getId().equals(requestingUserId);
+
+        if (!isPlatformAdmin && !isCreator) {
+            throw new RuntimeException("Only Platform Admins or the group creator can delete a group");
+        }
+
+        // Soft delete
+        group.setDeletedAt(LocalDateTime.now());
+        groupRepository.save(group);
+        
+        log.info("Group {} deleted by {} (isPlatformAdmin: {}, isCreator: {})", 
+            groupId, requestingUserId, isPlatformAdmin, isCreator);
+    }
+
+    /**
+     * Hard delete group - PLATFORM_ADMIN only, permanently removes the group
+     */
+    public void hardDeleteGroup(UUID groupId, UUID requestingUserId) {
+        Group group = getGroupById(groupId);
+        User requestingUser = userRepository.findById(requestingUserId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Only PLATFORM_ADMIN can hard delete
+        if (requestingUser.getRole() != com.churchapp.entity.User.Role.PLATFORM_ADMIN) {
+            throw new RuntimeException("Only Platform Admins can permanently delete a group");
+        }
+
+        // Delete all memberships first
+        membershipRepository.deleteByGroupId(groupId);
+        
+        // Then delete the group
+        groupRepository.delete(group);
+        
+        log.info("Group {} permanently deleted by PLATFORM_ADMIN {}", groupId, requestingUserId);
+    }
+
+    /**
+     * Count total active groups
+     */
+    public Long countActiveGroups() {
+        return groupRepository.countActiveGroups();
+    }
 }

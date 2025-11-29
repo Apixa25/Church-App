@@ -320,4 +320,106 @@ public class GroupController {
         Long count = groupService.getMemberCount(groupId);
         return ResponseEntity.ok(count);
     }
+
+    // ========================================================================
+    // ADMIN OPERATIONS
+    // ========================================================================
+
+    /**
+     * Get all groups for admin view
+     * Requires PLATFORM_ADMIN role
+     */
+    @GetMapping("/admin/all")
+    public ResponseEntity<Page<GroupResponse>> getAllGroupsForAdmin(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(required = false) String search,
+            @AuthenticationPrincipal User userDetails) {
+
+        UUID userId = getUserId(userDetails);
+        com.churchapp.entity.User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Only PLATFORM_ADMIN can access this endpoint
+        if (user.getRole() != com.churchapp.entity.User.Role.PLATFORM_ADMIN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Group> groups;
+
+        if (search != null && !search.trim().isEmpty()) {
+            groups = groupService.searchGroupsForAdmin(search.trim(), pageable);
+        } else {
+            groups = groupService.getAllGroupsForAdmin(pageable);
+        }
+
+        Page<GroupResponse> response = groups.map(this::toAdminGroupResponse);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Admin delete group (soft delete)
+     * PLATFORM_ADMIN can delete any group, creators can delete their own groups
+     */
+    @DeleteMapping("/admin/{groupId}")
+    public ResponseEntity<Void> adminDeleteGroup(
+            @PathVariable UUID groupId,
+            @AuthenticationPrincipal User userDetails) {
+
+        UUID userId = getUserId(userDetails);
+        log.info("Admin delete request for group {} by user {}", groupId, userId);
+
+        groupService.adminDeleteGroup(groupId, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Permanently delete a group (hard delete)
+     * Requires PLATFORM_ADMIN role
+     */
+    @DeleteMapping("/admin/{groupId}/permanent")
+    public ResponseEntity<Void> permanentlyDeleteGroup(
+            @PathVariable UUID groupId,
+            @AuthenticationPrincipal User userDetails) {
+
+        UUID userId = getUserId(userDetails);
+        log.info("Permanent delete request for group {} by user {}", groupId, userId);
+
+        groupService.hardDeleteGroup(groupId, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Get group count for admin stats
+     */
+    @GetMapping("/admin/count")
+    public ResponseEntity<Long> getGroupCount(
+            @AuthenticationPrincipal User userDetails) {
+
+        UUID userId = getUserId(userDetails);
+        com.churchapp.entity.User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Only PLATFORM_ADMIN can access this endpoint
+        if (user.getRole() != com.churchapp.entity.User.Role.PLATFORM_ADMIN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        Long count = groupService.countActiveGroups();
+        return ResponseEntity.ok(count);
+    }
+
+    /**
+     * Helper method to convert Group to GroupResponse with admin details
+     */
+    private GroupResponse toAdminGroupResponse(Group group) {
+        GroupResponse response = GroupResponse.fromGroup(group);
+        // Add creator info for admin view
+        if (group.getCreatedByUser() != null) {
+            response.setCreatorName(group.getCreatedByUser().getName());
+            response.setCreatorEmail(group.getCreatedByUser().getEmail());
+        }
+        return response;
+    }
 }
