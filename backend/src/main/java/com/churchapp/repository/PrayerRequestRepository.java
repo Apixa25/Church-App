@@ -133,6 +133,11 @@ public interface PrayerRequestRepository extends JpaRepository<PrayerRequest, UU
            "pr.organization.id = :orgId AND pr.status = 'ACTIVE'")
     Long countActiveByOrganizationId(@Param("orgId") UUID orgId);
 
+    // Count answered prayers by organization
+    @Query("SELECT COUNT(pr) FROM PrayerRequest pr WHERE " +
+           "pr.organization.id = :orgId AND pr.status = 'ANSWERED'")
+    Long countAnsweredByOrganizationId(@Param("orgId") UUID orgId);
+
     // Search prayers within an organization
     @Query("SELECT pr FROM PrayerRequest pr WHERE " +
            "pr.organization.id = :orgId " +

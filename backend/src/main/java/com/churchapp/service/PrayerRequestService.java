@@ -493,10 +493,9 @@ public class PrayerRequestService {
      * Get answered prayer count for a specific organization
      */
     public long getAnsweredPrayerCountByOrganization(UUID organizationId) {
-        // Use count query if available, otherwise use page query
-        return prayerRequestRepository.findByOrganizationIdAndStatus(
-            organizationId, PrayerRequest.PrayerStatus.ANSWERED, PageRequest.of(0, Integer.MAX_VALUE)
-        ).getTotalElements();
+        // Use efficient COUNT query instead of page query
+        Long count = prayerRequestRepository.countAnsweredByOrganizationId(organizationId);
+        return count != null ? count : 0L;
     }
     
     /**
