@@ -12,6 +12,20 @@ const ChatRoom: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
+  // Format group name for direct messages - remove current user's name
+  const formatDirectMessageName = (group: ChatGroup | null): string => {
+    if (!group || group.type !== 'DIRECT_MESSAGE' || !user?.name) {
+      return group?.name || '';
+    }
+    
+    // Direct message names are formatted as "User1 & User2"
+    const names = group.name.split(' & ').map(n => n.trim());
+    const otherNames = names.filter(name => name !== user.name);
+    
+    // Return the other person's name(s), or fallback to original if something went wrong
+    return otherNames.length > 0 ? otherNames.join(' & ') : group.name;
+  };
+  
   const [group, setGroup] = useState<ChatGroup | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [members, setMembers] = useState<GroupMember[]>([]);
@@ -310,7 +324,7 @@ const ChatRoom: React.FC = () => {
               )}
             </div>
             <div className="group-details">
-              <h3>{group.name}</h3>
+              <h3>{formatDirectMessageName(group)}</h3>
               <p>{members.length} members</p>
             </div>
           </div>
@@ -390,7 +404,7 @@ const ChatRoom: React.FC = () => {
           <MessageInput
             onSendMessage={handleSendMessage}
             onTyping={handleTyping}
-            placeholder={`Message ${group.name}...`}
+            placeholder={`Message ${formatDirectMessageName(group)}...`}
             disabled={!group.canPost}
           />
 
