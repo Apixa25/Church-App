@@ -342,8 +342,7 @@ const ResourceForm: React.FC<ResourceFormProps> = ({
         <ul>
           <li>Perfect for quotes, verses, study guides, announcements, or YouTube videos</li>
           <li>YouTube videos will be embedded directly in the resource</li>
-          <li>Resources require approval before appearing publicly</li>
-          <li>Admin and moderator uploads are automatically approved</li>
+          <li>Resources are immediately available to the community</li>
           <li>You can upload files later using the file upload form</li>
         </ul>
       </div>
