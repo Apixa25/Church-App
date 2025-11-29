@@ -23,6 +23,12 @@ const EventNotifications: React.FC = () => {
     markAsRead(notification.id);
     if (notification.actionUrl) {
       navigate(notification.actionUrl);
+    } else if (notification.chatGroupId) {
+      // Fallback navigation for chat notifications
+      navigate(`/chat/${notification.chatGroupId}`);
+    } else if (notification.eventId) {
+      // Fallback navigation for event notifications
+      navigate('/calendar');
     }
     setShowNotifications(false);
   };
@@ -35,7 +41,8 @@ const EventNotifications: React.FC = () => {
     const iconMap = {
       event_created: '📅',
       event_updated: '✏️',
-      event_cancelled: '❌'
+      event_cancelled: '❌',
+      chat_message_received: '💬'
     };
     return iconMap[type] || '🔔';
   };
@@ -50,7 +57,7 @@ const EventNotifications: React.FC = () => {
             markAllAsRead();
           }
         }}
-        title="Event Notifications - Click to view event updates"
+        title="Event & Chat Notifications - Click to view updates and messages"
       >
         🔔
         {unreadCount > 0 && (
@@ -61,7 +68,7 @@ const EventNotifications: React.FC = () => {
       {showNotifications && (
         <div className="notification-dropdown">
           <div className="notification-header">
-            <h3>Event Notifications</h3>
+            <h3>Event & Chat Notifications</h3>
             <div className="notification-actions">
               {isConnected ? (
                 <span className="connection-status connected">🟢 Live</span>
@@ -96,8 +103,8 @@ const EventNotifications: React.FC = () => {
           <div className="notification-list">
             {notifications.length === 0 ? (
               <div className="no-notifications">
-                <p>No event notifications yet</p>
-                <small>You'll be notified of new events and updates</small>
+                <p>No notifications yet</p>
+                <small>You'll be notified of new events, updates, and messages</small>
               </div>
             ) : (
               notifications.map((notification) => (
