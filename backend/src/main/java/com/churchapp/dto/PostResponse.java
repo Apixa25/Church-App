@@ -40,6 +40,27 @@ public class PostResponse {
     private boolean isLikedByCurrentUser;
     private boolean isBookmarkedByCurrentUser;
 
+    // Organization and Group info for post labeling
+    private OrganizationInfo organization;
+    private GroupInfo group;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class OrganizationInfo {
+        private UUID id;
+        private String name;
+        private String type;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class GroupInfo {
+        private UUID id;
+        private String name;
+    }
+
     public static PostResponse fromEntity(Post post) {
         PostResponse response = new PostResponse();
         response.setId(post.getId());
@@ -69,6 +90,23 @@ public class PostResponse {
         response.setCommentsCount(post.getCommentsCount());
         response.setSharesCount(post.getSharesCount());
         response.setBookmarksCount(post.getBookmarksCount());
+
+        // Map organization info if present
+        if (post.getOrganization() != null) {
+            OrganizationInfo orgInfo = new OrganizationInfo();
+            orgInfo.setId(post.getOrganization().getId());
+            orgInfo.setName(post.getOrganization().getName());
+            orgInfo.setType(post.getOrganization().getType().toString());
+            response.setOrganization(orgInfo);
+        }
+
+        // Map group info if present
+        if (post.getGroup() != null) {
+            GroupInfo groupInfo = new GroupInfo();
+            groupInfo.setId(post.getGroup().getId());
+            groupInfo.setName(post.getGroup().getName());
+            response.setGroup(groupInfo);
+        }
 
         return response;
     }
