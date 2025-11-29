@@ -7,6 +7,8 @@ import { Post, PostSearchFilters, PostType } from '../types/Post';
 import { UserProfile } from '../types/Profile';
 import { PrayerRequest } from '../types/Prayer';
 import PostCard from './PostCard';
+import { useOrganization } from '../contexts/OrganizationContext';
+import { useGroup } from '../contexts/GroupContext';
 import './SearchComponent.css';
 
 interface SearchComponentProps {
@@ -23,38 +25,79 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
   onPostSelect
 }) => {
   const navigate = useNavigate();
+  const { searchOrganizations } = useOrganization();
+  const { searchGroups } = useGroup();
+  
   const [query, setQuery] = useState(initialQuery);
   // Store all search results (unfiltered)
   const [allSearchResults, setAllSearchResults] = useState<Post[]>([]);
   const [allProfileResults, setAllProfileResults] = useState<UserProfile[]>([]);
   const [allPrayerResults, setAllPrayerResults] = useState<PrayerRequest[]>([]);
+  const [allOrganizationResults, setAllOrganizationResults] = useState<any[]>([]);
+  const [allGroupResults, setAllGroupResults] = useState<any[]>([]);
   // Filtered results for display
   const [searchResults, setSearchResults] = useState<Post[]>([]);
   const [profileResults, setProfileResults] = useState<UserProfile[]>([]);
   const [prayerResults, setPrayerResults] = useState<PrayerRequest[]>([]);
+  const [organizationResults, setOrganizationResults] = useState<any[]>([]);
+  const [groupResults, setGroupResults] = useState<any[]>([]);
   const [trendingPosts, setTrendingPosts] = useState<Post[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [activeTab, setActiveTab] = useState<'search' | 'trending'>('search');
-  const [selectedContentType, setSelectedContentType] = useState<PostType | null | 'users'>(null);
+  const [selectedContentType, setSelectedContentType] = useState<PostType | null | 'users' | 'organizations' | 'families' | 'groups'>(null);
   const [searchFilters, setSearchFilters] = useState<PostSearchFilters>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
 
-  // Popular search terms and hashtags for church community
-  const popularSearches = [
-    '#PrayerRequest', '#Testimony', '#BibleStudy', '#ChurchLife',
-    '#Worship', '#Community', '#Outreach', '#Fellowship'
+  // Same curated list of family-friendly emojis from FamilyGroupCreateForm
+  const familyEmojis = [
+    '❤️', '💚', '💛', '💙', '🧡', '💜', '🖤', '🤍', '💕', '💖',
+    '🍌', '🍎', '🍊', '🍓', '🍉', '🥭', '🍑', '🍒', '🍇', '🥝',
+    '🐵', '🐶', '🐱', '🐰', '🐻', '🐨', '🦊', '🐯', '🦁', '🐮',
+    '🌟', '⭐', '✨', '💫', '🌙', '☀️', '🌈', '☁️', '🌺', '🌻',
+    '🏠', '💒', '🎂', '🎉', '🎈', '🎁', '🕯️', '🦋', '🐝', '🌿'
   ];
 
-  const quickFilters = [
+  // Count visual emojis (helper function from FamilyGroupCreateForm)
+  const countVisualEmojis = (str: string): number => {
+    if (!str) return 0;
+    const emojiMatches = str.match(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]|[\u{200D}]|[\u{FE0F}]/gu);
+    if (!emojiMatches) return 0;
+    return emojiMatches.filter(e => !/[\u{200D}\u{FE0F}]/u.test(e)).length;
+  };
+
+  type FilterValue = PostType | 'users' | 'organizations' | 'families' | 'groups';
+
+  const quickFilters: Array<{ label: string; value: FilterValue; icon: string }> = [
     { label: 'Posts', value: PostType.GENERAL, icon: '📝' },
     { label: 'Prayers', value: PostType.PRAYER, icon: '🙏' },
     { label: 'Testimonies', value: PostType.TESTIMONY, icon: '✨' },
-    { label: 'Announcements', value: PostType.ANNOUNCEMENT, icon: '📢' }
+    { label: 'Announcements', value: PostType.ANNOUNCEMENT, icon: '📢' },
+    { label: 'Organizations', value: 'organizations' as FilterValue, icon: '🏛️' },
+    { label: 'Families', value: 'families' as FilterValue, icon: '🏠' },
+    { label: 'Groups', value: 'groups' as FilterValue, icon: '👥' }
   ];
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    if (showEmojiPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showEmojiPicker]);
 
   useEffect(() => {
     if (isOpen) {
@@ -68,34 +111,63 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
     }
   }, [isOpen, initialQuery]);
 
+  // Handle emoji click - add emoji to search query
+  const handleEmojiClick = (emoji: string) => {
+    setQuery(prev => prev + emoji);
+    setShowEmojiPicker(false);
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  };
+
   // Apply content type filter to displayed results
-  const applyContentTypeFilter = useCallback((contentType: PostType | null | 'users', allPosts: Post[], allProfiles: UserProfile[], allPrayers: PrayerRequest[]) => {
-    console.log('🔍 applyContentTypeFilter called with:', contentType, 'Posts:', allPosts.length, 'Profiles:', allProfiles.length, 'Prayers:', allPrayers.length);
+  const applyContentTypeFilter = useCallback((contentType: PostType | null | 'users' | 'organizations' | 'families' | 'groups', allPosts: Post[], allProfiles: UserProfile[], allPrayers: PrayerRequest[], allOrgs: any[], allGroups: any[]) => {
+    console.log('🔍 applyContentTypeFilter called with:', contentType);
     if (!contentType) {
-      // No filter - show all results
-      console.log('✅ No filter - showing all results');
       setSearchResults(allPosts);
       setProfileResults(allProfiles);
       setPrayerResults(allPrayers);
+      setOrganizationResults(allOrgs);
+      setGroupResults(allGroups);
     } else if (contentType === 'users') {
-      // Show only user profiles
-      console.log('👤 Filter: USERS - showing only user profiles');
       setSearchResults([]);
       setProfileResults(allProfiles);
       setPrayerResults([]);
+      setOrganizationResults([]);
+      setGroupResults([]);
+    } else if (contentType === 'organizations') {
+      // Show all organizations (including families)
+      setSearchResults([]);
+      setProfileResults([]);
+      setPrayerResults([]);
+      setOrganizationResults(allOrgs);
+      setGroupResults([]);
+    } else if (contentType === 'families') {
+      // Show only family organizations
+      setSearchResults([]);
+      setProfileResults([]);
+      setPrayerResults([]);
+      setOrganizationResults(allOrgs.filter(org => org.type === 'FAMILY'));
+      setGroupResults([]);
+    } else if (contentType === 'groups') {
+      setSearchResults([]);
+      setProfileResults([]);
+      setPrayerResults([]);
+      setOrganizationResults([]);
+      setGroupResults(allGroups);
     } else if (contentType === PostType.PRAYER) {
-      // Show only prayer requests
-      console.log('🙏 Filter: PRAYER - showing only prayer requests');
       setSearchResults([]);
       setProfileResults([]);
       setPrayerResults(allPrayers);
+      setOrganizationResults([]);
+      setGroupResults([]);
     } else {
-      // Show only posts of the selected type
       const filteredPosts = allPosts.filter(post => post.postType === contentType);
-      console.log(`📝 Filter: ${contentType} - showing ${filteredPosts.length} posts, hiding ${allPrayers.length} prayers`);
       setSearchResults(filteredPosts);
       setProfileResults([]);
       setPrayerResults([]);
+      setOrganizationResults([]);
+      setGroupResults([]);
     }
   }, []);
 
@@ -104,10 +176,8 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
 
     setIsSearching(true);
     try {
-      // Search posts, profiles, and prayer requests in parallel
-      // Don't use postType filter when searching - get all results
       console.log('🔍 Starting search for:', query);
-      const [postsResponse, profilesResponse, prayersResponse] = await Promise.all([
+      const [postsResponse, profilesResponse, prayersResponse, orgsResponse, groupsResponse] = await Promise.all([
         searchPosts(query, 0, 20, {}).catch(err => {
           console.error('Post search error:', err);
           return { content: [] };
@@ -119,43 +189,55 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
         prayerAPI.searchPrayerRequests(query, 0, 20).catch(err => {
           console.error('Prayer search error:', err);
           return { data: { content: [] } };
+        }),
+        searchOrganizations(query, 0, 20).catch(err => {
+          console.error('Organization search error:', err);
+          return { content: [] };
+        }),
+        searchGroups(query, 0, 20).catch(err => {
+          console.error('Group search error:', err);
+          return { content: [] };
         })
       ]);
 
-      console.log('📝 Posts response:', postsResponse);
-      console.log('👤 Profiles response:', profilesResponse);
-      console.log('🙏 Prayers response:', prayersResponse);
-
-      // Store all results (unfiltered)
       const allPosts = postsResponse.content || [];
       const profileData = profilesResponse.data?.content || profilesResponse.data || [];
       const allProfiles = Array.isArray(profileData) ? profileData : [];
       const prayerData = prayersResponse.data?.content || prayersResponse.data || [];
       const allPrayers = Array.isArray(prayerData) ? prayerData : [];
+      const allOrgs = orgsResponse.content || [];
+      const allGroups = groupsResponse.content || [];
       
       setAllSearchResults(allPosts);
       setAllProfileResults(allProfiles);
       setAllPrayerResults(allPrayers);
+      setAllOrganizationResults(allOrgs);
+      setAllGroupResults(allGroups);
       
-      // Apply content type filter if one is selected
-      applyContentTypeFilter(selectedContentType, allPosts, allProfiles, allPrayers);
+      applyContentTypeFilter(selectedContentType, allPosts, allProfiles, allPrayers, allOrgs, allGroups);
       
       console.log('✅ Final search results - Posts:', allPosts.length, 
                   'Profiles:', allProfiles.length,
-                  'Prayers:', allPrayers.length);
+                  'Prayers:', allPrayers.length,
+                  'Organizations:', allOrgs.length,
+                  'Groups:', allGroups.length);
       setHasSearched(true);
     } catch (error) {
       console.error('Search error:', error);
       setAllSearchResults([]);
       setAllProfileResults([]);
       setAllPrayerResults([]);
+      setAllOrganizationResults([]);
+      setAllGroupResults([]);
       setSearchResults([]);
       setProfileResults([]);
       setPrayerResults([]);
+      setOrganizationResults([]);
+      setGroupResults([]);
     } finally {
       setIsSearching(false);
     }
-  }, [query, selectedContentType, applyContentTypeFilter]);
+  }, [query, selectedContentType, applyContentTypeFilter, searchOrganizations, searchGroups]);
 
   useEffect(() => {
     // Debounced search
@@ -171,9 +253,13 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
       setAllSearchResults([]);
       setAllProfileResults([]);
       setAllPrayerResults([]);
+      setAllOrganizationResults([]);
+      setAllGroupResults([]);
       setSearchResults([]);
       setProfileResults([]);
       setPrayerResults([]);
+      setOrganizationResults([]);
+      setGroupResults([]);
       setHasSearched(false);
       setSelectedContentType(null);
     }
@@ -189,9 +275,9 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
   useEffect(() => {
     if (hasSearched) {
       console.log('🔄 useEffect triggered - selectedContentType:', selectedContentType, 'hasSearched:', hasSearched);
-      applyContentTypeFilter(selectedContentType, allSearchResults, allProfileResults, allPrayerResults);
+      applyContentTypeFilter(selectedContentType, allSearchResults, allProfileResults, allPrayerResults, allOrganizationResults, allGroupResults);
     }
-  }, [selectedContentType, allSearchResults, allProfileResults, allPrayerResults, hasSearched, applyContentTypeFilter]);
+  }, [selectedContentType, allSearchResults, allProfileResults, allPrayerResults, allOrganizationResults, allGroupResults, hasSearched, applyContentTypeFilter]);
 
   const loadTrendingPosts = async () => {
     try {
@@ -202,12 +288,7 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
     }
   };
 
-  const handleQuickSearch = (searchTerm: string) => {
-    setQuery(searchTerm);
-    setActiveTab('search');
-  };
-
-  const handleQuickFilter = (filterValue: PostType | 'users') => {
+  const handleQuickFilter = (filterValue: PostType | 'users' | 'organizations' | 'families' | 'groups') => {
     console.log('🔘 handleQuickFilter called with:', filterValue, 'current selectedContentType:', selectedContentType);
     // Toggle filter - if same type is clicked, clear filter
     if (selectedContentType === filterValue) {
@@ -241,13 +322,18 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
     setAllSearchResults([]);
     setAllProfileResults([]);
     setAllPrayerResults([]);
+    setAllOrganizationResults([]);
+    setAllGroupResults([]);
     setSearchResults([]);
     setProfileResults([]);
     setPrayerResults([]);
+    setOrganizationResults([]);
+    setGroupResults([]);
     setHasSearched(false);
     setSelectedContentType(null);
     setSearchFilters({});
     setShowFilters(false);
+    setShowEmojiPicker(false);
   };
 
   const handleProfileClick = (userId: string) => {
@@ -286,10 +372,20 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search posts, people, or topics..."
+              placeholder="Search posts, people, organizations, or topics..."
               className="search-input"
               maxLength={100}
             />
+            {/* Emoji Picker Button */}
+            <button
+              type="button"
+              className="emoji-picker-btn"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              aria-label="Open emoji picker"
+              title="Add emoji to search"
+            >
+              😀
+            </button>
             {query && (
               <button
                 className="clear-search-btn"
@@ -300,6 +396,36 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
               </button>
             )}
           </div>
+
+          {/* Emoji Picker Dropdown */}
+          {showEmojiPicker && (
+            <div ref={emojiPickerRef} className="emoji-picker-dropdown">
+              <div className="emoji-picker-header">
+                <span>Select Emoji</span>
+                <button
+                  type="button"
+                  className="emoji-picker-close"
+                  onClick={() => setShowEmojiPicker(false)}
+                  aria-label="Close emoji picker"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="emoji-picker-grid">
+                {familyEmojis.map((emoji, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    className="emoji-picker-item"
+                    onClick={() => handleEmojiClick(emoji)}
+                    title={`Add ${emoji}`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="search-actions">
             <button
@@ -375,7 +501,7 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
             className={`search-tab ${activeTab === 'search' ? 'active' : ''}`}
             onClick={() => setActiveTab('search')}
           >
-            Search Results {hasSearched && searchResults.length > 0 && `(${searchResults.length})`}
+            Search Results {hasSearched && (searchResults.length + profileResults.length + prayerResults.length + organizationResults.length + groupResults.length) > 0 && `(${searchResults.length + profileResults.length + prayerResults.length + organizationResults.length + groupResults.length})`}
           </button>
           <button
             className={`search-tab ${activeTab === 'trending' ? 'active' : ''}`}
@@ -392,19 +518,6 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
               {/* Search Suggestions (when no query) */}
               {!query && !hasSearched && (
                 <div className="search-suggestions">
-                  <h3>Popular Searches</h3>
-                  <div className="suggestion-tags">
-                    {popularSearches.map(term => (
-                      <button
-                        key={term}
-                        className="suggestion-tag"
-                        onClick={() => handleQuickSearch(term)}
-                      >
-                        {term}
-                      </button>
-                    ))}
-                  </div>
-
                   <h3>Quick Filters</h3>
                   <div className="quick-filters">
                     <button
@@ -443,7 +556,7 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
                 </div>
               )}
 
-              {!isSearching && hasSearched && searchResults.length === 0 && profileResults.length === 0 && prayerResults.length === 0 && query && (
+              {!isSearching && hasSearched && searchResults.length === 0 && profileResults.length === 0 && prayerResults.length === 0 && organizationResults.length === 0 && groupResults.length === 0 && query && (
                 <div className="no-results">
                   <div className="no-results-icon">🔍</div>
                   <h3>No results found</h3>
@@ -454,12 +567,13 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
                       <li>Use fewer keywords</li>
                       <li>Try different spellings</li>
                       <li>Search for hashtags (e.g., #PrayerRequest)</li>
+                      <li>Try searching with emojis for family groups</li>
                     </ul>
                   </div>
                 </div>
               )}
 
-              {!isSearching && (searchResults.length > 0 || profileResults.length > 0 || prayerResults.length > 0) && (
+              {!isSearching && (searchResults.length > 0 || profileResults.length > 0 || prayerResults.length > 0 || organizationResults.length > 0 || groupResults.length > 0) && (
                 <div className="search-results">
                   {/* Profile Results */}
                   {profileResults.length > 0 && (
@@ -487,6 +601,106 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
                                   <div className="profile-result-bio">{profile.bio}</div>
                                 )}
                                 <div className="profile-result-role">{profile.role}</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Organization Results */}
+                  {organizationResults.length > 0 && (
+                    <div className="results-section">
+                      <div className="results-header">
+                        <span className="results-section-title">🏛️ Organizations ({organizationResults.length})</span>
+                      </div>
+                      <div className="results-list">
+                        {organizationResults.map(org => (
+                          <div 
+                            key={org.id} 
+                            className="search-result-item organization-result"
+                            onClick={() => navigate(`/organizations/${org.id}`)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <div className="organization-result-content">
+                              {org.logoUrl ? (
+                                <img 
+                                  src={org.logoUrl} 
+                                  alt={org.name}
+                                  className="organization-result-logo"
+                                />
+                              ) : (
+                                <div className="organization-result-icon">
+                                  {org.type === 'FAMILY' ? '🏠' : '🏛️'}
+                                </div>
+                              )}
+                              <div className="organization-result-info">
+                                <div className="organization-result-name">{org.name}</div>
+                                {org.description && (
+                                  <div className="organization-result-description">
+                                    {org.description.length > 150 
+                                      ? `${org.description.substring(0, 150)}...` 
+                                      : org.description}
+                                  </div>
+                                )}
+                                <div className="organization-result-meta">
+                                  <span className="organization-result-type">{org.type}</span>
+                                  {org.memberCount !== undefined && (
+                                    <span className="organization-result-members">
+                                      {org.memberCount} members
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Group Results */}
+                  {groupResults.length > 0 && (
+                    <div className="results-section">
+                      <div className="results-header">
+                        <span className="results-section-title">👥 Groups ({groupResults.length})</span>
+                      </div>
+                      <div className="results-list">
+                        {groupResults.map(group => (
+                          <div 
+                            key={group.id} 
+                            className="search-result-item group-result"
+                            onClick={() => navigate(`/groups/${group.id}`)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <div className="group-result-content">
+                              {group.imageUrl ? (
+                                <img 
+                                  src={group.imageUrl} 
+                                  alt={group.name}
+                                  className="group-result-image"
+                                />
+                              ) : (
+                                <div className="group-result-icon">💬</div>
+                              )}
+                              <div className="group-result-info">
+                                <div className="group-result-name">{group.name}</div>
+                                {group.description && (
+                                  <div className="group-result-description">
+                                    {group.description.length > 150 
+                                      ? `${group.description.substring(0, 150)}...` 
+                                      : group.description}
+                                  </div>
+                                )}
+                                <div className="group-result-meta">
+                                  <span className="group-result-visibility">{group.visibility}</span>
+                                  {group.memberCount !== undefined && (
+                                    <span className="group-result-members">
+                                      {group.memberCount} members
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
