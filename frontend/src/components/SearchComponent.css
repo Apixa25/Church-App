@@ -175,7 +175,7 @@
 }
 
 .filter-option {
-  padding: 8px 16px;
+  padding: 10px 18px;
   border: 2px solid var(--border-primary);
   background: var(--bg-tertiary);
   border-radius: var(--border-radius-pill);
@@ -184,8 +184,12 @@
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   transition: all var(--transition-base);
+  white-space: nowrap;
+  min-width: fit-content;
+  flex-shrink: 0;
 }
 
 .filter-option:hover {
@@ -328,9 +332,13 @@
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   transition: all var(--transition-base);
   box-shadow: 0 2px 8px var(--success-glow);
+  white-space: nowrap;
+  min-width: fit-content;
+  flex-shrink: 0;
 }
 
 .quick-filter-btn:hover {
@@ -1001,8 +1009,9 @@
   }
 
   .filter-option {
-    padding: 6px 12px;
+    padding: 8px 14px;
     font-size: 12px;
+    white-space: nowrap;
   }
 
   .search-tabs .search-tab {
@@ -1030,6 +1039,7 @@
   .quick-filter-btn {
     padding: 10px 16px;
     font-size: 13px;
+    white-space: nowrap;
   }
 }
 

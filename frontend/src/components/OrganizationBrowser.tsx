@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization, Organization } from '../contexts/OrganizationContext';
 import styled from 'styled-components';
@@ -42,8 +42,16 @@ const Subtitle = styled.p`
   margin-top: 8px;
 `;
 
-const SearchBar = styled.input`
+const SearchBarContainer = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   width: 100%;
+`;
+
+const SearchBar = styled.input`
+  flex: 1;
   padding: 12px 20px;
   font-size: 16px;
   background: var(--bg-tertiary);
@@ -62,6 +70,110 @@ const SearchBar = styled.input`
 
   &::placeholder {
     color: var(--text-disabled);
+  }
+`;
+
+const EmojiPickerButton = styled.button`
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: var(--text-secondary);
+  transition: all var(--transition-base);
+  flex-shrink: 0;
+
+  &:hover {
+    background: var(--bg-elevated);
+    border-color: var(--border-glow);
+    color: var(--text-primary);
+    box-shadow: 0 0 8px var(--button-primary-glow);
+    transform: scale(1.1);
+  }
+`;
+
+const EmojiPickerDropdown = styled.div`
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  z-index: 3000;
+  max-height: 400px;
+  overflow-y: auto;
+  margin-top: 4px;
+  animation: slideDown 0.2s ease;
+`;
+
+const EmojiPickerHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+`;
+
+const EmojiPickerHeaderText = styled.span`
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+`;
+
+const EmojiPickerClose = styled.button`
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all var(--transition-base);
+
+  &:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+  }
+`;
+
+const EmojiPickerGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+  gap: 8px;
+  padding: 16px;
+`;
+
+const EmojiPickerItem = styled.button`
+  padding: 12px;
+  font-size: 24px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: var(--bg-elevated);
+    border-color: var(--accent-primary);
+    transform: scale(1.1);
+    box-shadow: 0 0 12px var(--button-primary-glow);
   }
 `;
 
@@ -369,6 +481,43 @@ const OrganizationBrowser: React.FC = () => {
   const [canSwitch, setCanSwitch] = useState(true);
   const [daysUntilSwitch, setDaysUntilSwitch] = useState(0);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Same curated list of family-friendly emojis from FamilyGroupCreateForm
+  const familyEmojis = [
+    '❤️', '💚', '💛', '💙', '🧡', '💜', '🖤', '🤍', '💕', '💖',
+    '🍌', '🍎', '🍊', '🍓', '🍉', '🥭', '🍑', '🍒', '🍇', '🥝',
+    '🐵', '🐶', '🐱', '🐰', '🐻', '🐨', '🦊', '🐯', '🦁', '🐮',
+    '🌟', '⭐', '✨', '💫', '🌙', '☀️', '🌈', '☁️', '🌺', '🌻',
+    '🏠', '💒', '🎂', '🎉', '🎈', '🎁', '🕯️', '🦋', '🐝', '🌿'
+  ];
+
+  // Handle emoji click - add emoji to search query
+  const handleEmojiClick = (emoji: string) => {
+    setSearchQuery(prev => prev + emoji);
+    setShowEmojiPicker(false);
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  };
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    if (showEmojiPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showEmojiPicker]);
 
   // Check if user can switch primary org
   useEffect(() => {
@@ -515,12 +664,61 @@ const OrganizationBrowser: React.FC = () => {
           Find and join churches, ministries, nonprofits, and families in your community
         </Subtitle>
 
-        <SearchBar
-          type="text"
-          placeholder="Search organizations by name..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+        <SearchBarContainer>
+          <SearchBar
+            ref={searchInputRef}
+            type="text"
+            placeholder="Search organizations by name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {/* Emoji Picker Button */}
+          <EmojiPickerButton
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              console.log('😀 Emoji picker button clicked! showEmojiPicker:', showEmojiPicker);
+              setShowEmojiPicker(!showEmojiPicker);
+            }}
+            aria-label="Open emoji picker"
+            title="Add emoji to search"
+          >
+            😀
+          </EmojiPickerButton>
+          {/* Emoji Picker Dropdown */}
+          {showEmojiPicker && (
+            <EmojiPickerDropdown ref={emojiPickerRef}>
+              <EmojiPickerHeader>
+                <EmojiPickerHeaderText>Select Emoji</EmojiPickerHeaderText>
+                <EmojiPickerClose
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowEmojiPicker(false);
+                  }}
+                  aria-label="Close emoji picker"
+                >
+                  ✕
+                </EmojiPickerClose>
+              </EmojiPickerHeader>
+              <EmojiPickerGrid>
+                {familyEmojis.map((emoji, index) => (
+                  <EmojiPickerItem
+                    key={index}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEmojiClick(emoji);
+                    }}
+                    title={`Add ${emoji}`}
+                  >
+                    {emoji}
+                  </EmojiPickerItem>
+                ))}
+              </EmojiPickerGrid>
+            </EmojiPickerDropdown>
+          )}
+        </SearchBarContainer>
 
         <FilterTabs>
           <FilterTab
