@@ -142,7 +142,7 @@ const FamilyGroupCreateForm: React.FC<FamilyGroupCreateFormProps> = ({ onSuccess
       formData.append('description', `Family group created by user`);
 
       const response = await axios.post(
-        `${API_BASE_URL}/organizations`,
+        `${API_BASE_URL}/organizations/family-group`,
         formData,
         {
           headers: {
