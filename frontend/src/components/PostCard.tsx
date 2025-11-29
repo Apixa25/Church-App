@@ -460,6 +460,22 @@ const PostCard: React.FC<PostCardProps> = ({
             </div>
           </div>
         </div>
+        
+        {/* Organization/Group Label */}
+        {(post.organization || post.group) && (
+          <div className="post-organization-label">
+            {post.organization && (
+              <span className="org-badge">
+                🏛️ Posted in {post.organization.name}
+              </span>
+            )}
+            {post.group && !post.organization && (
+              <span className="group-badge">
+                👥 Posted in {post.group.name}
+              </span>
+            )}
+          </div>
+        )}
         <div className="post-header-actions">
           {canDelete && (
             <button

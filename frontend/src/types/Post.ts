@@ -73,6 +73,17 @@ export interface Post {
   // Computed fields (populated by frontend)
   isLikedByCurrentUser?: boolean;
   isBookmarkedByCurrentUser?: boolean;
+
+  // Organization and Group info for post labeling
+  organization?: {
+    id: string;
+    name: string;
+    type: string;
+  };
+  group?: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface Comment {

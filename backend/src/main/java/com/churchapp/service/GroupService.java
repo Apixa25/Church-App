@@ -2,8 +2,10 @@ package com.churchapp.service;
 
 import com.churchapp.entity.Group;
 import com.churchapp.entity.User;
+import com.churchapp.entity.UserGroupCreationLog;
 import com.churchapp.entity.UserGroupMembership;
 import com.churchapp.repository.GroupRepository;
+import com.churchapp.repository.UserGroupCreationLogRepository;
 import com.churchapp.repository.UserGroupMembershipRepository;
 import com.churchapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,6 +30,9 @@ public class GroupService {
     private final GroupRepository groupRepository;
     private final UserGroupMembershipRepository membershipRepository;
     private final UserRepository userRepository;
+    private final UserGroupCreationLogRepository groupCreationLogRepository;
+
+    private static final int MAX_GROUPS_PER_MONTH = 3;
 
     // ========================================================================
     // GROUP CRUD
@@ -36,17 +42,38 @@ public class GroupService {
         User creator = userRepository.findById(creatorUserId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + creatorUserId));
 
+        // Check group creation limit (3 per month)
+        LocalDateTime oneMonthAgo = LocalDateTime.now().minus(1, ChronoUnit.MONTHS);
+        long groupsCreatedThisMonth = groupCreationLogRepository.countByUserIdSince(creatorUserId, oneMonthAgo);
+        
+        if (groupsCreatedThisMonth >= MAX_GROUPS_PER_MONTH) {
+            throw new RuntimeException(
+                String.format("Group creation limit reached. You can create up to %d groups per month.", 
+                    MAX_GROUPS_PER_MONTH)
+            );
+        }
+
+        // Force PUBLIC type for new groups (as per requirements)
+        group.setType(Group.GroupType.PUBLIC);
+
         group.setCreatedByUser(creator);
         group.setCreatedAt(LocalDateTime.now());
         group.setUpdatedAt(LocalDateTime.now());
         group.setMemberCount(1); // Creator is first member
 
         // If it's an ORG_PRIVATE group, link it to creator's primary organization
+        // Note: This won't happen now since we force PUBLIC, but keeping for backward compatibility
         if (group.getType() == Group.GroupType.ORG_PRIVATE && creator.getPrimaryOrganization() != null) {
             group.setCreatedByOrg(creator.getPrimaryOrganization());
         }
 
         Group saved = groupRepository.save(group);
+
+        // Log group creation for limit tracking
+        UserGroupCreationLog log = new UserGroupCreationLog();
+        log.setUser(creator);
+        log.setCreatedAt(LocalDateTime.now());
+        groupCreationLogRepository.save(log);
 
         // Auto-add creator as CREATOR
         UserGroupMembership creatorMembership = new UserGroupMembership();

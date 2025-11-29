@@ -27,6 +27,7 @@ public class FeedFilterService {
     private final UserOrganizationMembershipRepository orgMembershipRepository;
     private final UserGroupMembershipRepository groupMembershipRepository;
     private final UserRepository userRepository;
+    private final OrganizationGroupService organizationGroupService;
 
     private static final UUID GLOBAL_ORG_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
@@ -303,22 +304,28 @@ public class FeedFilterService {
         
         List<UUID> groupIds = getVisibleGroupIds(userId);
 
-        return new FeedParameters(primaryOrgIdsForFeed, secondaryOrgIds, groupIds);
+        // Get organizations followed as groups (unmuted only)
+        List<UUID> orgAsGroupIds = organizationGroupService.getUnmutedFollowedOrganizationIds(userId);
+
+        return new FeedParameters(primaryOrgIdsForFeed, secondaryOrgIds, groupIds, orgAsGroupIds);
     }
 
     /**
      * Simple data class to hold feed query parameters
      * Supports dual-primary system (churchPrimary + familyPrimary)
+     * Includes organization-as-groups for feed-only view of organizations
      */
     public static class FeedParameters {
         private final List<UUID> primaryOrgIds; // Changed to list to support dual-primary system
         private final List<UUID> secondaryOrgIds;
         private final List<UUID> groupIds;
+        private final List<UUID> orgAsGroupIds; // Organizations followed as groups (feed-only)
 
-        public FeedParameters(List<UUID> primaryOrgIds, List<UUID> secondaryOrgIds, List<UUID> groupIds) {
+        public FeedParameters(List<UUID> primaryOrgIds, List<UUID> secondaryOrgIds, List<UUID> groupIds, List<UUID> orgAsGroupIds) {
             this.primaryOrgIds = primaryOrgIds != null ? primaryOrgIds : new ArrayList<>();
             this.secondaryOrgIds = secondaryOrgIds != null ? secondaryOrgIds : new ArrayList<>();
             this.groupIds = groupIds != null ? groupIds : new ArrayList<>();
+            this.orgAsGroupIds = orgAsGroupIds != null ? orgAsGroupIds : new ArrayList<>();
         }
 
         public List<UUID> getPrimaryOrgIds() {
@@ -337,6 +344,10 @@ public class FeedFilterService {
 
         public List<UUID> getGroupIds() {
             return groupIds;
+        }
+
+        public List<UUID> getOrgAsGroupIds() {
+            return orgAsGroupIds;
         }
 
         public boolean hasPrimaryOrg() {

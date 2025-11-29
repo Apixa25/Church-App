@@ -264,11 +264,12 @@ public class PostService {
 
         // Check if user has primary org(s) - supports dual-primary system
         if (params.getPrimaryOrgIds().isEmpty()) {
-            // Social-only user - show global org + their groups + followed users
+            // Social-only user - show global org + their groups + org-as-groups + followed users
             UUID globalOrgId = UUID.fromString("00000000-0000-0000-0000-000000000001");
             return postRepository.findGlobalUserFeed(
                 params.getGroupIds(), 
-                globalOrgId, 
+                globalOrgId,
+                params.getOrgAsGroupIds(), // Organizations followed as groups
                 blockedIds,
                 followingIds,
                 pageable
@@ -278,11 +279,13 @@ public class PostService {
             // - Primary orgs (all visibility levels) - supports dual-primary: churchPrimary + familyPrimary
             // - Secondary orgs including Global org (PUBLIC only)
             // - Groups (based on group visibility)
+            // - Organizations followed as groups (ALL posts - PUBLIC + ORG_ONLY)
             // - Followed users (when filter is ALL or EVERYTHING) - regardless of organization/group
             return postRepository.findMultiTenantFeed(
                 params.getPrimaryOrgIds(), // Now a list supporting dual-primary system
                 params.getSecondaryOrgIds(),
                 params.getGroupIds(),
+                params.getOrgAsGroupIds(), // Organizations followed as groups
                 blockedIds,
                 followingIds, // Add followed user IDs
                 pageable
