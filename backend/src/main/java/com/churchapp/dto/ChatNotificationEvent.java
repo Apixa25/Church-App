@@ -52,7 +52,7 @@ public class ChatNotificationEvent {
                 .messageContent(messageContent)
                 .messageType(messageType)
                 .timestamp(LocalDateTime.now().toString())
-                .actionUrl("/chat/" + chatGroupId)
+                .actionUrl("/chats/" + chatGroupId)
                 .build();
     }
 }
