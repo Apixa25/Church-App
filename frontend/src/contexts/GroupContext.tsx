@@ -21,7 +21,7 @@ export interface Group {
   createdAt?: string;
   updatedAt?: string;
   // User-specific fields (if member)
-  userRole?: 'MEMBER' | 'ADMIN' | 'MODERATOR';
+  userRole?: 'CREATOR' | 'MEMBER' | 'ADMIN' | 'MODERATOR';
   isMuted?: boolean;
   joinedAt?: string;
 }
@@ -33,7 +33,7 @@ export interface GroupMembership {
   userAvatarUrl?: string;
   groupId: string;
   groupName?: string;
-  role: 'MEMBER' | 'ADMIN' | 'MODERATOR';
+  role: 'CREATOR' | 'MEMBER' | 'ADMIN' | 'MODERATOR';
   isMuted: boolean;
   joinedAt: string;
   createdAt: string;
