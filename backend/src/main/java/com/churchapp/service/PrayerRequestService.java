@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -499,20 +500,39 @@ public class PrayerRequestService {
     }
     
     /**
-     * Get prayer statistics for a user's organization
+     * Get prayer statistics for a user's organizations
+     * Combines stats from both Church Primary and Family Primary organizations
      */
     public Map<String, Long> getPrayerStatsForUser(UUID requestingUserId) {
         User user = userRepository.findById(requestingUserId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Use primary organization or fall back to Global Organization
-        UUID organizationId = (user.getChurchPrimaryOrganization() != null)
-            ? user.getChurchPrimaryOrganization().getId()
-            : GLOBAL_ORG_ID;
+        // Get active and answered counts from Church Primary organization
+        long activeCount = 0L;
+        long answeredCount = 0L;
+        
+        if (user.getChurchPrimaryOrganization() != null) {
+            UUID churchOrgId = user.getChurchPrimaryOrganization().getId();
+            activeCount += getActivePrayerCountByOrganization(churchOrgId);
+            answeredCount += getAnsweredPrayerCountByOrganization(churchOrgId);
+        }
+        
+        // Also get counts from Family Primary organization if it exists
+        if (user.getFamilyPrimaryOrganization() != null) {
+            UUID familyOrgId = user.getFamilyPrimaryOrganization().getId();
+            activeCount += getActivePrayerCountByOrganization(familyOrgId);
+            answeredCount += getAnsweredPrayerCountByOrganization(familyOrgId);
+        }
+        
+        // Fall back to Global Organization if no primary organizations
+        if (user.getChurchPrimaryOrganization() == null && user.getFamilyPrimaryOrganization() == null) {
+            activeCount += getActivePrayerCountByOrganization(GLOBAL_ORG_ID);
+            answeredCount += getAnsweredPrayerCountByOrganization(GLOBAL_ORG_ID);
+        }
 
         Map<String, Long> stats = new HashMap<>();
-        stats.put("activePrayerCount", getActivePrayerCountByOrganization(organizationId));
-        stats.put("answeredPrayerCount", getAnsweredPrayerCountByOrganization(organizationId));
+        stats.put("activePrayerCount", activeCount);
+        stats.put("answeredPrayerCount", answeredCount);
         return stats;
     }
     
@@ -520,19 +540,37 @@ public class PrayerRequestService {
      * Get all active prayers for prayer sheet
      * Returns prayers in chronological order (newest first) with full details
      * Respects anonymity settings - only shows anonymous prayers to their owners
-     * Filters by user's organization
+     * Includes prayers from both Church Primary and Family Primary organizations
      */
     public List<PrayerRequestResponse> getActivePrayersForSheet(UUID requestingUserId) {
         User user = userRepository.findById(requestingUserId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Use primary organization or fall back to Global Organization
-        UUID organizationId = (user.getChurchPrimaryOrganization() != null)
-            ? user.getChurchPrimaryOrganization().getId()
-            : GLOBAL_ORG_ID;
-
-        // Get active prayers from user's organization only
-        List<PrayerRequest> activePrayers = prayerRequestRepository.findAllActiveByOrganizationId(organizationId);
+        // Collect prayers from all relevant organizations
+        List<PrayerRequest> activePrayers = new ArrayList<>();
+        
+        // Get prayers from Church Primary organization
+        if (user.getChurchPrimaryOrganization() != null) {
+            UUID churchOrgId = user.getChurchPrimaryOrganization().getId();
+            activePrayers.addAll(prayerRequestRepository.findAllActiveByOrganizationId(churchOrgId));
+        }
+        
+        // Get prayers from Family Primary organization if it exists
+        if (user.getFamilyPrimaryOrganization() != null) {
+            UUID familyOrgId = user.getFamilyPrimaryOrganization().getId();
+            activePrayers.addAll(prayerRequestRepository.findAllActiveByOrganizationId(familyOrgId));
+        }
+        
+        // Fall back to Global Organization if no primary organizations
+        if (user.getChurchPrimaryOrganization() == null && user.getFamilyPrimaryOrganization() == null) {
+            activePrayers.addAll(prayerRequestRepository.findAllActiveByOrganizationId(GLOBAL_ORG_ID));
+        }
+        
+        // Remove duplicates (in case both orgs point to the same org - shouldn't happen, but safe)
+        activePrayers = activePrayers.stream()
+                .distinct()
+                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt())) // Sort by date descending (newest first)
+                .collect(Collectors.toList());
         
         return activePrayers.stream()
                 .filter(prayer -> {
