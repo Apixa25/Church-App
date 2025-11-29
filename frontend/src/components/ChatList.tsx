@@ -296,18 +296,24 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
                   </div>
                   <div className="chat-content">
                     <div className="chat-header">
-                      <h4>{group.name}</h4>
+                      <h4 className="chat-name">{group.name}</h4>
                       {group.lastMessageTime && (
                         <span className="last-message-time">
                           {formatLastMessageTime(group.lastMessageTime)}
                         </span>
                       )}
                     </div>
-                    {group.lastMessage ? (
-                      <p className="last-message">
-                        <span className="last-message-by">{group.lastMessageBy}:</span>
-                        {group.lastMessage}
-                      </p>
+                    {group.lastMessageTime ? (
+                      group.lastMessage ? (
+                        <p className="last-message">
+                          {group.lastMessageBy && (
+                            <span className="last-message-by">{group.lastMessageBy}: </span>
+                          )}
+                          <span className="last-message-text">{group.lastMessage}</span>
+                        </p>
+                      ) : (
+                        <p className="last-message-empty">New conversation</p>
+                      )
                     ) : (
                       <p className="no-messages">No messages yet</p>
                     )}

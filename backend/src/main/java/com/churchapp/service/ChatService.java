@@ -93,7 +93,42 @@ public class ChatService {
                 String userRole = isMember ? membership.getMemberRole().name() : null;
                 Long unreadCount = isMember ? messageRepository.countUnreadMessagesForUserInGroup(user, group) : 0L;
                 
-                return ChatGroupResponse.fromEntityWithUserContext(group, isMember, canPost, canModerate, userRole, unreadCount);
+                ChatGroupResponse response = ChatGroupResponse.fromEntityWithUserContext(group, isMember, canPost, canModerate, userRole, unreadCount);
+                
+                // Populate last message info
+                messageRepository.findTopByChatGroupAndIsDeletedFalseOrderByTimestampDesc(group).ifPresent(lastMessage -> {
+                    response.setLastMessageTime(lastMessage.getTimestamp());
+                    
+                    // Set last message content based on message type
+                    if (lastMessage.getContent() != null && !lastMessage.getContent().trim().isEmpty()) {
+                        response.setLastMessage(lastMessage.getContent());
+                    } else {
+                        // Handle media messages
+                        switch (lastMessage.getMessageType()) {
+                            case IMAGE:
+                                response.setLastMessage("📷 Image");
+                                break;
+                            case VIDEO:
+                                response.setLastMessage("🎥 Video");
+                                break;
+                            case AUDIO:
+                                response.setLastMessage("🎵 Audio");
+                                break;
+                            case DOCUMENT:
+                                response.setLastMessage("📄 Document");
+                                break;
+                            default:
+                                response.setLastMessage("Message");
+                        }
+                    }
+                    
+                    // Set last message author
+                    if (lastMessage.getUser() != null) {
+                        response.setLastMessageBy(lastMessage.getUser().getName());
+                    }
+                });
+                
+                return response;
             })
             .collect(Collectors.toList());
     }
