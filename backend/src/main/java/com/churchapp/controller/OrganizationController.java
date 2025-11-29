@@ -50,6 +50,12 @@ public class OrganizationController {
             .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
+    // Helper method to get User entity from Spring Security User
+    private com.churchapp.entity.User getCurrentUserEntity(User securityUser) {
+        return userRepository.findByEmail(securityUser.getUsername())
+            .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
     // ========================================================================
     // ORGANIZATION CRUD
     // ========================================================================
@@ -90,7 +96,8 @@ public class OrganizationController {
             }
 
             Organization org = request.toOrganization();
-            Organization created = organizationService.createOrganization(org);
+            com.churchapp.entity.User creator = getCurrentUserEntity(userDetails);
+            Organization created = organizationService.createOrganization(org, creator);
 
             OrganizationResponse response = OrganizationResponse.fromOrganization(created);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -111,10 +118,77 @@ public class OrganizationController {
         log.info("Creating organization (JSON): {} by system admin: {}", request.getName(), userDetails.getUsername());
 
         Organization org = request.toOrganization();
-        Organization created = organizationService.createOrganization(org);
+        com.churchapp.entity.User creator = getCurrentUserEntity(userDetails);
+        Organization created = organizationService.createOrganization(org, creator);
 
         OrganizationResponse response = OrganizationResponse.fromOrganization(created);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    // ========================================================================
+    // FAMILY GROUP CREATION - Available to all authenticated users
+    // ========================================================================
+    
+    /**
+     * Create a family group - available to all authenticated users
+     * This endpoint allows regular users to create FAMILY type organizations
+     */
+    @PostMapping(value = "/family-group", consumes = {"multipart/form-data"})
+    public ResponseEntity<OrganizationResponse> createFamilyGroup(
+            @RequestParam("name") String name,
+            @RequestParam("slug") String slug,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam(value = "logo", required = false) MultipartFile logoFile,
+            @AuthenticationPrincipal User userDetails) {
+
+        log.info("Creating family group: {} by user: {}", name, userDetails.getUsername());
+
+        try {
+            // Upload logo if provided
+            String logoUrl = null;
+            if (logoFile != null && !logoFile.isEmpty()) {
+                log.info("Uploading logo for family group: {}", name);
+                logoUrl = fileUploadService.uploadFile(logoFile, "organizations/logos");
+                log.info("Logo uploaded successfully: {}", logoUrl);
+            }
+
+            // Get the current user entity
+            com.churchapp.entity.User creator = getCurrentUserEntity(userDetails);
+
+            // Build organization request - force type to FAMILY
+            OrganizationRequest request = new OrganizationRequest();
+            request.setName(name);
+            request.setSlug(slug);
+            request.setType("FAMILY"); // Force FAMILY type
+            request.setLogoUrl(logoUrl);
+            
+            // Add description to metadata if provided
+            if (description != null && !description.trim().isEmpty()) {
+                Map<String, Object> metadata = new HashMap<>();
+                metadata.put("description", description.trim());
+                request.setMetadata(metadata);
+            }
+
+            Organization org = request.toOrganization();
+            
+            // Validate that it's actually a FAMILY type
+            if (org.getType() != Organization.OrganizationType.FAMILY) {
+                throw new RuntimeException("This endpoint can only create FAMILY type organizations");
+            }
+
+            // Create the organization with the creator
+            Organization created = organizationService.createOrganization(org, creator);
+
+            OrganizationResponse response = OrganizationResponse.fromOrganization(created);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
+        } catch (RuntimeException e) {
+            log.error("Error creating family group: {}", name, e);
+            throw e; // Re-throw RuntimeException as-is
+        } catch (Exception e) {
+            log.error("Unexpected error creating family group: {}", name, e);
+            throw new RuntimeException("Failed to create family group: " + e.getMessage(), e);
+        }
     }
 
     @GetMapping("/{orgId}")
