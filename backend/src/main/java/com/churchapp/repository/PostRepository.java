@@ -18,6 +18,16 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
 
     // Basic queries
     Page<Post> findByUserIdOrderByCreatedAtDesc(UUID userId, Pageable pageable);
+    
+    // Posts by user (excluding hidden posts for non-owners)
+    @Query("SELECT p FROM Post p WHERE p.user.id = :userId " +
+           "AND (:viewerId IS NULL OR :viewerId = :userId OR p.isHidden = false) " +
+           "ORDER BY p.createdAt DESC")
+    Page<Post> findByUserIdForViewer(
+        @Param("userId") UUID userId, 
+        @Param("viewerId") UUID viewerId, 
+        Pageable pageable
+    );
     List<Post> findByParentPostIdOrderByCreatedAtAsc(UUID parentPostId);
     List<Post> findByQuotedPostIdOrderByCreatedAtDesc(UUID quotedPostId);
 
@@ -32,11 +42,13 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
 
     // Feed queries
     @Query("SELECT p FROM Post p WHERE p.isReply = false AND p.isAnonymous = false " +
+           "AND (p.isHidden = false OR p.isHidden IS NULL) " +
            "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
            "ORDER BY p.createdAt DESC")
     Page<Post> findMainPostsForFeed(@Param("blockedUserIds") List<UUID> blockedUserIds, Pageable pageable);
 
     @Query("SELECT p FROM Post p WHERE p.user.id IN :followingIds AND p.isReply = false AND p.isAnonymous = false " +
+           "AND (p.isHidden = false OR p.isHidden IS NULL) " +
            "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
            "ORDER BY p.createdAt DESC")
     Page<Post> findPostsByFollowingUsers(
@@ -46,8 +58,9 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     );
 
     // Trending posts (posts with high engagement in last 7 days)
-    // Excludes posts from blocked users
+    // Excludes posts from blocked users and hidden posts
     @Query("SELECT p FROM Post p WHERE p.createdAt >= :since AND p.isAnonymous = false " +
+           "AND (p.isHidden = false OR p.isHidden IS NULL) " +
            "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
            "ORDER BY (p.likesCount + p.commentsCount + p.sharesCount) DESC")
     Page<Post> findTrendingPosts(
@@ -110,9 +123,17 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     @Query("SELECT p FROM Post p WHERE p.mediaUrls IS NOT EMPTY AND p.isAnonymous = false ORDER BY p.createdAt DESC")
     Page<Post> findPostsWithMedia(Pageable pageable);
 
-    // Posts with media by specific user
-    @Query("SELECT p FROM Post p WHERE p.user.id = :userId AND p.mediaUrls IS NOT EMPTY AND p.isAnonymous = false ORDER BY p.createdAt DESC")
-    Page<Post> findPostsWithMediaByUserId(@Param("userId") UUID userId, Pageable pageable);
+    // Posts with media by specific user (excluding hidden posts for non-owners)
+    @Query("SELECT p FROM Post p WHERE p.user.id = :userId " +
+           "AND p.mediaUrls IS NOT EMPTY " +
+           "AND p.isAnonymous = false " +
+           "AND (:viewerId IS NULL OR :viewerId = :userId OR p.isHidden = false) " +
+           "ORDER BY p.createdAt DESC")
+    Page<Post> findPostsWithMediaByUserIdForViewer(
+        @Param("userId") UUID userId, 
+        @Param("viewerId") UUID viewerId, 
+        Pageable pageable
+    );
 
     // Posts by location
     Page<Post> findByLocationOrderByCreatedAtDesc(String location, Pageable pageable);
@@ -140,6 +161,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
            ") " +
            "AND p.isReply = false " +
            "AND p.isAnonymous = false " +
+           "AND (p.isHidden = false OR p.isHidden IS NULL) " +
            "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
            "ORDER BY p.createdAt DESC")
     Page<Post> findMultiTenantFeed(
@@ -160,6 +182,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
            "AND p.isReply = false " +
            "AND p.isAnonymous = false " +
            "AND p.visibility = 'PUBLIC' " +
+           "AND (p.isHidden = false OR p.isHidden IS NULL) " +
            "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
            "ORDER BY p.createdAt DESC")
     Page<Post> findGlobalUserFeed(
@@ -174,6 +197,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     @Query("SELECT p FROM Post p WHERE " +
            "p.organization.id = :orgId " +
            "AND p.isReply = false " +
+           "AND (p.isHidden = false OR p.isHidden IS NULL) " +
            "ORDER BY p.createdAt DESC")
     Page<Post> findByOrganizationId(@Param("orgId") UUID orgId, Pageable pageable);
 
@@ -185,6 +209,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     @Query("SELECT p FROM Post p WHERE " +
            "p.group.id = :groupId " +
            "AND p.isReply = false " +
+           "AND (p.isHidden = false OR p.isHidden IS NULL) " +
            "ORDER BY p.createdAt DESC")
     Page<Post> findByGroupId(@Param("groupId") UUID groupId, Pageable pageable);
 
@@ -197,10 +222,11 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     Long countByGroupId(@Param("groupId") UUID groupId);
 
     // Trending posts within an organization
-    // Excludes posts from blocked users
+    // Excludes posts from blocked users and hidden posts
     @Query("SELECT p FROM Post p WHERE " +
            "p.organization.id = :orgId " +
            "AND p.createdAt >= :since " +
+           "AND (p.isHidden = false OR p.isHidden IS NULL) " +
            "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
            "ORDER BY (p.likesCount + p.commentsCount + p.sharesCount) DESC")
     Page<Post> findTrendingPostsByOrganization(

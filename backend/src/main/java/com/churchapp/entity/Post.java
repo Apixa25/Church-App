@@ -120,6 +120,16 @@ public class Post {
     @Column(name = "visibility", length = 20)
     private PostVisibility visibility = PostVisibility.PUBLIC;
 
+    @Column(name = "is_hidden", nullable = false)
+    private Boolean isHidden = false;
+
+    @Column(name = "hidden_at")
+    private LocalDateTime hiddenAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hidden_by")
+    private User hiddenBy; // Moderator who hid the post
+
     public enum PostVisibility {
         PUBLIC,
         ORG_ONLY

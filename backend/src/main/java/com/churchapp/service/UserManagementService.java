@@ -4,7 +4,9 @@ import com.churchapp.dto.UserManagementResponse;
 import com.churchapp.entity.User;
 import com.churchapp.entity.User.Role;
 import com.churchapp.entity.UserOrganizationMembership;
+import com.churchapp.entity.UserWarning;
 import com.churchapp.repository.UserRepository;
+import com.churchapp.repository.UserWarningRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -17,7 +19,9 @@ import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -26,6 +30,8 @@ import java.util.UUID;
 public class UserManagementService {
 
     private final UserRepository userRepository;
+    private final UserWarningRepository userWarningRepository;
+    private final NotificationService notificationService;
 
     /**
      * Get users with optional organization filtering
@@ -102,17 +108,59 @@ public class UserManagementService {
     }
 
     @Transactional
-    public void warnUser(UUID userId, String reason, String message) {
+    public void warnUser(UUID userId, String reason, String message, UUID moderatorId, String contentType, UUID contentId) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
 
+        User moderator = userRepository.findById(moderatorId)
+            .orElseThrow(() -> new RuntimeException("Moderator not found with ID: " + moderatorId));
+
+        // Increment warning count
         int currentWarnings = user.getWarningCount();
         user.setWarningCount(currentWarnings + 1);
-
         userRepository.save(user);
 
-        // TODO: Send notification to user about the warning
-        // TODO: Implement automatic ban after X warnings if needed
+        // Create warning record
+        UserWarning warning = UserWarning.builder()
+            .user(user)
+            .warnedBy(moderator)
+            .reason(reason != null ? reason : "Violation of community guidelines")
+            .message(message)
+            .contentType(contentType)
+            .contentId(contentId)
+            .build();
+        
+        UserWarning savedWarning = userWarningRepository.save(warning);
+
+        // Send notification to user
+        try {
+            Map<String, String> notificationData = new HashMap<>();
+            notificationData.put("type", "WARNING");
+            notificationData.put("warningId", savedWarning.getId().toString());
+            notificationData.put("reason", reason != null ? reason : "Violation of community guidelines");
+            if (contentType != null && contentId != null) {
+                notificationData.put("contentType", contentType);
+                notificationData.put("contentId", contentId.toString());
+            }
+            
+            // TODO: Implement actual push notification via FCM
+            // For now, notification is logged and can be retrieved via API
+            log.info("Warning notification prepared for user {}: {} warnings total", 
+                userId, user.getWarningCount());
+        } catch (Exception e) {
+            log.warn("Failed to send warning notification to user {}: {}", userId, e.getMessage());
+            // Don't fail the warning if notification fails
+        }
+
+        // Auto-ban after 3 warnings
+        if (user.getWarningCount() >= 3) {
+            log.warn("User {} has reached {} warnings - auto-banning", userId, user.getWarningCount());
+            user.setBanned(true);
+            user.setBanReason("Automatic ban after " + user.getWarningCount() + " warnings");
+            user.setBannedAt(LocalDateTime.now());
+            user.setIsActive(false);
+            userRepository.save(user);
+        }
 
         log.info("Issued warning to user {} (total warnings: {}). Reason: {}",
                 userId, user.getWarningCount(), reason);

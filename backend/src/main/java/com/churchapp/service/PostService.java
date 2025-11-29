@@ -190,39 +190,36 @@ public class PostService {
     }
 
     public Page<Post> getUserPosts(UUID userId, UUID viewerUserId, Pageable pageable) {
-        // If viewing own profile or no viewer, return all posts
-        if (viewerUserId == null || userId.equals(viewerUserId)) {
-            return postRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
-        }
-        
         // For mutual blocking: check if viewer has blocked this user OR user has blocked viewer
-        List<UUID> mutuallyBlocked = userBlockService.getMutuallyBlockedUserIds(viewerUserId);
-        if (mutuallyBlocked.contains(userId)) {
-            // Return empty page if there's a mutual block relationship
-            return new PageImpl<>(List.of(), pageable, 0);
+        if (viewerUserId != null && !userId.equals(viewerUserId)) {
+            List<UUID> mutuallyBlocked = userBlockService.getMutuallyBlockedUserIds(viewerUserId);
+            if (mutuallyBlocked.contains(userId)) {
+                // Return empty page if there's a mutual block relationship
+                return new PageImpl<>(List.of(), pageable, 0);
+            }
         }
         
-        return postRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+        // Use query that handles hidden posts: shows hidden posts only to the author
+        return postRepository.findByUserIdForViewer(userId, viewerUserId, pageable);
     }
 
     /**
      * Get posts with media by a specific user
      * Filters based on mutual blocking when viewing another user's profile
+     * Shows hidden posts only to the author
      */
     public Page<Post> getUserPostsWithMedia(UUID userId, UUID viewerUserId, Pageable pageable) {
-        // If viewing own profile or no viewer, return all posts
-        if (viewerUserId == null || userId.equals(viewerUserId)) {
-            return postRepository.findPostsWithMediaByUserId(userId, pageable);
-        }
-        
         // For mutual blocking: check if viewer has blocked this user OR user has blocked viewer
-        List<UUID> mutuallyBlocked = userBlockService.getMutuallyBlockedUserIds(viewerUserId);
-        if (mutuallyBlocked.contains(userId)) {
-            // Return empty page if there's a mutual block relationship
-            return new PageImpl<>(List.of(), pageable, 0);
+        if (viewerUserId != null && !userId.equals(viewerUserId)) {
+            List<UUID> mutuallyBlocked = userBlockService.getMutuallyBlockedUserIds(viewerUserId);
+            if (mutuallyBlocked.contains(userId)) {
+                // Return empty page if there's a mutual block relationship
+                return new PageImpl<>(List.of(), pageable, 0);
+            }
         }
         
-        return postRepository.findPostsWithMediaByUserId(userId, pageable);
+        // Use query that handles hidden posts: shows hidden posts only to the author
+        return postRepository.findPostsWithMediaByUserIdForViewer(userId, viewerUserId, pageable);
     }
 
     public Page<Post> getFeed(String userEmail, String feedType, Pageable pageable) {

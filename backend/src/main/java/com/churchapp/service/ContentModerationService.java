@@ -37,6 +37,7 @@ public class ContentModerationService {
     private final PostBookmarkRepository postBookmarkRepository;
     private final PostShareRepository postShareRepository;
     private final UserRepository userRepository;
+    private final com.churchapp.service.UserManagementService userManagementService;
 
     @Transactional(readOnly = true)
     public Page<ModerationResponse> getReportedContent(Pageable pageable, String contentType, String status, String priority) {
@@ -182,9 +183,14 @@ public class ContentModerationService {
                         log.warn("Could not access post author for report {}: {}", report.getId(), e.getMessage(), e);
                     }
                     builder.isVisible(true); // Post visibility logic can be enhanced later
+                    // Check if post is hidden
+                    Boolean isHidden = post.getIsHidden();
+                    builder.isHidden(isHidden != null && isHidden);
                 } else {
                     log.warn("Post {} not found for report {}", report.getContentId(), report.getId());
                     builder.contentPreview("(Post has been deleted)");
+                    builder.isVisible(false);
+                    builder.isHidden(false);
                 }
             }
             // Add other content types (COMMENT, PRAYER, etc.) as needed
@@ -202,10 +208,36 @@ public class ContentModerationService {
         User moderator = userRepository.findById(moderatorId)
             .orElseThrow(() -> new RuntimeException("Moderator user not found: " + moderatorId));
 
+        // Handle WARN action - warn the content author
+        if ("WARN".equalsIgnoreCase(action)) {
+            try {
+                // Get the content author based on content type
+                UUID authorId = getContentAuthorId(contentType, contentId);
+                if (authorId != null) {
+                    String warnMessage = reason != null ? reason : "Your content violates community guidelines. Please review our community standards.";
+                    userManagementService.warnUser(
+                        authorId, 
+                        reason != null ? reason : "Content violation",
+                        warnMessage,
+                        moderatorId,
+                        contentType,
+                        contentId
+                    );
+                    log.info("Warning issued to user {} for {} {}: {}", authorId, contentType, contentId, reason);
+                } else {
+                    log.warn("Could not find author for {} {} to warn", contentType, contentId);
+                }
+            } catch (Exception e) {
+                log.error("Error warning user for {} {}: {}", contentType, contentId, e.getMessage(), e);
+                // Don't fail the entire moderation if warning fails
+            }
+            // Continue to mark reports as resolved even if warning fails
+        }
+
         // Perform the moderation action based on content type
         switch (contentType.toUpperCase()) {
             case "POST":
-                moderatePost(contentId, action, reason);
+                moderatePost(contentId, action, reason, moderator);
                 break;
             case "PRAYER":
                 moderatePrayer(contentId, action, reason);
@@ -431,7 +463,30 @@ public class ContentModerationService {
     }
 
     // Content-specific moderation methods
-    private void moderatePost(UUID postId, String action, String reason) {
+    /**
+     * Get the author ID for a given content type and content ID
+     */
+    private UUID getContentAuthorId(String contentType, UUID contentId) {
+        try {
+            switch (contentType.toUpperCase()) {
+                case "POST":
+                    Optional<Post> postOpt = postRepository.findById(contentId);
+                    if (postOpt.isPresent() && postOpt.get().getUser() != null) {
+                        return postOpt.get().getUser().getId();
+                    }
+                    break;
+                // Add other content types as needed (COMMENT, PRAYER, etc.)
+                default:
+                    log.warn("Unknown content type for getting author: {}", contentType);
+                    return null;
+            }
+        } catch (Exception e) {
+            log.error("Error getting author ID for {} {}: {}", contentType, contentId, e.getMessage());
+        }
+        return null;
+    }
+
+    private void moderatePost(UUID postId, String action, String reason, User moderator) {
         Optional<Post> postOpt = postRepository.findById(postId);
         if (postOpt.isEmpty()) {
             log.warn("Post {} not found for moderation - may have already been deleted. Action: {}", postId, action);
@@ -446,7 +501,7 @@ public class ContentModerationService {
         try {
             switch (upperAction) {
                 case "REMOVE":
-                    // Hard delete the post
+                    // Hard delete the post permanently
                     log.info("Removing post {} - Reason: {}", postId, reason);
                     cleanupPostData(postId);
                     postRepository.delete(post);
@@ -459,18 +514,30 @@ public class ContentModerationService {
                     break;
 
                 case "HIDE":
-                    // Hide post by making it anonymous and setting visibility (future: add isHidden field)
+                    // Hide post from public view (still visible to author on their profile)
                     log.info("Hiding post {} - Reason: {}", postId, reason);
-                    // For now, we'll delete it. In future, add isHidden flag to Post entity
-                    cleanupPostData(postId);
-                    postRepository.delete(post);
-                    log.info("Post {} has been hidden", postId);
+                    post.setIsHidden(true);
+                    post.setHiddenAt(LocalDateTime.now());
+                    post.setHiddenBy(moderator);
+                    postRepository.save(post);
+                    log.info("Post {} has been hidden (still visible to author)", postId);
+                    break;
+
+                case "UNHIDE":
+                    // Unhide a previously hidden post
+                    log.info("Unhiding post {} - Reason: {}", postId, reason);
+                    post.setIsHidden(false);
+                    post.setHiddenAt(null);
+                    post.setHiddenBy(null);
+                    postRepository.save(post);
+                    log.info("Post {} has been unhidden", postId);
                     break;
 
                 case "WARN":
                     // Warn - do nothing to content, just mark reports as resolved
+                    // Warning is handled separately via warnUser service
                     log.info("Warning for post {} - Reason: {}", postId, reason);
-                    // TODO: Send notification to post author
+                    // Note: warnUser should be called separately from the controller
                     break;
 
                 default:

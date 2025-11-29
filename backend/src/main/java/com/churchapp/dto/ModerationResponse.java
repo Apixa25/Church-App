@@ -52,6 +52,7 @@ public class ModerationResponse {
     // Additional metadata
     private int reportCount; // How many times this content has been reported
     private boolean isVisible; // Whether content is currently visible to users
+    private boolean isHidden; // Whether content is currently hidden (for posts)
     private String category;
     
     // Post-specific fields for moderation

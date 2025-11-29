@@ -229,10 +229,19 @@ public class AdminController {
         try {
             String reason = request.get("reason");
             String message = request.get("message");
+            String contentType = request.get("contentType");
+            String contentIdStr = request.get("contentId");
+            UUID contentId = contentIdStr != null ? UUID.fromString(contentIdStr) : null;
+
+            // Get moderator ID from email (auth.getName() returns email)
+            String email = auth.getName();
+            User moderator = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+            UUID moderatorId = moderator.getId();
 
             log.info("Admin {} warning user {} for: {}", auth.getName(), userId, reason);
 
-            userManagementService.warnUser(userId, reason, message);
+            userManagementService.warnUser(userId, reason, message, moderatorId, contentType, contentId);
 
             // Log the action
             Map<String, String> details = new HashMap<>();
