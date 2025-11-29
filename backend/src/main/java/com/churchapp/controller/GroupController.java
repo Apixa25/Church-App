@@ -22,7 +22,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/groups")
+@RequestMapping("/groups")
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "*")
