@@ -239,18 +239,33 @@ const AdminModeration: React.FC = () => {
                           <div className="post-text">{report.contentPreview || 'Content preview not available'}</div>
                           {report.mediaUrls && report.mediaUrls.length > 0 && (
                             <div className="post-media">
-                              <div className="media-label">📎 {report.mediaUrls.length} media file{report.mediaUrls.length > 1 ? 's' : ''} attached</div>
-                              <div className="media-thumbnails">
-                                {report.mediaUrls.slice(0, 3).map((url: string, index: number) => (
-                                  <a key={index} href={url} target="_blank" rel="noopener noreferrer" className="media-thumbnail">
-                                    {report.mediaTypes && report.mediaTypes[index]?.startsWith('image/') ? (
-                                      <img src={url} alt={`Media ${index + 1}`} />
+                              {report.mediaUrls.map((url: string, index: number) => {
+                                const mediaType = report.mediaTypes?.[index] || 'image';
+                                const isImage = mediaType.startsWith('image');
+
+                                return (
+                                  <div 
+                                    key={index} 
+                                    className="media-item"
+                                  >
+                                    {isImage ? (
+                                      <img
+                                        src={url}
+                                        alt={`Post media ${index + 1}`}
+                                        className="media-image"
+                                        loading="lazy"
+                                      />
                                     ) : (
-                                      <div className="media-placeholder">📎 {report.mediaTypes?.[index] || 'File'}</div>
+                                      <video
+                                        src={url}
+                                        controls
+                                        className="media-video"
+                                        preload="metadata"
+                                      />
                                     )}
-                                  </a>
-                                ))}
-                              </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
                         </div>
