@@ -282,7 +282,7 @@ const CreatePostGroupModal: React.FC<CreatePostGroupModalProps> = ({
       const groupData = {
         name: name.trim(),
         description: description.trim() || undefined,
-        visibility: 'PUBLIC' as const, // All new groups are PUBLIC
+        type: 'PUBLIC', // All new groups are PUBLIC - backend expects 'type' not 'visibility'
         tags: tags.length > 0 ? tags : undefined,
       };
 
