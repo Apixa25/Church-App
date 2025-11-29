@@ -1,5 +1,6 @@
 package com.churchapp.controller;
 
+import com.churchapp.dto.UserOrganizationGroupResponse;
 import com.churchapp.entity.UserOrganizationGroup;
 import com.churchapp.repository.UserRepository;
 import com.churchapp.service.OrganizationGroupService;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/organizations")
@@ -64,12 +66,15 @@ public class OrganizationGroupController {
      * Get all organizations user follows as groups
      */
     @GetMapping("/followed-as-groups")
-    public ResponseEntity<List<UserOrganizationGroup>> getFollowedOrganizations(
+    public ResponseEntity<List<UserOrganizationGroupResponse>> getFollowedOrganizations(
             @AuthenticationPrincipal User securityUser) {
         UUID userId = getUserId(securityUser);
         List<UserOrganizationGroup> followed = organizationGroupService
             .getFollowedOrganizations(userId);
-        return ResponseEntity.ok(followed);
+        List<UserOrganizationGroupResponse> response = followed.stream()
+            .map(UserOrganizationGroupResponse::fromEntity)
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(response);
     }
 
     /**

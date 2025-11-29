@@ -18,7 +18,8 @@ public interface UserOrganizationGroupRepository extends JpaRepository<UserOrgan
     
     boolean existsByUserIdAndOrganizationId(UUID userId, UUID organizationId);
     
-    List<UserOrganizationGroup> findByUserId(UUID userId);
+    @Query("SELECT uog FROM UserOrganizationGroup uog JOIN FETCH uog.organization WHERE uog.user.id = :userId")
+    List<UserOrganizationGroup> findByUserId(@Param("userId") UUID userId);
     
     @Query("SELECT uog FROM UserOrganizationGroup uog WHERE uog.user.id = :userId AND uog.isMuted = false")
     List<UserOrganizationGroup> findUnmutedByUserId(UUID userId);
