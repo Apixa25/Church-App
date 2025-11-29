@@ -7,6 +7,9 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .bring-list-existing {
@@ -48,14 +51,23 @@
 
 .editor-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+  flex-wrap: wrap;
 }
 
 .editor-header h4 {
   margin: 0;
   color: var(--text-primary);
+  flex: 1;
+  min-width: 200px;
+}
+
+.editor-header .btn {
+  flex-shrink: 0;
 }
 
 .helper-text {
@@ -77,22 +89,37 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .bring-list-row {
   background: var(--bg-secondary);
   border: 1px solid var(--border-primary);
   border-radius: 12px;
-  padding: 1rem;
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .bring-list-row .row-main,
 .bring-list-row .row-secondary {
   display: grid;
   gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.bring-list-row .row-main {
+  grid-template-columns: 1fr;
+}
+
+.bring-list-row .row-secondary {
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
 }
 
 @media (min-width: 768px) {
@@ -101,19 +128,23 @@
   }
 
   .bring-list-row .row-secondary {
-    grid-template-columns: 2fr 1fr;
-    align-items: center;
+    grid-template-columns: 1fr;
+    align-items: flex-start;
   }
 }
 
 .bring-list-row .input-group {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .bring-list-row .input-group input,
 .bring-list-row .input-group textarea {
+  width: 100%;
   padding: 0.6rem 0.75rem;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-primary);
@@ -121,6 +152,8 @@
   font-size: 0.95rem;
   color: var(--text-primary);
   transition: all var(--transition-base);
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .bring-list-row .input-group input:focus,
@@ -145,20 +178,39 @@
 
 .bring-list-row textarea {
   resize: vertical;
+  min-height: 60px;
+  width: 100%;
+  font-family: inherit;
+}
+
+.bring-list-row .input-group input[type="number"] {
+  width: 100%;
+  min-width: 0;
 }
 
 .checkbox-label.inline {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.6rem;
   font-size: 0.9rem;
   color: var(--text-primary);
   font-weight: 500;
+  margin-top: 0.25rem;
+  line-height: 1.5;
+  flex-wrap: wrap;
+}
+
+.checkbox-label.inline input[type="checkbox"] {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
 }
 
 .bring-list-row .row-actions {
   display: flex;
   justify-content: flex-end;
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-primary);
 }
 
 .btn.btn-link.danger {
@@ -178,3 +230,22 @@
   opacity: 0.9;
 }
 
+/* Responsive adjustments */
+@media (max-width: 767px) {
+  .bring-list-editor {
+    padding: 1rem;
+  }
+
+  .bring-list-row {
+    padding: 1rem;
+  }
+
+  .editor-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .editor-header .btn {
+    width: 100%;
+  }
+}
