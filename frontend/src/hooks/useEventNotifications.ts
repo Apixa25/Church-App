@@ -232,7 +232,7 @@ export const useEventNotifications = () => {
         messageId: update.messageId,
         timestamp: update.timestamp || new Date().toISOString(),
         read: false,
-        actionUrl: update.actionUrl || (update.chatGroupId ? `/chat/${update.chatGroupId}` : '/chat')
+        actionUrl: update.actionUrl || (update.chatGroupId ? `/chats/${update.chatGroupId}` : '/chats')
       };
 
       addNotificationRef.current(notification);

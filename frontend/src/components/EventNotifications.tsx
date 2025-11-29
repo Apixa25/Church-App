@@ -25,7 +25,7 @@ const EventNotifications: React.FC = () => {
       navigate(notification.actionUrl);
     } else if (notification.chatGroupId) {
       // Fallback navigation for chat notifications
-      navigate(`/chat/${notification.chatGroupId}`);
+      navigate(`/chats/${notification.chatGroupId}`);
     } else if (notification.eventId) {
       // Fallback navigation for event notifications
       navigate('/calendar');
