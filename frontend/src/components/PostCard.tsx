@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Post, PostType, Comment, SharePostRequest } from '../types/Post';
 import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost, deletePost, recordPostView, blockUser, unblockUser, getBlockStatus, followUser, unfollowUser, getFollowStatus, reportContent } from '../services/postApi';
 import CommentThread from './CommentThread';
 import { formatRelativeDate } from '../utils/dateUtils';
 import { useAuth } from '../contexts/AuthContext';
+import { useFeedFilter } from '../contexts/FeedFilterContext';
 import ShareModal from './ShareModal';
 import ReportModal from './ReportModal';
 import PostStatsModal from './PostStatsModal';
@@ -31,6 +32,8 @@ const PostCard: React.FC<PostCardProps> = ({
 }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { setFilter } = useFeedFilter();
   const [isLiked, setIsLiked] = useState(post.isLikedByCurrentUser || false);
   const [isBookmarked, setIsBookmarked] = useState(post.isBookmarkedByCurrentUser || false);
   const [likesCount, setLikesCount] = useState(post.likesCount);
@@ -462,15 +465,37 @@ const PostCard: React.FC<PostCardProps> = ({
               {(post.group || post.organization) && (
                 <span 
                   className="post-context-name clickable"
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation();
-                    if (post.group) {
-                      navigate('/groups');
-                    } else if (post.organization) {
-                      navigate('/organizations');
+                    try {
+                      console.log('🔍 Filtering feed - Group:', post.group?.name, 'Organization:', post.organization?.name);
+                      if (post.group) {
+                        // Filter feed to show only posts from this group
+                        console.log('📌 Setting filter to SELECTED_GROUPS with group ID:', post.group.id);
+                        if (location.pathname !== '/dashboard') {
+                          navigate('/dashboard');
+                          // Wait a bit for navigation to complete
+                          await new Promise(resolve => setTimeout(resolve, 100));
+                        }
+                        await setFilter('SELECTED_GROUPS', [post.group.id]);
+                        console.log('✅ Filter set successfully for group:', post.group.name);
+                      } else if (post.organization) {
+                        // Filter feed to show only posts from this organization
+                        console.log('📌 Setting filter to PRIMARY_ONLY with organization ID:', post.organization.id);
+                        if (location.pathname !== '/dashboard') {
+                          navigate('/dashboard');
+                          // Wait a bit for navigation to complete
+                          await new Promise(resolve => setTimeout(resolve, 100));
+                        }
+                        await setFilter('PRIMARY_ONLY', [], post.organization.id);
+                        console.log('✅ Filter set successfully for organization:', post.organization.name);
+                      }
+                    } catch (error) {
+                      console.error('❌ Error filtering feed:', error);
+                      alert('Failed to filter feed. Please try again.');
                     }
                   }}
-                  title={post.group ? `View ${post.group.name} group` : `View ${post.organization?.name} organization`}
+                  title={post.group ? `Show posts from ${post.group.name}` : `Show posts from ${post.organization?.name}`}
                 >
                   {post.group ? post.group.name : post.organization?.name}
                 </span>

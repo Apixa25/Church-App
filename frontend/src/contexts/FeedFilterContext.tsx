@@ -144,9 +144,16 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
 
       // Handle feed preference
       if (preferenceRes.status === 'fulfilled') {
-        setPreference(preferenceRes.value.data);
+        const prefData = preferenceRes.value.data;
+        console.log('📋 FeedFilterContext: Fetched preference:', prefData);
+        // Ensure selectedGroupIds is always a new array reference
+        setPreference({
+          ...prefData,
+          selectedGroupIds: prefData.selectedGroupIds ? [...prefData.selectedGroupIds] : [],
+        });
       } else {
         // Default preference if none exists
+        console.log('📋 FeedFilterContext: No preference found, using defaults');
         setPreference({
           id: '',
           userId: '',
@@ -189,15 +196,18 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
   // Set filter
   const setFilter = async (filter: FeedFilter, groupIds: string[] = [], selectedOrganizationId?: string): Promise<void> => {
     try {
+      console.log('🔧 FeedFilterContext: Setting filter:', filter, 'groupIds:', groupIds, 'selectedOrganizationId:', selectedOrganizationId);
       await api.post('/feed-preferences', {
         activeFilter: filter,
         selectedGroupIds: filter === 'SELECTED_GROUPS' ? groupIds : [],
         selectedOrganizationId: filter === 'PRIMARY_ONLY' ? selectedOrganizationId : undefined,
       });
 
+      console.log('✅ FeedFilterContext: Filter saved, refreshing preference...');
       await refreshPreference();
+      console.log('✅ FeedFilterContext: Preference refreshed');
     } catch (error: any) {
-      console.error('Error setting feed filter:', error);
+      console.error('❌ FeedFilterContext: Error setting feed filter:', error);
       throw new Error(error.response?.data?.message || 'Failed to update feed filter');
     }
   };
@@ -218,10 +228,15 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
     fetchPreference();
   }, [isAuthenticated, token]);
 
+  // Ensure selectedGroupIds is always a new array reference for proper React dependency tracking
+  const selectedGroupIdsArray = preference?.selectedGroupIds 
+    ? [...preference.selectedGroupIds] 
+    : [];
+
   const value: FeedFilterContextType = {
     preference,
     activeFilter: preference?.activeFilter || 'EVERYTHING',
-    selectedGroupIds: preference?.selectedGroupIds || [],
+    selectedGroupIds: selectedGroupIdsArray,
     feedParameters,
     visibleGroupIds,
     hasPrimaryOrg,
