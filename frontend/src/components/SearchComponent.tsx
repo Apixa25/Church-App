@@ -380,7 +380,11 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
             <button
               type="button"
               className="emoji-picker-btn"
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('😀 Emoji picker button clicked! showEmojiPicker:', showEmojiPicker);
+                setShowEmojiPicker(!showEmojiPicker);
+              }}
               aria-label="Open emoji picker"
               title="Add emoji to search"
             >
@@ -395,37 +399,42 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
                 ✕
               </button>
             )}
-          </div>
-
-          {/* Emoji Picker Dropdown */}
-          {showEmojiPicker && (
-            <div ref={emojiPickerRef} className="emoji-picker-dropdown">
-              <div className="emoji-picker-header">
-                <span>Select Emoji</span>
-                <button
-                  type="button"
-                  className="emoji-picker-close"
-                  onClick={() => setShowEmojiPicker(false)}
-                  aria-label="Close emoji picker"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="emoji-picker-grid">
-                {familyEmojis.map((emoji, index) => (
+            {/* Emoji Picker Dropdown - moved inside search-input-container for proper positioning */}
+            {showEmojiPicker && (
+              <div ref={emojiPickerRef} className="emoji-picker-dropdown">
+                <div className="emoji-picker-header">
+                  <span>Select Emoji</span>
                   <button
-                    key={index}
                     type="button"
-                    className="emoji-picker-item"
-                    onClick={() => handleEmojiClick(emoji)}
-                    title={`Add ${emoji}`}
+                    className="emoji-picker-close"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowEmojiPicker(false);
+                    }}
+                    aria-label="Close emoji picker"
                   >
-                    {emoji}
+                    ✕
                   </button>
-                ))}
+                </div>
+                <div className="emoji-picker-grid">
+                  {familyEmojis.map((emoji, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      className="emoji-picker-item"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEmojiClick(emoji);
+                      }}
+                      title={`Add ${emoji}`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           <div className="search-actions">
             <button
