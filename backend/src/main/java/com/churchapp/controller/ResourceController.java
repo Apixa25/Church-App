@@ -535,9 +535,9 @@ public class ResourceController {
             if (file.isEmpty()) {
                 response.put("valid", false);
                 response.put("error", "File is empty");
-            } else if (file.getSize() > 10 * 1024 * 1024) { // 10MB limit
+            } else if (file.getSize() > 150 * 1024 * 1024) { // 150MB limit
                 response.put("valid", false);
-                response.put("error", "File size exceeds maximum limit of 10MB");
+                response.put("error", "File size exceeds maximum limit of 150MB");
             }
             
             return ResponseEntity.ok(response);

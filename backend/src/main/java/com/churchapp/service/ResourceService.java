@@ -2,8 +2,11 @@ package com.churchapp.service;
 
 import com.churchapp.entity.Resource;
 import com.churchapp.entity.User;
+import com.churchapp.entity.UserOrganizationMembership;
 import com.churchapp.repository.ResourceRepository;
 import com.churchapp.repository.UserRepository;
+import com.churchapp.repository.UserOrganizationMembershipRepository;
+import com.churchapp.service.AdminAuthorizationService;
 import com.churchapp.util.YouTubeUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +30,8 @@ public class ResourceService {
     private final ResourceRepository resourceRepository;
     private final UserRepository userRepository;
     private final FileUploadService fileUploadService;
+    private final AdminAuthorizationService adminAuthorizationService;
+    private final UserOrganizationMembershipRepository membershipRepository;
     
     public Resource createResource(UUID uploaderId, Resource resourceRequest) {
         User uploader = userRepository.findById(uploaderId)
@@ -78,14 +83,12 @@ public class ResourceService {
             log.info("No YouTube URL provided in request");
         }
         
-        // Auto-approve if uploaded by admin/moderator, otherwise require approval
-        boolean autoApprove = (uploader.getRole() == User.Role.PLATFORM_ADMIN || 
-                              uploader.getRole() == User.Role.MODERATOR);
-        resource.setIsApproved(autoApprove);
+        // Auto-approve all resources (approval process disabled but code kept for future use)
+        resource.setIsApproved(true);
         
         Resource savedResource = resourceRepository.save(resource);
-        log.info("Resource created with id: {} by user: {} (auto-approved: {}, YouTube: {})", 
-                savedResource.getId(), uploaderId, autoApprove, 
+        log.info("Resource created with id: {} by user: {} (auto-approved: true, YouTube: {})", 
+                savedResource.getId(), uploaderId, 
                 savedResource.getYoutubeVideoId() != null ? "Yes" : "No");
         
         return savedResource;
@@ -156,17 +159,42 @@ public class ResourceService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         
+        User uploader = resource.getUploadedBy();
+        
         log.info("Delete authorization check - Resource: {} | Uploader: {} | Current User: {} | User Role: {}", 
-                resourceId, resource.getUploadedBy().getId(), userId, user.getRole());
+                resourceId, uploader.getId(), userId, user.getRole());
         
-        boolean isUploader = resource.getUploadedBy().getId().equals(userId);
-        boolean isAdmin = user.getRole() == User.Role.PLATFORM_ADMIN;
+        boolean isUploader = uploader.getId().equals(userId);
+        boolean isPlatformAdmin = adminAuthorizationService.isPlatformAdmin(user);
         
-        log.info("Authorization result - Is Uploader: {} | Is Admin: {} | Can Delete: {}", 
-                isUploader, isAdmin, (isUploader || isAdmin));
+        // Check if user is an organization admin of any organization that the uploader belongs to
+        boolean isOrgAdmin = false;
+        if (!isPlatformAdmin) {
+            List<UserOrganizationMembership> uploaderMemberships = membershipRepository.findByUserId(uploader.getId());
+            List<UserOrganizationMembership> userMemberships = membershipRepository.findByUserId(userId);
+            
+            // Check if user is ORG_ADMIN of any organization that the uploader is a member of
+            for (UserOrganizationMembership userMembership : userMemberships) {
+                if (userMembership.getRole() == UserOrganizationMembership.OrgRole.ORG_ADMIN) {
+                    UUID userOrgId = userMembership.getOrganization().getId();
+                    // Check if uploader is also a member of this organization
+                    boolean uploaderInSameOrg = uploaderMemberships.stream()
+                        .anyMatch(m -> m.getOrganization().getId().equals(userOrgId));
+                    if (uploaderInSameOrg) {
+                        isOrgAdmin = true;
+                        log.info("User {} is ORG_ADMIN of organization {} where uploader {} is a member", 
+                                userId, userOrgId, uploader.getId());
+                        break;
+                    }
+                }
+            }
+        }
         
-        if (!isUploader && !isAdmin) {
-            throw new RuntimeException("Not authorized to delete this resource. Only the uploader or administrators can delete resources.");
+        log.info("Authorization result - Is Uploader: {} | Is Platform Admin: {} | Is Org Admin: {} | Can Delete: {}", 
+                isUploader, isPlatformAdmin, isOrgAdmin, (isUploader || isPlatformAdmin || isOrgAdmin));
+        
+        if (!isUploader && !isPlatformAdmin && !isOrgAdmin) {
+            throw new RuntimeException("Not authorized to delete this resource. Only the uploader, platform administrators, or organization administrators can delete resources.");
         }
         
         // Delete file from S3 if it exists
@@ -368,14 +396,12 @@ public class ResourceService {
             resource.setFileType(file.getContentType());
             resource.setDownloadCount(0);
             
-            // Auto-approve if uploaded by admin/moderator, otherwise require approval
-            boolean autoApprove = (uploader.getRole() == User.Role.PLATFORM_ADMIN || 
-                                  uploader.getRole() == User.Role.MODERATOR);
-            resource.setIsApproved(autoApprove);
+            // Auto-approve all resources (approval process disabled but code kept for future use)
+            resource.setIsApproved(true);
             
             Resource savedResource = resourceRepository.save(resource);
-            log.info("Resource with file created with id: {} by user: {} (auto-approved: {})", 
-                    savedResource.getId(), uploaderId, autoApprove);
+            log.info("Resource with file created with id: {} by user: {} (auto-approved: true)", 
+                    savedResource.getId(), uploaderId);
             
             return savedResource;
             

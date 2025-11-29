@@ -72,7 +72,7 @@ public class FileUploadService {
     @Value("${media.upload.audio.max-size:10485760}") // 10MB default
     private long maxAudioSize;
     
-    @Value("${media.upload.document.max-size:10485760}") // 10MB default
+    @Value("${media.upload.document.max-size:157286400}") // 150MB default
     private long maxDocumentSize;
     
     /**
