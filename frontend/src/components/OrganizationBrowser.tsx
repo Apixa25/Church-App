@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization, Organization } from '../contexts/OrganizationContext';
+import organizationGroupApi from '../services/organizationGroupApi';
 import styled from 'styled-components';
 import '../App.css';
 
@@ -333,7 +334,7 @@ const ButtonGroup = styled.div`
   margin-top: 16px;
 `;
 
-const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'danger' }>`
+const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'danger' | 'outline' }>`
   flex: 1;
   padding: 10px 16px;
   font-size: 14px;
@@ -374,6 +375,23 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'danger' }>`
             border-color: var(--border-primary);
             color: var(--text-disabled);
             cursor: not-allowed;
+          }
+        `;
+      case 'outline':
+        return `
+          background: transparent;
+          color: var(--text-primary);
+          border: 1px solid var(--border-primary);
+          &:hover:not(:disabled) {
+            background: var(--bg-elevated);
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+          }
+          &:disabled {
+            border-color: var(--border-primary);
+            color: var(--text-disabled);
+            cursor: not-allowed;
+            opacity: 0.6;
           }
         `;
       case 'danger':
@@ -484,6 +502,8 @@ const OrganizationBrowser: React.FC = () => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [followedAsGroups, setFollowedAsGroups] = useState<Set<string>>(new Set());
+  const [checkingFollowedOrgs, setCheckingFollowedOrgs] = useState(true);
 
   // Same curated list of family-friendly emojis from FamilyGroupCreateForm
   const familyEmojis = [
@@ -536,6 +556,23 @@ const OrganizationBrowser: React.FC = () => {
 
     checkSwitchEligibility();
   }, [canSwitchPrimary, getDaysUntilCanSwitch]);
+
+  // Check which organizations are followed as groups
+  useEffect(() => {
+    const checkFollowedOrgs = async () => {
+      try {
+        setCheckingFollowedOrgs(true);
+        const orgGroups = await organizationGroupApi.getFollowedOrganizations();
+        const orgIds = new Set(orgGroups.map(og => og.organization.id));
+        setFollowedAsGroups(orgIds);
+      } catch (err) {
+        console.error('Error checking followed orgs:', err);
+      } finally {
+        setCheckingFollowedOrgs(false);
+      }
+    };
+    checkFollowedOrgs();
+  }, []);
 
   // Search organizations when query or filter changes
   useEffect(() => {
@@ -614,6 +651,41 @@ const OrganizationBrowser: React.FC = () => {
       }
     } catch (err: any) {
       setError(err.message || 'Failed to leave organization');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleSeeGroupPosts = async (orgId: string, orgName: string) => {
+    try {
+      setActionLoading(orgId);
+      setError(null);
+      setSuccess(null);
+
+      // Validation: Check if this is user's own primary organization
+      if (isPrimary(orgId)) {
+        setError(`You cannot follow your own primary organization as a group. You already see all posts from ${orgName}.`);
+        return;
+      }
+
+      // Check if already following
+      if (followedAsGroups.has(orgId)) {
+        setError(`You are already following ${orgName} as a group.`);
+        return;
+      }
+
+      // Check if user can follow (backend will also validate)
+      const canFollow = await organizationGroupApi.canFollowAsGroup(orgId);
+      if (!canFollow) {
+        setError(`You cannot follow ${orgName} as a group.`);
+        return;
+      }
+
+      await organizationGroupApi.followOrganizationAsGroup(orgId);
+      setFollowedAsGroups(prev => new Set(prev).add(orgId));
+      setSuccess(`Now following ${orgName}! You'll see their posts in your feed.`);
+    } catch (err: any) {
+      setError(err.message || 'Failed to follow organization as group');
     } finally {
       setActionLoading(null);
     }
@@ -912,6 +984,24 @@ const OrganizationBrowser: React.FC = () => {
                     title="Join as secondary to see public posts in your feed"
                   >
                     {actionLoading === org.id ? 'Joining...' : 'Join as Secondary'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleSeeGroupPosts(org.id, org.name)}
+                    disabled={actionLoading === org.id || followedAsGroups.has(org.id) || isPrimary(org.id)}
+                    title={
+                      isPrimary(org.id)
+                        ? 'You already see all posts from your primary organization'
+                        : followedAsGroups.has(org.id)
+                        ? 'Already following this organization as a group'
+                        : 'Follow this organization to see their posts in your feed (feed-only, no quick actions)'
+                    }
+                  >
+                    {actionLoading === org.id
+                      ? 'Following...'
+                      : followedAsGroups.has(org.id)
+                      ? 'Following as Group'
+                      : 'See Group Posts'}
                   </Button>
                 </ButtonGroup>
               )}

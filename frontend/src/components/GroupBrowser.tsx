@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useGroup, Group } from '../contexts/GroupContext';
 import { useOrganization } from '../contexts/OrganizationContext';
 import organizationGroupApi, { OrganizationGroup } from '../services/organizationGroupApi';
+import CreatePostGroupModal from './CreatePostGroupModal';
 import styled from 'styled-components';
 
 const BrowserContainer = styled.div`
@@ -389,6 +390,7 @@ const GroupBrowser: React.FC = () => {
     unmuteGroup,
     searchGroups,
     isMember,
+    refreshGroups,
   } = useGroup();
 
   const { primaryMembership } = useOrganization();
@@ -403,6 +405,7 @@ const GroupBrowser: React.FC = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [orgGroups, setOrgGroups] = useState<OrganizationGroup[]>([]);
   const [orgGroupsLoading, setOrgGroupsLoading] = useState(false);
+  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
 
   // Search groups when query or filter changes
   useEffect(() => {
@@ -750,7 +753,7 @@ const GroupBrowser: React.FC = () => {
         <MyGroupsSection>
           <SectionHeader>
             <SectionTitle>My Groups</SectionTitle>
-            <CreateButton onClick={() => alert('Create Group feature coming soon!')}>
+            <CreateButton onClick={() => setShowCreateGroupModal(true)}>
               + Create Group
             </CreateButton>
           </SectionHeader>
@@ -888,6 +891,16 @@ const GroupBrowser: React.FC = () => {
           )}
         </>
       )}
+
+      {/* Create Group Modal */}
+      <CreatePostGroupModal
+        isOpen={showCreateGroupModal}
+        onClose={() => setShowCreateGroupModal(false)}
+        onSuccess={() => {
+          // Refresh groups after creation
+          refreshGroups();
+        }}
+      />
     </BrowserContainer>
   );
 };
