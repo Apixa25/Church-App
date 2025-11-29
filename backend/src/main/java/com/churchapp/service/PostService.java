@@ -68,27 +68,30 @@ public class PostService {
         post.setLocation(location);
         post.setIsAnonymous(isAnonymous);
 
-        // Set organization context
-        if (organizationId != null) {
-            Organization org = organizationRepository.findById(organizationId)
-                .orElseThrow(() -> new RuntimeException("Organization not found"));
-            post.setOrganization(org);
-        } else if (user.getPrimaryOrganization() != null) {
-            // Default to user's primary organization if not specified
-            post.setOrganization(user.getPrimaryOrganization());
-        } else {
-            // User has no primary org - use global org
-            UUID globalOrgId = UUID.fromString("00000000-0000-0000-0000-000000000001");
-            Organization globalOrg = organizationRepository.findById(globalOrgId)
-                .orElseThrow(() -> new RuntimeException("Global organization not found"));
-            post.setOrganization(globalOrg);
-        }
-
-        // Set group context (optional - posts can be in groups)
+        // Set group context first (optional - posts can be in groups)
+        // IMPORTANT: If a group is specified, don't set organization (group takes priority)
         if (groupId != null) {
             Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new RuntimeException("Group not found"));
             post.setGroup(group);
+            // Group posts should not have an organization - group takes priority
+            post.setOrganization(null);
+        } else {
+            // No group specified - set organization context
+            if (organizationId != null) {
+                Organization org = organizationRepository.findById(organizationId)
+                    .orElseThrow(() -> new RuntimeException("Organization not found"));
+                post.setOrganization(org);
+            } else if (user.getPrimaryOrganization() != null) {
+                // Default to user's primary organization if not specified
+                post.setOrganization(user.getPrimaryOrganization());
+            } else {
+                // User has no primary org - use global org
+                UUID globalOrgId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+                Organization globalOrg = organizationRepository.findById(globalOrgId)
+                    .orElseThrow(() -> new RuntimeException("Global organization not found"));
+                post.setOrganization(globalOrg);
+            }
         }
 
         // Snapshot user's primary org at post time for analytics
