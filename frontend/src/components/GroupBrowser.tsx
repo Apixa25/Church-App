@@ -686,9 +686,7 @@ const GroupBrowser: React.FC = () => {
       <Header>
         <Title>Discover Groups</Title>
         <Subtitle>
-          {primaryMembership
-            ? 'Connect with communities that share your interests'
-            : 'Join an organization first to access groups'}
+          Connect with communities that share your interests. Search and join public groups to see their posts in your feed.
         </Subtitle>
 
         <SearchBar
@@ -696,7 +694,6 @@ const GroupBrowser: React.FC = () => {
           placeholder="Search groups by name or description..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          disabled={!primaryMembership}
         />
 
         <FilterSection>
@@ -739,23 +736,15 @@ const GroupBrowser: React.FC = () => {
       {error && <ErrorMessage>{error}</ErrorMessage>}
       {success && <SuccessMessage>{success}</SuccessMessage>}
 
-      {!primaryMembership && (
-        <EmptyState>
-          <EmptyStateTitle>No Primary Organization</EmptyStateTitle>
-          <EmptyStateText>
-            You need to join an organization as your primary before you can access groups.
-            Visit the Organizations page to get started!
-          </EmptyStateText>
-        </EmptyState>
-      )}
-
-      {primaryMembership && myGroups.length > 0 && (
+      {myGroups.length > 0 && (
         <MyGroupsSection>
           <SectionHeader>
             <SectionTitle>My Groups</SectionTitle>
-            <CreateButton onClick={() => setShowCreateGroupModal(true)}>
-              + Create Group
-            </CreateButton>
+            {primaryMembership && (
+              <CreateButton onClick={() => setShowCreateGroupModal(true)}>
+                + Create Group
+              </CreateButton>
+            )}
           </SectionHeader>
 
           <GroupTabs>
@@ -865,7 +854,7 @@ const GroupBrowser: React.FC = () => {
         </MyGroupsSection>
       )}
 
-      {primaryMembership && searchQuery && (
+      {searchQuery && (
         <>
           <SectionTitle>
             Search Results for "{searchQuery}"
@@ -890,6 +879,16 @@ const GroupBrowser: React.FC = () => {
             </GroupList>
           )}
         </>
+      )}
+
+      {!searchQuery && myGroups.length === 0 && orgGroups.length === 0 && (
+        <EmptyState>
+          <EmptyStateTitle>Discover Groups</EmptyStateTitle>
+          <EmptyStateText>
+            Search for groups by name or description above to find communities you're interested in.
+            {!primaryMembership && ' You can join groups and follow organizations as groups even without a primary organization.'}
+          </EmptyStateText>
+        </EmptyState>
       )}
 
       {/* Create Group Modal */}

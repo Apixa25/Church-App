@@ -560,6 +560,12 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
                 Find Organizations to Join
               </BrowseButton>
             </DropdownSection>
+
+            <DropdownSection>
+              <BrowseButtonSecondary onClick={handleBrowseGroups}>
+                Find Groups to Join
+              </BrowseButtonSecondary>
+            </DropdownSection>
           </>
         )}
     </DropdownPortal>
