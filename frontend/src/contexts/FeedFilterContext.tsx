@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
 import { useOrganization } from './OrganizationContext';
@@ -66,6 +66,9 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
   const [primaryOrgId, setPrimaryOrgId] = useState<string | null>(null);
   const [secondaryOrgIds, setSecondaryOrgIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Ref to track if we're in the middle of an optimistic update
+  const optimisticUpdateRef = useRef<{ filter: FeedFilter; groupIds: string[]; selectedOrganizationId?: string } | null>(null);
 
   // Derive hasPrimaryOrg - now means user has either Church or Family primary
   const hasPrimaryOrg = hasChurchPrimary || hasFamilyPrimary;
@@ -146,11 +149,45 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
       if (preferenceRes.status === 'fulfilled') {
         const prefData = preferenceRes.value.data;
         console.log('📋 FeedFilterContext: Fetched preference:', prefData);
-        // Ensure selectedGroupIds is always a new array reference
-        setPreference({
-          ...prefData,
-          selectedGroupIds: prefData.selectedGroupIds ? [...prefData.selectedGroupIds] : [],
-        });
+        
+        // If we have an optimistic update in progress, only update if the server data differs
+        if (optimisticUpdateRef.current) {
+          const optimistic = optimisticUpdateRef.current;
+          const serverFilter = prefData.activeFilter;
+          const serverGroupIds = prefData.selectedGroupIds || [];
+          const serverOrgId = prefData.selectedOrganizationId;
+          
+          // Check if server data matches optimistic update
+          const matches = serverFilter === optimistic.filter &&
+            JSON.stringify(serverGroupIds.sort()) === JSON.stringify(optimistic.groupIds.sort()) &&
+            serverOrgId === optimistic.selectedOrganizationId;
+          
+          if (matches) {
+            console.log('✅ FeedFilterContext: Server data matches optimistic update, keeping optimistic state');
+            // Server matches optimistic, so we can keep the optimistic state (it's already set)
+            // Just ensure selectedGroupIds is a new array reference
+            setPreference(prev => prev ? {
+              ...prev,
+              selectedGroupIds: prev.selectedGroupIds ? [...prev.selectedGroupIds] : [],
+            } : {
+              ...prefData,
+              selectedGroupIds: prefData.selectedGroupIds ? [...prefData.selectedGroupIds] : [],
+            });
+          } else {
+            console.log('⚠️ FeedFilterContext: Server data differs from optimistic update, using server data');
+            // Server differs, use server data
+            setPreference({
+              ...prefData,
+              selectedGroupIds: prefData.selectedGroupIds ? [...prefData.selectedGroupIds] : [],
+            });
+          }
+        } else {
+          // No optimistic update, use server data normally
+          setPreference({
+            ...prefData,
+            selectedGroupIds: prefData.selectedGroupIds ? [...prefData.selectedGroupIds] : [],
+          });
+        }
       } else {
         // Default preference if none exists
         console.log('📋 FeedFilterContext: No preference found, using defaults');
@@ -197,17 +234,51 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
   const setFilter = async (filter: FeedFilter, groupIds: string[] = [], selectedOrganizationId?: string): Promise<void> => {
     try {
       console.log('🔧 FeedFilterContext: Setting filter:', filter, 'groupIds:', groupIds, 'selectedOrganizationId:', selectedOrganizationId);
+      
+      // Optimistically update the preference state BEFORE the API call completes
+      // This prevents PostFeed from reacting to stale state
+      const optimisticPreference: FeedPreference = {
+        ...(preference || {
+          id: '',
+          userId: '',
+          activeFilter: 'EVERYTHING',
+          selectedGroupIds: [],
+          updatedAt: new Date().toISOString(),
+        }),
+        activeFilter: filter,
+        selectedGroupIds: filter === 'SELECTED_GROUPS' ? [...groupIds] : [],
+        selectedOrganizationId: filter === 'PRIMARY_ONLY' ? selectedOrganizationId : undefined,
+        updatedAt: new Date().toISOString(),
+      };
+      
+      // Track optimistic update
+      optimisticUpdateRef.current = {
+        filter,
+        groupIds: filter === 'SELECTED_GROUPS' ? [...groupIds] : [],
+        selectedOrganizationId: filter === 'PRIMARY_ONLY' ? selectedOrganizationId : undefined,
+      };
+      
+      // Update state immediately (synchronously in the same render cycle)
+      setPreference(optimisticPreference);
+      console.log('⚡ FeedFilterContext: Optimistically updated preference state to:', filter);
+      
+      // Make API call
       await api.post('/feed-preferences', {
         activeFilter: filter,
         selectedGroupIds: filter === 'SELECTED_GROUPS' ? groupIds : [],
         selectedOrganizationId: filter === 'PRIMARY_ONLY' ? selectedOrganizationId : undefined,
       });
 
-      console.log('✅ FeedFilterContext: Filter saved, refreshing preference...');
+      console.log('✅ FeedFilterContext: Filter saved to backend');
+      
+      // Clear optimistic update ref and refresh from server
+      optimisticUpdateRef.current = null;
       await refreshPreference();
-      console.log('✅ FeedFilterContext: Preference refreshed');
+      console.log('✅ FeedFilterContext: Preference refreshed from server');
     } catch (error: any) {
       console.error('❌ FeedFilterContext: Error setting feed filter:', error);
+      // Revert optimistic update on error by refreshing from server
+      await refreshPreference();
       throw new Error(error.response?.data?.message || 'Failed to update feed filter');
     }
   };
