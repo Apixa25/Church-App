@@ -680,6 +680,269 @@
   box-shadow: 0 0 12px var(--button-primary-glow);
 }
 
+/* Emoji Picker Button */
+.emoji-picker-btn {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: var(--text-secondary);
+  transition: all var(--transition-base);
+  flex-shrink: 0;
+}
+
+.emoji-picker-btn:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-glow);
+  color: var(--text-primary);
+  box-shadow: 0 0 8px var(--button-primary-glow);
+  transform: scale(1.1);
+}
+
+/* Emoji Picker Dropdown */
+.emoji-picker-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  max-height: 400px;
+  overflow-y: auto;
+  animation: slideDown 0.2s ease;
+}
+
+.emoji-picker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.emoji-picker-header span {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.emoji-picker-close {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all var(--transition-base);
+}
+
+.emoji-picker-close:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.emoji-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+  gap: 8px;
+  padding: 16px;
+}
+
+.emoji-picker-item {
+  padding: 12px;
+  font-size: 24px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emoji-picker-item:hover {
+  background: var(--bg-elevated);
+  border-color: var(--accent-primary);
+  transform: scale(1.1);
+  box-shadow: 0 0 12px var(--button-primary-glow);
+}
+
+/* Organization Result Styles */
+.organization-result {
+  padding: 16px 24px;
+  transition: all var(--transition-base);
+}
+
+.organization-result:hover {
+  background: var(--bg-elevated);
+  transform: translateX(4px);
+}
+
+.organization-result-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.organization-result-logo,
+.organization-result-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border-primary);
+  flex-shrink: 0;
+  transition: all var(--transition-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  background: var(--bg-secondary);
+}
+
+.organization-result:hover .organization-result-logo,
+.organization-result:hover .organization-result-icon {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 12px var(--button-primary-glow);
+}
+
+.organization-result-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.organization-result-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.organization-result-description {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.organization-result-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.organization-result-type {
+  padding: 4px 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-sm);
+  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.organization-result-members {
+  font-weight: 500;
+}
+
+/* Group Result Styles */
+.group-result {
+  padding: 16px 24px;
+  transition: all var(--transition-base);
+}
+
+.group-result:hover {
+  background: var(--bg-elevated);
+  transform: translateX(4px);
+}
+
+.group-result-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.group-result-image,
+.group-result-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border-primary);
+  flex-shrink: 0;
+  transition: all var(--transition-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  background: var(--bg-secondary);
+}
+
+.group-result:hover .group-result-image,
+.group-result:hover .group-result-icon {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 12px var(--button-primary-glow);
+}
+
+.group-result-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.group-result-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.group-result-description {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.group-result-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.group-result-visibility {
+  padding: 4px 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-sm);
+  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.group-result-members {
+  font-weight: 500;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .search-overlay {
@@ -706,6 +969,22 @@
   .search-input {
     padding: 10px 16px;
     font-size: 16px; /* Prevent zoom on iOS */
+  }
+
+  .emoji-picker-dropdown {
+    left: -20px;
+    right: -20px;
+  }
+
+  .emoji-picker-grid {
+    grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
+    gap: 6px;
+    padding: 12px;
+  }
+
+  .emoji-picker-item {
+    padding: 10px;
+    font-size: 20px;
   }
 
   .search-actions {
