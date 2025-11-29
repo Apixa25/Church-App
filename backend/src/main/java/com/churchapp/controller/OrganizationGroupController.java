@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/organizations")
+@RequestMapping("/organizations")
 @RequiredArgsConstructor
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8100", "capacitor://localhost"})
 public class OrganizationGroupController {
