@@ -4,6 +4,7 @@ import chatApi, { ChatGroup } from '../services/chatApi';
 import UserList from './UserList';
 import CreateGroup from './CreateGroup';
 import { useOrganization } from '../contexts/OrganizationContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ChatListProps {
   onGroupSelect?: (group: ChatGroup) => void;
@@ -25,6 +26,7 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
   // Removed showJoinable state as we now use activeView for navigation
   const [activeView, setActiveView] = useState<'myChats' | 'joinGroups' | 'directMessages' | 'createGroup'>('myChats');
   const { allMemberships, loading: organizationLoading } = useOrganization();
+  const { user } = useAuth();
   const hasAnyOrganization = allMemberships.length > 0;
   const navigate = useNavigate();
 
@@ -87,6 +89,20 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
       DIRECT_MESSAGE: '💬'
     };
     return icons[type] || '💬';
+  };
+
+  // Format group name for direct messages - remove current user's name
+  const formatDirectMessageName = (group: ChatGroup): string => {
+    if (group.type !== 'DIRECT_MESSAGE' || !user?.name) {
+      return group.name;
+    }
+    
+    // Direct message names are formatted as "User1 & User2"
+    const names = group.name.split(' & ').map(n => n.trim());
+    const otherNames = names.filter(name => name !== user.name);
+    
+    // Return the other person's name(s), or fallback to original if something went wrong
+    return otherNames.length > 0 ? otherNames.join(' & ') : group.name;
   };
 
   const formatLastMessageTime = (timestamp: string) => {
@@ -296,7 +312,7 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
                   </div>
                   <div className="chat-content">
                     <div className="chat-header">
-                      <h4 className="chat-name">{group.name}</h4>
+                      <h4 className="chat-name">{formatDirectMessageName(group)}</h4>
                       {group.lastMessageTime && (
                         <span className="last-message-time">
                           {formatLastMessageTime(group.lastMessageTime)}
