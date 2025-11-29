@@ -123,6 +123,11 @@
   color: var(--success);
 }
 
+.post-context-name {
+  color: #e0e0f0;
+  font-size: 14px;
+}
+
 .timestamp {
   color: #e0e0f0;
 }

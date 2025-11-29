@@ -404,7 +404,14 @@ const PostComposer: React.FC<PostComposerProps> = ({
                 <select
                   id="group"
                   value={selectedGroupId || ''}
-                  onChange={(e) => setSelectedGroupId(e.target.value || undefined)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSelectedGroupId(value || undefined);
+                    // Clear organization when group is selected (group takes priority)
+                    if (value) {
+                      setSelectedOrganizationId(undefined);
+                    }
+                  }}
                   className="group-select"
                 >
                   <option value="">No specific group</option>

@@ -456,26 +456,16 @@ const PostCard: React.FC<PostCardProps> = ({
             </div>
             <div className="post-meta">
               {post.location && <span className="location">📍 {post.location}</span>}
+              {/* Organization/Group Label - Priority: Group takes precedence over organization */}
+              {(post.group || post.organization) && (
+                <span className="post-context-name">
+                  {post.group ? post.group.name : post.organization?.name}
+                </span>
+              )}
               <span className="timestamp">{formatDate(post.createdAt)}</span>
             </div>
           </div>
         </div>
-        
-        {/* Organization/Group Label */}
-        {(post.organization || post.group) && (
-          <div className="post-organization-label">
-            {post.organization && (
-              <span className="org-badge">
-                🏛️ Posted in {post.organization.name}
-              </span>
-            )}
-            {post.group && !post.organization && (
-              <span className="group-badge">
-                👥 Posted in {post.group.name}
-              </span>
-            )}
-          </div>
-        )}
         <div className="post-header-actions">
           {canDelete && (
             <button
