@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -263,6 +264,35 @@ public class PostService {
             if (followingIds.isEmpty()) {
                 followingIds = null;
             }
+        }
+
+        // For PRIMARY_ONLY filter, only show posts from the selected organization (no groups, no followed users, no org-as-groups)
+        if (preference.getActiveFilter() == FeedPreference.FeedFilter.PRIMARY_ONLY) {
+            return postRepository.findMultiTenantFeed(
+                params.getPrimaryOrgIds(), // Only the selected organization
+                params.getSecondaryOrgIds(), // Empty for PRIMARY_ONLY
+                params.getGroupIds(), // Empty for PRIMARY_ONLY
+                params.getOrgAsGroupIds(), // Empty for PRIMARY_ONLY
+                blockedIds,
+                null, // No followed users for PRIMARY_ONLY
+                pageable
+            );
+        }
+
+        // For SELECTED_GROUPS filter, only show posts from selected groups (no orgs, no followed users)
+        if (preference.getActiveFilter() == FeedPreference.FeedFilter.SELECTED_GROUPS) {
+            // Use a simplified query that only includes group posts
+            // Since all org lists are empty for SELECTED_GROUPS, we can use findMultiTenantFeed
+            // with empty org lists - the query will only match group posts
+            return postRepository.findMultiTenantFeed(
+                new ArrayList<>(), // No primary orgs for SELECTED_GROUPS
+                new ArrayList<>(), // No secondary orgs for SELECTED_GROUPS
+                params.getGroupIds(), // Only selected groups
+                new ArrayList<>(), // No org-as-groups for SELECTED_GROUPS
+                blockedIds,
+                null, // No followed users for SELECTED_GROUPS
+                pageable
+            );
         }
 
         // Check if user has primary org(s) - supports dual-primary system

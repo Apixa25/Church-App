@@ -306,11 +306,11 @@ public class FeedFilterService {
             );
         }
         
-        // For SELECTED_GROUPS filter, exclude secondary orgs and org-as-groups (only show selected groups + primary orgs)
+        // For SELECTED_GROUPS filter, exclude all orgs and org-as-groups (only show selected groups)
         if (isSelectedGroupsFilter) {
             List<UUID> groupIds = getVisibleGroupIds(userId);
             return new FeedParameters(
-                primaryOrgIdsForFeed, // Still include primary orgs (groups are usually within org context)
+                new ArrayList<>(), // No primary orgs for SELECTED_GROUPS - only show selected groups
                 new ArrayList<>(), // No secondary orgs for SELECTED_GROUPS
                 groupIds, // Only selected groups
                 new ArrayList<>()  // No org-as-groups for SELECTED_GROUPS
