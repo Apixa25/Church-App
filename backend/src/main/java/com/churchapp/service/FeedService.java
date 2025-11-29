@@ -173,9 +173,10 @@ public class FeedService {
 
     /**
      * Get posts with media by a specific user
+     * Excludes hidden posts (viewerId is null, so hidden posts are filtered out)
      */
     public Page<Post> getUserPostsWithMedia(UUID userId, Pageable pageable) {
-        return postRepository.findPostsWithMediaByUserId(userId, pageable);
+        return postRepository.findPostsWithMediaByUserIdForViewer(userId, null, pageable);
     }
 
     /**
