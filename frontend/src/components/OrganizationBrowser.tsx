@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization, Organization } from '../contexts/OrganizationContext';
-import organizationGroupApi from '../services/organizationGroupApi';
+import organizationGroupApi, { OrganizationGroup } from '../services/organizationGroupApi';
 import styled from 'styled-components';
 import '../App.css';
 
@@ -504,6 +504,8 @@ const OrganizationBrowser: React.FC = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [followedAsGroups, setFollowedAsGroups] = useState<Set<string>>(new Set());
   const [checkingFollowedOrgs, setCheckingFollowedOrgs] = useState(true);
+  const [followedOrgGroups, setFollowedOrgGroups] = useState<OrganizationGroup[]>([]);
+  const [loadingFollowedOrgs, setLoadingFollowedOrgs] = useState(false);
 
   // Same curated list of family-friendly emojis from FamilyGroupCreateForm
   const familyEmojis = [
@@ -562,13 +564,16 @@ const OrganizationBrowser: React.FC = () => {
     const checkFollowedOrgs = async () => {
       try {
         setCheckingFollowedOrgs(true);
+        setLoadingFollowedOrgs(true);
         const orgGroups = await organizationGroupApi.getFollowedOrganizations();
         const orgIds = new Set(orgGroups.map(og => og.organization.id));
         setFollowedAsGroups(orgIds);
+        setFollowedOrgGroups(orgGroups);
       } catch (err) {
         console.error('Error checking followed orgs:', err);
       } finally {
         setCheckingFollowedOrgs(false);
+        setLoadingFollowedOrgs(false);
       }
     };
     checkFollowedOrgs();
@@ -683,9 +688,79 @@ const OrganizationBrowser: React.FC = () => {
 
       await organizationGroupApi.followOrganizationAsGroup(orgId);
       setFollowedAsGroups(prev => new Set(prev).add(orgId));
+      // Refresh the full list
+      const orgGroups = await organizationGroupApi.getFollowedOrganizations();
+      setFollowedOrgGroups(orgGroups);
       setSuccess(`Now following ${orgName}! You'll see their posts in your feed.`);
     } catch (err: any) {
       setError(err.message || 'Failed to follow organization as group');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleUnfollowOrgGroup = async (orgId: string, orgName: string) => {
+    try {
+      setActionLoading(orgId);
+      setError(null);
+      setSuccess(null);
+
+      if (window.confirm(`Are you sure you want to stop following ${orgName}? You will no longer see their posts in your feed.`)) {
+        await organizationGroupApi.unfollowOrganizationAsGroup(orgId);
+        setFollowedAsGroups(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(orgId);
+          return newSet;
+        });
+        // Refresh the full list
+        const orgGroups = await organizationGroupApi.getFollowedOrganizations();
+        setFollowedOrgGroups(orgGroups);
+        setSuccess(`Stopped following ${orgName}.`);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to unfollow organization');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleMuteOrgGroup = async (orgId: string, orgName: string) => {
+    try {
+      setActionLoading(orgId);
+      setError(null);
+      setSuccess(null);
+
+      await organizationGroupApi.muteOrganizationAsGroup(orgId);
+      // Refresh the full list
+      const orgGroups = await organizationGroupApi.getFollowedOrganizations();
+      setFollowedOrgGroups(orgGroups);
+      setFollowedAsGroups(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(orgId); // Remove from unmuted set
+        return newSet;
+      });
+      setSuccess(`Muted ${orgName}. You will no longer see posts from this organization in your feed.`);
+    } catch (err: any) {
+      setError(err.message || 'Failed to mute organization');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleUnmuteOrgGroup = async (orgId: string, orgName: string) => {
+    try {
+      setActionLoading(orgId);
+      setError(null);
+      setSuccess(null);
+
+      await organizationGroupApi.unmuteOrganizationAsGroup(orgId);
+      // Refresh the full list
+      const orgGroups = await organizationGroupApi.getFollowedOrganizations();
+      setFollowedOrgGroups(orgGroups);
+      setFollowedAsGroups(prev => new Set(prev).add(orgId)); // Add back to unmuted set
+      setSuccess(`Unmuted ${orgName}. You will now see posts from this organization in your feed.`);
+    } catch (err: any) {
+      setError(err.message || 'Failed to unmute organization');
     } finally {
       setActionLoading(null);
     }
@@ -907,6 +982,55 @@ const OrganizationBrowser: React.FC = () => {
               >
                 {actionLoading === membership.organizationId ? 'Leaving...' : 'Leave'}
               </Button>
+            </MembershipCard>
+          ))}
+        </MyMembershipsSection>
+      )}
+
+      {followedOrgGroups.length > 0 && (
+        <MyMembershipsSection>
+          <SectionTitle>Organizations I'm Following</SectionTitle>
+          {followedOrgGroups.map(orgGroup => (
+            <MembershipCard key={orgGroup.id}>
+              <MembershipInfo>
+                <MembershipName>
+                  {orgGroup.organization.name}
+                  <SecondaryBadge>
+                    {orgGroup.isMuted ? 'MUTED' : 'FOLLOWING AS GROUP'}
+                  </SecondaryBadge>
+                </MembershipName>
+                <MembershipRole>
+                  {getTypeLabel(orgGroup.organization.type)} • 
+                  Following since {new Date(orgGroup.joinedAt).toLocaleDateString()}
+                  {orgGroup.isMuted && ' • Muted'}
+                </MembershipRole>
+              </MembershipInfo>
+              <ButtonGroup>
+                {orgGroup.isMuted ? (
+                  <Button
+                    variant="primary"
+                    onClick={() => handleUnmuteOrgGroup(orgGroup.organization.id, orgGroup.organization.name)}
+                    disabled={actionLoading === orgGroup.organization.id}
+                  >
+                    {actionLoading === orgGroup.organization.id ? 'Unmuting...' : 'Unmute'}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleMuteOrgGroup(orgGroup.organization.id, orgGroup.organization.name)}
+                    disabled={actionLoading === orgGroup.organization.id}
+                  >
+                    {actionLoading === orgGroup.organization.id ? 'Muting...' : 'Mute'}
+                  </Button>
+                )}
+                <Button
+                  variant="danger"
+                  onClick={() => handleUnfollowOrgGroup(orgGroup.organization.id, orgGroup.organization.name)}
+                  disabled={actionLoading === orgGroup.organization.id}
+                >
+                  {actionLoading === orgGroup.organization.id ? 'Unfollowing...' : 'Unfollow'}
+                </Button>
+              </ButtonGroup>
             </MembershipCard>
           ))}
         </MyMembershipsSection>
