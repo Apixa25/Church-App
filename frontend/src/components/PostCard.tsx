@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Post, PostType, Comment, SharePostRequest } from '../types/Post';
 import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost, deletePost, recordPostView, blockUser, unblockUser, getBlockStatus, followUser, unfollowUser, getFollowStatus, reportContent } from '../services/postApi';
 import CommentThread from './CommentThread';
@@ -29,6 +30,7 @@ const PostCard: React.FC<PostCardProps> = ({
   compact = false
 }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(post.isLikedByCurrentUser || false);
   const [isBookmarked, setIsBookmarked] = useState(post.isBookmarkedByCurrentUser || false);
   const [likesCount, setLikesCount] = useState(post.likesCount);
@@ -458,7 +460,18 @@ const PostCard: React.FC<PostCardProps> = ({
               {post.location && <span className="location">📍 {post.location}</span>}
               {/* Organization/Group Label - Priority: Group takes precedence over organization */}
               {(post.group || post.organization) && (
-                <span className="post-context-name">
+                <span 
+                  className="post-context-name clickable"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (post.group) {
+                      navigate('/groups');
+                    } else if (post.organization) {
+                      navigate('/organizations');
+                    }
+                  }}
+                  title={post.group ? `View ${post.group.name} group` : `View ${post.organization?.name} organization`}
+                >
                   {post.group ? post.group.name : post.organization?.name}
                 </span>
               )}
