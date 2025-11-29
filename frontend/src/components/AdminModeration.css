@@ -398,6 +398,56 @@
   display: block;
 }
 
+/* Styles for user preview in moderation reports */
+.user-preview {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 16px;
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-primary);
+}
+
+.user-avatar-container {
+  flex-shrink: 0;
+}
+
+.user-avatar-preview {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border-primary);
+}
+
+.user-preview-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.user-preview-line {
+  color: var(--text-primary);
+}
+
+.user-preview-line strong {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.user-preview-line.status-line {
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--border-radius-sm);
+  background: var(--bg-secondary);
+  margin-top: 4px;
+}
+
 .report-details {
   display: flex;
   flex-direction: column;
@@ -429,27 +479,33 @@
 }
 
 .report-actions {
-  padding: 20px;
+  padding: 24px;
   background: var(--bg-secondary);
   border-top: 1px solid var(--border-primary);
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 16px;
+  flex-wrap: nowrap; /* Keep buttons horizontal */
+  overflow-x: auto; /* Allow horizontal scroll on very small screens */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on mobile */
 }
 
 .action-btn {
-  padding: 8px 16px;
+  padding: 20px 32px; /* 4x increase from 8px 16px */
   border: 1px solid var(--border-primary);
   background: var(--bg-tertiary);
   border-radius: var(--border-radius-pill);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 18px; /* Increased from 14px */
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 12px; /* Increased from 6px */
   transition: all var(--transition-base);
   color: var(--text-primary);
+  white-space: nowrap; /* Prevent text wrapping */
+  flex: 1; /* Make buttons equal width */
+  min-width: 140px; /* Minimum width to prevent too small buttons */
 }
 
 .action-btn:hover:not(:disabled) {
@@ -937,12 +993,19 @@
   }
 
   .report-actions {
-    padding: 16px;
-    flex-direction: column;
+    padding: 20px 16px;
+    flex-direction: row; /* Keep horizontal on mobile */
+    gap: 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .action-btn {
     justify-content: center;
+    padding: 16px 24px; /* Slightly smaller on mobile but still large */
+    font-size: 16px;
+    flex: 1;
+    min-width: 120px; /* Minimum width for mobile */
   }
 
   .user-management-tools,

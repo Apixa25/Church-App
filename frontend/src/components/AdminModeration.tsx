@@ -32,13 +32,20 @@ const AdminModeration: React.FC = () => {
       setIsLoading(true);
       setError('');
 
+      // Always load stats for header counters
+      try {
+        const stats = await getModerationStats('30d');
+        setModerationStats(stats);
+      } catch (statsErr) {
+        console.error('Error loading moderation stats:', statsErr);
+        // Don't fail entire load if stats fail
+      }
+
       if (activeTab === 'reports') {
         // Default to showing only PENDING reports
         const reportsResponse = await getReportedContent({ page: 0, size: 50, status: 'PENDING' });
         setReportedContent(reportsResponse.content || []);
       } else if (activeTab === 'stats') {
-        const stats = await getModerationStats('30d');
-        setModerationStats(stats);
         const logResponse = await getAuditLogs({ page: 0, size: 50 });
         setModerationLog(logResponse.content || []);
       }
@@ -236,37 +243,83 @@ const AdminModeration: React.FC = () => {
                           </div>
                         </div>
                         <div className="item-content">
-                          <div className="post-text">{report.contentPreview || 'Content preview not available'}</div>
-                          {report.mediaUrls && report.mediaUrls.length > 0 && (
-                            <div className="post-media">
-                              {report.mediaUrls.map((url: string, index: number) => {
-                                const mediaType = report.mediaTypes?.[index] || 'image';
-                                const isImage = mediaType.startsWith('image');
-
-                                return (
-                                  <div 
-                                    key={index} 
-                                    className="media-item"
-                                  >
-                                    {isImage ? (
-                                      <img
-                                        src={url}
-                                        alt={`Post media ${index + 1}`}
-                                        className="media-image"
-                                        loading="lazy"
-                                      />
-                                    ) : (
-                                      <video
-                                        src={url}
-                                        controls
-                                        className="media-video"
-                                        preload="metadata"
-                                      />
-                                    )}
-                                  </div>
-                                );
-                              })}
+                          {report.contentType === 'USER' ? (
+                            <div className="user-preview">
+                              {report.mediaUrls && report.mediaUrls.length > 0 && (
+                                <div className="user-avatar-container">
+                                  <img
+                                    src={report.mediaUrls[0]}
+                                    alt="User profile"
+                                    className="user-avatar-preview"
+                                  />
+                                </div>
+                              )}
+                              <div className="user-preview-text">
+                                {report.contentPreview ? (
+                                  report.contentPreview.split('\n').map((line: string, idx: number) => {
+                                    if (!line.trim()) return <br key={idx} />;
+                                    if (line.startsWith('⚠️') || line.startsWith('✓')) {
+                                      return (
+                                        <div key={idx} className="user-preview-line status-line">
+                                          {line}
+                                        </div>
+                                      );
+                                    }
+                                    if (line.includes(':')) {
+                                      const [label, ...valueParts] = line.split(':');
+                                      const value = valueParts.join(':').trim();
+                                      return (
+                                        <div key={idx} className="user-preview-line">
+                                          <strong>{label.trim()}:</strong> {value}
+                                        </div>
+                                      );
+                                    }
+                                    return (
+                                      <div key={idx} className="user-preview-line">
+                                        {line}
+                                      </div>
+                                    );
+                                  })
+                                ) : (
+                                  <div>User information not available</div>
+                                )}
+                              </div>
                             </div>
+                          ) : (
+                            <>
+                              <div className="post-text">{report.contentPreview || 'Content preview not available'}</div>
+                              {report.mediaUrls && report.mediaUrls.length > 0 && (
+                                <div className="post-media">
+                                  {report.mediaUrls.map((url: string, index: number) => {
+                                    const mediaType = report.mediaTypes?.[index] || 'image';
+                                    const isImage = mediaType.startsWith('image');
+
+                                    return (
+                                      <div 
+                                        key={index} 
+                                        className="media-item"
+                                      >
+                                        {isImage ? (
+                                          <img
+                                            src={url}
+                                            alt={`Post media ${index + 1}`}
+                                            className="media-image"
+                                            loading="lazy"
+                                          />
+                                        ) : (
+                                          <video
+                                            src={url}
+                                            controls
+                                            className="media-video"
+                                            preload="metadata"
+                                          />
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>

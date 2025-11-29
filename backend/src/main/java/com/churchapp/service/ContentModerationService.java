@@ -192,6 +192,85 @@ public class ContentModerationService {
                     builder.isVisible(false);
                     builder.isHidden(false);
                 }
+            } else if ("USER".equalsIgnoreCase(report.getContentType())) {
+                // Handle USER content type - show user profile information
+                Optional<User> userOpt = userRepository.findById(report.getContentId());
+                if (userOpt.isPresent()) {
+                    User reportedUser = userOpt.get();
+                    log.debug("Found user {} for report {}", report.getContentId(), report.getId());
+                    
+                    // Build a comprehensive user preview string
+                    StringBuilder userPreview = new StringBuilder();
+                    
+                    // User name
+                    String userName = reportedUser.getName();
+                    if (userName != null && !userName.trim().isEmpty()) {
+                        userPreview.append("Name: ").append(userName).append("\n");
+                    }
+                    
+                    // Email
+                    String email = reportedUser.getEmail();
+                    if (email != null && !email.trim().isEmpty()) {
+                        userPreview.append("Email: ").append(email).append("\n");
+                    }
+                    
+                    // Bio (if available)
+                    String bio = reportedUser.getBio();
+                    if (bio != null && !bio.trim().isEmpty()) {
+                        userPreview.append("Bio: ").append(bio.length() > 200 ? bio.substring(0, 200) + "..." : bio).append("\n");
+                    }
+                    
+                    // Account status
+                    if (reportedUser.isBanned()) {
+                        userPreview.append("\n⚠️ Account Status: BANNED");
+                        if (reportedUser.getBanReason() != null && !reportedUser.getBanReason().trim().isEmpty()) {
+                            userPreview.append(" - ").append(reportedUser.getBanReason());
+                        }
+                        userPreview.append("\n");
+                    } else if (reportedUser.getIsActive() != null && !reportedUser.getIsActive()) {
+                        userPreview.append("\n⚠️ Account Status: INACTIVE\n");
+                    } else {
+                        userPreview.append("\n✓ Account Status: ACTIVE\n");
+                    }
+                    
+                    // Warning count
+                    int warningCount = reportedUser.getWarningCount();
+                    if (warningCount > 0) {
+                        userPreview.append("⚠️ Warnings: ").append(warningCount).append("\n");
+                    }
+                    
+                    // Join date
+                    if (reportedUser.getCreatedAt() != null) {
+                        userPreview.append("Joined: ").append(reportedUser.getCreatedAt().toLocalDate()).append("\n");
+                    }
+                    
+                    // Role
+                    if (reportedUser.getRole() != null) {
+                        userPreview.append("Role: ").append(reportedUser.getRole()).append("\n");
+                    }
+                    
+                    builder.contentPreview(userPreview.toString().trim());
+                    builder.contentAuthor(userName != null && !userName.trim().isEmpty() ? userName : email);
+                    builder.contentAuthorId(reportedUser.getId());
+                    builder.contentCreatedAt(reportedUser.getCreatedAt());
+                    builder.isVisible(!reportedUser.isBanned() && reportedUser.getIsActive());
+                    
+                    // Add profile picture URL if available (for future use in frontend)
+                    if (reportedUser.getProfilePicUrl() != null && !reportedUser.getProfilePicUrl().trim().isEmpty()) {
+                        // Store in mediaUrls array for frontend to display
+                        builder.mediaUrls(java.util.Arrays.asList(reportedUser.getProfilePicUrl()));
+                        builder.mediaTypes(java.util.Arrays.asList("image"));
+                    }
+                    
+                    log.debug("Set user preview for report {}: user={}, email={}, banned={}, warnings={}", 
+                        report.getId(), userName, email, 
+                        reportedUser.isBanned(),
+                        warningCount);
+                } else {
+                    log.warn("User {} not found for report {}", report.getContentId(), report.getId());
+                    builder.contentPreview("(User has been deleted or not found)");
+                    builder.isVisible(false);
+                }
             }
             // Add other content types (COMMENT, PRAYER, etc.) as needed
         } catch (Exception e) {
@@ -391,14 +470,75 @@ public class ContentModerationService {
     public Map<String, Object> getModerationStats(String timeRange) {
         Map<String, Object> stats = new HashMap<>();
 
-        // TODO: Implement actual statistics
-        stats.put("totalReports", 0L);
-        stats.put("activeReports", 0L);
-        stats.put("resolvedReports", 0L);
-        stats.put("contentRemoved", 0L);
-        stats.put("contentApproved", 0L);
-        stats.put("averageResolutionTime", "2.5 hours");
-        stats.put("mostReportedCategory", "Spam");
+        try {
+            // Active reports (PENDING status)
+            long activeReports = contentReportRepository.countByStatus("PENDING");
+            stats.put("activeReports", activeReports);
+
+            // Moderated today - count reports resolved today
+            LocalDateTime todayStart = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
+            LocalDateTime todayEnd = LocalDateTime.now().withHour(23).withMinute(59).withSecond(59).withNano(999999999);
+            
+            // Get all resolved reports and filter by today's date
+            Page<ContentReport> resolvedReportsPage = contentReportRepository.findWithFilters(
+                null, "RESOLVED", null, 
+                org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE)
+            );
+            
+            List<ContentReport> resolvedReports = resolvedReportsPage.getContent();
+            
+            long moderatedToday = resolvedReports.stream()
+                .filter(report -> {
+                    LocalDateTime moderatedAt = report.getModeratedAt();
+                    return moderatedAt != null && 
+                           !moderatedAt.isBefore(todayStart) && 
+                           !moderatedAt.isAfter(todayEnd);
+                })
+                .count();
+            
+            stats.put("moderatedToday", moderatedToday);
+
+            // Banned users count
+            long bannedUsers = userRepository.countByIsBannedTrue();
+            stats.put("bannedUsers", bannedUsers);
+
+            // Total reports
+            long totalReports = contentReportRepository.count();
+            stats.put("totalReports", totalReports);
+
+            // Resolved reports
+            long resolvedReportsTotal = contentReportRepository.countByStatus("RESOLVED");
+            stats.put("resolvedReports", resolvedReportsTotal);
+
+            // Content removed count (reports with REMOVE action)
+            long contentRemoved = resolvedReports.stream()
+                .filter(report -> "REMOVE".equalsIgnoreCase(report.getModerationAction()))
+                .count();
+            stats.put("contentRemoved", contentRemoved);
+
+            // Content approved count
+            long contentApproved = resolvedReports.stream()
+                .filter(report -> "APPROVE".equalsIgnoreCase(report.getModerationAction()))
+                .count();
+            stats.put("contentApproved", contentApproved);
+
+            log.debug("Moderation stats: activeReports={}, moderatedToday={}, bannedUsers={}", 
+                activeReports, moderatedToday, bannedUsers);
+
+        } catch (Exception e) {
+            log.error("Error calculating moderation stats: {}", e.getMessage(), e);
+            // Return zeros on error
+            stats.put("activeReports", 0L);
+            stats.put("moderatedToday", 0L);
+            stats.put("bannedUsers", 0L);
+            stats.put("totalReports", 0L);
+            stats.put("resolvedReports", 0L);
+            stats.put("contentRemoved", 0L);
+            stats.put("contentApproved", 0L);
+        }
+
+        stats.put("averageResolutionTime", "N/A"); // TODO: Calculate from actual data
+        stats.put("mostReportedCategory", "N/A"); // TODO: Calculate from actual data
 
         return stats;
     }
