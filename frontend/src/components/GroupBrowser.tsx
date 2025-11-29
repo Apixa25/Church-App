@@ -1,48 +1,70 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useGroup, Group } from '../contexts/GroupContext';
 import { useOrganization } from '../contexts/OrganizationContext';
 import organizationGroupApi, { OrganizationGroup } from '../services/organizationGroupApi';
 import CreatePostGroupModal from './CreatePostGroupModal';
 import styled from 'styled-components';
+import '../App.css';
 
 const BrowserContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 `;
 
-const Header = styled.div`
+const HeaderSection = styled.div`
   margin-bottom: 30px;
+`;
+
+const HeaderTop = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
 `;
 
 const Title = styled.h1`
   font-size: 28px;
-  font-weight: bold;
-  color: #1a1a1a;
-  margin-bottom: 10px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 `;
 
 const Subtitle = styled.p`
   font-size: 16px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 20px;
+  margin-top: 8px;
 `;
 
 const SearchBar = styled.input`
   width: 100%;
   padding: 12px 20px;
   font-size: 16px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  transition: border-color 0.2s;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  color: var(--text-primary);
+  transition: all var(--transition-base);
 
   &:focus {
     outline: none;
-    border-color: #4a90e2;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.2),
+                0 0 20px var(--button-primary-glow);
+    background: var(--bg-elevated);
   }
 
   &::placeholder {
-    color: #999;
+    color: var(--text-disabled);
   }
 `;
 
@@ -53,8 +75,10 @@ const FilterSection = styled.div`
 const FilterLabel = styled.div`
   font-size: 14px;
   font-weight: 600;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 `;
 
 const FilterTabs = styled.div`
@@ -67,16 +91,19 @@ const FilterTab = styled.button<{ active: boolean }>`
   padding: 8px 16px;
   font-size: 14px;
   font-weight: 500;
-  border: 2px solid ${props => props.active ? '#4a90e2' : '#e0e0e0'};
-  background: ${props => props.active ? '#4a90e2' : 'white'};
-  color: ${props => props.active ? 'white' : '#666'};
+  border: 2px solid ${props => props.active ? 'var(--accent-primary)' : 'var(--border-primary)'};
+  background: ${props => props.active ? 'var(--gradient-primary)' : 'var(--bg-tertiary)'};
+  color: ${props => props.active ? 'white' : 'var(--text-secondary)'};
   border-radius: 20px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-base);
+  box-shadow: ${props => props.active ? '0 0 12px var(--button-primary-glow)' : 'none'};
 
   &:hover {
-    border-color: #4a90e2;
-    background: ${props => props.active ? '#3a7bc8' : '#f5f5f5'};
+    border-color: var(--accent-primary);
+    background: ${props => props.active ? 'var(--gradient-primary)' : 'var(--bg-elevated)'};
+    box-shadow: ${props => props.active ? '0 0 12px var(--button-primary-glow)' : '0 0 8px rgba(91, 127, 255, 0.2)'};
+    transform: translateY(-1px);
   }
 `;
 
@@ -94,22 +121,36 @@ const SectionHeader = styled.div`
 const SectionTitle = styled.h2`
   font-size: 20px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-primary);
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 `;
 
 const CreateButton = styled.button`
   padding: 10px 20px;
   font-size: 14px;
   font-weight: 600;
-  background: #4a90e2;
+  background: var(--gradient-primary);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--border-radius-md);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all var(--transition-base);
+  box-shadow: 0 0 12px var(--button-primary-glow);
 
   &:hover {
-    background: #3a7bc8;
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: 0 0 20px var(--button-primary-glow);
+  }
+
+  &:disabled {
+    background: var(--bg-tertiary);
+    color: var(--text-disabled);
+    cursor: not-allowed;
+    box-shadow: none;
   }
 `;
 
@@ -117,23 +158,23 @@ const GroupTabs = styled.div`
   display: flex;
   gap: 16px;
   margin-bottom: 16px;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid var(--border-primary);
 `;
 
 const GroupTab = styled.button<{ active: boolean }>`
   padding: 12px 0;
   font-size: 16px;
   font-weight: 600;
-  color: ${props => props.active ? '#4a90e2' : '#666'};
+  color: ${props => props.active ? 'var(--accent-primary)' : 'var(--text-secondary)'};
   background: none;
   border: none;
-  border-bottom: 3px solid ${props => props.active ? '#4a90e2' : 'transparent'};
+  border-bottom: 3px solid ${props => props.active ? 'var(--accent-primary)' : 'transparent'};
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-base);
   margin-bottom: -2px;
 
   &:hover {
-    color: #4a90e2;
+    color: var(--accent-primary);
   }
 `;
 
@@ -144,16 +185,19 @@ const GroupList = styled.div`
 `;
 
 const GroupCard = styled.div`
-  background: white;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
   padding: 16px;
-  transition: all 0.2s;
+  transition: all var(--transition-base);
   cursor: pointer;
 
   &:hover {
-    border-color: #4a90e2;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: var(--accent-primary);
+    box-shadow: 0 4px 20px rgba(91, 127, 255, 0.2),
+                0 0 12px var(--button-primary-glow);
+    background: var(--bg-elevated);
+    transform: translateY(-2px);
   }
 `;
 
@@ -171,13 +215,13 @@ const GroupInfo = styled.div`
 const GroupName = styled.h3`
   font-size: 18px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-primary);
   margin-bottom: 4px;
 `;
 
 const GroupDescription = styled.p`
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 8px;
   line-height: 1.5;
 `;
@@ -187,7 +231,7 @@ const GroupMeta = styled.div`
   flex-wrap: wrap;
   gap: 12px;
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
 `;
 
 const MetaItem = styled.div`
@@ -225,19 +269,21 @@ const VisibilityBadge = styled.span<{ visibility: string }>`
 const RoleBadge = styled.span`
   display: inline-block;
   padding: 4px 8px;
-  background: #4a90e2;
+  background: var(--gradient-primary);
   color: white;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 600;
   margin-left: 8px;
+  box-shadow: 0 0 8px var(--button-primary-glow);
 `;
 
 const MutedBadge = styled.span`
   display: inline-block;
   padding: 4px 8px;
-  background: #9e9e9e;
-  color: white;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: 12px;
   font-size: 12px;
   font-weight: 600;
@@ -253,8 +299,9 @@ const TagsList = styled.div`
 
 const Tag = styled.span`
   padding: 4px 10px;
-  background: #f0f0f0;
-  color: #555;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: 12px;
   font-size: 12px;
 `;
@@ -270,60 +317,88 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'danger' | 'm
   font-size: 14px;
   font-weight: 600;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--border-radius-md);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-base);
 
   ${props => {
     switch (props.variant) {
       case 'primary':
         return `
-          background: #4a90e2;
+          background: var(--gradient-primary);
           color: white;
-          &:hover {
-            background: #3a7bc8;
+          box-shadow: 0 0 12px var(--button-primary-glow);
+          &:hover:not(:disabled) {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 0 20px var(--button-primary-glow);
           }
           &:disabled {
-            background: #ccc;
+            background: var(--bg-tertiary);
+            color: var(--text-disabled);
             cursor: not-allowed;
+            box-shadow: none;
           }
         `;
       case 'secondary':
         return `
-          background: white;
-          color: #4a90e2;
-          border: 2px solid #4a90e2;
-          &:hover {
-            background: #f0f7ff;
+          background: var(--bg-tertiary);
+          color: var(--accent-primary);
+          border: 1px solid var(--accent-primary);
+          &:hover:not(:disabled) {
+            background: var(--bg-elevated);
+            box-shadow: 0 0 12px rgba(91, 127, 255, 0.3);
           }
           &:disabled {
-            border-color: #ccc;
-            color: #ccc;
+            border-color: var(--border-primary);
+            color: var(--text-disabled);
             cursor: not-allowed;
           }
         `;
       case 'danger':
         return `
-          background: #e74c3c;
+          background: linear-gradient(135deg, #ef4444, #dc2626);
           color: white;
-          &:hover {
-            background: #c0392b;
+          box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+          &:hover:not(:disabled) {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+          }
+          &:disabled {
+            background: var(--bg-tertiary);
+            color: var(--text-disabled);
+            cursor: not-allowed;
+            box-shadow: none;
           }
         `;
       case 'muted':
         return `
-          background: #9e9e9e;
-          color: white;
-          &:hover {
-            background: #757575;
+          background: var(--bg-secondary);
+          color: var(--text-secondary);
+          border: 1px solid var(--border-primary);
+          &:hover:not(:disabled) {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border-color: var(--accent-primary);
+          }
+          &:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
           }
         `;
       default:
         return `
-          background: #e0e0e0;
-          color: #666;
-          &:hover {
-            background: #d0d0d0;
+          background: var(--bg-tertiary);
+          color: var(--text-secondary);
+          border: 1px solid var(--border-primary);
+          &:hover:not(:disabled) {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+          }
+          &:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
           }
         `;
     }
@@ -336,41 +411,43 @@ const LoadingSpinner = styled.div`
   align-items: center;
   padding: 40px;
   font-size: 16px;
-  color: #666;
+  color: var(--text-secondary);
 `;
 
 const EmptyState = styled.div`
   text-align: center;
   padding: 40px 20px;
-  color: #666;
+  color: var(--text-secondary);
 `;
 
 const EmptyStateTitle = styled.div`
   font-size: 18px;
   font-weight: 600;
   margin-bottom: 8px;
+  color: var(--text-primary);
 `;
 
 const EmptyStateText = styled.div`
   font-size: 14px;
+  color: var(--text-secondary);
 `;
 
 const ErrorMessage = styled.div`
-  background: #fee;
-  border: 2px solid #fcc;
-  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--border-radius-md);
   padding: 12px 16px;
-  color: #c00;
+  color: #ef4444;
   margin-top: 12px;
   font-size: 14px;
 `;
 
 const SuccessMessage = styled.div`
-  background: #efe;
-  border: 2px solid #cfc;
-  border-radius: 8px;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: var(--border-radius-md);
   padding: 12px 16px;
-  color: #090;
+  color: #22c55e;
   margin-top: 12px;
   font-size: 14px;
 `;
@@ -379,6 +456,7 @@ type VisibilityFilter = 'ALL' | 'PUBLIC' | 'ORG_PRIVATE' | 'CROSS_ORG' | 'INVITE
 type MyGroupsTab = 'UNMUTED' | 'MUTED';
 
 const GroupBrowser: React.FC = () => {
+  const navigate = useNavigate();
   const {
     myGroups,
     unmutedGroups,
@@ -683,8 +761,22 @@ const GroupBrowser: React.FC = () => {
 
   return (
     <BrowserContainer>
-      <Header>
-        <Title>Discover Groups</Title>
+      <HeaderSection>
+        <HeaderTop>
+          <button
+            className="back-home-button"
+            onClick={() => navigate('/dashboard')}
+            title="Back to Dashboard"
+          >
+            🏠 Back Home
+          </button>
+          <Title>Discover Groups</Title>
+          <div style={{ marginLeft: 'auto' }}>
+            <CreateButton onClick={() => setShowCreateGroupModal(true)}>
+              + Create Group
+            </CreateButton>
+          </div>
+        </HeaderTop>
         <Subtitle>
           Connect with communities that share your interests. Search and join public groups to see their posts in your feed.
         </Subtitle>
@@ -731,7 +823,7 @@ const GroupBrowser: React.FC = () => {
             </FilterTab>
           </FilterTabs>
         </FilterSection>
-      </Header>
+      </HeaderSection>
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
       {success && <SuccessMessage>{success}</SuccessMessage>}
@@ -740,11 +832,9 @@ const GroupBrowser: React.FC = () => {
         <MyGroupsSection>
           <SectionHeader>
             <SectionTitle>My Groups</SectionTitle>
-            {primaryMembership && (
-              <CreateButton onClick={() => setShowCreateGroupModal(true)}>
-                + Create Group
-              </CreateButton>
-            )}
+            <CreateButton onClick={() => setShowCreateGroupModal(true)}>
+              + Create Group
+            </CreateButton>
           </SectionHeader>
 
           <GroupTabs>
@@ -797,7 +887,7 @@ const GroupBrowser: React.FC = () => {
           <SectionHeader>
             <SectionTitle>Organizations I Follow</SectionTitle>
           </SectionHeader>
-          <Subtitle style={{ marginBottom: '20px', fontSize: '14px', color: '#666' }}>
+          <Subtitle style={{ marginBottom: '20px', fontSize: '14px', color: 'var(--text-secondary)' }}>
             These organizations appear in your feed as groups (feed-only view)
           </Subtitle>
           {orgGroupsLoading ? (
@@ -888,6 +978,11 @@ const GroupBrowser: React.FC = () => {
             Search for groups by name or description above to find communities you're interested in.
             {!primaryMembership && ' You can join groups and follow organizations as groups even without a primary organization.'}
           </EmptyStateText>
+          <div style={{ marginTop: '20px' }}>
+            <CreateButton onClick={() => setShowCreateGroupModal(true)}>
+              + Create Your First Group
+            </CreateButton>
+          </div>
         </EmptyState>
       )}
 
