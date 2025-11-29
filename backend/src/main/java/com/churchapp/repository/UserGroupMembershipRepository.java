@@ -63,4 +63,11 @@ public interface UserGroupMembershipRepository extends JpaRepository<UserGroupMe
     @Query("SELECT m FROM UserGroupMembership m WHERE " +
            "m.group.id = :groupId AND m.role = 'CREATOR'")
     Optional<UserGroupMembership> findCreatorByGroupId(@Param("groupId") UUID groupId);
+
+    /**
+     * Delete all memberships for a group (used when hard-deleting a group)
+     */
+    @Modifying
+    @Query("DELETE FROM UserGroupMembership m WHERE m.group.id = :groupId")
+    void deleteByGroupId(@Param("groupId") UUID groupId);
 }

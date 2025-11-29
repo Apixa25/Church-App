@@ -42,6 +42,10 @@ public class GroupResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    // Admin-only fields (populated for admin views)
+    private String creatorName;
+    private String creatorEmail;
+
     public static GroupResponse fromGroup(Group group) {
         GroupResponse response = new GroupResponse();
         response.setId(group.getId());

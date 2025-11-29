@@ -71,4 +71,29 @@ public interface GroupRepository extends JpaRepository<Group, UUID> {
     @Modifying
     @Query("DELETE FROM Group g WHERE g.createdByOrg.id = :orgId")
     void deleteByOrganizationId(@Param("orgId") UUID orgId);
+
+    // ========================================================================
+    // ADMIN QUERIES
+    // ========================================================================
+
+    /**
+     * Get all groups for admin view (includes soft-deleted)
+     */
+    @Query("SELECT g FROM Group g ORDER BY g.createdAt DESC")
+    Page<Group> findAllGroupsForAdmin(Pageable pageable);
+
+    /**
+     * Get all active groups (excludes soft-deleted)
+     */
+    @Query("SELECT g FROM Group g WHERE g.deletedAt IS NULL ORDER BY g.createdAt DESC")
+    Page<Group> findAllActiveGroups(Pageable pageable);
+
+    /**
+     * Search groups by name or description (for admin)
+     */
+    @Query("SELECT g FROM Group g WHERE g.deletedAt IS NULL AND " +
+           "(LOWER(g.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
+           "OR LOWER(g.description) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
+           "ORDER BY g.createdAt DESC")
+    Page<Group> searchGroupsForAdmin(@Param("searchTerm") String searchTerm, Pageable pageable);
 }
