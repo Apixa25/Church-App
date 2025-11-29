@@ -20,6 +20,8 @@ import ContextSwitcher from './ContextSwitcher';
 import { FeedType } from '../types/Post';
 import PullToRefresh from './PullToRefresh';
 import { profileAPI } from '../services/api';
+import WarningBanner from './WarningBanner';
+import WarningsSection from './WarningsSection';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -60,6 +62,7 @@ const Dashboard: React.FC = () => {
   const [showComposer, setShowComposer] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [feedRefreshKey, setFeedRefreshKey] = useState(0); // Increment to trigger feed refresh
+  const [showWarningsSection, setShowWarningsSection] = useState(false);
   
   // Social score - hearts state
   const [heartsCount, setHeartsCount] = useState(0);
@@ -431,6 +434,18 @@ const Dashboard: React.FC = () => {
       </header>
 
       <main className="dashboard-content">
+        {/* Warning Banner - shows at top of dashboard if user has warnings */}
+        <WarningBanner onViewWarnings={() => setShowWarningsSection(true)} />
+
+        {/* Warnings Section Modal */}
+        {showWarningsSection && (
+          <div className="modal-overlay" onClick={() => setShowWarningsSection(false)}>
+            <div className="modal-content warnings-modal" onClick={(e) => e.stopPropagation()}>
+              <WarningsSection onClose={() => setShowWarningsSection(false)} />
+            </div>
+          </div>
+        )}
+
         {error && (
           <div className="error-banner">
             <span>⚠️ {error}</span>

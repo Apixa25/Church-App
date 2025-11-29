@@ -211,8 +211,15 @@ public class ContentModerationService {
         // Handle WARN action - warn the content author
         if ("WARN".equalsIgnoreCase(action)) {
             try {
-                // Get the content author based on content type
-                UUID authorId = getContentAuthorId(contentType, contentId);
+                UUID authorId;
+                // For USER content type, contentId IS the userId
+                if ("USER".equalsIgnoreCase(contentType)) {
+                    authorId = contentId;
+                } else {
+                    // Get the content author based on content type
+                    authorId = getContentAuthorId(contentType, contentId);
+                }
+                
                 if (authorId != null) {
                     String warnMessage = reason != null ? reason : "Your content violates community guidelines. Please review our community standards.";
                     userManagementService.warnUser(
@@ -238,6 +245,9 @@ public class ContentModerationService {
         switch (contentType.toUpperCase()) {
             case "POST":
                 moderatePost(contentId, action, reason, moderator);
+                break;
+            case "USER":
+                moderateUser(contentId, action, reason, moderator);
                 break;
             case "PRAYER":
                 moderatePrayer(contentId, action, reason);
@@ -475,6 +485,9 @@ public class ContentModerationService {
                         return postOpt.get().getUser().getId();
                     }
                     break;
+                case "USER":
+                    // For USER content type, contentId IS the userId
+                    return contentId;
                 // Add other content types as needed (COMMENT, PRAYER, etc.)
                 default:
                     log.warn("Unknown content type for getting author: {}", contentType);
@@ -484,6 +497,59 @@ public class ContentModerationService {
             log.error("Error getting author ID for {} {}: {}", contentType, contentId, e.getMessage());
         }
         return null;
+    }
+
+    /**
+     * Moderate a user (when USER is the content type being reported)
+     * For USER reports, contentId is the userId being reported
+     */
+    private void moderateUser(UUID userId, String action, String reason, User moderator) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            log.warn("User {} not found for moderation - may have already been deleted. Action: {}", userId, action);
+            return;
+        }
+
+        User targetUser = userOpt.get();
+        String upperAction = action.toUpperCase();
+
+        try {
+            switch (upperAction) {
+                case "REMOVE":
+                    // For USER reports, REMOVE means ban the user
+                    log.info("Banning user {} based on USER report - Reason: {}", userId, reason);
+                    targetUser.setBanned(true);
+                    targetUser.setBanReason(reason != null ? reason : "Banned due to user report");
+                    targetUser.setBannedAt(LocalDateTime.now());
+                    targetUser.setIsActive(false);
+                    userRepository.save(targetUser);
+                    log.info("User {} has been banned", userId);
+                    break;
+
+                case "APPROVE":
+                    // Approve - do nothing, just mark reports as resolved
+                    log.info("Approving user report for user {} - Reason: {}", userId, reason);
+                    break;
+
+                case "WARN":
+                    // Warn - already handled before switch statement
+                    log.info("Warning user {} based on USER report - Reason: {}", userId, reason);
+                    // Warning is handled earlier in moderateContent method
+                    break;
+
+                case "HIDE":
+                    // HIDE doesn't apply to users - treat as approve
+                    log.info("HIDE action not applicable to USER, treating as APPROVE for user {}", userId);
+                    break;
+
+                default:
+                    log.warn("Unknown moderation action for USER: {} - treating as APPROVE", action);
+                    break;
+            }
+        } catch (Exception e) {
+            log.error("Error moderating user {} with action {}: {}", userId, action, e.getMessage(), e);
+            throw new RuntimeException("Failed to moderate user: " + e.getMessage(), e);
+        }
     }
 
     private void moderatePost(UUID postId, String action, String reason, User moderator) {
