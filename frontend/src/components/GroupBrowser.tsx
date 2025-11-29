@@ -466,6 +466,7 @@ const GroupBrowser: React.FC = () => {
     leaveGroup,
     muteGroup,
     unmuteGroup,
+    deleteGroup,
     searchGroups,
     isMember,
     refreshGroups,
@@ -603,6 +604,23 @@ const GroupBrowser: React.FC = () => {
     }
   };
 
+  const handleDeleteGroup = async (groupId: string, groupName: string) => {
+    try {
+      setActionLoading(groupId);
+      setError(null);
+      setSuccess(null);
+
+      if (window.confirm(`Are you sure you want to delete "${groupName}"? This action cannot be undone.`)) {
+        await deleteGroup(groupId);
+        setSuccess(`Successfully deleted ${groupName}.`);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete group');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const handleMuteOrgGroup = async (orgId: string, orgName: string) => {
     try {
       setActionLoading(orgId);
@@ -732,13 +750,24 @@ const GroupBrowser: React.FC = () => {
                 {actionLoading === group.id ? 'Muting...' : 'Mute'}
               </Button>
             )}
-            <Button
-              variant="danger"
-              onClick={() => handleLeaveGroup(group.id, group.name)}
-              disabled={actionLoading === group.id}
-            >
-              {actionLoading === group.id ? 'Leaving...' : 'Leave Group'}
-            </Button>
+            {/* Show Delete button for creators, Leave for non-creators */}
+            {group.userRole === 'CREATOR' ? (
+              <Button
+                variant="danger"
+                onClick={() => handleDeleteGroup(group.id, group.name)}
+                disabled={actionLoading === group.id}
+              >
+                {actionLoading === group.id ? 'Deleting...' : 'Delete Group'}
+              </Button>
+            ) : (
+              <Button
+                variant="danger"
+                onClick={() => handleLeaveGroup(group.id, group.name)}
+                disabled={actionLoading === group.id}
+              >
+                {actionLoading === group.id ? 'Leaving...' : 'Leave Group'}
+              </Button>
+            )}
           </>
         ) : (
           <Button
