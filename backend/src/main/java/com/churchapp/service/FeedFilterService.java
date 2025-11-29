@@ -284,13 +284,37 @@ public class FeedFilterService {
         
         // For PRIMARY_ONLY filter, only include the selected organization as primary
         List<UUID> primaryOrgIdsForFeed;
-        if (preference.getActiveFilter() == FeedPreference.FeedFilter.PRIMARY_ONLY 
-            && preference.getSelectedOrganizationId() != null) {
+        boolean isPrimaryOnlyFilter = preference.getActiveFilter() == FeedPreference.FeedFilter.PRIMARY_ONLY 
+            && preference.getSelectedOrganizationId() != null;
+        boolean isSelectedGroupsFilter = preference.getActiveFilter() == FeedPreference.FeedFilter.SELECTED_GROUPS;
+        
+        if (isPrimaryOnlyFilter) {
             // Only include the selected organization
             primaryOrgIdsForFeed = List.of(preference.getSelectedOrganizationId());
         } else {
             // Include all primary orgs
             primaryOrgIdsForFeed = allPrimaryOrgIds;
+        }
+        
+        // For PRIMARY_ONLY filter, exclude secondary orgs, groups, and org-as-groups
+        if (isPrimaryOnlyFilter) {
+            return new FeedParameters(
+                primaryOrgIdsForFeed, 
+                new ArrayList<>(), // No secondary orgs for PRIMARY_ONLY
+                new ArrayList<>(), // No groups for PRIMARY_ONLY (already handled by getVisibleGroupIds, but being explicit)
+                new ArrayList<>()  // No org-as-groups for PRIMARY_ONLY
+            );
+        }
+        
+        // For SELECTED_GROUPS filter, exclude secondary orgs and org-as-groups (only show selected groups + primary orgs)
+        if (isSelectedGroupsFilter) {
+            List<UUID> groupIds = getVisibleGroupIds(userId);
+            return new FeedParameters(
+                primaryOrgIdsForFeed, // Still include primary orgs (groups are usually within org context)
+                new ArrayList<>(), // No secondary orgs for SELECTED_GROUPS
+                groupIds, // Only selected groups
+                new ArrayList<>()  // No org-as-groups for SELECTED_GROUPS
+            );
         }
         
         // Use getVisibleOrgIds to respect filter preferences

@@ -148,17 +148,20 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
 
     // Multi-tenant feed query - shows posts from:
     // 1. User's primary organizations (all visibility levels) - supports dual-primary system (churchPrimary + familyPrimary)
+    //    NOTE: Excludes posts that have a group set (group posts must be matched via group membership)
     // 2. User's secondary organizations (PUBLIC only)
-    // 3. User's unmuted groups
+    //    NOTE: Excludes posts that have a group set (group posts must be matched via group membership)
+    // 3. User's unmuted groups (only posts where user is a member of the group)
     // 4. Organizations followed as groups (ALL posts - PUBLIC + ORG_ONLY)
+    //    NOTE: Excludes posts that have a group set (group posts must be matched via group membership)
     // 5. Followed users (when filter is ALL or EVERYTHING) - regardless of organization/group
     // Excludes posts from blocked users
     @Query("SELECT DISTINCT p FROM Post p WHERE " +
            "(" +
-           "  (p.organization.id IN :primaryOrgIds) " +
-           "  OR (p.organization.id IN :secondaryOrgIds AND p.visibility = 'PUBLIC') " +
+           "  (p.organization.id IN :primaryOrgIds AND p.group IS NULL) " +
+           "  OR (p.organization.id IN :secondaryOrgIds AND p.visibility = 'PUBLIC' AND p.group IS NULL) " +
            "  OR (p.group.id IN :groupIds)" +
-           "  OR (p.organization.id IN :orgAsGroupIds) " +
+           "  OR (p.organization.id IN :orgAsGroupIds AND p.group IS NULL) " +
            "  OR (:followingIds IS NOT NULL AND p.user.id IN :followingIds)" +
            ") " +
            "AND p.isReply = false " +
@@ -179,14 +182,16 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     // Feed for users with NO primary organization (social-only users)
     // Includes posts from followed users when filter is ALL or EVERYTHING
     // Includes organizations followed as groups (ALL posts - PUBLIC + ORG_ONLY)
+    // NOTE: Excludes posts that have a group set from organization matching (group posts must be matched via group membership)
     // Excludes posts from blocked users
     @Query("SELECT DISTINCT p FROM Post p WHERE " +
-           "(p.group.id IN :groupIds OR p.organization.id = :globalOrgId " +
-           " OR p.organization.id IN :orgAsGroupIds " +
+           "(p.group.id IN :groupIds " +
+           " OR (p.organization.id = :globalOrgId AND p.group IS NULL) " +
+           " OR (p.organization.id IN :orgAsGroupIds AND p.group IS NULL) " +
            " OR (:followingIds IS NOT NULL AND p.user.id IN :followingIds)) " +
            "AND p.isReply = false " +
            "AND p.isAnonymous = false " +
-           "AND (p.organization.id IN :orgAsGroupIds OR p.organization.id = :globalOrgId OR p.visibility = 'PUBLIC') " +
+           "AND (p.organization.id IN :orgAsGroupIds OR p.organization.id = :globalOrgId OR p.visibility = 'PUBLIC' OR p.group IS NOT NULL) " +
            "AND (p.isHidden = false OR p.isHidden IS NULL) " +
            "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
            "ORDER BY p.createdAt DESC")
