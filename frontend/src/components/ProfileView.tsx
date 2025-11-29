@@ -17,6 +17,7 @@ import chatApi from '../services/chatApi';
 import OrganizationSelector from './OrganizationSelector';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { Membership } from '../contexts/OrganizationContext';
+import FamilyGroupCreateForm from './FamilyGroupCreateForm';
 import './ProfileView.css';
 
 interface ProfileViewProps {
@@ -79,7 +80,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const targetUserId = userId || user?.userId || '';
   
   // Get memberships from context for own profile
-  const { allMemberships } = useOrganization();
+  const { allMemberships, familyPrimary, refreshMemberships } = useOrganization();
+  
+  // Family group creation state
+  const [showCreateFamilyGroup, setShowCreateFamilyGroup] = useState(false);
 
   const loadShareStats = useCallback(async (targetId: string) => {
     try {
@@ -881,6 +885,44 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
               }
             })()}
 
+            {/* Family Group Section - Only show on own profile */}
+            {isOwnProfile && (
+              <div className="profile-family-group-section">
+                {familyPrimary ? (
+                  <div className="family-group-info-card">
+                    <span className="family-group-icon">🏠</span>
+                    <div className="family-group-content">
+                      <span className="family-group-label">Your Family Group</span>
+                      <div className="family-group-name">{familyPrimary.organizationName}</div>
+                      <button 
+                        onClick={() => navigate(`/organizations/${familyPrimary.organizationId}`)}
+                        className="view-family-group-button"
+                      >
+                        View Family Group →
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="create-family-group-card">
+                    <span className="family-group-icon">🏠</span>
+                    <div className="family-group-content">
+                      <span className="family-group-label">Create Your Family Group</span>
+                      <p className="family-group-description">
+                        Connect with your extended family! Perfect for families with multiple last names. 
+                        Use text or emojis as your family name.
+                      </p>
+                      <button 
+                        onClick={() => setShowCreateFamilyGroup(true)}
+                        className="create-family-group-button"
+                      >
+                        Create Family Group
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="profile-stats-x">
               <div 
                 className="stat-item-x clickable-stat-x"
@@ -1102,6 +1144,26 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
             onClose={() => setShowFollowingModal(false)}
           />
         </>
+      )}
+
+      {/* Family Group Creation Modal */}
+      {showCreateFamilyGroup && (
+        <div className="modal-overlay" onClick={() => setShowCreateFamilyGroup(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <FamilyGroupCreateForm
+              onSuccess={async (org) => {
+                setShowCreateFamilyGroup(false);
+                // Refresh organization memberships to show the new family group
+                await refreshMemberships();
+                // Show success message or navigate
+                if (org?.id) {
+                  navigate(`/organizations/${org.id}`);
+                }
+              }}
+              onCancel={() => setShowCreateFamilyGroup(false)}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

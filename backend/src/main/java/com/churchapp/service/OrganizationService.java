@@ -68,11 +68,36 @@ public class OrganizationService {
     public Organization createOrganization(Organization organization, User creator) {
         log.info("Creating new organization: {} by user {}", organization.getName(), creator.getId());
 
-        // Validate slug uniqueness
-        if (organizationRepository.existsBySlug(organization.getSlug())) {
-            throw new RuntimeException("Organization slug already exists: " + organization.getSlug());
+        // Handle slug uniqueness - with retry for UUID-based slugs (for emoji family groups)
+        String originalSlug = organization.getSlug();
+        String finalSlug = originalSlug;
+        
+        // If slug starts with "family-" it's likely a UUID-based slug for emoji names
+        // Retry with new UUID if conflict occurs (extremely rare, but handle gracefully)
+        if (finalSlug != null && finalSlug.startsWith("family-")) {
+            int maxRetries = 5;
+            int attempts = 0;
+            while (organizationRepository.existsBySlug(finalSlug) && attempts < maxRetries) {
+                log.warn("Slug conflict detected for UUID-based family slug: {}. Generating new one...", finalSlug);
+                finalSlug = "family-" + UUID.randomUUID().toString().substring(0, 8);
+                attempts++;
+            }
+            
+            if (attempts >= maxRetries && organizationRepository.existsBySlug(finalSlug)) {
+                throw new RuntimeException("Unable to generate unique slug after multiple attempts. Please try again.");
+            }
+            
+            if (!finalSlug.equals(originalSlug)) {
+                log.info("Regenerated slug from {} to {}", originalSlug, finalSlug);
+            }
+        } else {
+            // Normal slug validation for non-UUID slugs
+            if (organizationRepository.existsBySlug(finalSlug)) {
+                throw new RuntimeException("Organization slug already exists: " + finalSlug);
+            }
         }
-
+        
+        organization.setSlug(finalSlug);
         organization.setCreatedAt(LocalDateTime.now());
         organization.setUpdatedAt(LocalDateTime.now());
 

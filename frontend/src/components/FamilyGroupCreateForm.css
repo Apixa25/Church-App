@@ -1,0 +1,9 @@
+/* Additional styles for FamilyGroupCreateForm if needed */
+/* Most styles are handled by styled-components, but we can add CSS-specific overrides here */
+
+.family-group-form-emoji-preview {
+  text-align: center;
+  font-size: 2em;
+  line-height: 1.5;
+}
+

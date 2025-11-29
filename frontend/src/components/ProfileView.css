@@ -494,6 +494,102 @@
   border-color: var(--border-secondary);
 }
 
+/* Family Group Section */
+.profile-family-group-section {
+  margin-top: 12px;
+}
+
+.family-group-info-card,
+.create-family-group-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+  border: 1px solid var(--border-primary);
+  transition: all 0.2s;
+}
+
+.create-family-group-card {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(91, 127, 255, 0.08));
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.create-family-group-card:hover {
+  border-color: rgba(139, 92, 246, 0.5);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
+}
+
+.family-group-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.family-group-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.family-group-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.family-group-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.family-group-description {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.view-family-group-button,
+.create-family-group-button {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.view-family-group-button {
+  background: var(--accent-primary, #4a90e2);
+  color: white;
+}
+
+.view-family-group-button:hover {
+  background: var(--accent-primary-dark, #357abd);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+}
+
+.create-family-group-button {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: white;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+.create-family-group-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
 .profile-stats-x {
   display: flex;
   gap: 20px;
