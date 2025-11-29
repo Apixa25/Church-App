@@ -301,6 +301,9 @@ public class ChatService {
         // Send real-time notification to group members
         notifyGroupMessage(chatGroup, response);
         
+        // Send chat notifications to Event Notification system for all group members except sender
+        notifyChatMessageReceived(chatGroup, message, user);
+        
         // Send push notifications for mentions
         if (request.hasMentions()) {
             sendMentionNotifications(message, request.getMentionedUserIds());
@@ -493,6 +496,55 @@ public class ChatService {
     
     private void notifyGroupMessage(ChatGroup chatGroup, MessageResponse messageResponse) {
         messagingTemplate.convertAndSend("/topic/group/" + chatGroup.getId() + "/messages", messageResponse);
+    }
+    
+    /**
+     * Send chat notification to Event Notification system
+     * Notifies all group members except the sender about the new message
+     */
+    private void notifyChatMessageReceived(ChatGroup chatGroup, Message message, User sender) {
+        try {
+            // Get all active members of the group
+            List<ChatGroupMember> members = chatGroupMemberRepository
+                .findByChatGroupAndIsActiveTrueOrderByJoinedAtAsc(chatGroup);
+            
+            // Create chat notification event
+            ChatNotificationEvent notificationEvent = 
+                ChatNotificationEvent.chatMessageReceived(
+                    message.getId(),
+                    chatGroup.getId(),
+                    chatGroup.getName(),
+                    sender.getId(),
+                    sender.getName(),
+                    sender.getEmail(),
+                    message.getContent(),
+                    message.getMessageType() != null ? message.getMessageType().name() : "TEXT"
+                );
+            
+            // Send notification to each group member except the sender
+            int notificationCount = 0;
+            for (ChatGroupMember member : members) {
+                if (!member.getUser().getId().equals(sender.getId())) {
+                    // Send to user's personal queue for event notifications
+                    // The frontend will subscribe to /user/queue/events to receive these
+                    messagingTemplate.convertAndSendToUser(
+                        member.getUser().getEmail(),
+                        "/queue/events",
+                        notificationEvent
+                    );
+                    notificationCount++;
+                }
+            }
+            
+            // Also broadcast to /topic/events for consistency (frontend can filter)
+            // This allows the existing subscription in useEventNotifications to work
+            messagingTemplate.convertAndSend("/topic/events", notificationEvent);
+            
+        } catch (Exception e) {
+            // Log error but don't fail message sending
+            // Using System.err since ChatService doesn't have @Slf4j
+            System.err.println("Error sending chat notification for message " + message.getId() + ": " + e.getMessage());
+        }
     }
     
     private boolean isUserOnline(User user) {

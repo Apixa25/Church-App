@@ -6,10 +6,15 @@ import webSocketService, { EventUpdate } from '../services/websocketService';
 
 export interface EventNotification {
   id: string;
-  type: 'event_created' | 'event_updated' | 'event_cancelled';
+  type: 'event_created' | 'event_updated' | 'event_cancelled' | 'chat_message_received';
   title: string;
   message: string;
-  eventId: string;
+  eventId?: string; // Optional for chat notifications
+  chatGroupId?: string; // For chat notifications
+  chatGroupName?: string; // For chat notifications
+  senderId?: string; // For chat notifications
+  senderName?: string; // For chat notifications
+  messageId?: string; // For chat notifications
   timestamp: string;
   read: boolean;
   actionUrl?: string;
@@ -201,8 +206,40 @@ export const useEventNotifications = () => {
       return;
     }
 
-    // Only handle event_created, event_updated, and event_cancelled
     const eventType = update.eventType || '';
+    
+    // Handle chat message notifications
+    if (eventType === 'chat_message_received') {
+      // Don't notify users of their own messages
+      if (update.senderId && update.senderId === userRef.current.userId) {
+        return;
+      }
+      
+      // Don't notify if user's email matches sender (additional check)
+      if (update.senderEmail && update.senderEmail === userRef.current.email) {
+        return;
+      }
+
+      const notification: EventNotification = {
+        id: `chat-${update.messageId || update.chatGroupId}-${Date.now()}`,
+        type: 'chat_message_received',
+        title: getChatNotificationTitle(update),
+        message: getChatNotificationMessage(update),
+        chatGroupId: update.chatGroupId,
+        chatGroupName: update.chatGroupName,
+        senderId: update.senderId,
+        senderName: update.senderName,
+        messageId: update.messageId,
+        timestamp: update.timestamp || new Date().toISOString(),
+        read: false,
+        actionUrl: update.actionUrl || (update.chatGroupId ? `/chat/${update.chatGroupId}` : '/chat')
+      };
+
+      addNotificationRef.current(notification);
+      return;
+    }
+
+    // Handle event notifications (event_created, event_updated, event_cancelled)
     if (!eventType || !['event_created', 'event_updated', 'event_cancelled'].includes(eventType)) {
       return;
     }
@@ -260,6 +297,30 @@ export const useEventNotifications = () => {
       default:
         return `Event "${eventTitle}" has been updated`;
     }
+  };
+
+  // Helper functions for chat notifications
+  const getChatNotificationTitle = (update: EventUpdate): string => {
+    const senderName = update.senderName || 'Someone';
+    const groupName = update.chatGroupName || 'a chat';
+    return `💬 New Message from ${senderName}`;
+  };
+
+  const getChatNotificationMessage = (update: EventUpdate): string => {
+    const senderName = update.senderName || 'Someone';
+    const groupName = update.chatGroupName || 'a chat';
+    const messageContent = update.messageContent || '';
+    
+    // Truncate long messages
+    const truncatedContent = messageContent.length > 50 
+      ? messageContent.substring(0, 50) + '...' 
+      : messageContent;
+    
+    if (update.messageType === 'IMAGE' || update.messageType === 'VIDEO') {
+      return `${senderName} sent a ${update.messageType.toLowerCase()} in ${groupName}`;
+    }
+    
+    return truncatedContent || `${senderName} sent a message in ${groupName}`;
   };
 
   // Set up WebSocket subscriptions
