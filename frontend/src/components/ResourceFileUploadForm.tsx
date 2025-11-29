@@ -264,7 +264,7 @@ const ResourceFileUploadForm: React.FC<ResourceFileUploadFormProps> = ({
                   Supports: Images, Videos, Audio, PDFs, Word docs, Text files
                 </div>
                 <div className="file-size-limit">
-                  Maximum file size: 10MB
+                  Maximum file size: 150MB
                 </div>
               </div>
             )}
@@ -391,7 +391,7 @@ const ResourceFileUploadForm: React.FC<ResourceFileUploadFormProps> = ({
         <ul>
           <li>Drag and drop files or click to browse</li>
           <li>Supported: Images, videos, audio, PDFs, Word docs, text files</li>
-          <li>Maximum file size: 10MB</li>
+          <li>Maximum file size: 150MB</li>
           <li>Files are automatically categorized based on type</li>
           <li>All uploads require approval before becoming public</li>
         </ul>

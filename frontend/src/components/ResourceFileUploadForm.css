@@ -1,4 +1,4 @@
-/* Resource File Upload Form Styles */
+/* Resource File Upload Form Styles - Dark Theme */
 .resource-file-upload-container {
   max-width: 700px;
   margin: 0 auto;
@@ -8,39 +8,39 @@
   text-align: center;
   margin-bottom: 32px;
   padding-bottom: 24px;
-  border-bottom: 2px solid #f0f2f5;
+  border-bottom: 2px solid var(--border-primary);
 }
 
 .resource-file-upload-header h2 {
   font-size: 2rem;
-  color: #1e293b;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
   font-weight: 700;
 }
 
 .resource-file-upload-header p {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 1.1rem;
   margin: 0;
 }
 
 .resource-file-upload-form {
-  background: white;
+  background: var(--bg-elevated);
   padding: 32px;
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  border: 1px solid #f1f5f9;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-primary);
 }
 
 /* File Drop Zone */
 .file-drop-zone {
-  border: 3px dashed #cbd5e1;
-  border-radius: 12px;
+  border: 3px dashed var(--border-primary);
+  border-radius: var(--border-radius-md);
   padding: 40px 20px;
   text-align: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  background: #f8fafc;
+  transition: all var(--transition-base);
+  background: var(--bg-tertiary);
   position: relative;
   min-height: 200px;
   display: flex;
@@ -49,21 +49,21 @@
 }
 
 .file-drop-zone:hover {
-  border-color: #667eea;
-  background: #f0f4ff;
+  border-color: var(--accent-primary);
+  background: var(--bg-secondary);
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.1);
+  box-shadow: var(--shadow-lg), var(--glow-blue);
 }
 
 .file-drop-zone.drag-active {
-  border-color: #10b981;
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+  border-color: var(--success);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-lg), var(--success-glow);
 }
 
 .file-drop-zone.error {
-  border-color: #dc3545;
-  background: #fff5f5;
+  border-color: var(--error);
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .file-input-hidden {
@@ -82,22 +82,22 @@
 
 .drop-text {
   font-size: 1.2rem;
-  color: #334155;
+  color: var(--text-secondary);
   margin-bottom: 8px;
 }
 
 .drop-text strong {
-  color: #667eea;
+  color: var(--accent-primary);
 }
 
 .drop-hint {
-  color: #64748b;
+  color: var(--text-tertiary);
   font-size: 0.95rem;
   margin-bottom: 12px;
 }
 
 .file-size-limit {
-  color: #94a3b8;
+  color: var(--text-tertiary);
   font-size: 0.85rem;
   font-style: italic;
 }
@@ -108,9 +108,10 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-sm);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-primary);
   width: 100%;
 }
 
@@ -127,14 +128,14 @@
 
 .file-details .file-name {
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-primary);
   font-size: 1.1rem;
   display: block;
   margin-bottom: 4px;
 }
 
 .file-details .file-size {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 0.9rem;
   display: block;
   margin-bottom: 4px;
@@ -148,19 +149,21 @@
 }
 
 .file-status.valid {
-  background: #d1fae5;
-  color: #065f46;
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--success);
+  border: 1px solid var(--success);
 }
 
 .file-status.invalid {
-  background: #fee2e2;
-  color: #dc2626;
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--error);
+  border: 1px solid var(--error);
 }
 
 .remove-file-btn {
-  background: #fee2e2;
-  color: #dc2626;
-  border: none;
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--error);
+  border: 1px solid var(--error);
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -170,12 +173,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
 }
 
 .remove-file-btn:hover {
-  background: #fecaca;
+  background: rgba(239, 68, 68, 0.3);
   transform: scale(1.1);
+  box-shadow: var(--error-glow);
 }
 
 .remove-file-btn:disabled {
@@ -186,7 +190,7 @@
 
 /* Category Suggestion */
 .category-suggestion {
-  color: #10b981;
+  color: var(--success);
   font-weight: 500;
   font-size: 0.9rem;
   margin-left: 8px;
@@ -201,7 +205,7 @@
 .progress-bar {
   width: 100%;
   height: 8px;
-  background: #e5e7eb;
+  background: var(--bg-tertiary);
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 8px;
@@ -209,13 +213,14 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border-radius: 4px;
-  transition: width 0.3s ease;
+  transition: width var(--transition-base);
+  box-shadow: var(--glow-blue);
 }
 
 .progress-text {
-  color: #667eea;
+  color: var(--accent-primary);
   font-weight: 600;
   font-size: 0.9rem;
 }
@@ -228,7 +233,7 @@
 .form-label {
   display: block;
   font-weight: 600;
-  color: #334155;
+  color: var(--text-primary);
   margin-bottom: 8px;
   font-size: 1rem;
 }
@@ -236,23 +241,25 @@
 .form-input, .form-select, .form-textarea {
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
+  border: 2px solid var(--border-primary);
+  border-radius: var(--border-radius-sm);
   font-size: 1rem;
   font-family: inherit;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
   box-sizing: border-box;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .form-input:focus, .form-select:focus, .form-textarea:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--button-primary-glow);
 }
 
 .form-input.error, .form-select.error, .form-textarea.error {
-  border-color: #dc3545;
-  background-color: #fff5f5;
+  border-color: var(--error);
+  background-color: rgba(239, 68, 68, 0.1);
 }
 
 .form-textarea {
@@ -263,7 +270,7 @@
 
 .error-text {
   display: block;
-  color: #dc3545;
+  color: var(--error);
   font-size: 0.875rem;
   margin-top: 6px;
   font-weight: 500;
@@ -272,7 +279,7 @@
 .character-count {
   display: block;
   text-align: right;
-  color: #64748b;
+  color: var(--text-tertiary);
   font-size: 0.8rem;
   margin-top: 4px;
 }
@@ -283,27 +290,28 @@
   justify-content: flex-end;
   margin-top: 32px;
   padding-top: 24px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--border-primary);
 }
 
 .info-box {
   margin-top: 24px;
   padding: 20px;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border-radius: 12px;
-  border-left: 4px solid #0ea5e9;
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-md);
+  border-left: 4px solid var(--accent-primary);
+  border: 1px solid var(--border-primary);
 }
 
 .info-box h4 {
   margin: 0 0 12px 0;
-  color: #0c4a6e;
+  color: var(--text-primary);
   font-size: 1.1rem;
 }
 
 .info-box ul {
   margin: 0;
   padding-left: 20px;
-  color: #0369a1;
+  color: var(--text-secondary);
 }
 
 .info-box li {
@@ -336,21 +344,26 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
+  box-shadow: var(--shadow-sm), var(--glow-blue);
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  background: linear-gradient(135deg, var(--accent-primary-dark) 0%, var(--accent-secondary-dark) 100%);
+  box-shadow: var(--shadow-md), var(--glow-blue);
 }
 
 .btn-secondary {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: white;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
 }
 
 .btn-secondary:hover {
-  background: linear-gradient(135deg, #ee82f0 0%, #f3495a 100%);
+  background: var(--bg-secondary);
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn:disabled {
