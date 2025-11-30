@@ -34,7 +34,7 @@ public class FileUploadService {
     private final S3Client s3Client;
     private final S3Presigner s3Presigner;
     private final ImageProcessingService imageProcessingService;
-    private final VideoProcessingService videoProcessingService;
+    private final MediaConvertVideoService mediaConvertVideoService;
     private final Executor mediaProcessingExecutor;
     private final MediaFileRepository mediaFileRepository;
     
@@ -42,13 +42,13 @@ public class FileUploadService {
             S3Client s3Client,
             S3Presigner s3Presigner,
             ImageProcessingService imageProcessingService,
-            VideoProcessingService videoProcessingService,
+            MediaConvertVideoService mediaConvertVideoService,
             @Qualifier("mediaProcessingExecutor") Executor mediaProcessingExecutor,
             MediaFileRepository mediaFileRepository) {
         this.s3Client = s3Client;
         this.s3Presigner = s3Presigner;
         this.imageProcessingService = imageProcessingService;
-        this.videoProcessingService = videoProcessingService;
+        this.mediaConvertVideoService = mediaConvertVideoService;
         this.mediaProcessingExecutor = mediaProcessingExecutor;
         this.mediaFileRepository = mediaFileRepository;
     }
@@ -227,7 +227,16 @@ public class FileUploadService {
                 updateMediaFileStatus(mediaFile.getId(), ProcessingStatus.PROCESSING);
                 
                 // Process video (file is already in memory)
-                var result = videoProcessingService.processVideo(file);
+                // Extract S3 key from original URL
+                String s3Key = extractS3KeyFromUrl(mediaFile.getOriginalUrl());
+                
+                // Start MediaConvert job (async - job processes in cloud)
+                String jobId = mediaConvertVideoService.startVideoProcessingJob(mediaFile, s3Key);
+                
+                log.info("MediaConvert job started: {} for video: {}", jobId, mediaFile.getOriginalUrl());
+                // Note: Job completion will be handled by MediaConvert webhook/notification
+                // The MediaFile will be updated when the job completes
+                return; // Exit early - job completion handled separately
                 
                 // Upload optimized version
                 String optimizedKey = mediaFile.getFolder() + "/optimized/" + UUID.randomUUID() + ".mp4";
@@ -405,6 +414,23 @@ public class FileUploadService {
             return "";
         }
         return filename.substring(filename.lastIndexOf("."));
+    }
+    
+    /**
+     * Extract S3 key from full S3 URL
+     */
+    private String extractS3KeyFromUrl(String url) {
+        if (url.contains(bucketName)) {
+            int keyStart = url.indexOf(bucketName) + bucketName.length() + 1;
+            // Remove query parameters if present
+            int queryStart = url.indexOf('?', keyStart);
+            if (queryStart > 0) {
+                return url.substring(keyStart, queryStart);
+            }
+            return url.substring(keyStart);
+        }
+        // If it's already a key, return as-is
+        return url;
     }
     
     private String extractKeyFromUrl(String fileUrl) {

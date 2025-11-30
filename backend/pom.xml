@@ -159,11 +159,18 @@
 			<version>0.4.20</version>
 		</dependency>
 
-		<!-- Video Processing - JavaCV -->
+		<!-- AWS MediaConvert SDK for Video Processing -->
 		<dependency>
-			<groupId>org.bytedeco</groupId>
-			<artifactId>javacv-platform</artifactId>
-			<version>1.5.9</version>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>mediaconvert</artifactId>
+			<version>2.21.29</version>
+		</dependency>
+		
+		<!-- AWS SNS SDK for MediaConvert job notifications -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>sns</artifactId>
+			<version>2.21.29</version>
 		</dependency>
 
 		<!-- Test -->

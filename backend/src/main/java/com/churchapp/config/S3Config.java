@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.mediaconvert.MediaConvertClient;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
@@ -37,6 +38,25 @@ public class S3Config {
         
         return S3Presigner.builder()
                 .region(Region.of(region))
+                .credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
+                .build();
+    }
+    
+    @Bean
+    public MediaConvertClient mediaConvertClient() {
+        AwsBasicCredentials awsCredentials = AwsBasicCredentials.create(accessKeyId, secretAccessKey);
+        
+        // MediaConvert requires endpoint URL - get it from environment or construct it
+        String endpointUrl = System.getenv("AWS_MEDIACONVERT_ENDPOINT");
+        if (endpointUrl == null || endpointUrl.isEmpty()) {
+            // Construct default endpoint URL for the region
+            // Format: https://mediaconvert.{region}.amazonaws.com
+            endpointUrl = String.format("https://mediaconvert.%s.amazonaws.com", region);
+        }
+        
+        return MediaConvertClient.builder()
+                .region(Region.of(region))
+                .endpointOverride(java.net.URI.create(endpointUrl))
                 .credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
                 .build();
     }
