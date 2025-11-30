@@ -30,7 +30,8 @@ const LoginForm: React.FC = () => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = 'http://localhost:8083/api/oauth2/authorization/google';
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
+    window.location.href = `${apiUrl}/oauth2/authorization/google`;
   };
 
   return (
