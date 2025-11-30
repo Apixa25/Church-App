@@ -6,10 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.exception.SdkException;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.mediaconvert.MediaConvertClient;
 import software.amazon.awssdk.services.mediaconvert.model.*;
-import software.amazon.awssdk.services.s3.S3Client;
 
 import java.util.UUID;
 
@@ -23,7 +21,6 @@ import java.util.UUID;
 public class MediaConvertVideoService {
 
     private final MediaConvertClient mediaConvertClient;
-    private final S3Client s3Client;
 
     @Value("${aws.region:us-west-2}")
     private String region;
@@ -149,7 +146,7 @@ public class MediaConvertVideoService {
                 .width(targetWidth)
                 .height(targetHeight)
                 .respondToAfd(RespondToAfd.NONE)
-                .colorMetadata(VideoColorMetadata.INSERT)
+                .colorMetadata(ColorMetadata.INSERT)
                 .antiAlias(AntiAlias.ENABLED)
                 .sharpness(50)
                 .build();
@@ -162,10 +159,6 @@ public class MediaConvertVideoService {
                         .codecProfile(AacCodecProfile.LC)
                         .codingMode(AacCodingMode.CODING_MODE_2_0)
                         .sampleRate(44100)
-                        .audioNormalizationSettings(AudioNormalizationSettings.builder()
-                                .algorithm(AudioNormalizationAlgorithm.ITU_BS_1770_2)
-                                .algorithmControl(AudioNormalizationAlgorithmControl.CORRECT_AUDIO)
-                                .build())
                         .build())
                 .build();
 
@@ -183,7 +176,6 @@ public class MediaConvertVideoService {
                         .cslgAtom(Mp4CslgAtom.INCLUDE)
                         .freeSpaceBox(Mp4FreeSpaceBox.EXCLUDE)
                         .moovPlacement(Mp4MoovPlacement.PROGRESSIVE_DOWNLOAD)
-                        .audioDuration(Mp4AudioDuration.DEFAULT_CODEC_DURATION)
                         .build())
                 .build();
 
@@ -228,18 +220,10 @@ public class MediaConvertVideoService {
         // Format: arn:aws:iam::ACCOUNT_ID:role/MediaConvert_Default_Role
         String accountId = System.getenv("AWS_ACCOUNT_ID");
         if (accountId == null || accountId.isEmpty()) {
-            // Fallback: try to get from STS
-            try {
-                accountId = software.amazon.awssdk.services.sts.StsClient.builder()
-                        .region(software.amazon.awssdk.regions.Region.of(region))
-                        .build()
-                        .getCallerIdentity()
-                        .account();
-            } catch (Exception e) {
-                log.warn("Could not determine AWS account ID, using default MediaConvert role");
-                // Default role name - you should create this in IAM
-                return String.format("arn:aws:iam::%s:role/MediaConvert_Default_Role", "YOUR_ACCOUNT_ID");
-            }
+            log.warn("AWS_ACCOUNT_ID environment variable not set. Using placeholder. " +
+                    "Please set AWS_ACCOUNT_ID environment variable or create MediaConvert role manually.");
+            // Default role name - you should create this in IAM and set AWS_ACCOUNT_ID
+            return "arn:aws:iam::YOUR_ACCOUNT_ID:role/MediaConvert_Default_Role";
         }
         return String.format("arn:aws:iam::%s:role/MediaConvert_Default_Role", accountId);
     }

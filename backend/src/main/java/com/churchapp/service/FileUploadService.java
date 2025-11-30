@@ -221,12 +221,11 @@ public class FileUploadService {
     private void processVideoAsync(MultipartFile file, MediaFile mediaFile) {
         mediaProcessingExecutor.execute(() -> {
             try {
-                log.info("Starting async video processing for: {}", mediaFile.getOriginalUrl());
+                log.info("Starting MediaConvert job for video: {}", mediaFile.getOriginalUrl());
                 
                 // Mark as processing
                 updateMediaFileStatus(mediaFile.getId(), ProcessingStatus.PROCESSING);
                 
-                // Process video (file is already in memory)
                 // Extract S3 key from original URL
                 String s3Key = extractS3KeyFromUrl(mediaFile.getOriginalUrl());
                 
@@ -236,19 +235,6 @@ public class FileUploadService {
                 log.info("MediaConvert job started: {} for video: {}", jobId, mediaFile.getOriginalUrl());
                 // Note: Job completion will be handled by MediaConvert webhook/notification
                 // The MediaFile will be updated when the job completes
-                return; // Exit early - job completion handled separately
-                
-                // Upload optimized version
-                String optimizedKey = mediaFile.getFolder() + "/optimized/" + UUID.randomUUID() + ".mp4";
-                uploadProcessedFile(result.getProcessedVideoData(), optimizedKey, "video/mp4");
-                
-                String optimizedUrl = generateAccessibleUrl(optimizedKey);
-                int reductionPercent = (int) Math.round((1 - result.getCompressionRatio()) * 100);
-                log.info("Video processing completed: {} -> {} ({}% reduction)",
-                        mediaFile.getOriginalUrl(), optimizedUrl, reductionPercent);
-                
-                // Update MediaFile with optimized URL and mark as completed
-                markMediaFileCompleted(mediaFile.getId(), optimizedUrl, result.getProcessedVideoData().length);
                 
             } catch (Exception e) {
                 log.error("Error processing video: {}", mediaFile.getOriginalUrl(), e);
