@@ -36,16 +36,18 @@ Track your deployment progress here!
 - [ ] Allow connections from Elastic Beanstalk (after EB is created)
 - [ ] Or allow from your IP for initial testing
 
-### **Step 5: Set Up S3 for Frontend**
-- [ ] Create S3 bucket in `us-west-2` region
-- [ ] Configure bucket for static website hosting
-- [ ] Set up bucket policies
+### **Step 5: Set Up S3 for Frontend** ✅
+- [x] Create S3 bucket in `us-west-2` region
+- [x] Configure bucket for static website hosting
+- [x] Set up bucket policies
 
-### **Step 6: Set Up CloudFront**
-- [ ] Request SSL certificate for domain
-- [ ] Create CloudFront distribution
-- [ ] Configure distribution for S3 origin
-- [ ] Set up custom domain (www.thegathrd.com)
+### **Step 6: Set Up CloudFront** ✅
+- [x] Request SSL certificate for domain
+- [x] Create CloudFront distribution
+- [x] Configure distribution for S3 origin
+- [x] Configure error pages (403, 404 → index.html)
+- [x] Update S3 bucket policy
+- [x] Distribution enabled and ready
 
 ### **Step 7: Set Up Elastic Beanstalk**
 - [ ] Create Elastic Beanstalk application
@@ -112,12 +114,12 @@ Password: [Saved securely]
 
 ## 🎯 Current Status
 
-**You are here:** Database created ✅
+**You are here:** CloudFront and S3 configured ✅
 
-**Next:** Configure security group and set up S3
+**Next:** Set up Elastic Beanstalk for backend, then build and deploy frontend
 
 ---
 
-**Last Updated:** [Current Date]
-**Status:** In Progress - Database Ready
+**Last Updated:** November 29, 2024
+**Status:** In Progress - CloudFront Ready, Backend Setup Next
 
