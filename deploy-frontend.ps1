@@ -7,8 +7,8 @@ Write-Host "🚀 Starting Church App Frontend Deployment..." -ForegroundColor Gr
 
 # Configuration
 $S3_BUCKET = "thegathrd-app-frontend"
-$CLOUDFRONT_DISTRIBUTION_ID = ""  # Set this after creating CloudFront distribution
-$REGION = "us-east-1"
+$CLOUDFRONT_DISTRIBUTION_ID = "E2SM4EXV57KO8B"  # CloudFront Distribution ID
+$REGION = "us-west-2"  # Match your database and backend region
 
 # Check if we're on deployment branch
 $currentBranch = git rev-parse --abbrev-ref HEAD
