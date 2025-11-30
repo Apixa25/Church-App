@@ -19,13 +19,14 @@ Write-Host ""
 Write-Host "Running migrations..." -ForegroundColor Cyan
 Write-Host ""
 
-mvn flyway:migrate -Dflyway.url=$DB_URL -Dflyway.user=$DB_USER -Dflyway.password=$DB_PASSWORD
+.\mvnw.cmd flyway:migrate "-Dflyway.url=$DB_URL" "-Dflyway.user=$DB_USER" "-Dflyway.password=$DB_PASSWORD"
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
     Write-Host "Migrations completed successfully!" -ForegroundColor Green
     Write-Host ""
-    mvn flyway:info -Dflyway.url=$DB_URL -Dflyway.user=$DB_USER -Dflyway.password=$DB_PASSWORD
+    Write-Host "Checking migration status..." -ForegroundColor Cyan
+    .\mvnw.cmd flyway:info "-Dflyway.url=$DB_URL" "-Dflyway.user=$DB_USER" "-Dflyway.password=$DB_PASSWORD"
 } else {
     Write-Host ""
     Write-Host "Migrations failed!" -ForegroundColor Red

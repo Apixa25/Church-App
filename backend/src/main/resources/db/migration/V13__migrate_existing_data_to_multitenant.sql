@@ -126,6 +126,7 @@ WHERE NOT EXISTS (
 
 -- Step 10: Create a default "General" group for the Global organization
 -- This provides a default group for community discussions
+-- Only create if users exist (for fresh databases, this will be skipped and created when first user registers)
 INSERT INTO groups (
     id,
     name,
@@ -151,7 +152,10 @@ SELECT
     0,
     NOW(),
     NOW()
-WHERE NOT EXISTS (
+WHERE EXISTS (
+    SELECT 1 FROM users WHERE role = 'ADMIN' LIMIT 1
+)
+AND NOT EXISTS (
     SELECT 1 FROM groups
     WHERE created_by_org_id = '00000000-0000-0000-0000-000000000001'::uuid
     AND name = 'General Discussion'
