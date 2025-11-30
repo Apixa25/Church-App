@@ -22,7 +22,7 @@ public class ConstraintChecker implements CommandLineRunner {
             log.info("🔍 Checking database constraints...");
             
             // Query to get all constraints on the events table
-            String sql = "SELECT CONSTRAINT_NAME, CONSTRAINT_TYPE, CHECK_CLAUSE FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc " +
+            String sql = "SELECT tc.CONSTRAINT_NAME, tc.CONSTRAINT_TYPE, cc.CHECK_CLAUSE FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc " +
                         "LEFT JOIN INFORMATION_SCHEMA.CHECK_CONSTRAINTS cc ON tc.CONSTRAINT_NAME = cc.CONSTRAINT_NAME " +
                         "WHERE tc.TABLE_NAME = 'EVENTS'";
             
@@ -38,7 +38,7 @@ public class ConstraintChecker implements CommandLineRunner {
             }
             
             // Also check for any constraints with "CONSTRAINT_7" in the name
-            String constraint7Sql = "SELECT CONSTRAINT_NAME, CONSTRAINT_TYPE, CHECK_CLAUSE FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc " +
+            String constraint7Sql = "SELECT tc.CONSTRAINT_NAME, tc.CONSTRAINT_TYPE, cc.CHECK_CLAUSE FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc " +
                                    "LEFT JOIN INFORMATION_SCHEMA.CHECK_CONSTRAINTS cc ON tc.CONSTRAINT_NAME = cc.CONSTRAINT_NAME " +
                                    "WHERE tc.CONSTRAINT_NAME LIKE '%CONSTRAINT_7%'";
             
