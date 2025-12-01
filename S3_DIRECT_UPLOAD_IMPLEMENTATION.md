@@ -173,13 +173,19 @@ To test the new upload flow:
      [
        {
          "AllowedHeaders": ["*"],
-         "AllowedMethods": ["PUT", "POST"],
-         "AllowedOrigins": ["https://www.thegathrd.com", "https://app.thegathrd.com"],
+         "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
+         "AllowedOrigins": [
+           "http://localhost:3000",
+           "http://localhost:8083",
+           "https://www.thegathrd.com",
+           "https://app.thegathrd.com"
+         ],
          "ExposeHeaders": ["ETag"],
          "MaxAgeSeconds": 3000
        }
      ]
      ```
+   - **Note:** Some AWS S3 configurations may not accept "OPTIONS" in AllowedMethods, but this is fine - PUT requests work without it
 
 2. **Rate Limiting (Future Enhancement):**
    - Can add rate limiting to `generatePresignedUploadUrl()` endpoint
