@@ -34,10 +34,12 @@ JWT_SECRET=[GENERATE_STRONG_SECRET_32_CHARS_MIN]
 ### **AWS Configuration** ⚠️ **REQUIRED FOR FILE UPLOADS**
 ```
 AWS_REGION=us-west-2
-AWS_S3_BUCKET=thegathrd-app-uploads
+AWS_S3_BUCKET=church-app-uploads-stevensills2
 AWS_ACCESS_KEY_ID=[YOUR_AWS_ACCESS_KEY]
 AWS_SECRET_ACCESS_KEY=[YOUR_AWS_SECRET_KEY]
 ```
+
+**Note:** Using existing bucket `church-app-uploads-stevensills2` in `us-west-2` region.
 
 **⚠️ CRITICAL:** These are **REQUIRED** for profile picture and banner image uploads to work! Without these, you'll get a 400 error when trying to upload images.
 
