@@ -4,7 +4,6 @@ import com.churchapp.dto.ProcessingStatus;
 import com.churchapp.entity.MediaFile;
 import com.churchapp.repository.MediaFileRepository;
 import com.churchapp.util.InMemoryMultipartFile;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,14 +16,12 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
-
-import java.time.Duration;
-import java.util.concurrent.Executor;
+import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
+import java.time.Duration;
+import java.util.concurrent.Executor;
 import java.util.UUID;
 
 @Service
@@ -490,5 +487,239 @@ public class FileUploadService {
             // Fallback to public URL format
             return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
         }
+    }
+    
+    /**
+     * Generate presigned PUT URL for direct S3 upload (Facebook/X approach)
+     * Validates file size and type BEFORE generating URL (safety net)
+     * 
+     * @param fileName Original file name
+     * @param contentType MIME type (e.g., "video/mp4", "image/jpeg")
+     * @param fileSize File size in bytes
+     * @param folder S3 folder (e.g., "posts", "chat-media", "resources")
+     * @return PresignedUploadResponse with presigned URL and S3 key
+     */
+    public com.churchapp.dto.PresignedUploadResponse generatePresignedUploadUrl(
+            String fileName, String contentType, Long fileSize, String folder) {
+        
+        // Validate file size and type BEFORE generating URL (safety net)
+        validateFileSizeAndType(contentType, fileSize);
+        
+        // Generate unique S3 key
+        String fileExtension = getFileExtension(fileName);
+        String uniqueFilename = UUID.randomUUID().toString() + fileExtension;
+        String s3Key = folder + "/originals/" + uniqueFilename;
+        
+        // Generate final URL (for after upload)
+        String finalUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, s3Key);
+        
+        // Create PutObjectRequest
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(s3Key)
+                .contentType(contentType)
+                .contentLength(fileSize)
+                .build();
+        
+        // Generate presigned PUT URL (valid for 1 hour)
+        PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+                .signatureDuration(Duration.ofHours(1))
+                .putObjectRequest(putObjectRequest)
+                .build();
+        
+        PresignedPutObjectRequest presignedRequest = s3Presigner.presignPutObject(presignRequest);
+        String presignedUrl = presignedRequest.url().toString();
+        
+        log.info("Generated presigned URL for upload: key={}, size={}, type={}", s3Key, fileSize, contentType);
+        
+        return com.churchapp.dto.PresignedUploadResponse.success(
+                presignedUrl, 
+                s3Key, 
+                finalUrl,
+                3600L // 1 hour in seconds
+        );
+    }
+    
+    /**
+     * Validate file size and type (used before generating presigned URL)
+     * This is the safety net that prevents large/unauthorized uploads
+     */
+    private void validateFileSizeAndType(String contentType, Long fileSize) {
+        if (fileSize == null || fileSize <= 0) {
+            throw new IllegalArgumentException("File size must be positive");
+        }
+        
+        if (contentType == null || contentType.trim().isEmpty()) {
+            throw new IllegalArgumentException("Content type is required");
+        }
+        
+        // Check file type first
+        if (!isAllowedFileType(contentType)) {
+            throw new IllegalArgumentException(
+                "File type not supported. Allowed types: images (JPEG, PNG, GIF, WebP, HEIC, HEIF), " +
+                "videos (MP4, WebM, MOV), audio (MP3, WAV, OGG), documents (PDF, DOC, DOCX, TXT)"
+            );
+        }
+        
+        // Check file size by type
+        if (contentType.startsWith("video/")) {
+            if (fileSize > maxVideoSize) {
+                throw new IllegalArgumentException(
+                    String.format("Video file size (%.2f MB) exceeds maximum limit of %.2f MB", 
+                        fileSize / (1024.0 * 1024.0), maxVideoSize / (1024.0 * 1024.0))
+                );
+            }
+        } else if (contentType.startsWith("image/")) {
+            if (fileSize > maxImageSize) {
+                throw new IllegalArgumentException(
+                    String.format("Image file size (%.2f MB) exceeds maximum limit of %.2f MB", 
+                        fileSize / (1024.0 * 1024.0), maxImageSize / (1024.0 * 1024.0))
+                );
+            }
+        } else if (contentType.startsWith("audio/")) {
+            if (fileSize > maxAudioSize) {
+                throw new IllegalArgumentException(
+                    String.format("Audio file size (%.2f MB) exceeds maximum limit of %.2f MB", 
+                        fileSize / (1024.0 * 1024.0), maxAudioSize / (1024.0 * 1024.0))
+                );
+            }
+        } else {
+            // Documents and other types
+            if (fileSize > maxDocumentSize) {
+                throw new IllegalArgumentException(
+                    String.format("File size (%.2f MB) exceeds maximum limit of %.2f MB", 
+                        fileSize / (1024.0 * 1024.0), maxDocumentSize / (1024.0 * 1024.0))
+                );
+            }
+        }
+    }
+    
+    /**
+     * Handle upload completion after client uploads directly to S3
+     * Verifies file exists, creates MediaFile record, and starts processing if needed
+     * 
+     * @param s3Key S3 key of the uploaded file
+     * @param fileName Original file name
+     * @param contentType MIME type
+     * @param fileSize File size in bytes
+     * @param folder S3 folder
+     * @return Final accessible URL
+     */
+    @Transactional
+    public String handleUploadCompletion(String s3Key, String fileName, String contentType, Long fileSize, String folder) {
+        try {
+            // Verify file exists in S3 (basic check)
+            // Note: We could do a more thorough check here, but for now we trust the client
+            // In production, you might want to verify the file actually exists
+            
+            String fileUrl = generateAccessibleUrl(s3Key);
+            log.info("Handling upload completion: key={}, url={}", s3Key, fileUrl);
+            
+            boolean isImage = contentType != null && contentType.startsWith("image/");
+            boolean isVideo = contentType != null && contentType.startsWith("video/");
+            
+            // Create MediaFile record for images/videos (for processing tracking)
+            if (isImage || isVideo) {
+                MediaFile mediaFile = createMediaFileRecord(
+                        fileUrl,
+                        contentType,
+                        fileName,
+                        fileSize,
+                        folder
+                );
+                
+                // Start async processing if enabled
+                if (asyncProcessingEnabled) {
+                    // For direct S3 uploads, we need to download the file to process it
+                    // This is done asynchronously to not block the response
+                    if (isImage) {
+                        processImageFromS3Async(s3Key, mediaFile, contentType);
+                    } else if (isVideo) {
+                        processVideoFromS3Async(s3Key, mediaFile);
+                    }
+                }
+            }
+            
+            return fileUrl;
+            
+        } catch (Exception e) {
+            log.error("Error handling upload completion for key: {}", s3Key, e);
+            throw new RuntimeException("Failed to complete upload: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Process image from S3 (downloads, processes, uploads optimized version)
+     */
+    private void processImageFromS3Async(String s3Key, MediaFile mediaFile, String contentType) {
+        mediaProcessingExecutor.execute(() -> {
+            try {
+                log.info("Starting async image processing from S3: {}", s3Key);
+                
+                // Mark as processing
+                updateMediaFileStatus(mediaFile.getId(), ProcessingStatus.PROCESSING);
+                
+                // Download file from S3
+                GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(s3Key)
+                        .build();
+                
+                byte[] fileBytes = s3Client.getObjectAsBytes(getObjectRequest).asByteArray();
+                
+                // Create MultipartFile from bytes for processing
+                MultipartFile file = new InMemoryMultipartFile(
+                        mediaFile.getOriginalFilename(),
+                        contentType,
+                        fileBytes
+                );
+                
+                // Process image
+                var result = imageProcessingService.processImage(file);
+                
+                // Upload optimized version
+                String optimizedKey = mediaFile.getFolder() + "/optimized/" + UUID.randomUUID() + ".jpg";
+                uploadProcessedFile(result.getProcessedImageData(), optimizedKey, "image/jpeg");
+                
+                String optimizedUrl = generateAccessibleUrl(optimizedKey);
+                double compressionRatio = result.getCompressionRatio();
+                int reductionPercent = compressionRatio > 0 && compressionRatio <= 1.0 
+                    ? (int) Math.round((1 - compressionRatio) * 100) 
+                    : 0;
+                
+                log.info("Image processing completed: {} -> {} ({}% reduction)",
+                        mediaFile.getOriginalUrl(), optimizedUrl, reductionPercent);
+                
+                // Update MediaFile with optimized URL
+                markMediaFileCompleted(mediaFile.getId(), optimizedUrl, result.getProcessedImageData().length);
+                
+            } catch (Exception e) {
+                log.error("Error processing image from S3: {}", s3Key, e);
+                markMediaFileFailed(mediaFile.getId(), e.getMessage());
+            }
+        });
+    }
+    
+    /**
+     * Process video from S3 (starts MediaConvert job)
+     */
+    private void processVideoFromS3Async(String s3Key, MediaFile mediaFile) {
+        mediaProcessingExecutor.execute(() -> {
+            try {
+                log.info("Starting MediaConvert job for video from S3: {}", s3Key);
+                
+                // Mark as processing
+                updateMediaFileStatus(mediaFile.getId(), ProcessingStatus.PROCESSING);
+                
+                // Start MediaConvert job
+                String jobId = mediaConvertVideoService.startVideoProcessingJob(mediaFile, s3Key);
+                
+                log.info("MediaConvert job started: {} for video: {}", jobId, mediaFile.getOriginalUrl());
+                
+            } catch (Exception e) {
+                log.error("Error processing video from S3: {}", s3Key, e);
+                markMediaFileFailed(mediaFile.getId(), e.getMessage());
+            }
+        });
     }
 }

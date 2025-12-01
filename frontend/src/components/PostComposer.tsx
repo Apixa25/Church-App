@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { PostType, MediaFile, CreatePostRequest } from '../types/Post';
-import { createPost, uploadMedia } from '../services/postApi';
+import { createPost, uploadMediaDirect } from '../services/postApi';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useGroup } from '../contexts/GroupContext';
 import './PostComposer.css';
@@ -154,10 +154,10 @@ const PostComposer: React.FC<PostComposerProps> = ({
       let mediaUrls: string[] = [];
       let mediaTypes: string[] = [];
 
-      // Upload media files if any
+      // Upload media files if any (using direct S3 upload - bypasses Nginx)
       if (mediaFiles.length > 0) {
         const files = mediaFiles.map(mf => mf.file);
-        mediaUrls = await uploadMedia(files);
+        mediaUrls = await uploadMediaDirect(files, 'posts');
         mediaTypes = mediaFiles.map(mf => mf.type);
       }
 
