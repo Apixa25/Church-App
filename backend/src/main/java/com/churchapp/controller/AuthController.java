@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,6 +29,9 @@ import java.util.Map;
 public class AuthController {
     
     private final AuthService authService;
+    
+    @Value("${frontend.url:http://localhost:3000}")
+    private String frontendUrl;
     
     @RequestMapping(value = "/register", method = RequestMethod.OPTIONS)
     public ResponseEntity<?> handleOptionsRegister() {
@@ -69,28 +75,41 @@ public class AuthController {
         try {
             AuthResponse authResponse = authService.handleOAuth2Login(oAuth2User);
             
+            // URL encode all parameters to handle special characters
+            String token = URLEncoder.encode(authResponse.getToken(), StandardCharsets.UTF_8);
+            String refreshToken = URLEncoder.encode(authResponse.getRefreshToken() != null ? authResponse.getRefreshToken() : "", StandardCharsets.UTF_8);
+            String userId = URLEncoder.encode(authResponse.getUserId().toString(), StandardCharsets.UTF_8);
+            String email = URLEncoder.encode(authResponse.getEmail(), StandardCharsets.UTF_8);
+            String name = URLEncoder.encode(authResponse.getName(), StandardCharsets.UTF_8);
+            String role = URLEncoder.encode(authResponse.getRole(), StandardCharsets.UTF_8);
+            String isNewUser = String.valueOf(authResponse.isNewUser());
+            
             // Redirect to frontend with token as URL parameter
             String redirectUrl = String.format(
-                "http://localhost:3000/auth/callback?token=%s&refreshToken=%s&userId=%s&email=%s&name=%s&role=%s&isNewUser=%s",
-                authResponse.getToken(),
-                authResponse.getRefreshToken(),
-                authResponse.getUserId(),
-                authResponse.getEmail(),
-                authResponse.getName(),
-                authResponse.getRole(),
-                authResponse.isNewUser()
+                "%s/auth/callback?token=%s&refreshToken=%s&userId=%s&email=%s&name=%s&role=%s&isNewUser=%s",
+                frontendUrl,
+                token,
+                refreshToken,
+                userId,
+                email,
+                name,
+                role,
+                isNewUser
             );
             
             response.sendRedirect(redirectUrl);
         } catch (Exception e) {
-            response.sendRedirect("http://localhost:3000/auth/error?message=" + e.getMessage());
+            String errorMessage = URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
+            response.sendRedirect(frontendUrl + "/auth/error?message=" + errorMessage);
         }
     }
     
     @GetMapping("/oauth2/failure")
     public void handleOAuth2Failure(HttpServletRequest request, HttpServletResponse response) throws IOException {
         String error = request.getParameter("error");
-        response.sendRedirect("http://localhost:3000/auth/error?message=" + (error != null ? error : "OAuth2 authentication failed"));
+        String errorMessage = error != null ? error : "OAuth2 authentication failed";
+        String encodedError = URLEncoder.encode(errorMessage, StandardCharsets.UTF_8);
+        response.sendRedirect(frontendUrl + "/auth/error?message=" + encodedError);
     }
     
     @GetMapping("/me")
