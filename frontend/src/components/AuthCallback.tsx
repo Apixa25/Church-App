@@ -8,6 +8,10 @@ const AuthCallback: React.FC = () => {
   // const { setUser } = useAuth(); // Not currently used in this component
 
   useEffect(() => {
+    // Debug: Log current URL and all search params
+    console.log('🔍 AuthCallback - Current URL:', window.location.href);
+    console.log('🔍 AuthCallback - Search params:', Object.fromEntries(searchParams.entries()));
+    
     const token = searchParams.get('token');
     const refreshToken = searchParams.get('refreshToken');
     const userId = searchParams.get('userId');
@@ -16,6 +20,18 @@ const AuthCallback: React.FC = () => {
     const role = searchParams.get('role');
     const isNewUser = searchParams.get('isNewUser') === 'true';
     const error = searchParams.get('error');
+
+    // Debug: Log all extracted values
+    console.log('🔍 AuthCallback - Extracted values:', {
+      token: token ? 'Present' : 'Missing',
+      refreshToken: refreshToken ? 'Present' : 'Missing',
+      userId: userId || 'Missing',
+      email: email || 'Missing',
+      name: name || 'Missing',
+      role: role || 'Missing',
+      isNewUser,
+      error: error || 'None'
+    });
 
     if (error) {
       console.error('OAuth2 error:', error);

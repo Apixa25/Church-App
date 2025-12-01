@@ -84,10 +84,15 @@ public class AuthController {
             String role = URLEncoder.encode(authResponse.getRole(), StandardCharsets.UTF_8);
             String isNewUser = String.valueOf(authResponse.isNewUser());
             
+            // Remove trailing slash from frontendUrl if present
+            String cleanFrontendUrl = frontendUrl.endsWith("/") 
+                ? frontendUrl.substring(0, frontendUrl.length() - 1) 
+                : frontendUrl;
+            
             // Redirect to frontend with token as URL parameter
             String redirectUrl = String.format(
                 "%s/auth/callback?token=%s&refreshToken=%s&userId=%s&email=%s&name=%s&role=%s&isNewUser=%s",
-                frontendUrl,
+                cleanFrontendUrl,
                 token,
                 refreshToken,
                 userId,
@@ -99,8 +104,12 @@ public class AuthController {
             
             response.sendRedirect(redirectUrl);
         } catch (Exception e) {
+            // Remove trailing slash from frontendUrl if present
+            String cleanFrontendUrl = frontendUrl.endsWith("/") 
+                ? frontendUrl.substring(0, frontendUrl.length() - 1) 
+                : frontendUrl;
             String errorMessage = URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
-            response.sendRedirect(frontendUrl + "/auth/error?message=" + errorMessage);
+            response.sendRedirect(cleanFrontendUrl + "/auth/error?message=" + errorMessage);
         }
     }
     
