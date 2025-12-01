@@ -31,7 +31,7 @@ JWT_SECRET=[GENERATE_STRONG_SECRET_32_CHARS_MIN]
 -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 32 | ForEach-Object {[char]$_})
 ```
 
-### **AWS Configuration**
+### **AWS Configuration** ⚠️ **REQUIRED FOR FILE UPLOADS**
 ```
 AWS_REGION=us-west-2
 AWS_S3_BUCKET=thegathrd-app-uploads
@@ -39,7 +39,19 @@ AWS_ACCESS_KEY_ID=[YOUR_AWS_ACCESS_KEY]
 AWS_SECRET_ACCESS_KEY=[YOUR_AWS_SECRET_KEY]
 ```
 
-**Note:** Get these from your AWS CLI configuration or IAM user.
+**⚠️ CRITICAL:** These are **REQUIRED** for profile picture and banner image uploads to work! Without these, you'll get a 400 error when trying to upload images.
+
+**How to get AWS credentials:**
+1. Go to **AWS Console** → **IAM** → **Users**
+2. Find or create a user with S3 access
+3. Go to **Security credentials** tab
+4. Click **"Create access key"**
+5. Choose **"Application running outside AWS"** (for Elastic Beanstalk)
+6. Copy the **Access Key ID** and **Secret Access Key**
+7. ⚠️ **Save these securely - you won't see the secret again!**
+
+**Required IAM Permissions for the user:**
+- `AmazonS3FullAccess` (or create a custom policy with read/write access to your bucket)
 
 ### **CORS Configuration**
 ```
@@ -108,9 +120,12 @@ At minimum, add these to get started:
 - `SPRING_PROFILES_ACTIVE`
 - `JWT_SECRET`
 - `AWS_REGION`
+- `AWS_S3_BUCKET`
+- `AWS_ACCESS_KEY_ID` ⚠️ **Required for file uploads**
+- `AWS_SECRET_ACCESS_KEY` ⚠️ **Required for file uploads**
 - `CORS_ORIGINS`
 
-You can add the optional ones later!
+**Note:** Without `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, profile picture and banner image uploads will fail with a 400 error!
 
 ---
 
