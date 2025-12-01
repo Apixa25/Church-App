@@ -610,7 +610,77 @@ public class PostController {
 
     // ========== MEDIA UPLOAD ==========
 
+    /**
+     * Generate presigned URL for direct S3 upload (new approach - bypasses Nginx)
+     * POST /api/posts/generate-upload-url
+     */
+    @PostMapping("/generate-upload-url")
+    public ResponseEntity<?> generatePresignedUploadUrl(
+            @RequestBody PresignedUploadRequest request,
+            @AuthenticationPrincipal User user) {
+        
+        try {
+            log.info("Generating presigned URL for user: {}, file: {}, size: {}", 
+                    user.getUsername(), request.getFileName(), request.getFileSize());
+            
+            // Generate presigned URL (validation happens inside)
+            PresignedUploadResponse response = fileUploadService.generatePresignedUploadUrl(
+                    request.getFileName(),
+                    request.getContentType(),
+                    request.getFileSize(),
+                    request.getFolder()
+            );
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid upload request from user {}: {}", user.getUsername(), e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error generating presigned URL for user: {}", user.getUsername(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to generate upload URL"));
+        }
+    }
+    
+    /**
+     * Confirm upload completion after direct S3 upload
+     * POST /api/posts/confirm-upload
+     */
+    @PostMapping("/confirm-upload")
+    public ResponseEntity<?> confirmUpload(
+            @RequestBody UploadCompletionRequest request,
+            @AuthenticationPrincipal User user) {
+        
+        try {
+            log.info("Confirming upload completion for user: {}, key: {}", 
+                    user.getUsername(), request.getS3Key());
+            
+            // Handle upload completion (verify, create MediaFile record, start processing)
+            String fileUrl = fileUploadService.handleUploadCompletion(
+                    request.getS3Key(),
+                    request.getFileName(),
+                    request.getContentType(),
+                    request.getFileSize(),
+                    "posts" // Folder for posts
+            );
+            
+            return ResponseEntity.ok(Map.of("fileUrl", fileUrl, "success", true));
+            
+        } catch (Exception e) {
+            log.error("Error confirming upload for user: {}", user.getUsername(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to confirm upload", "success", false));
+        }
+    }
+
+    /**
+     * Legacy endpoint - upload media through backend (kept for backward compatibility)
+     * POST /api/posts/upload-media
+     * @deprecated Use generate-upload-url + confirm-upload instead
+     */
     @PostMapping("/upload-media")
+    @Deprecated
     public ResponseEntity<List<String>> uploadMedia(
             @RequestParam("files") MultipartFile[] files,
             @AuthenticationPrincipal User user) {
