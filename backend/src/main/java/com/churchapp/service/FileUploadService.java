@@ -133,7 +133,29 @@ public class FileUploadService {
         } catch (Exception e) {
             log.error("Error uploading file to S3 - bucket: {}, region: {}", bucketName, region, e);
             log.error("Exception details: {}", e.getMessage());
-            throw new RuntimeException("Failed to upload file: " + e.getMessage(), e);
+            
+            // Provide more helpful error messages for common AWS credential issues
+            String errorMessage = e.getMessage();
+            if (errorMessage != null) {
+                if (errorMessage.contains("Access Key Id") || errorMessage.contains("does not exist in our records")) {
+                    throw new RuntimeException(
+                        "AWS credentials are missing or invalid. Please configure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables in Elastic Beanstalk.",
+                        e
+                    );
+                } else if (errorMessage.contains("Access Denied") || errorMessage.contains("403")) {
+                    throw new RuntimeException(
+                        "AWS credentials do not have permission to access S3 bucket. Please check IAM permissions.",
+                        e
+                    );
+                } else if (errorMessage.contains("NoSuchBucket")) {
+                    throw new RuntimeException(
+                        "S3 bucket does not exist: " + bucketName + ". Please check AWS_S3_BUCKET environment variable.",
+                        e
+                    );
+                }
+            }
+            
+            throw new RuntimeException("Failed to upload file: " + errorMessage, e);
         }
     }
     
