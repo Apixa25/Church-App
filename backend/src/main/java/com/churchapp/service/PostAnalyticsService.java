@@ -12,7 +12,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -27,6 +26,7 @@ public class PostAnalyticsService {
     /**
      * Record a post view
      * Only records one view per viewer per day to prevent spam
+     * Uses PostgreSQL's ON CONFLICT DO NOTHING to handle race conditions gracefully
      */
     @Transactional
     public void recordPostView(UUID postId, UUID viewerId) {
@@ -36,31 +36,39 @@ public class PostAnalyticsService {
             return;
         }
 
-        // If viewer is provided, check if already viewed today
-        if (viewerId != null) {
-            LocalDate today = LocalDate.now();
-            LocalDateTime startOfDay = today.atStartOfDay();
-            LocalDateTime startOfNextDay = today.plusDays(1).atStartOfDay();
-            
-            if (postViewRepository.hasViewedToday(postId, viewerId, startOfDay, startOfNextDay)) {
-                log.debug("Post view already recorded today for post {} by viewer {}", postId, viewerId);
-                return;
-            }
+        // For anonymous views (viewerId is null), use regular save
+        // The unique constraint only applies to non-null viewer_id
+        if (viewerId == null) {
+            PostView postView = new PostView();
+            postView.setPostId(postId);
+            postView.setViewerId(null);
+            postView.setTimeSpentSeconds(0);
+            postViewRepository.save(postView);
+            log.debug("Recorded anonymous post view: post={}", postId);
+            return;
         }
 
-        // Create new post view
-        PostView postView = new PostView();
-        postView.setPostId(postId);
-        postView.setViewerId(viewerId); // Can be null for anonymous views
-        postView.setTimeSpentSeconds(0);
-
+        // For authenticated views, use upsert to handle race conditions
+        // This prevents duplicate key violations when multiple requests happen simultaneously
         try {
-            postViewRepository.save(postView);
+            postViewRepository.insertPostViewIfNotExists(postId, viewerId, 0);
             log.debug("Recorded post view: post={}, viewer={}", postId, viewerId);
-        } catch (DataIntegrityViolationException e) {
-            // Handle race condition: another thread may have inserted the same view
-            // This is expected behavior when multiple requests happen simultaneously
-            log.debug("Post view already recorded (race condition handled): post={}, viewer={}", postId, viewerId);
+        } catch (Exception e) {
+            // Fallback: if native query fails, try the old method with exception handling
+            // This shouldn't happen, but provides a safety net
+            log.warn("Upsert failed, falling back to save with exception handling: post={}, viewer={}", postId, viewerId, e);
+            try {
+                PostView postView = new PostView();
+                postView.setPostId(postId);
+                postView.setViewerId(viewerId);
+                postView.setTimeSpentSeconds(0);
+                postViewRepository.save(postView);
+                log.debug("Recorded post view (fallback): post={}, viewer={}", postId, viewerId);
+            } catch (DataIntegrityViolationException ex) {
+                // Race condition: another thread already inserted this view
+                // This is expected and can be safely ignored
+                log.debug("Post view already recorded (race condition): post={}, viewer={}", postId, viewerId);
+            }
         }
     }
 
