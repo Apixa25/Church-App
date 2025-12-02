@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { getApiUrl } from '../config/runtimeConfig';
 // Using the same API configuration as other services
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
+const API_BASE_URL = getApiUrl();
 
 const API_URL = `${API_BASE_URL}/admin`;
 
