@@ -40,6 +40,7 @@ import QuickActionsPage from './components/QuickActionsPage';
 import BottomNav from './components/BottomNav';
 import PostComposer from './components/PostComposer';
 import './App.css';
+import './components/Dashboard.css'; // Import for composer modal styles
 import { GlobalSearchProvider } from './components/global-search/GlobalSearchProvider';
 
 const App: React.FC = () => {
@@ -378,12 +379,24 @@ const App: React.FC = () => {
 
                   {/* Global Post Composer Modal */}
                   {showComposer && (
-                    <PostComposer
-                      onCancel={() => setShowComposer(false)}
-                      onPostCreated={() => {
-                        setShowComposer(false);
-                      }}
-                    />
+                    <div className="composer-modal-overlay" onClick={() => setShowComposer(false)}>
+                      <div className="composer-modal-content" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          className="composer-close-btn"
+                          onClick={() => setShowComposer(false)}
+                          aria-label="Close composer"
+                        >
+                          ✕
+                        </button>
+                        <PostComposer
+                          onCancel={() => setShowComposer(false)}
+                          onPostCreated={() => {
+                            setShowComposer(false);
+                          }}
+                          placeholder="Share what's happening in your community..."
+                        />
+                      </div>
+                    </div>
                   )}
 
                   {/* Global Bottom Navigation - Mobile Only */}
