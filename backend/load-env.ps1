@@ -1,9 +1,14 @@
-# Load .env file and set environment variables for PowerShell
+# Load .env.local file (or .env as fallback) and set environment variables for PowerShell
 # Usage: . .\load-env.ps1
 
-$envFile = ".\.env"
+# Try .env.local first, then fallback to .env
+$envFile = ".\.env.local"
+if (-not (Test-Path $envFile)) {
+    $envFile = ".\.env"
+}
+
 if (Test-Path $envFile) {
-    Write-Host "`n📝 Loading environment variables from .env file...`n" -ForegroundColor Cyan
+    Write-Host "`nLoading environment variables from $envFile...`n" -ForegroundColor Cyan
     
     Get-Content $envFile | ForEach-Object {
         $line = $_
@@ -22,16 +27,16 @@ if (Test-Path $envFile) {
                 
                 # Set environment variable for current process
                 [Environment]::SetEnvironmentVariable($key, $value, "Process")
-                Write-Host "  ✅ $key" -ForegroundColor Green
+                Write-Host "  [OK] $key" -ForegroundColor Green
             }
         }
     }
     
-    Write-Host "`n✅ Environment variables loaded!`n" -ForegroundColor Green
-    Write-Host "🚀 You can now run: .\mvnw.cmd spring-boot:run`n" -ForegroundColor Cyan
+    Write-Host "`nEnvironment variables loaded!`n" -ForegroundColor Green
+    Write-Host "You can now run: .\mvnw.cmd spring-boot:run`n" -ForegroundColor Cyan
 } else {
-    Write-Host "`n❌ .env file not found at: $envFile" -ForegroundColor Red
-    Write-Host "📝 Copy .env.example to .env and fill in your values:`n" -ForegroundColor Yellow
-    Write-Host "   Copy-Item .env.example .env" -ForegroundColor White
-    Write-Host "   Then edit .env with your actual credentials`n" -ForegroundColor White
+    Write-Host "`nERROR: Neither .env.local nor .env file found!" -ForegroundColor Red
+    Write-Host "Create .env.local file and fill in your values:`n" -ForegroundColor Yellow
+    Write-Host "   New-Item -Path .env.local -ItemType File" -ForegroundColor White
+    Write-Host "   Then edit .env.local with your actual credentials`n" -ForegroundColor White
 }
