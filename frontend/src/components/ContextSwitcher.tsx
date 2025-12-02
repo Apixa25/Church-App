@@ -23,6 +23,11 @@ const SwitcherContainer = styled.div`
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
+
+  @media (max-width: 480px) {
+    display: block;
+    width: 100%;
+  }
 `;
 
 const SwitcherButton = styled.button`
@@ -51,9 +56,11 @@ const SwitcherButton = styled.button`
   }
 
   @media (max-width: 480px) {
+    width: 100%;
     padding: 10px 12px;
     font-size: 13px;
     gap: 6px;
+    justify-content: center;
   }
 `;
 
