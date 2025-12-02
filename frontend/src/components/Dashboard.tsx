@@ -18,11 +18,9 @@ import ClickableAvatar from './ClickableAvatar';
 import FeedFilterSelector from './FeedFilterSelector';
 import ContextSwitcher from './ContextSwitcher';
 import { FeedType } from '../types/Post';
-import PullToRefresh from './PullToRefresh';
 import { profileAPI } from '../services/api';
 import WarningBanner from './WarningBanner';
 import WarningsSection from './WarningsSection';
-import BottomNav from './BottomNav';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -599,14 +597,6 @@ const Dashboard: React.FC = () => {
           }}
         />
       </main>
-      
-      {/* Pull to Refresh for Dashboard Widgets - Window Level */}
-      <PullToRefresh onRefresh={handleRefresh} disabled={isLoading} useWindow={true}>
-        <div style={{ display: 'none' }}></div>
-      </PullToRefresh>
-
-      {/* Bottom Navigation - Mobile Only */}
-      <BottomNav onPostClick={() => setShowComposer(true)} />
     </div>
   );
 };

@@ -164,6 +164,13 @@ body::before {
   max-width: 100vw;
 }
 
+/* Add bottom padding on mobile to account for bottom navigation */
+@media (max-width: 768px) {
+  .App {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 /* ========================================
    TYPOGRAPHY
    ======================================== */
