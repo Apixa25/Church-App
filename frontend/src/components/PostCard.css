@@ -436,35 +436,41 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .post-card {
-    padding: 12px 0;
-    margin-bottom: 0;
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
+    padding: 12px 0 !important;
+    margin-bottom: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    width: 100% !important;
   }
 
   .post-header {
-    padding: 0 12px;
+    padding: 0 8px !important; /* Minimal padding for touch targets */
   }
 
   .post-content {
-    padding: 0 12px;
+    padding: 0 8px !important; /* Minimal padding for readability */
   }
 
   .post-media {
-    border-radius: 0;
-    margin-left: 0;
-    margin-right: 0;
+    border-radius: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding: 0 !important;
+    width: 100% !important; /* Full width media */
   }
 
   .media-item {
-    border-radius: 0;
+    border-radius: 0 !important;
+    width: 100% !important;
   }
 
   .post-actions {
     flex-wrap: wrap;
     gap: 12px;
-    padding: 0 12px;
+    padding: 0 8px !important; /* Minimal padding for touch targets */
   }
 
   .action-button {
