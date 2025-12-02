@@ -511,10 +511,10 @@ const Dashboard: React.FC = () => {
                   🌟 Social Feed
                 </button>
               )}
-              {/* Only show Activity Feed button if user has primary org */}
-              {hasPrimaryOrg && (
+              {/* Only show Activity Feed button if user has primary org AND not already on Activity Feed */}
+              {hasPrimaryOrg && feedView !== 'activity' && (
                 <button
-                  className={`feed-toggle-btn ${feedView === 'activity' ? 'active' : ''}`}
+                  className="feed-toggle-btn"
                   onClick={() => handleFeedViewChange('activity')}
                 >
                   📊 Activity Feed
