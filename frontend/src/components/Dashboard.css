@@ -155,6 +155,17 @@
   }
 }
 
+@keyframes slideUpMobile {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-75px) scale(1);
+  }
+}
+
 /* Enhanced Dashboard Layout */
 .dashboard-left {
   flex: 1;
@@ -332,6 +343,7 @@
     max-width: none;
     border-radius: var(--border-radius-md);
     margin: 10px;
+    animation: slideUpMobile 0.3s ease forwards;
   }
 }
 
