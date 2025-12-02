@@ -41,7 +41,18 @@
       "Bash(exit 0)",
       "Bash(.\\mvnw.cmd clean compile spring-boot:run)",
       "Bash(mvnw.cmd clean compile spring-boot:run:*)",
-      "Bash(npx cap ls)"
+      "Bash(npx cap ls)",
+      "Bash(where:*)",
+      "Bash(aws:*)",
+      "Bash(powershell -Command \"Get-Command aws -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source\")",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" --version)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront list-distributions --query \"DistributionList.Items[?contains(Origins.Items[0].DomainName, ''thegathrd'')].{ID:Id,Domain:DomainName,Origin:Origins.Items[0].DomainName}\" --output table)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 sync frontend/build/ s3://thegathrd-app-frontend/ --delete --cache-control \"public, max-age=31536000, immutable\" --exclude \"*.html\" --exclude \"service-worker.js\" --exclude \"manifest.json\")",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 sync:*)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront list-distributions --output text)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront create-invalidation --distribution-id E2SM4EXV57KO8B --paths \"/*\")",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls s3://thegathrd-app-frontend/ --recursive --human-readable)"
     ],
     "deny": [],
     "ask": []
