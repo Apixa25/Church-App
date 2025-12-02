@@ -370,10 +370,11 @@ public class OrganizationService {
     // MEMBERSHIP MANAGEMENT
     // ========================================================================
 
+    /**
+     * Legacy join method - routes to appropriate dual-primary system methods
+     * @deprecated Use setChurchPrimary(), setFamilyPrimary(), or joinAsGroup() instead
+     */
     public UserOrganizationMembership joinOrganization(UUID userId, UUID orgId, boolean isPrimary) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-
         Organization org = getOrganizationById(orgId);
 
         // Check if already a member
@@ -384,36 +385,67 @@ public class OrganizationService {
             throw new RuntimeException("User is already a member of this organization");
         }
 
-        UserOrganizationMembership membership = new UserOrganizationMembership();
-        membership.setUser(user);
-        membership.setOrganization(org);
-        membership.setIsPrimary(isPrimary);
-        membership.setRole(UserOrganizationMembership.OrgRole.MEMBER);
-        membership.setJoinedAt(LocalDateTime.now());
-        membership.setCreatedAt(LocalDateTime.now());
-
+        // If joining as primary, route to the appropriate dual-primary method based on org type
         if (isPrimary) {
-            // Clear any existing primary
-            membershipRepository.clearPrimaryForUser(userId);
-            user.setPrimaryOrganization(org);
-            userRepository.save(user);
+            if (FAMILY_SLOT_TYPES.contains(org.getType())) {
+                // FAMILY type organizations must go to Family Primary slot
+                log.info("Legacy joinOrganization routing FAMILY type {} to setFamilyPrimary", orgId);
+                return setFamilyPrimary(userId, orgId);
+            } else if (CHURCH_SLOT_TYPES.contains(org.getType())) {
+                // CHURCH, MINISTRY, NONPROFIT, GENERAL types go to Church Primary slot
+                log.info("Legacy joinOrganization routing {} type {} to setChurchPrimary", org.getType(), orgId);
+                return setChurchPrimary(userId, orgId);
+            } else {
+                throw new RuntimeException("Organization type " + org.getType() + 
+                    " cannot be set as primary. Allowed types: CHURCH, MINISTRY, NONPROFIT, GENERAL, FAMILY");
+            }
+        } else {
+            // Joining as secondary/group - use joinAsGroup method
+            return joinAsGroup(userId, orgId);
         }
-
-        UserOrganizationMembership saved = membershipRepository.save(membership);
-        log.info("User {} joined organization {} as {}", userId, orgId, isPrimary ? "PRIMARY" : "SECONDARY");
-
-        return saved;
     }
 
     public void leaveOrganization(UUID userId, UUID orgId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
         UserOrganizationMembership membership = membershipRepository
             .findByUserIdAndOrganizationId(userId, orgId)
             .orElseThrow(() -> new RuntimeException("User is not a member of this organization"));
 
+        // If this is a primary organization, clear the appropriate primary slot first
         if (membership.getIsPrimary()) {
-            throw new RuntimeException("Cannot leave primary organization. Please switch to a different primary organization first.");
+            String slotType = membership.getSlotType();
+            boolean isChurchPrimary = user.getChurchPrimaryOrganization() != null && 
+                user.getChurchPrimaryOrganization().getId().equals(orgId);
+            boolean isFamilyPrimary = user.getFamilyPrimaryOrganization() != null && 
+                user.getFamilyPrimaryOrganization().getId().equals(orgId);
+            
+            // Clear the appropriate primary slot
+            if ("FAMILY".equals(slotType) || isFamilyPrimary) {
+                // This is the Family Primary - clear it
+                log.info("User {} leaving Family Primary organization {} - clearing Family Primary slot", userId, orgId);
+                if (isFamilyPrimary) {
+                    user.setFamilyPrimaryOrganization(null);
+                    userRepository.save(user);
+                }
+            } else if ("CHURCH".equals(slotType) || isChurchPrimary) {
+                // This is the Church Primary - clear it
+                log.info("User {} leaving Church Primary organization {} - clearing Church Primary slot", userId, orgId);
+                if (isChurchPrimary) {
+                    user.setChurchPrimaryOrganization(null);
+                    userRepository.save(user);
+                }
+            }
+            
+            // Demote membership to group status before deletion (in case any code depends on this)
+            membership.setIsPrimary(false);
+            membership.setSlotType("GROUP");
+            membership.setUpdatedAt(LocalDateTime.now());
+            membershipRepository.save(membership);
         }
-
+        
+        // Delete the membership (user is leaving the organization completely)
         membershipRepository.delete(membership);
         log.info("User {} left organization {}", userId, orgId);
     }

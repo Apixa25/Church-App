@@ -485,6 +485,11 @@ const OrganizationBrowser: React.FC = () => {
     loading: contextLoading,
     joinOrganization,
     leaveOrganization,
+    setChurchPrimary,
+    setFamilyPrimary,
+    joinAsGroup,
+    canBeChurchPrimary,
+    canBeFamilyPrimary,
     canSwitchPrimary,
     getDaysUntilCanSwitch,
     searchOrganizations,
@@ -609,19 +614,36 @@ const OrganizationBrowser: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, [searchQuery, typeFilter, searchOrganizations]);
 
-  const handleJoinAsPrimary = async (orgId: string, orgName: string) => {
+  const handleJoinAsPrimary = async (orgId: string, orgName: string, orgType?: string) => {
     try {
       setActionLoading(orgId);
       setError(null);
       setSuccess(null);
 
-      if (primaryMembership && !canSwitch) {
-        setError(`You must wait ${daysUntilSwitch} more days before switching your primary organization.`);
-        return;
+      // Find the organization to get its type if not provided
+      let organizationType = orgType;
+      if (!organizationType) {
+        const org = organizations.find(o => o.id === orgId);
+        organizationType = org?.type;
       }
 
-      await joinOrganization(orgId, true);
-      setSuccess(`Successfully joined ${orgName} as your primary organization!`);
+      // Route to the appropriate dual primary method based on organization type
+      if (organizationType && canBeFamilyPrimary(organizationType)) {
+        // FAMILY type organizations go to Family Primary slot
+        console.log('🏠 Setting Family Primary:', orgName, '(type:', organizationType, ')');
+        await setFamilyPrimary(orgId);
+        setSuccess(`Successfully set ${orgName} as your Family Primary!`);
+      } else if (organizationType && canBeChurchPrimary(organizationType)) {
+        // CHURCH, MINISTRY, NONPROFIT, GENERAL types go to Church Primary slot
+        console.log('⛪ Setting Church Primary:', orgName, '(type:', organizationType, ')');
+        await setChurchPrimary(orgId);
+        setSuccess(`Successfully set ${orgName} as your Church Primary!`);
+      } else {
+        // Fallback to legacy method if type is unknown
+        console.warn('⚠️ Unknown organization type, using legacy joinOrganization method');
+        await joinOrganization(orgId, true);
+        setSuccess(`Successfully joined ${orgName} as your primary organization!`);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to join organization');
     } finally {
@@ -635,8 +657,9 @@ const OrganizationBrowser: React.FC = () => {
       setError(null);
       setSuccess(null);
 
-      await joinOrganization(orgId, false);
-      setSuccess(`Successfully joined ${orgName} as a secondary organization!`);
+      // Use joinAsGroup for secondary memberships (social feed only access)
+      await joinAsGroup(orgId);
+      setSuccess(`Successfully joined ${orgName} as a group (you'll see their posts in your feed)!`);
     } catch (err: any) {
       setError(err.message || 'Failed to join organization');
     } finally {
@@ -1071,7 +1094,13 @@ const OrganizationBrowser: React.FC = () => {
               {isMember(org.id) ? (
                 <ButtonGroup>
                   {isPrimary(org.id) ? (
-                    <Button disabled>Your Primary Organization</Button>
+                    <Button disabled>
+                      {churchPrimary?.organizationId === org.id 
+                        ? 'Your Church Primary' 
+                        : familyPrimary?.organizationId === org.id
+                        ? 'Your Family Primary'
+                        : 'Your Primary Organization'}
+                    </Button>
                   ) : isSecondary(org.id) ? (
                     <>
                       <Button disabled>Secondary Member</Button>
@@ -1091,15 +1120,23 @@ const OrganizationBrowser: React.FC = () => {
                 <ButtonGroup>
                   <Button
                     variant="primary"
-                    onClick={() => handleJoinAsPrimary(org.id, org.name)}
-                    disabled={actionLoading === org.id || (!!primaryMembership && !canSwitch)}
+                    onClick={() => handleJoinAsPrimary(org.id, org.name, org.type)}
+                    disabled={actionLoading === org.id}
                     title={
-                      primaryMembership && !canSwitch
-                        ? `Wait ${daysUntilSwitch} days to switch primary org`
+                      canBeFamilyPrimary(org.type)
+                        ? 'Set as your Family Primary organization'
+                        : canBeChurchPrimary(org.type)
+                        ? 'Set as your Church Primary organization'
                         : 'Join as your primary organization for full access'
                     }
                   >
-                    {actionLoading === org.id ? 'Joining...' : 'Join as Primary'}
+                    {actionLoading === org.id 
+                      ? 'Joining...' 
+                      : canBeFamilyPrimary(org.type)
+                      ? 'Set as Family Primary'
+                      : canBeChurchPrimary(org.type)
+                      ? 'Set as Church Primary'
+                      : 'Join as Primary'}
                   </Button>
                   <Button
                     variant="secondary"
