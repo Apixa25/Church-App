@@ -30,45 +30,52 @@ public class PostAnalyticsService {
      */
     @Transactional
     public void recordPostView(UUID postId, UUID viewerId) {
-        // Verify post exists
-        if (!postRepository.existsById(postId)) {
-            log.warn("Attempted to record view for non-existent post: {}", postId);
-            return;
-        }
-
-        // For anonymous views (viewerId is null), use regular save
-        // The unique constraint only applies to non-null viewer_id
-        if (viewerId == null) {
-            PostView postView = new PostView();
-            postView.setPostId(postId);
-            postView.setViewerId(null);
-            postView.setTimeSpentSeconds(0);
-            postViewRepository.save(postView);
-            log.debug("Recorded anonymous post view: post={}", postId);
-            return;
-        }
-
-        // For authenticated views, use upsert to handle race conditions
-        // This prevents duplicate key violations when multiple requests happen simultaneously
         try {
-            postViewRepository.insertPostViewIfNotExists(postId, viewerId, 0);
-            log.debug("Recorded post view: post={}, viewer={}", postId, viewerId);
-        } catch (Exception e) {
-            // Fallback: if native query fails, try the old method with exception handling
-            // This shouldn't happen, but provides a safety net
-            log.warn("Upsert failed, falling back to save with exception handling: post={}, viewer={}", postId, viewerId, e);
-            try {
+            // Verify post exists
+            if (!postRepository.existsById(postId)) {
+                log.warn("Attempted to record view for non-existent post: {}", postId);
+                return;
+            }
+
+            // For anonymous views (viewerId is null), use regular save
+            // The unique constraint only applies to non-null viewer_id
+            if (viewerId == null) {
                 PostView postView = new PostView();
                 postView.setPostId(postId);
-                postView.setViewerId(viewerId);
+                postView.setViewerId(null);
                 postView.setTimeSpentSeconds(0);
                 postViewRepository.save(postView);
-                log.debug("Recorded post view (fallback): post={}, viewer={}", postId, viewerId);
-            } catch (DataIntegrityViolationException ex) {
-                // Race condition: another thread already inserted this view
-                // This is expected and can be safely ignored
-                log.debug("Post view already recorded (race condition): post={}, viewer={}", postId, viewerId);
+                log.debug("Recorded anonymous post view: post={}", postId);
+                return;
             }
+
+            // For authenticated views, use upsert to handle race conditions
+            // This prevents duplicate key violations when multiple requests happen simultaneously
+            try {
+                postViewRepository.insertPostViewIfNotExists(postId, viewerId, 0);
+                log.debug("Recorded post view: post={}, viewer={}", postId, viewerId);
+            } catch (Exception e) {
+                // Fallback: if native query fails, try the old method with exception handling
+                // This shouldn't happen, but provides a safety net
+                log.warn("Upsert failed, falling back to save with exception handling: post={}, viewer={}", postId, viewerId, e);
+                try {
+                    PostView postView = new PostView();
+                    postView.setPostId(postId);
+                    postView.setViewerId(viewerId);
+                    postView.setTimeSpentSeconds(0);
+                    postViewRepository.save(postView);
+                    log.debug("Recorded post view (fallback): post={}, viewer={}", postId, viewerId);
+                } catch (DataIntegrityViolationException ex) {
+                    // Race condition: another thread already inserted this view
+                    // This is expected and can be safely ignored
+                    log.debug("Post view already recorded (race condition): post={}, viewer={}", postId, viewerId);
+                }
+            }
+        } catch (Exception e) {
+            // Catch any unexpected exceptions (including transaction commit failures)
+            // Log but don't throw - view recording failure shouldn't break the user experience
+            log.error("Error recording post view (non-fatal): post={}, viewer={}, error={}", 
+                     postId, viewerId, e.getMessage(), e);
         }
     }
 
