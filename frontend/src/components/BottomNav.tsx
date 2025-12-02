@@ -26,7 +26,15 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick }) => {
       label: 'Home',
       icon: '🏠',
       path: '/dashboard',
-      onClick: () => navigate('/dashboard')
+      onClick: () => {
+        // Navigate to dashboard with reset flag to restore initial state
+        navigate('/dashboard', { 
+          state: { reset: true },
+          replace: true 
+        });
+        // Scroll to top immediately
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     },
     {
       id: 'quick-actions',

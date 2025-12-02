@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useActiveContext } from '../contexts/ActiveContextContext';
 import { useFeedFilter } from '../contexts/FeedFilterContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import dashboardApi, { DashboardResponse } from '../services/dashboardApi';
 import ActivityFeed from './ActivityFeed';
 import PostFeed from './PostFeed';
@@ -38,7 +38,7 @@ const Dashboard: React.FC = () => {
   } = useActiveContext();
   
   // Feed filter context - to auto-update filter when context changes
-  const { setFilter, activeFilter } = useFeedFilter();
+  const { setFilter, activeFilter, resetFilter } = useFeedFilter();
   
   // Legacy compatibility: primaryMembership maps to the currently active context
   const primaryMembership = activeMembership;
@@ -52,6 +52,7 @@ const Dashboard: React.FC = () => {
   const prevDashboardOrgIdRef = useRef<string | null>(null);
   
   const navigate = useNavigate();
+  const location = useLocation();
   const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -336,6 +337,39 @@ const Dashboard: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeContext, activeOrganizationId]);
+
+  // Handle reset flag from Home button click - reset dashboard to initial state
+  useEffect(() => {
+    const resetState = (location.state as any)?.reset === true;
+    if (resetState) {
+      console.log('🔄 Dashboard reset triggered - restoring initial state');
+      
+      // Reset all dashboard state to initial values (like fresh login)
+      setFeedView('social');
+      setFeedType(FeedType.CHRONOLOGICAL);
+      setShowComposer(false);
+      setShowSearch(false);
+      setShowWarningsSection(false);
+      
+      // Scroll to top of page
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // Reset feed filter to default (EVERYTHING) - optional, can be removed if filters should persist
+      resetFilter().catch(err => {
+        console.error('Failed to reset feed filter:', err);
+        // Continue with reset even if filter reset fails
+      });
+      
+      // Force refresh of dashboard data
+      fetchDashboardData();
+      
+      // Force refresh of feed by incrementing refresh key
+      setFeedRefreshKey(prev => prev + 1);
+      
+      // Clear the reset flag from location state
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, fetchDashboardData, navigate, location.pathname, resetFilter]);
 
   // Determine if this is "The Gathering" global organization (no active context)
   const isGatheringGlobal = activeContext === 'gathering' ||
