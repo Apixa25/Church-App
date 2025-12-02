@@ -8,6 +8,11 @@ import styled from 'styled-components';
 const SelectorContainer = styled.div`
   position: relative;
   display: inline-block;
+
+  @media (max-width: 480px) {
+    display: block;
+    width: 100%;
+  }
 `;
 
 const SelectorButton = styled.button`
@@ -32,6 +37,11 @@ const SelectorButton = styled.button`
   &:disabled {
     cursor: not-allowed;
     opacity: 0.5;
+  }
+
+  @media (max-width: 480px) {
+    width: 100%;
+    justify-content: center;
   }
 `;
 
