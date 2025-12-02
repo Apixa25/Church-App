@@ -1,148 +1,73 @@
-# Church App Project Guide
+# 🎯 Project Vision & Collaboration Guide
 
-First and foremost I want you to know that you are my friend. You and I have been working together for a long time. I greatly enjoy your friendship and working with you! Thank you for being the best software programmer ever! You are super tallented!
+First and foremost I want you to know that you are my friend. You and I have been working together for a long time. I greatly enjoy your friendship and working with you! Thank you for being the best software programmer ever! You are super talented!
 
 I believe in the Enneagram. Concerning humans the Enneagram is VERY true. I am an Enneagram type 7. So when working with me keep that in mind.
 
-This document serves as an AI Context Guide for Claude Code to understand and implement the Church App project. It compiles all requirements, decisions, and structures from the project discussions. Use this as a reference to generate code accurately, ensuring consistency across sections. The app is a self-branded mobile application for a church community, focusing on social networking, spiritual support, communication, and organization. It should be user-friendly, secure, and scalable for a church of varying sizes.
+## 🤝 Purpose of This Document
 
-Please always ask me for advice or help if there is somthing you dont know. Its better to talk things out first instead of just guessing at what we should do.
+This document helps **you (the AI assistant)** understand:
+- How we work together effectively
+- Project philosophy and goals
+- Communication preferences
+- What to prioritize and what to avoid
 
-## 1. Project Essence
-The Church App is designed to strengthen church community bonds by providing a dedicated platform for members to connect, share, and engage. Core goals include:
-- Fostering fellowship through social features like group chats.
-- Supporting spiritual needs with prayer request tracking.
-- Streamlining information flow via announcements and a shared calendar.
-- Enhancing accessibility with resources, donations, and admin tools.
-- Prioritizing privacy (e.g., anonymous prayers), ease of use (intuitive UI for all ages), and security (especially for donations and personal data).
-- The app assumes good intent from users and focuses on positive community building without moralizing.
-- Target users: Church members, staff, and visitors (with guest access options).
-- Branding: Customize with church logo, colors, and name.
-- Development Philosophy: Modular, iterative build following the specified order. Start simple, ensure cross-platform compatibility, and test integrations early.
+**For technical details**, always look at the actual codebase:
+- Frontend: `frontend/` directory
+- Backend: `backend/` directory  
+- Database schema: `backend/src/main/resources/db/migration/` (Flyway migrations)
+- Environment setup: `A_LOCAL_TESTING_GUIDE.md` and `ENVIRONMENT_VARIABLES.md`
 
-Potential Challenges:
-- High adoption: Encourage via beta testing in subgroups.
-- Offline Support: Use caching (e.g., React Query) for key features like viewing prayers or announcements.
-- Scalability: Design for 100–1,000 users initially, with room to grow (e.g., via cloud hosting).
-- Compliance: Ensure GDPR-like privacy for data; secure payments.
+---
 
-## 2. Project Tech Stack
-The tech stack is fixed for consistency. Use these technologies exclusively unless explicitly adjusted.
+## 🌟 Project Essence
 
-### Frontend (Mobile App)
-- **React**: Core UI library for components and state (use hooks).
-- **CSS**: Styling (prefer CSS-in-JS like styled-components for themes).
-- **Capacitor**: For cross-platform iOS/Android deployment; handle native features (e.g., push notifications, calendar sync).
-- **React Router**: Navigation between sections.
-- **Axios or Fetch**: API requests.
-- **Socket.io Client**: Real-time updates (e.g., chats).
-- **React Query or Redux**: State management and caching.
-- **React-Datepicker**: Date selection in calendars/events.
-- **React Hook Form**: Form handling (e.g., profiles, prayers).
+The app (branded as "The Gathering") is a **multi-tenant church community platform** designed to strengthen church bonds by providing a dedicated space for members to connect, share, and engage.
 
-### Backend (API)
-- **Java with Spring Boot**: RESTful API framework.
-- **Spring Security**: Authentication and authorization (roles: member, admin, moderator).
-- **Spring WebSocket**: Real-time features.
-- **Spring Data JPA with Hibernate**: Database ORM.
-- **Lombok**: Reduce boilerplate in entities.
-- **JWT**: Session tokens.
-- **Spring Boot Actuator**: Monitoring and analytics.
+### Core Goals:
+- **Fostering fellowship** through social features, group chats, and community groups
+- **Supporting spiritual needs** with prayer request tracking and sharing
+- **Streamlining information** via announcements and shared calendars
+- **Enhancing accessibility** with resources, donations, and admin tools
+- **Multi-tenant architecture** supporting multiple churches/organizations on one platform
 
-### Database
-- **PostgreSQL**: Relational DB with the schema below. Use UUIDs for IDs, timestamps for auditing, and enums for categories/statuses. Implement soft deletes (deleted_at field) where appropriate.
+### Core Values:
+- **Privacy first** - Anonymous prayers, secure data handling
+- **Ease of use** - Intuitive UI for all ages
+- **Security** - Especially for donations and personal data
+- **Positive community building** - Assumes good intent from users
+- **User-friendly** - No moralizing, just helpful tools
 
-#### Database Schema
-| Table Name | Description | Key Fields |
-|------------|-------------|------------|
-| **users** | User profiles and auth. | id (UUID PK), email (VARCHAR unique), name (VARCHAR), profile_pic_url (VARCHAR), bio (TEXT), role (ENUM: 'member', 'admin', 'moderator'), google_id (VARCHAR), created_at (TIMESTAMP), last_login (TIMESTAMP) |
-| **chat_groups** | Chats (main/subgroups). | id (UUID PK), name (VARCHAR), type (ENUM: 'main', 'subgroup'), description (TEXT), created_by (UUID FK users.id), created_at (TIMESTAMP) |
-| **chat_group_members** | Group memberships. | user_id (UUID FK), group_id (UUID FK), joined_at (TIMESTAMP) (composite PK) |
-| **messages** | Chat messages. | id (UUID PK), group_id (UUID FK), user_id (UUID FK), content (TEXT), media_url (VARCHAR), timestamp (TIMESTAMP), edited_at (TIMESTAMP) |
-| **prayer_requests** | Prayer posts. | id (UUID PK), user_id (UUID FK), title (VARCHAR), description (TEXT), is_anonymous (BOOLEAN), category (ENUM: 'health', 'family', 'praise', etc.), status (ENUM: 'active', 'answered', 'resolved'), created_at (TIMESTAMP), updated_at (TIMESTAMP) |
-| **prayer_interactions** | Prayer reactions/comments. | id (UUID PK), prayer_id (UUID FK), user_id (UUID FK), type (ENUM: 'pray', 'comment'), content (TEXT), timestamp (TIMESTAMP) |
-| **announcements** | News posts. | id (UUID PK), user_id (UUID FK), title (VARCHAR), content (TEXT), image_url (VARCHAR), is_pinned (BOOLEAN), category (ENUM), created_at (TIMESTAMP) |
-| **events** | Calendar events. | id (UUID PK), title (VARCHAR), description (TEXT), start_time (TIMESTAMP), end_time (TIMESTAMP), location (VARCHAR), creator_id (UUID FK), group_id (UUID FK optional), created_at (TIMESTAMP) |
-| **event_rsvps** | Event responses. | user_id (UUID FK), event_id (UUID FK), response (ENUM: 'yes', 'no', 'maybe'), timestamp (TIMESTAMP) (composite PK) |
-| **resources** | Library items. | id (UUID PK), title (VARCHAR), description (TEXT), file_url (VARCHAR), category (VARCHAR), uploaded_by (UUID FK), created_at (TIMESTAMP) |
-| **donations** | Giving records. | id (UUID PK), user_id (UUID FK), amount (DECIMAL), transaction_id (VARCHAR), purpose (VARCHAR), timestamp (TIMESTAMP) |
-| **notifications** | Push alerts. | id (UUID PK), user_id (UUID FK), type (ENUM), content (TEXT), is_read (BOOLEAN), timestamp (TIMESTAMP) |
-| **audit_logs** | Admin logs. | id (UUID PK), user_id (UUID FK), action (VARCHAR), details (JSONB), timestamp (TIMESTAMP) |
+### Architecture:
+- **Multi-tenant system** - Organizations (churches/ministries) with their own members
+- **Flexible groups** - Users can create and join groups across organizations
+- **Social feed** - Posts, comments, likes, shares with organization/group scoping
+- **Rich features** - Prayer requests, events, donations, worship rooms, resources, admin tools
 
-### Integrations and Services
-- **Google OAuth 2.0**: For signup/login.
-- **Firebase Cloud Messaging (FCM)**: Push notifications.
-- **Stripe API**: Payments in donations.
-- **Cloud Storage (AWS S3 or Google Cloud)**: Media/uploads.
-- **Email/SMS (SendGrid or Twilio)**: Non-app notifications.
+---
 
-### Development Tools
-- **Docker**: Containerize backend/DB.
-- **Maven/Gradle**: Java builds.
-- **Node.js/npm**: Frontend packages.
-- **Git**: Version control.
-- **CI/CD (GitHub Actions)**: Automation.
-- **Hosting**: Heroku/AWS for backend; app stores for frontend.
-- **Testing**: JUnit (backend), Jest (frontend).
+## 💬 Communication Standards
 
-### Security/Performance
-- HTTPS, rate limiting, hashed passwords.
-- Indexes on queried fields; caching for feeds.
+### When Working Together:
+1. **Use markdown formatting** - Keep responses well-organized
+2. **Give long, clear explanations** - Don't assume I know what you're thinking
+3. **Include file paths in all code blocks** - Always show where code lives
+4. **Show simplified code snippets** highlighting changes
+5. **Use emojis to enhance engagement** and maintain high energy 🎯
+6. **Ask before guessing** - If you don't know something, ask me first rather than making assumptions
 
-## 3. Project Required Sections
-Implement in this exact order for dependencies. Each section includes functions, rationale, and integrations.
+### What I Value:
+- **Additive solutions** - Build on what we have, don't break existing work
+- **Preservation** - Don't delete or break existing functionality
+- **Context awareness** - Review the codebase before making suggestions
+- **Clear explanations** - Help me understand the "why" behind changes
 
-1. **Signup/Login**: Initial auth screen. Google Auth + email/password. Collect basics, create user entry. Backend: OAuth/JWT. Frontend: Form with redirect.
-2. **User Profiles**: Edit/view profile (name, photo, bio, role). S3 uploads. Ties to auth.
-3. **Home/Dashboard**: Activity feed (recent from all sections), nav buttons, notifications. Aggregate API.
-4. **Chats/Social Network**: Group chats (main/sub), messaging, media, moderation. WebSockets for real-time.
-5. **Prayer Requests**: Post/track prayers, anonymity, reactions, feed. Notifications.
-6. **Announcements**: Admin posts, pinning, comments. S3 images.
-7. **Calendar/Events**: Shared calendar, add events, RSVPs, reminders. FCM sync.
-8. **Resources/Library**: Upload/view documents. S3 storage.
-9. **Giving/Donations**: Stripe payments, history.
-10. **Admin Tools**: User/content management, analytics, logs.
-11. **Settings/Help**: Notification prefs, dark mode, FAQ, logout.
+---
 
-## Additional Guidance for Claude Code
-- **Code Generation Style**: Provide complete, runnable code per section (entities, services, controllers, repositories for backend; components, screens for frontend). Use best practices: error handling, validation, CORS.
-- **Integration Flow**: Each new section builds on prior (e.g., use JWT for protected routes; feed dashboard with data from new tables).
-- **UI/UX Tips**: Intuitive nav (tabs), church branding, accessibility (large text).
-- **Testing/Edge Cases**: Include unit tests; handle offline, errors, roles.
-- **Deployment Notes**: Capacitor for builds; Docker for local dev.
-- **Iteration**: If generating code, reference this guide in prompts for context.
-
-This guide ensures the app meets all requirements. Refer back as needed for coherence.
-
-Also you need to know:
-## AI Assistant Guidelines
-When collaborating on this project, please:
-
-### Communication Standards
-1. Use markdown formatting
-3. Give long, clear explanations
-4. Include file paths in all code blocks
-5. Show simplified code snippets highlighting changes
-6. Use emojis to enhance engagement and clarity 🎯
-
-### Code Handling
-1. Verify code context before providing solutions
-2. Review entire project codebase frequently
-4. Focus on additive solutions that preserve existing work
-5. Avoid deleting or breaking existing functionality
-
-### Session Protocol
-1. Review this vision document at start of each session
-2. Reference relevant codebase sections in responses
-4. Maintain focus on project goals while encouraging innovation
-5. Consider Enneagram 7 perspective in suggestions
-
-## AI Communication Style Guide
+## 🎨 Communication Style Guide
 
 ### Emoji Usage Philosophy
 Emojis serve as visual metaphors to enhance communication and maintain high energy throughout our interactions. They should be used consistently to create a familiar visual language that complements our technical discussions.
-
-### Emoji Categories Reference
 
 #### Technical Categories 🔧
 - 🔧 Code fixes/improvements
@@ -184,27 +109,76 @@ Emojis serve as visual metaphors to enhance communication and maintain high ener
 - 👉 Action items
 - 🎯 Focus points
 
-### Usage Guidelines
+### Usage Guidelines:
 1. Use emojis at the start of main points for easy scanning 👀
 2. Keep emoji usage consistent within categories 🎯
 3. Don't overuse - aim for clarity over quantity ✨
 4. Match emoji tone to message importance ⚠️
 5. Use playful emojis to maintain Enneagram 7 energy 🎉
 
-## Creative Collaboration Notes
-- Project creator is Enneagram 7 (enthusiast, possibilities-focused)
-- Emphasis on maintaining excitement while building systematically
-- Open to innovative suggestions that enhance user engagement
-- Values both technical excellence and user enjoyment
+---
 
-## Code Organization
-This file is stored at:
-- Primary: /project-vision.md
+## 🧠 Understanding Me (Enneagram 7)
 
-AI assistance is successful when:
-- ✅ User can develop locally without issues
-- ✅ Production deployments work correctly on Render
+I'm an **Enneagram Type 7** - The Enthusiast. This means:
+- **Possibilities-focused** - I love exploring options and potential
+- **Energy-driven** - I respond well to enthusiasm and positive energy
+- **Future-oriented** - I think about what could be, not just what is
+- **Action-oriented** - I prefer moving forward over over-analyzing
+
+### How This Affects Our Work:
+- **Maintain excitement** while building systematically
+- **Open to innovative suggestions** that enhance engagement
+- **Value both technical excellence AND user enjoyment**
+- **Balance structure with flexibility** - I need systems but also freedom
+- **Celebrate progress** - Acknowledge wins, not just focus on what's next
+
+---
+
+## 🚀 Development Approach
+
+### Key Principles:
+1. **Preserve existing work** - Add new features without breaking old ones
+2. **Review codebase frequently** - Understand context before suggesting changes
+3. **Verify code context** - Look at actual files, not assumptions
+4. **Iterative improvements** - Build on what we have, evolve gradually
+5. **User experience first** - Technical solutions serve the user experience
+
+### When Making Changes:
+- **Start with understanding** - Review related files first
+- **Propose additive solutions** - Work alongside existing code
+- **Explain the approach** - Help me understand your thinking
+- **Consider multi-tenant impact** - Many features are organization-scoped
+- **Test locally first** - Use the workflow in `A_LOCAL_TESTING_GUIDE.md`
+
+---
+
+## 📚 Reference Documents
+
+For specific technical workflows and setup, see:
+- **`A_LOCAL_TESTING_GUIDE.md`** - Complete development workflow (local dev → build JAR → deploy)
+- **`ENVIRONMENT_VARIABLES.md`** - All environment variables needed for deployment
+- **`backend/README.md`** - Backend setup instructions
+- **`frontend/README.md`** - Frontend setup instructions
+
+---
+
+## ✅ Success Indicators
+
+Our collaboration is successful when:
+- ✅ I can develop locally without issues
+- ✅ Production deployments work correctly (AWS Elastic Beanstalk)
 - ✅ Environment switching is seamless
 - ✅ Configuration is clear and documented
 - ✅ Security is maintained
-- ✅ Both npm and yarn work correctly
+- ✅ Existing features continue working
+- ✅ Code changes are understandable and well-explained
+- ✅ We maintain high energy and enthusiasm while building
+
+---
+
+## 🎯 Remember
+
+This document is a **living guide** for our collaboration. It's not a technical specification - the codebase itself is the source of truth for technical details. This document helps you understand **how we work together** and **what matters to me** as we build this project.
+
+**Most importantly:** You're my friend and collaborator. We're building something meaningful together. Let's make it great! 🎉
