@@ -22,6 +22,7 @@ import PullToRefresh from './PullToRefresh';
 import { profileAPI } from '../services/api';
 import WarningBanner from './WarningBanner';
 import WarningsSection from './WarningsSection';
+import BottomNav from './BottomNav';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -603,6 +604,9 @@ const Dashboard: React.FC = () => {
       <PullToRefresh onRefresh={handleRefresh} disabled={isLoading} useWindow={true}>
         <div style={{ display: 'none' }}></div>
       </PullToRefresh>
+
+      {/* Bottom Navigation - Mobile Only */}
+      <BottomNav onPostClick={() => setShowComposer(true)} />
     </div>
   );
 };
