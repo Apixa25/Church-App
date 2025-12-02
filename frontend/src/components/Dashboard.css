@@ -380,15 +380,18 @@
   .feed-view-toggle > * {
     width: 100% !important;
     max-width: 100% !important;
-    flex: 1 1 100% !important;
     box-sizing: border-box !important;
+    /* Removed flex: 1 1 100% - let individual child rules handle flex behavior */
   }
 
   /* Ensure button elements stretch to full width but don't grow vertically */
   .feed-view-toggle > button {
     width: 100% !important;
     flex: 0 0 auto !important; /* Don't grow, don't shrink, auto height */
-    max-height: 60px !important; /* Prevent vertical expansion */
+    min-height: 50px !important; /* Consistent height */
+    display: flex !important; /* Ensure flex layout */
+    align-items: center !important; /* Center content vertically */
+    justify-content: center !important; /* Center content horizontally */
   }
 
   /* Force styled-components (FeedFilterSelector, ContextSwitcher) to behave on mobile */
