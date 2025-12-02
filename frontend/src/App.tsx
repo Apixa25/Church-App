@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import statusBarService from './services/statusBarService';
 import { AuthProvider } from './contexts/AuthContext';
 import { WebSocketProvider } from './contexts/WebSocketContext';
 import { OrganizationProvider } from './contexts/OrganizationContext';
@@ -39,6 +40,11 @@ import './App.css';
 import { GlobalSearchProvider } from './components/global-search/GlobalSearchProvider';
 
 const App: React.FC = () => {
+  useEffect(() => {
+    // Initialize native status bar styling
+    statusBarService.initialize();
+  }, []);
+
   return (
     <AuthProvider>
       <WebSocketProvider>

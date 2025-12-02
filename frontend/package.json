@@ -9,6 +9,7 @@
     "@capacitor/core": "^7.4.3",
     "@capacitor/ios": "^7.4.3",
     "@capacitor/share": "^7.0.2",
+    "@capacitor/status-bar": "^7.0.3",
     "@stomp/stompjs": "^7.1.1",
     "@stripe/react-stripe-js": "^2.9.0",
     "@stripe/stripe-js": "^4.6.0",
