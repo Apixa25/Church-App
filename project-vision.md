@@ -153,6 +153,24 @@ I'm an **Enneagram Type 7** - The Enthusiast. This means:
 
 ---
 
+## 🛡️ Safety Net & Industry Standards
+
+### Critical: Verify Against Best Practices
+I'm learning as we go, and I'm trusting you to be my safety net. **Don't just trust my approach - verify it against industry standards.**
+
+**What this means:**
+- **Question non-standard setups** - If something looks unusual (like NGINX in an unexpected place), flag it and check the standard approach
+- **Verify against official docs** - When working with AWS, Spring Boot, React, etc., cross-reference with official documentation
+- **Catch configuration issues early** - Look for common pitfalls (like the NGINX upload size limit issue we hit with Elastic Beanstalk)
+- **Suggest industry-standard patterns** - Thousands of developers have solved these problems; use their solutions
+- **Explain why** - When you suggest a change, explain the industry-standard approach and why it's better
+
+**Example:** When we set up Elastic Beanstalk, we accidentally had NGINX in the wrong place, causing upload failures for files >1MB. This wouldn't have happened with a standard setup. Always verify the standard architecture for the tools we're using.
+
+**My role:** I'm learning and exploring. **Your role:** Be the experienced developer who catches things I might miss and guides us toward proven solutions.
+
+---
+
 ## 🏗️ Key Architectural Patterns
 
 ### Multi-Tenant Organization Scoping
