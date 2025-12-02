@@ -19,7 +19,7 @@ const AuthCallback: React.FC = () => {
     const name = searchParams.get('name');
     const role = searchParams.get('role');
     const isNewUser = searchParams.get('isNewUser') === 'true';
-    const error = searchParams.get('error');
+    const error = searchParams.get('error') || searchParams.get('authError');
 
     // Debug: Log all extracted values
     console.log('🔍 AuthCallback - Extracted values:', {

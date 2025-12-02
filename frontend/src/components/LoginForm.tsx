@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface LoginFormData {
   email: string;
@@ -17,7 +17,17 @@ const LoginForm: React.FC = () => {
   
   const { login, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [error, setError] = useState<string | null>(null);
+
+  // Check for error from navigation state (e.g., from AuthCallback or AuthError)
+  useEffect(() => {
+    if (location.state && (location.state as any).error) {
+      setError((location.state as any).error);
+      // Clear the state to prevent showing the error again on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const onSubmit = async (data: LoginFormData) => {
     try {
@@ -39,7 +49,7 @@ const LoginForm: React.FC = () => {
     <div className="login-form-container">
       <div className="login-form">
         <h2>🌾 Welcome to The Gathering</h2>
-        <p>Sign in to connect with your church community</p>
+        <p>Sign in to connect with your community</p>
         
         {error && (
           <div className="error-message">

@@ -433,7 +433,8 @@ const PostComposer: React.FC<PostComposerProps> = ({
               </div>
             )}
 
-            <div className="option-group">
+            {/* Category dropdown - Hidden for now, but keeping code for future use */}
+            {/* <div className="option-group">
               <label htmlFor="category">Category:</label>
               <select
                 id="category"
@@ -446,7 +447,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
-            </div>
+            </div> */}
 
             <div className="option-group">
               <label htmlFor="location">Location:</label>
@@ -455,7 +456,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                placeholder="Church location or event venue"
+                placeholder="where was this?"
                 className="location-input"
                 maxLength={100}
               />
