@@ -534,7 +534,7 @@ const Dashboard: React.FC = () => {
                   onClick={() => setShowComposer(true)}
                   disabled={isLoading}
                 >
-                  ✍️ Share Something
+                  ✍️ Post Something
                 </button>
               </div>
             )}
