@@ -34,6 +34,7 @@ const EQUIPPING_GIFTS = [
 
 interface ProfileFormData {
   name: string;
+  email: string;
   bio: string;
   location: string;
   website: string;
@@ -69,6 +70,7 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
 
   const [formData, setFormData] = useState<ProfileFormData>({
     name: '',
+    email: '',
     bio: '',
     location: '',
     website: '',
@@ -107,6 +109,7 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
     if (profileToUse) {
       setFormData({
         name: profileToUse.name || '',
+        email: profileToUse.email || '',
         bio: profileToUse.bio || '',
         location: (profileToUse as User).location || profileToUse.location || '',
         website: (profileToUse as User).website || profileToUse.website || '',
@@ -283,8 +286,13 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
       return false;
     }
 
-    if (formData.bio && formData.bio.length > 200) {
-      setError('Bio must be less than 200 characters');
+    if (formData.bio && formData.bio.length > 2000) {
+      setError('Bio must be less than 2,000 characters');
+      return false;
+    }
+
+    if (formData.email && !isValidEmail(formData.email.trim())) {
+      setError('Please enter a valid email address');
       return false;
     }
 
@@ -315,6 +323,11 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
     } catch {
       return false;
     }
+  };
+
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
   const handleSave = async () => {
@@ -363,6 +376,7 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
       const updatedProfile = {
         ...restFormData,
         name: restFormData.name.trim(),
+        email: restFormData.email.trim() || undefined,
         bio: restFormData.bio.trim(),
         location: restFormData.location.trim(),
         website: restFormData.website.trim(),
@@ -611,11 +625,24 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
               value={formData.bio}
               onChange={(e) => handleInputChange('bio', e.target.value)}
               placeholder="Tell the community about yourself, your faith journey, or your interests..."
-              maxLength={200}
+              maxLength={2000}
               rows={4}
               className="form-textarea"
             />
-            <small className="char-count">{formData.bio.length}/200</small>
+            <small className="char-count">{formData.bio.length}/2,000</small>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              placeholder="your.email@example.com"
+              className="form-input"
+            />
+            <small className="field-help">Optional: Share your email with others who view your profile</small>
           </div>
 
           <div className="form-row">

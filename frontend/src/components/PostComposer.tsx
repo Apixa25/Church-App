@@ -353,11 +353,20 @@ const PostComposer: React.FC<PostComposerProps> = ({
 
             <button
               type="button"
+              onClick={() => insertEmoji('😂')}
+              className="toolbar-button"
+              title="Add laughing emoji"
+            >
+              😂
+            </button>
+
+            <button
+              type="button"
               onClick={() => setShowAdvanced(!showAdvanced)}
               className="toolbar-button"
-              title="Advanced options"
+              title="Who sees this?"
             >
-              ⚙️ Advanced
+              Who sees this?
             </button>
           </div>
 

@@ -79,6 +79,21 @@ public class UserProfileService {
             user.setName(request.getName().trim());
         }
         
+        // Handle email update with uniqueness validation
+        if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
+            String newEmail = request.getEmail().trim().toLowerCase();
+            // Only update if email is different from current email
+            if (!newEmail.equals(user.getEmail())) {
+                // Check if email is already taken by another user
+                Optional<User> existingUser = userRepository.findByEmail(newEmail);
+                if (existingUser.isPresent() && !existingUser.get().getId().equals(userId)) {
+                    throw new RuntimeException("Email is already in use by another user");
+                }
+                user.setEmail(newEmail);
+                log.info("Email updated for user: {} to: {}", userId, newEmail);
+            }
+        }
+        
         if (request.getBio() != null) {
             user.setBio(request.getBio().trim().isEmpty() ? null : request.getBio().trim());
         }
