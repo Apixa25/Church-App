@@ -20,6 +20,11 @@
     "App": {
       "launchUrl": "thegathering://",
       "deepLinkScheme": "thegathering"
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#141420",
+      "overlaysWebView": false
     }
   },
   "server": {
