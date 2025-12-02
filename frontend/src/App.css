@@ -1227,8 +1227,15 @@
 
 /* Activity Feed Styles */
 .activity-feed {
-  max-height: 600px;
-  overflow-y: auto;
+  /* Removed max-height and overflow-y to allow natural page scrolling like Social Feed */
+  /* No scrollbar - scrolls naturally with the page */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Hide scrollbar for activity-feed (if any appears) */
+.activity-feed::-webkit-scrollbar {
+  display: none;
 }
 
 .activity-list {
