@@ -270,6 +270,9 @@
 .dashboard-container {
   min-height: 100vh;
   background: var(--bg-primary);
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 .dashboard-header {
@@ -280,11 +283,13 @@
   padding: 20px;
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow-sm);
-  overflow: visible;
+  overflow: hidden;
   min-height: 180px;
   display: flex;
   align-items: center;
   z-index: 100;
+  width: 100%;
+  max-width: 100vw;
 }
 
 /* Dashboard Banner Background */
@@ -348,6 +353,8 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 20px;
+  padding: 0 clamp(10px, 2vw, 20px);
+  box-sizing: border-box;
 }
 
 .header-content > * {
@@ -560,6 +567,9 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 40px 20px;
+  width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .dashboard-grid {
@@ -1203,6 +1213,9 @@
   grid-template-columns: 2fr 1fr;
   gap: 30px;
   margin-bottom: 40px;
+  width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .dashboard-left,
@@ -1761,13 +1774,44 @@
 
 /* Responsive Updates for Enhanced Dashboard */
 @media (max-width: 768px) {
+  .dashboard-container,
+  .dashboard-header,
+  .dashboard-content,
+  .dashboard-layout {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
   .dashboard-layout {
     grid-template-columns: 1fr;
+    gap: 20px;
   }
-  
+
   .header-content {
     flex-direction: column;
     gap: 15px;
+    padding: 0 10px;
+  }
+
+  .dashboard-content {
+    padding: 20px 10px;
+  }
+
+  .dashboard-card {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .header-actions button {
+    font-size: 12px;
+    padding: 6px 10px;
+    white-space: nowrap;
   }
   
   .user-info {
@@ -1840,23 +1884,41 @@
 
 /* Additional responsive breakpoints for stats */
 @media (max-width: 480px) {
+  .header-content {
+    padding: 0 5px;
+    gap: 8px;
+  }
+
+  .dashboard-content {
+    padding: 15px 5px;
+  }
+
+  .dashboard-header h1 {
+    font-size: 24px;
+  }
+
+  .header-actions button {
+    font-size: 11px;
+    padding: 5px 8px;
+  }
+
   .stats-grid {
     gap: 2px;
     padding: 0;
     margin-left: -2px;
   }
-  
+
   .stat-card {
     padding: 4px;
     min-height: 40px;
     gap: 6px;
   }
-  
+
   .stat-card .stat-icon {
     font-size: 14px;
     min-width: 18px;
   }
-  
+
   .stat-card .stat-content h4 {
     font-size: 12px;
   }
