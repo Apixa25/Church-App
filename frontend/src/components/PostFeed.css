@@ -273,7 +273,9 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .post-feed {
-    padding: 0 12px;
+    padding: 0;
+    max-width: 100%;
+    margin: 0;
   }
 
   .skeleton-post {
@@ -297,7 +299,9 @@
 
 @media (max-width: 480px) {
   .post-feed {
-    padding: 0 8px;
+    padding: 0;
+    max-width: 100%;
+    margin: 0;
   }
 
   .skeleton-post {

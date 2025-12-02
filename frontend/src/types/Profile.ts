@@ -33,6 +33,7 @@ export interface UserProfile {
 
 export interface ProfileUpdateRequest {
   name?: string;
+  email?: string;
   bio?: string;
   location?: string;
   website?: string;

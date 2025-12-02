@@ -1796,7 +1796,7 @@
   .dashboard-content {
     max-width: 100%;
     margin: 0;
-    padding: 20px 0;
+    padding: 0;
   }
 
   .dashboard-card {
@@ -1894,7 +1894,7 @@
   .dashboard-content {
     max-width: 100%;
     margin: 0;
-    padding: 15px 0;
+    padding: 0;
   }
 
   .dashboard-header h1 {

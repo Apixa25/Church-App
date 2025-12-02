@@ -436,13 +436,35 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .post-card {
-    padding: 16px;
-    margin-bottom: 12px;
+    padding: 12px 0;
+    margin-bottom: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .post-header {
+    padding: 0 12px;
+  }
+
+  .post-content {
+    padding: 0 12px;
+  }
+
+  .post-media {
+    border-radius: 0;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .media-item {
+    border-radius: 0;
   }
 
   .post-actions {
     flex-wrap: wrap;
     gap: 12px;
+    padding: 0 12px;
   }
 
   .action-button {
