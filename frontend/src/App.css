@@ -1794,7 +1794,9 @@
   }
 
   .dashboard-content {
-    padding: 20px 10px;
+    max-width: 100%;
+    margin: 0;
+    padding: 20px 0;
   }
 
   .dashboard-card {
@@ -1890,7 +1892,9 @@
   }
 
   .dashboard-content {
-    padding: 15px 5px;
+    max-width: 100%;
+    margin: 0;
+    padding: 15px 0;
   }
 
   .dashboard-header h1 {
