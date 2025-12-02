@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import statusBarService from './services/statusBarService';
 import { AuthProvider } from './contexts/AuthContext';
@@ -37,10 +37,14 @@ import OrganizationBrowser from './components/OrganizationBrowser';
 import GroupBrowser from './components/GroupBrowser';
 import WebSocketStatusIndicator from './components/WebSocketStatusIndicator';
 import QuickActionsPage from './components/QuickActionsPage';
+import BottomNav from './components/BottomNav';
+import PostComposer from './components/PostComposer';
 import './App.css';
 import { GlobalSearchProvider } from './components/global-search/GlobalSearchProvider';
 
 const App: React.FC = () => {
+  const [showComposer, setShowComposer] = useState(false);
+
   useEffect(() => {
     // Initialize native status bar styling
     statusBarService.initialize();
@@ -371,6 +375,19 @@ const App: React.FC = () => {
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
+
+                  {/* Global Post Composer Modal */}
+                  {showComposer && (
+                    <PostComposer
+                      onCancel={() => setShowComposer(false)}
+                      onPostCreated={() => {
+                        setShowComposer(false);
+                      }}
+                    />
+                  )}
+
+                  {/* Global Bottom Navigation - Mobile Only */}
+                  <BottomNav onPostClick={() => setShowComposer(true)} />
                   </div>
                 </GlobalSearchProvider>
               </Router>
