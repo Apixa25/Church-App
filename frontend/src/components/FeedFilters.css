@@ -266,25 +266,56 @@
 
 @media (max-width: 480px) {
   .feed-filters {
-    padding: 0.75rem;
+    padding: 0.5rem;
   }
-  
+
+  /* Change to horizontal layout on mobile */
+  .filters-options {
+    flex-direction: row !important;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  /* Make buttons circular on mobile */
   .filter-option {
-    min-height: 60px;
-    padding: 10px 12px;
-    gap: 8px;
+    flex: 0 0 auto !important; /* Don't grow */
+    width: 70px !important;
+    height: 70px !important;
+    min-height: auto !important;
+    padding: 0 !important;
+    border-radius: 50% !important; /* Circular */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0 !important;
+    overflow: hidden !important;
   }
-  
+
+  /* Show only emoji on mobile */
   .filter-icon {
-    font-size: 18px;
+    font-size: 34px !important;
+    margin: 0 !important;
   }
-  
-  .filter-label {
-    font-size: 14px;
+
+  /* Hide text labels on mobile */
+  .filter-content {
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
   }
-  
+
+  .filter-label,
   .filter-description {
-    font-size: 11px;
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Hide indicator dot on mobile */
+  .filter-indicator {
+    display: none !important;
+    visibility: hidden !important;
   }
 }
 
