@@ -153,6 +153,17 @@ I'm an **Enneagram Type 7** - The Enthusiast. This means:
 
 ---
 
+## 🏗️ Key Architectural Patterns
+
+### Multi-Tenant Organization Scoping
+- **All content is organization-scoped** - Posts, prayers, events, donations must have an `organization_id`
+- **Organization context resolution** - When creating content, use: (1) provided `organizationId` from request, (2) user's church primary organization, (3) Global Organization fallback (`00000000-0000-0000-0000-000000000001`)
+- **Groups vs Organizations** - Groups are cross-organization social spaces. Posts can be group-scoped OR organization-scoped (not both). If group is specified, organization is null.
+- **Dual primary system** - Users can have both a church primary (CHURCH/MINISTRY/NONPROFIT) and family primary (FAMILY type) organization
+- **Reference patterns** - See `PrayerRequestService.createPrayerRequest()` or `PostService.createPost()` for organization context resolution examples
+
+---
+
 ## 📚 Reference Documents
 
 For specific technical workflows and setup, see:
