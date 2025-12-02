@@ -34,6 +34,7 @@ import WorshipRoom from './components/WorshipRoom';
 import OrganizationBrowser from './components/OrganizationBrowser';
 import GroupBrowser from './components/GroupBrowser';
 import WebSocketStatusIndicator from './components/WebSocketStatusIndicator';
+import QuickActionsPage from './components/QuickActionsPage';
 import './App.css';
 import { GlobalSearchProvider } from './components/global-search/GlobalSearchProvider';
 
@@ -341,13 +342,22 @@ const App: React.FC = () => {
             />
 
             {/* Group routes */}
-            <Route 
-              path="/groups" 
+            <Route
+              path="/groups"
               element={
                 <ProtectedRoute>
                   <GroupBrowser />
                 </ProtectedRoute>
-              } 
+              }
+            />
+
+            <Route
+              path="/quick-actions"
+              element={
+                <ProtectedRoute>
+                  <QuickActionsPage />
+                </ProtectedRoute>
+              }
             />
 
                   {/* Default redirect */}
