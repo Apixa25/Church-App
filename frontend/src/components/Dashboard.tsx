@@ -62,7 +62,18 @@ const Dashboard: React.FC = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [feedRefreshKey, setFeedRefreshKey] = useState(0); // Increment to trigger feed refresh
   const [showWarningsSection, setShowWarningsSection] = useState(false);
-  
+
+  // Debug: Log render conditions
+  useEffect(() => {
+    console.log('🔍 Dashboard Render Debug:', {
+      feedView,
+      hasPrimaryOrg: hasAnyPrimary,
+      showContextSwitcher,
+      activeContext,
+      hasAnyPrimary
+    });
+  }, [feedView, hasAnyPrimary, showContextSwitcher, activeContext]);
+
   // Social score - hearts state
   const [heartsCount, setHeartsCount] = useState(0);
   const [isLikedByCurrentUser, setIsLikedByCurrentUser] = useState(false);
@@ -475,8 +486,8 @@ const Dashboard: React.FC = () => {
                   📊 Activity Feed
                 </button>
               )}
-              {/* Multi-tenant feed filter */}
-              {feedView === 'social' && <FeedFilterSelector />}
+              {/* Multi-tenant feed filter - available in both feed views */}
+              <FeedFilterSelector />
               {/* Context Switcher - only shows when user has both Church and Family primaries */}
               {showContextSwitcher && <ContextSwitcher />}
             </div>
