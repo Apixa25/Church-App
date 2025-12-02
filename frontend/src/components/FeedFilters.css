@@ -266,7 +266,12 @@
 
 @media (max-width: 480px) {
   .feed-filters {
-    padding: 0.5rem;
+    padding: 0 !important; /* Remove all padding */
+    margin: 0.75rem 0 !important; /* Use margin instead */
+    overflow: visible !important; /* Allow button effects to show */
+    background: transparent !important; /* Remove background */
+    border: none !important; /* Remove border */
+    box-shadow: none !important; /* Remove shadow */
   }
 
   /* Change to horizontal layout on mobile */
@@ -274,6 +279,7 @@
     flex-direction: row !important;
     justify-content: center;
     gap: 16px;
+    padding: 0.5rem 0 !important; /* Add small vertical padding to options container */
   }
 
   /* Make buttons circular on mobile */
