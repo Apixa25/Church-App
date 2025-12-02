@@ -52,7 +52,8 @@
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 sync:*)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront list-distributions --output text)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront create-invalidation --distribution-id E2SM4EXV57KO8B --paths \"/*\")",
-      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls s3://thegathrd-app-frontend/ --recursive --human-readable)"
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls s3://thegathrd-app-frontend/ --recursive --human-readable)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls s3://thegathrd-app-frontend/static/js/)"
     ],
     "deny": [],
     "ask": []

@@ -349,8 +349,7 @@
   .feed-toggle-btn {
     padding: 10px 12px;
     font-size: 13px;
-    flex: 1 1 100%;
-    min-width: 100%;
+    flex: 1 1 auto;
   }
 
   .create-post-btn {
@@ -361,7 +360,35 @@
   /* Stack feed view toggle elements vertically on mobile */
   .feed-view-toggle {
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  /* Make all direct children of feed-view-toggle full width on mobile */
+  .feed-view-toggle > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 1 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Ensure button elements stretch to full width */
+  .feed-view-toggle > button {
+    width: 100% !important;
+  }
+
+  /* Force styled-components (FeedFilterSelector, ContextSwitcher) to behave on mobile */
+  .feed-view-toggle > div[class*="Selector"],
+  .feed-view-toggle > div[class*="Switcher"] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Ensure the selector/switcher buttons inside styled-components are full width */
+  .feed-view-toggle > div[class*="Selector"] > button,
+  .feed-view-toggle > div[class*="Switcher"] > button {
+    width: 100% !important;
+    max-width: 100% !important;
   }
 }
 
