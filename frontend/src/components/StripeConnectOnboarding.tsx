@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useOrganization } from '../contexts/OrganizationContext';
 import axios from 'axios';
 import styled from 'styled-components';
+import { getApiUrl } from '../config/runtimeConfig';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
+const API_BASE_URL = getApiUrl();
 
 const Container = styled.div`
   max-width: 800px;

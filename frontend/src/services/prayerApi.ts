@@ -13,7 +13,9 @@ import {
   PrayerInteractionSummary
 } from '../types/Prayer';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
+import { getApiUrl } from '../config/runtimeConfig';
+
+const API_BASE_URL = getApiUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
