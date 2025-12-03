@@ -63,7 +63,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const updateUser = (userData: Partial<User>) => {
     setUser(prevUser => {
       if (prevUser) {
+        // Preserve profilePicUrl and bannerImageUrl if not explicitly provided or if empty
+        // This prevents clearing Google OAuth profile pictures when updating other fields
         const updatedUser = { ...prevUser, ...userData };
+        
+        // Only update profilePicUrl if it's explicitly provided and not empty
+        if (userData.profilePicUrl === null || userData.profilePicUrl === undefined || 
+            (typeof userData.profilePicUrl === 'string' && userData.profilePicUrl.trim() === '')) {
+          // Preserve existing profilePicUrl
+          updatedUser.profilePicUrl = prevUser.profilePicUrl;
+        }
+        
+        // Only update bannerImageUrl if it's explicitly provided and not empty
+        if (userData.bannerImageUrl === null || userData.bannerImageUrl === undefined || 
+            (typeof userData.bannerImageUrl === 'string' && userData.bannerImageUrl.trim() === '')) {
+          // Preserve existing bannerImageUrl
+          updatedUser.bannerImageUrl = prevUser.bannerImageUrl;
+        }
+        
         // Update localStorage with the new user data
         localStorage.setItem('user', JSON.stringify(updatedUser));
         return updatedUser;
@@ -105,6 +122,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(prevUser => {
         if (prevUser) {
           const updatedUser = { ...prevUser, ...freshUserData };
+          
+          // Preserve profilePicUrl and bannerImageUrl if backend returns null/empty
+          // This prevents clearing Google OAuth profile pictures
+          if (!freshUserData.profilePicUrl || 
+              (typeof freshUserData.profilePicUrl === 'string' && freshUserData.profilePicUrl.trim() === '')) {
+            updatedUser.profilePicUrl = prevUser.profilePicUrl;
+          }
+          
+          if (!freshUserData.bannerImageUrl || 
+              (typeof freshUserData.bannerImageUrl === 'string' && freshUserData.bannerImageUrl.trim() === '')) {
+            updatedUser.bannerImageUrl = prevUser.bannerImageUrl;
+          }
+          
           // Update localStorage with fresh user data
           localStorage.setItem('user', JSON.stringify(updatedUser));
           return updatedUser;
