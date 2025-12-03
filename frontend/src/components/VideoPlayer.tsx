@@ -34,6 +34,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isBuffering, setIsBuffering] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [showCustomControls, setShowCustomControls] = useState(false);
@@ -44,6 +45,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     const handleLoadedData = () => {
       setIsLoading(false);
+      setIsBuffering(false);
       setDuration(video.duration);
     };
 
@@ -55,7 +57,46 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const handlePause = () => setIsPlaying(false);
     const handleError = () => {
       setIsLoading(false);
+      setIsBuffering(false);
       setVideoError(true);
+    };
+
+    // Buffering event handlers for smooth playback
+    const handleWaiting = () => {
+      // Video is waiting for more data (buffering)
+      setIsBuffering(true);
+      setIsLoading(true);
+    };
+
+    const handleCanPlay = () => {
+      // Enough data loaded to start playing
+      setIsBuffering(false);
+      setIsLoading(false);
+    };
+
+    const handleCanPlayThrough = () => {
+      // Enough data loaded to play through without stopping
+      setIsBuffering(false);
+      setIsLoading(false);
+    };
+
+    const handleLoadStart = () => {
+      // Video starts loading
+      setIsLoading(true);
+      setIsBuffering(false);
+    };
+
+    const handleProgress = () => {
+      // Video is downloading (progress event)
+      // This helps us know data is being received
+      if (video.buffered.length > 0) {
+        const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+        const bufferedPercent = (bufferedEnd / video.duration) * 100;
+        // If we have good buffer, we're not buffering
+        if (bufferedPercent > 10) {
+          setIsBuffering(false);
+        }
+      }
     };
 
     video.addEventListener('loadeddata', handleLoadedData);
@@ -63,6 +104,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
     video.addEventListener('error', handleError);
+    video.addEventListener('waiting', handleWaiting);
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('canplaythrough', handleCanPlayThrough);
+    video.addEventListener('loadstart', handleLoadStart);
+    video.addEventListener('progress', handleProgress);
 
     return () => {
       video.removeEventListener('loadeddata', handleLoadedData);
@@ -70,6 +116,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('error', handleError);
+      video.removeEventListener('waiting', handleWaiting);
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('canplaythrough', handleCanPlayThrough);
+      video.removeEventListener('loadstart', handleLoadStart);
+      video.removeEventListener('progress', handleProgress);
     };
   }, []);
 
@@ -174,15 +225,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           onLoadStart={() => setIsLoading(true)}
           onLoadedData={handleVideoLoad}
           onError={handleVideoError}
-          preload="metadata"
+          preload="auto"
           playsInline
+          crossOrigin="anonymous"
         />
 
         {/* Loading Overlay */}
-        {isLoading && (
+        {(isLoading || isBuffering) && (
           <div className="video-loading-overlay">
             <div className="loading-spinner"></div>
-            <span>Loading video...</span>
+            <span>{isBuffering ? 'Buffering...' : 'Loading video...'}</span>
           </div>
         )}
 
