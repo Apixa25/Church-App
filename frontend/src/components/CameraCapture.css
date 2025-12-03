@@ -21,12 +21,18 @@
 
 /* Header */
 .camera-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: rgba(0, 0, 0, 0.8);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: calc(12px + env(safe-area-inset-top));
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent);
+  border-bottom: none;
+  z-index: 10;
 }
 
 .camera-close-btn {
@@ -61,8 +67,11 @@
 
 /* Viewport */
 .camera-viewport {
-  flex: 1;
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -176,14 +185,19 @@
 
 /* Controls */
 .camera-controls {
-  padding: 16px 24px;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom));
-  background: rgba(0, 0, 0, 0.8);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px 24px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
   display: flex;
   align-items: center;
   justify-content: space-around;
   gap: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: none;
+  z-index: 10;
 }
 
 .control-btn {
@@ -285,8 +299,22 @@
 
 /* Mobile Optimizations */
 @media (max-width: 768px) {
+  .camera-capture-modal {
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    height: -webkit-fill-available;
+  }
+
+  .camera-capture-container {
+    width: 100vw;
+    height: 100vh;
+    height: -webkit-fill-available;
+  }
+
   .camera-header {
     padding: 10px 12px;
+    padding-top: calc(10px + env(safe-area-inset-top));
   }
 
   .camera-title {
@@ -294,8 +322,8 @@
   }
 
   .camera-controls {
-    padding: 14px 16px;
-    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+    padding: 18px 16px;
+    padding-bottom: calc(18px + env(safe-area-inset-bottom));
   }
 
   .control-btn {
@@ -327,30 +355,3 @@
   }
 }
 
-/* Landscape mode adjustments */
-@media (max-height: 500px) and (orientation: landscape) {
-  .camera-header {
-    padding: 8px 12px;
-  }
-
-  .camera-controls {
-    padding: 10px 12px;
-  }
-
-  .capture-btn {
-    width: 70px;
-    height: 70px;
-  }
-
-  .capture-circle,
-  .record-circle {
-    width: 55px;
-    height: 55px;
-  }
-
-  .control-btn.icon-btn {
-    width: 64px;
-    height: 64px;
-    font-size: 32px;
-  }
-}
