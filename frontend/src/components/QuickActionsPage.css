@@ -1,6 +1,6 @@
 .quick-actions-page {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: transparent;
   padding-bottom: calc(60px + env(safe-area-inset-bottom, 20px));
 }
 
