@@ -40,6 +40,7 @@ import WebSocketStatusIndicator from './components/WebSocketStatusIndicator';
 import QuickActionsPage from './components/QuickActionsPage';
 import BottomNav from './components/BottomNav';
 import PostComposer from './components/PostComposer';
+import CameraCapture from './components/CameraCapture';
 import './App.css';
 import './components/Dashboard.css'; // Import for composer modal styles
 import { GlobalSearchProvider } from './components/global-search/GlobalSearchProvider';
@@ -59,11 +60,20 @@ const queryClient = new QueryClient({
 
 const App: React.FC = () => {
   const [showComposer, setShowComposer] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
 
   useEffect(() => {
     // Initialize native status bar styling
     statusBarService.initialize();
   }, []);
+
+  const handleCameraCapture = (file: File) => {
+    // Open composer with the captured media
+    setShowCamera(false);
+    setShowComposer(true);
+    // Note: We'll need to pass the file to PostComposer when it opens
+    // For now, user will need to add it manually via the media button
+  };
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -414,9 +424,18 @@ const App: React.FC = () => {
                     </div>
                   )}
 
+                  {/* Global Camera Capture Modal */}
+                  {showCamera && (
+                    <CameraCapture
+                      onCapture={handleCameraCapture}
+                      onClose={() => setShowCamera(false)}
+                    />
+                  )}
+
                   {/* Global Bottom Navigation - Mobile Only */}
-                  <BottomNav 
-                    onPostClick={() => setShowComposer(prev => !prev)} 
+                  <BottomNav
+                    onPostClick={() => setShowComposer(prev => !prev)}
+                    onCameraClick={() => setShowCamera(true)}
                     showComposer={showComposer}
                   />
                   </div>
