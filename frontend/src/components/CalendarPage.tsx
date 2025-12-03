@@ -210,32 +210,67 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
 
   return (
     <div className="calendar-page">
-      {/* Header */}
+      {/* Calendar & Events Header with View Toggle */}
       <div className="calendar-header">
-        <div className="header-top">
-          <button 
-            className="back-home-btn"
-            onClick={() => navigate('/')}
-            title="Back to Dashboard"
+        <div className="header-title">
+          <h1>🗓 Calendar & Events</h1>
+          <p>Manage and view church events</p>
+        </div>
+        <div className="view-toggle">
+          <button
+            className={`view-btn ${view === 'calendar' ? 'active' : ''}`}
+            onClick={() => setView('calendar')}
           >
-            🏠 Back Home
+            📅 Calendar
           </button>
-          <div className="header-title">
-            <h1>📅 Calendar & Events</h1>
-            <p>Manage and view church events</p>
-          </div>
-          <div className="header-actions">
-            <button 
-              className="btn btn-primary"
-              onClick={() => setShowCreateForm(true)}
-            >
-              + Create Event
-            </button>
-          </div>
+          <button
+            className={`view-btn ${view === 'list' ? 'active' : ''}`}
+            onClick={() => setView('list')}
+          >
+            📋 List
+          </button>
         </div>
       </div>
 
-      {/* Filters and View Toggle */}
+      {/* Error Display */}
+      {error && (
+        <div className="error-message">
+          <p>{error}</p>
+          <button onClick={loadEvents} className="btn btn-secondary">
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* 3. The Actual Calendar */}
+      <div className="calendar-content">
+        {view === 'calendar' ? (
+          <CalendarView
+            events={events}
+            selectedDate={selectedDate}
+            onDateSelect={setSelectedDate}
+            onEventSelect={(event) => navigate(`/events/${event.id}`)}
+            onEventUpdate={handleEditEvent}
+            onEventDelete={handleEventDeleted}
+            onRsvpUpdate={handleRsvpUpdate}
+            onCreateEvent={(date) => {
+              setSelectedDate(date);
+              setShowCreateForm(true);
+            }}
+          />
+        ) : (
+          <EventList
+            events={events}
+            onEventSelect={(event) => navigate(`/events/${event.id}`)}
+            onEventUpdate={handleEditEvent}
+            onEventDelete={handleEventDeleted}
+            onRsvpUpdate={handleRsvpUpdate}
+            loading={loading}
+          />
+        )}
+      </div>
+
+      {/* Filters Section (below calendar) */}
       <div className="calendar-controls">
         <div className="filters">
           <input
@@ -272,59 +307,6 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
             ))}
           </select>
         </div>
-
-        <div className="view-toggle">
-          <button
-            className={`view-btn ${view === 'calendar' ? 'active' : ''}`}
-            onClick={() => setView('calendar')}
-          >
-            📅 Calendar
-          </button>
-          <button
-            className={`view-btn ${view === 'list' ? 'active' : ''}`}
-            onClick={() => setView('list')}
-          >
-            📋 List
-          </button>
-        </div>
-      </div>
-
-      {/* Error Display */}
-      {error && (
-        <div className="error-message">
-          <p>{error}</p>
-          <button onClick={loadEvents} className="btn btn-secondary">
-            Retry
-          </button>
-        </div>
-      )}
-
-      {/* Main Content */}
-      <div className="calendar-content">
-        {view === 'calendar' ? (
-          <CalendarView
-            events={events}
-            selectedDate={selectedDate}
-            onDateSelect={setSelectedDate}
-            onEventSelect={(event) => navigate(`/events/${event.id}`)}
-            onEventUpdate={handleEditEvent}
-            onEventDelete={handleEventDeleted}
-            onRsvpUpdate={handleRsvpUpdate}
-            onCreateEvent={(date) => {
-              setSelectedDate(date);
-              setShowCreateForm(true);
-            }}
-          />
-        ) : (
-          <EventList
-            events={events}
-            onEventSelect={(event) => navigate(`/events/${event.id}`)}
-            onEventUpdate={handleEditEvent}
-            onEventDelete={handleEventDeleted}
-            onRsvpUpdate={handleRsvpUpdate}
-            loading={loading}
-          />
-        )}
       </div>
 
       {/* Create/Edit Event Modal */}
