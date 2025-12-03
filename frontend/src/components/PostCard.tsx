@@ -374,7 +374,13 @@ const PostCard: React.FC<PostCardProps> = ({
     return formatRelativeDate(dateString);
   };
 
-  const handleMediaClick = (index: number) => {
+  const handleMediaClick = (index: number, e?: React.MouseEvent | React.KeyboardEvent) => {
+    if (e) {
+      e.stopPropagation();
+      if (e.type === 'click') {
+        e.preventDefault();
+      }
+    }
     setMediaViewerIndex(index);
     setShowMediaViewer(true);
   };
@@ -382,58 +388,110 @@ const PostCard: React.FC<PostCardProps> = ({
   const renderMedia = () => {
     if (!post.mediaUrls || post.mediaUrls.length === 0) return null;
 
-    return (
-      <div className="post-media">
-        {post.mediaUrls.map((url, index) => {
-          const mediaType = post.mediaTypes?.[index] || 'image';
-          const isImage = mediaType.startsWith('image');
+    const mediaCount = post.mediaUrls.length;
 
-          return (
-            <div 
-              key={index} 
-              className="media-item"
-              onClick={() => handleMediaClick(index)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleMediaClick(index);
-                }
-              }}
-              aria-label={`View full ${isImage ? 'image' : 'video'} ${index + 1}`}
-            >
-              {isImage ? (
-                <img
-                  src={url}
-                  alt={`Post media ${index + 1}`}
-                  className="media-image"
-                  loading="lazy"
-                />
-              ) : (
-                <video
-                  src={url}
-                  controls
-                  className="media-video"
-                  preload="metadata"
-                  onClick={(e) => {
-                    // Only open viewer if clicking outside the controls area
-                    // Check if the click target is the video element itself (not controls)
-                    if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === 'VIDEO') {
-                      // Check if click is in the bottom 25% where controls typically are
-                      const rect = (e.currentTarget as HTMLVideoElement).getBoundingClientRect();
-                      const clickY = e.clientY - rect.top;
-                      const videoHeight = rect.height;
-                      if (clickY < videoHeight * 0.75) {
-                        handleMediaClick(index);
-                      }
-                    }
-                  }}
-                />
-              )}
-            </div>
-          );
-        })}
+    // Single image - full width with natural aspect ratio
+    if (mediaCount === 1) {
+      const mediaType = post.mediaTypes?.[0] || 'image';
+      const isImage = mediaType.startsWith('image');
+      
+      return (
+        <div className="post-media">
+          <div 
+            className="media-item media-item-single"
+            onClick={(e) => handleMediaClick(0, e)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleMediaClick(0, e);
+              }
+            }}
+            aria-label={`View full ${isImage ? 'image' : 'video'}`}
+          >
+            {isImage ? (
+              <img
+                src={post.mediaUrls[0]}
+                alt="Post media"
+                className="media-image"
+                loading="lazy"
+              />
+            ) : (
+              <video
+                src={post.mediaUrls[0]}
+                controls
+                className="media-video"
+                preload="metadata"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const rect = (e.currentTarget as HTMLVideoElement).getBoundingClientRect();
+                  const clickY = e.clientY - rect.top;
+                  const videoHeight = rect.height;
+                  if (clickY < videoHeight * 0.75) {
+                    handleMediaClick(0, e);
+                  }
+                }}
+              />
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Multiple images - grid layout
+    return (
+      <div className="post-media post-media-grid">
+        <div className={`media-grid media-grid-${Math.min(mediaCount, 4)}`}>
+          {post.mediaUrls.slice(0, 4).map((url, index) => {
+            const mediaType = post.mediaTypes?.[index] || 'image';
+            const isImage = mediaType.startsWith('image');
+            const isLastVisible = index === 3 && mediaCount > 4;
+            const remainingCount = mediaCount - 4;
+
+            return (
+              <div 
+                key={index} 
+                className={`media-item media-item-grid ${isLastVisible ? 'media-item-overlay' : ''}`}
+                onClick={(e) => handleMediaClick(index, e)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleMediaClick(index, e);
+                  }
+                }}
+                aria-label={`View image ${index + 1} of ${mediaCount}`}
+              >
+                {isImage ? (
+                  <img
+                    src={url}
+                    alt={`Post media ${index + 1}`}
+                    className="media-image"
+                    loading="lazy"
+                  />
+                ) : (
+                  <video
+                    src={url}
+                    controls={false}
+                    className="media-video"
+                    preload="metadata"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMediaClick(index, e);
+                    }}
+                  />
+                )}
+                {isLastVisible && (
+                  <div className="media-overlay-count">
+                    +{remainingCount} more
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   };

@@ -217,6 +217,102 @@
   display: block;
 }
 
+/* Post Media - Grid Layouts */
+.post-media-grid {
+  margin-bottom: 4px;
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+}
+
+.media-grid {
+  display: grid;
+  gap: 2px;
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+}
+
+/* Single image - full width with natural aspect ratio */
+.media-item-single {
+  width: 100%;
+  aspect-ratio: auto; /* Let image determine aspect ratio */
+  max-height: 600px;
+}
+
+.media-item-single .media-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Show full image without cropping */
+  object-position: center;
+}
+
+/* Two images - side by side */
+.media-grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+/* Three images - large + 2 small */
+.media-grid-3 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.media-grid-3 .media-item:first-child {
+  grid-row: 1 / 3;
+}
+
+/* Four images - 2x2 grid */
+.media-grid-4 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+/* Grid item styles */
+.media-item-grid {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--bg-secondary);
+  transition: transform var(--transition-base), opacity var(--transition-base);
+  margin-bottom: 0 !important; /* Override default margin */
+}
+
+.media-item-grid:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
+  z-index: 10;
+}
+
+.media-item-grid .media-image,
+.media-item-grid .media-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Overlay for "more" indicator */
+.media-item-overlay {
+  position: relative;
+}
+
+.media-overlay-count {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  z-index: 5;
+}
+
 /* Post Actions */
 .post-actions {
   display: flex;
@@ -465,6 +561,26 @@
   .media-item {
     border-radius: 0 !important;
     width: 100% !important;
+  }
+
+  /* Grid layout responsive adjustments */
+  .media-grid-2,
+  .media-grid-3,
+  .media-grid-4 {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .media-grid-3 .media-item:first-child {
+    grid-row: auto;
+  }
+
+  .media-item-grid {
+    aspect-ratio: 16 / 9;
+  }
+
+  .media-item-single {
+    max-height: 400px;
   }
 
   .post-actions {

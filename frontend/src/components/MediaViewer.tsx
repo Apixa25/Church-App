@@ -18,11 +18,13 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isLoading, setIsLoading] = useState(true);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setCurrentIndex(initialIndex);
       setIsLoading(true);
+      setImageLoaded(false);
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -34,14 +36,24 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
     };
   }, [isOpen, initialIndex]);
 
+  // Reset loading when index changes
+  useEffect(() => {
+    if (isOpen) {
+      setIsLoading(true);
+      setImageLoaded(false);
+    }
+  }, [currentIndex, isOpen]);
+
   const handlePrevious = () => {
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : mediaUrls.length - 1));
     setIsLoading(true);
+    setImageLoaded(false);
   };
 
   const handleNext = () => {
     setCurrentIndex((prev) => (prev < mediaUrls.length - 1 ? prev + 1 : 0));
     setIsLoading(true);
+    setImageLoaded(false);
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -71,10 +83,12 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
 
   const handleImageLoad = () => {
     setIsLoading(false);
+    setImageLoaded(true);
   };
 
   const handleVideoLoad = () => {
     setIsLoading(false);
+    setImageLoaded(true);
   };
 
   if (!isOpen || mediaUrls.length === 0) return null;
@@ -85,7 +99,11 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
   const isVideo = currentType.startsWith('video');
 
   return (
-    <div className="media-viewer-overlay" onClick={onClose}>
+    <div 
+      className="media-viewer-overlay" 
+      onClick={onClose}
+      style={{ display: isOpen ? 'flex' : 'none' }}
+    >
       <div className="media-viewer-container" onClick={(e) => e.stopPropagation()}>
         {/* Close Button */}
         <button
@@ -130,8 +148,14 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
               alt={`Media ${currentIndex + 1} of ${mediaUrls.length}`}
               className="media-viewer-image"
               onLoad={handleImageLoad}
-              onError={() => setIsLoading(false)}
-              style={{ display: isLoading ? 'none' : 'block' }}
+              onError={() => {
+                setIsLoading(false);
+                setImageLoaded(true);
+              }}
+              style={{ 
+                opacity: imageLoaded ? 1 : 0,
+                transition: 'opacity 0.3s ease'
+              }}
             />
           )}
 
@@ -142,8 +166,14 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
               autoPlay
               className="media-viewer-video"
               onLoadedData={handleVideoLoad}
-              onError={() => setIsLoading(false)}
-              style={{ display: isLoading ? 'none' : 'block' }}
+              onError={() => {
+                setIsLoading(false);
+                setImageLoaded(true);
+              }}
+              style={{ 
+                opacity: imageLoaded ? 1 : 0,
+                transition: 'opacity 0.3s ease'
+              }}
             />
           )}
         </div>
@@ -169,6 +199,7 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
                   onClick={() => {
                     setCurrentIndex(index);
                     setIsLoading(true);
+                    setImageLoaded(false);
                   }}
                   aria-label={`View media ${index + 1}`}
                 >
