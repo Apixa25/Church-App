@@ -42,12 +42,19 @@ const AuthCallback: React.FC = () => {
     }
 
     if (token && userId && email && name && role) {
+      // 🖼️ Handle profilePicUrl - decode and filter empty strings
+      // searchParams.get() automatically decodes URL-encoded values
+      const profilePicUrlParam = searchParams.get('profilePicUrl');
+      const profilePicUrl = profilePicUrlParam && profilePicUrlParam.trim() !== '' 
+        ? profilePicUrlParam 
+        : undefined;
+      
       const userData = {
         userId,
         email,
         name,
         role,
-        profilePicUrl: searchParams.get('profilePicUrl'),
+        profilePicUrl, // Will be undefined if empty/null, which is fine
       };
 
       // Save to localStorage
