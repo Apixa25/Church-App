@@ -60,17 +60,19 @@ public class FeedService {
      * For user-specific feeds, use getChronologicalFeed(UUID userId, Pageable pageable)
      */
     private Page<Post> getChronologicalFeed(Pageable pageable) {
-        // Pass null for blockedUserIds to show all posts (for anonymous/public feeds)
-        return postRepository.findMainPostsForFeed(null, pageable);
+        // Pass null for blockedUserIds and currentUserId to show all non-anonymous posts (for anonymous/public feeds)
+        return postRepository.findMainPostsForFeed(null, null, pageable);
     }
 
     /**
      * Get chronological feed for a specific user (filters blocked users - mutual blocking)
+     * Shows anonymous posts only to their author (userId)
      */
     private Page<Post> getChronologicalFeed(UUID userId, Pageable pageable) {
         List<UUID> blockedUserIds = userBlockService.getMutuallyBlockedUserIds(userId);
         List<UUID> blockedIds = blockedUserIds.isEmpty() ? null : blockedUserIds;
-        return postRepository.findMainPostsForFeed(blockedIds, pageable);
+        // Pass userId as currentUserId so user can see their own anonymous posts
+        return postRepository.findMainPostsForFeed(blockedIds, userId, pageable);
     }
 
     /**
@@ -92,8 +94,8 @@ public class FeedService {
      */
     private Page<Post> getTrendingFeed(Pageable pageable) {
         LocalDateTime since = LocalDateTime.now().minusDays(7);
-        // Pass null for blockedUserIds to show all posts (for anonymous/public feeds)
-        Page<Post> trendingPosts = postRepository.findTrendingPosts(since, null, pageable);
+        // Pass null for blockedUserIds and currentUserId to show all non-anonymous posts (for anonymous/public feeds)
+        Page<Post> trendingPosts = postRepository.findTrendingPosts(since, null, null, pageable);
 
         log.debug("Found {} trending posts since {}", trendingPosts.getTotalElements(), since);
         return trendingPosts;
@@ -101,12 +103,14 @@ public class FeedService {
 
     /**
      * Get trending feed for a specific user (filters blocked users - mutual blocking)
+     * Shows anonymous posts only to their author (userId)
      */
     private Page<Post> getTrendingFeed(UUID userId, Pageable pageable) {
         LocalDateTime since = LocalDateTime.now().minusDays(7);
         List<UUID> blockedUserIds = userBlockService.getMutuallyBlockedUserIds(userId);
         List<UUID> blockedIds = blockedUserIds.isEmpty() ? null : blockedUserIds;
-        Page<Post> trendingPosts = postRepository.findTrendingPosts(since, blockedIds, pageable);
+        // Pass userId as currentUserId so user can see their own anonymous posts
+        Page<Post> trendingPosts = postRepository.findTrendingPosts(since, blockedIds, userId, pageable);
 
         log.debug("Found {} trending posts since {} for user {}", trendingPosts.getTotalElements(), since, userId);
         return trendingPosts;
@@ -159,24 +163,27 @@ public class FeedService {
 
     /**
      * Get posts by type (prayer, testimony, announcement, etc.)
+     * Shows anonymous posts only to their author (currentUserId)
      */
-    public Page<Post> getPostsByType(Post.PostType postType, Pageable pageable) {
-        return postRepository.findRecentPostsByType(postType, pageable);
+    public Page<Post> getPostsByType(Post.PostType postType, UUID currentUserId, Pageable pageable) {
+        return postRepository.findRecentPostsByType(postType, currentUserId, pageable);
     }
 
     /**
      * Get posts with media
+     * Shows anonymous posts only to their author (currentUserId)
      */
-    public Page<Post> getPostsWithMedia(Pageable pageable) {
-        return postRepository.findPostsWithMedia(pageable);
+    public Page<Post> getPostsWithMedia(UUID currentUserId, Pageable pageable) {
+        return postRepository.findPostsWithMedia(currentUserId, pageable);
     }
 
     /**
      * Get posts with media by a specific user
      * Excludes hidden posts (viewerId is null, so hidden posts are filtered out)
+     * Shows anonymous posts only to the profile owner when viewing their own profile
      */
-    public Page<Post> getUserPostsWithMedia(UUID userId, Pageable pageable) {
-        return postRepository.findPostsWithMediaByUserIdForViewer(userId, null, pageable);
+    public Page<Post> getUserPostsWithMedia(UUID userId, UUID viewerId, Pageable pageable) {
+        return postRepository.findPostsWithMediaByUserIdForViewer(userId, viewerId, pageable);
     }
 
     /**
@@ -189,16 +196,19 @@ public class FeedService {
     /**
      * Search posts by content, author name, category, location, and hashtags
      * Optionally filter by post type
+     * Shows anonymous posts only to their author (currentUserId)
      */
-    public Page<Post> searchPosts(String query, Post.PostType postType, Pageable pageable) {
-        log.info("🔍 FeedService.searchPosts called with query: '{}', postType: '{}', pageable: {}", query, postType, pageable);
+    public Page<Post> searchPosts(String query, Post.PostType postType, UUID currentUserId, Pageable pageable) {
+        log.info("🔍 FeedService.searchPosts called with query: '{}', postType: '{}', currentUserId: '{}', pageable: {}", query, postType, currentUserId, pageable);
         
         // Search by content, author name, category, and location
-        Page<Post> contentResults = postRepository.findByContentContaining(query, postType, pageable);
+        // Shows anonymous posts only to their author (currentUserId)
+        Page<Post> contentResults = postRepository.findByContentContaining(query, postType, currentUserId, pageable);
         log.info("📝 Content search found {} posts (total: {})", contentResults.getContent().size(), contentResults.getTotalElements());
         
         // Search by hashtags
-        Page<Post> hashtagResults = postRepository.findByHashtagContaining(query, postType, pageable);
+        // Shows anonymous posts only to their author (currentUserId)
+        Page<Post> hashtagResults = postRepository.findByHashtagContaining(query, postType, currentUserId, pageable);
         log.info("🏷️ Hashtag search found {} posts (total: {})", hashtagResults.getContent().size(), hashtagResults.getTotalElements());
         
         // Combine results (avoid duplicates)
@@ -279,8 +289,8 @@ public class FeedService {
     public FeedStats getFeedStats() {
         long totalPosts = postRepository.count();
         LocalDateTime yesterday = LocalDateTime.now().minusDays(1);
-        // Pass null for blockedUserIds since this is general stats
-        long postsLast24Hours = postRepository.findMainPostsForFeed(null, PageRequest.of(0, Integer.MAX_VALUE))
+        // Pass null for blockedUserIds and currentUserId since this is general stats (shows only non-anonymous posts)
+        long postsLast24Hours = postRepository.findMainPostsForFeed(null, null, PageRequest.of(0, Integer.MAX_VALUE))
             .getContent().stream()
             .filter(post -> post.getCreatedAt().isAfter(yesterday))
             .count();

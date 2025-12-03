@@ -41,38 +41,50 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     Page<Post> findByUserIdAndIsAnonymousFalseOrderByCreatedAtDesc(UUID userId, Pageable pageable);
 
     // Feed queries
-    @Query("SELECT p FROM Post p WHERE p.isReply = false AND p.isAnonymous = false " +
+    // Shows non-anonymous posts to everyone, but shows anonymous posts to their author
+    @Query("SELECT p FROM Post p WHERE p.isReply = false " +
+           "AND (p.isAnonymous = false OR p.user.id = :currentUserId) " +
            "AND (p.isHidden = false OR p.isHidden IS NULL) " +
            "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
            "ORDER BY p.createdAt DESC")
-    Page<Post> findMainPostsForFeed(@Param("blockedUserIds") List<UUID> blockedUserIds, Pageable pageable);
+    Page<Post> findMainPostsForFeed(
+        @Param("blockedUserIds") List<UUID> blockedUserIds, 
+        @Param("currentUserId") UUID currentUserId,
+        Pageable pageable
+    );
 
-    @Query("SELECT p FROM Post p WHERE p.user.id IN :followingIds AND p.isReply = false AND p.isAnonymous = false " +
+    @Query("SELECT p FROM Post p WHERE p.user.id IN :followingIds AND p.isReply = false " +
+           "AND (p.isAnonymous = false OR p.user.id = :currentUserId) " +
            "AND (p.isHidden = false OR p.isHidden IS NULL) " +
            "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
            "ORDER BY p.createdAt DESC")
     Page<Post> findPostsByFollowingUsers(
         @Param("followingIds") List<UUID> followingIds,
         @Param("blockedUserIds") List<UUID> blockedUserIds,
+        @Param("currentUserId") UUID currentUserId,
         Pageable pageable
     );
 
     // Trending posts (posts with high engagement in last 7 days)
     // Excludes posts from blocked users and hidden posts
-    @Query("SELECT p FROM Post p WHERE p.createdAt >= :since AND p.isAnonymous = false " +
+    // Shows anonymous posts only to their author
+    @Query("SELECT p FROM Post p WHERE p.createdAt >= :since " +
+           "AND (p.isAnonymous = false OR p.user.id = :currentUserId) " +
            "AND (p.isHidden = false OR p.isHidden IS NULL) " +
            "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
            "ORDER BY (p.likesCount + p.commentsCount + p.sharesCount) DESC")
     Page<Post> findTrendingPosts(
         @Param("since") LocalDateTime since,
         @Param("blockedUserIds") List<UUID> blockedUserIds,
+        @Param("currentUserId") UUID currentUserId,
         Pageable pageable
     );
 
     // Search posts by content, author name, category, location, and hashtags
     // Optionally filter by post type
+    // Shows anonymous posts only to their author
     @Query("SELECT p FROM Post p " +
-           "WHERE p.isAnonymous = false " +
+           "WHERE (p.isAnonymous = false OR p.user.id = :currentUserId) " +
            "AND (:postType IS NULL OR p.postType = :postType) " +
            "AND (" +
            "     LOWER(p.content) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
@@ -81,18 +93,29 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
            "     OR (p.location IS NOT NULL AND LOWER(p.location) LIKE LOWER(CONCAT('%', :searchTerm, '%')))" +
            ") " +
            "ORDER BY p.createdAt DESC")
-    Page<Post> findByContentContaining(@Param("searchTerm") String searchTerm, @Param("postType") Post.PostType postType, Pageable pageable);
+    Page<Post> findByContentContaining(
+        @Param("searchTerm") String searchTerm, 
+        @Param("postType") Post.PostType postType, 
+        @Param("currentUserId") UUID currentUserId,
+        Pageable pageable
+    );
     
     // Separate query for hashtag search
     // Optionally filter by post type
+    // Shows anonymous posts only to their author
     @Query("SELECT DISTINCT p FROM Post p " +
            "JOIN PostHashtag ph ON ph.id.postId = p.id " +
            "JOIN Hashtag h ON h.id = ph.id.hashtagId " +
-           "WHERE p.isAnonymous = false " +
+           "WHERE (p.isAnonymous = false OR p.user.id = :currentUserId) " +
            "AND (:postType IS NULL OR p.postType = :postType) " +
            "AND LOWER(h.tag) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
            "ORDER BY p.createdAt DESC")
-    Page<Post> findByHashtagContaining(@Param("searchTerm") String searchTerm, @Param("postType") Post.PostType postType, Pageable pageable);
+    Page<Post> findByHashtagContaining(
+        @Param("searchTerm") String searchTerm, 
+        @Param("postType") Post.PostType postType, 
+        @Param("currentUserId") UUID currentUserId,
+        Pageable pageable
+    );
 
     // Posts by user with replies included
     @Query("SELECT p FROM Post p WHERE p.user.id = :userId ORDER BY p.createdAt DESC")
@@ -116,17 +139,28 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     long countByUserIdSince(@Param("userId") UUID userId, @Param("since") LocalDateTime since);
 
     // Recent posts for specific post types (for dashboard integration)
-    @Query("SELECT p FROM Post p WHERE p.postType = :postType AND p.isAnonymous = false ORDER BY p.createdAt DESC")
-    Page<Post> findRecentPostsByType(@Param("postType") Post.PostType postType, Pageable pageable);
+    // Shows anonymous posts only to their author
+    @Query("SELECT p FROM Post p WHERE p.postType = :postType " +
+           "AND (p.isAnonymous = false OR p.user.id = :currentUserId) " +
+           "ORDER BY p.createdAt DESC")
+    Page<Post> findRecentPostsByType(
+        @Param("postType") Post.PostType postType, 
+        @Param("currentUserId") UUID currentUserId,
+        Pageable pageable
+    );
 
     // Posts with media
-    @Query("SELECT p FROM Post p WHERE p.mediaUrls IS NOT EMPTY AND p.isAnonymous = false ORDER BY p.createdAt DESC")
-    Page<Post> findPostsWithMedia(Pageable pageable);
+    // Shows anonymous posts only to their author
+    @Query("SELECT p FROM Post p WHERE p.mediaUrls IS NOT EMPTY " +
+           "AND (p.isAnonymous = false OR p.user.id = :currentUserId) " +
+           "ORDER BY p.createdAt DESC")
+    Page<Post> findPostsWithMedia(@Param("currentUserId") UUID currentUserId, Pageable pageable);
 
     // Posts with media by specific user (excluding hidden posts for non-owners)
+    // Shows anonymous posts only to the post author (when viewing their own profile)
     @Query("SELECT p FROM Post p WHERE p.user.id = :userId " +
            "AND p.mediaUrls IS NOT EMPTY " +
-           "AND p.isAnonymous = false " +
+           "AND (p.isAnonymous = false OR p.user.id = :viewerId) " +
            "AND (:viewerId IS NULL OR :viewerId = :userId OR p.isHidden = false) " +
            "ORDER BY p.createdAt DESC")
     Page<Post> findPostsWithMediaByUserIdForViewer(
@@ -156,6 +190,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     //    NOTE: Excludes posts that have a group set (group posts must be matched via group membership)
     // 5. Followed users (when filter is ALL or EVERYTHING) - regardless of organization/group
     // Excludes posts from blocked users
+    // Shows anonymous posts only to their author (currentUserId)
     @Query("SELECT DISTINCT p FROM Post p WHERE " +
            "(" +
            "  (p.organization.id IN :primaryOrgIds AND p.group IS NULL) " +
@@ -165,7 +200,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
            "  OR (:followingIds IS NOT NULL AND p.user.id IN :followingIds)" +
            ") " +
            "AND p.isReply = false " +
-           "AND p.isAnonymous = false " +
+           "AND (p.isAnonymous = false OR p.user.id = :currentUserId) " +
            "AND (p.isHidden = false OR p.isHidden IS NULL) " +
            "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
            "ORDER BY p.createdAt DESC")
@@ -176,6 +211,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
         @Param("orgAsGroupIds") List<UUID> orgAsGroupIds,
         @Param("blockedUserIds") List<UUID> blockedUserIds,
         @Param("followingIds") List<UUID> followingIds,
+        @Param("currentUserId") UUID currentUserId,
         Pageable pageable
     );
 
@@ -184,13 +220,14 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     // Includes organizations followed as groups (ALL posts - PUBLIC + ORG_ONLY)
     // NOTE: Excludes posts that have a group set from organization matching (group posts must be matched via group membership)
     // Excludes posts from blocked users
+    // Shows anonymous posts only to their author (currentUserId)
     @Query("SELECT DISTINCT p FROM Post p WHERE " +
            "(p.group.id IN :groupIds " +
            " OR (p.organization.id = :globalOrgId AND p.group IS NULL) " +
            " OR (p.organization.id IN :orgAsGroupIds AND p.group IS NULL) " +
            " OR (:followingIds IS NOT NULL AND p.user.id IN :followingIds)) " +
            "AND p.isReply = false " +
-           "AND p.isAnonymous = false " +
+           "AND (p.isAnonymous = false OR p.user.id = :currentUserId) " +
            "AND (p.organization.id IN :orgAsGroupIds OR p.organization.id = :globalOrgId OR p.visibility = 'PUBLIC' OR p.group IS NOT NULL) " +
            "AND (p.isHidden = false OR p.isHidden IS NULL) " +
            "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
@@ -201,6 +238,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
         @Param("orgAsGroupIds") List<UUID> orgAsGroupIds,
         @Param("blockedUserIds") List<UUID> blockedUserIds,
         @Param("followingIds") List<UUID> followingIds,
+        @Param("currentUserId") UUID currentUserId,
         Pageable pageable
     );
 
@@ -234,9 +272,11 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
 
     // Trending posts within an organization
     // Excludes posts from blocked users and hidden posts
+    // Shows anonymous posts only to their author (currentUserId)
     @Query("SELECT p FROM Post p WHERE " +
            "p.organization.id = :orgId " +
            "AND p.createdAt >= :since " +
+           "AND (p.isAnonymous = false OR p.user.id = :currentUserId) " +
            "AND (p.isHidden = false OR p.isHidden IS NULL) " +
            "AND (:blockedUserIds IS NULL OR p.user.id NOT IN :blockedUserIds) " +
            "ORDER BY (p.likesCount + p.commentsCount + p.sharesCount) DESC")
@@ -244,6 +284,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
         @Param("orgId") UUID orgId,
         @Param("since") LocalDateTime since,
         @Param("blockedUserIds") List<UUID> blockedUserIds,
+        @Param("currentUserId") UUID currentUserId,
         Pageable pageable
     );
 
