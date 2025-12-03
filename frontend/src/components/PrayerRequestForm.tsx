@@ -76,9 +76,26 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        setError('Please select an image file');
+      // Validate file type - more permissive for mobile browsers
+      // Mobile devices (especially iOS) may report empty type or application/octet-stream for camera photos
+      const fileType = file.type.toLowerCase();
+      const fileName = file.name.toLowerCase();
+      const validImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'];
+      const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
+      
+      // Check by MIME type first, then by extension as fallback for mobile
+      const hasValidType = fileType.startsWith('image/') || validImageTypes.includes(fileType);
+      const hasValidExtension = validImageExtensions.some(ext => fileName.endsWith(ext));
+      
+      // Accept if either type or extension is valid (mobile browsers may not report correct MIME type)
+      // Also accept empty/generic types if extension looks like an image (common on mobile)
+      const isLikelyImage = hasValidType || hasValidExtension || 
+        (fileType === '' && hasValidExtension) ||
+        (fileType === 'application/octet-stream' && hasValidExtension);
+      
+      if (!isLikelyImage) {
+        setError('Please select an image file (JPG, PNG, GIF, WebP, or HEIC)');
+        console.log('File rejected - type:', fileType, 'name:', fileName);
         return;
       }
       
@@ -104,7 +121,7 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
     setSelectedImage(null);
     setImagePreview(null);
     // Clear file input
-    const fileInput = document.getElementById('image-input') as HTMLInputElement;
+    const fileInput = document.getElementById('prayer-image-input') as HTMLInputElement;
     if (fileInput) {
       fileInput.value = '';
     }
@@ -272,42 +289,34 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
                 </button>
               </div>
             )}
+            {/* Single file input for both states - prevents duplicate ID issue */}
+            <input
+              id="prayer-image-input"
+              type="file"
+              accept="image/*,.heic,.heif"
+              capture="environment"
+              onChange={handleImageSelect}
+              disabled={loading}
+              style={{ display: 'none' }}
+            />
             {!imagePreview && (
-              <label htmlFor="image-input" className="image-upload-label">
-                <input
-                  id="image-input"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  disabled={loading}
-                  style={{ display: 'none' }}
-                />
+              <label htmlFor="prayer-image-input" className="image-upload-label">
                 <div className="image-upload-button">
                   <span className="upload-icon">📷</span>
                   <span className="upload-text">Upload Image</span>
                 </div>
-                <small className="form-help">JPG, PNG, GIF, or WebP • Max 10MB</small>
+                <small className="form-help">JPG, PNG, GIF, WebP, or HEIC • Max 10MB</small>
               </label>
             )}
             {imagePreview && (
-              <label htmlFor="image-input" className="image-upload-label">
-                <input
-                  id="image-input"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  disabled={loading}
-                  style={{ display: 'none' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('image-input')?.click()}
-                  className="change-image-btn"
-                  disabled={loading}
-                >
-                  Change Image
-                </button>
-              </label>
+              <button
+                type="button"
+                onClick={() => document.getElementById('prayer-image-input')?.click()}
+                className="change-image-btn"
+                disabled={loading}
+              >
+                Change Image
+              </button>
             )}
           </div>
         </div>
