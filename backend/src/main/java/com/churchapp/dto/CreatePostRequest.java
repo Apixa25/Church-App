@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.UUID;
@@ -15,7 +14,6 @@ import java.util.UUID;
 @AllArgsConstructor
 public class CreatePostRequest {
 
-    @NotBlank(message = "Post content cannot be blank")
     @Size(max = 2000, message = "Post content cannot exceed 2000 characters")
     private String content;
 

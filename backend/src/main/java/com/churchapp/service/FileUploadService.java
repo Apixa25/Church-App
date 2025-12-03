@@ -254,6 +254,13 @@ public class FileUploadService {
                 // Start MediaConvert job (async - job processes in cloud)
                 String jobId = mediaConvertVideoService.startVideoProcessingJob(mediaFile, s3Key);
                 
+                if (jobId == null) {
+                    log.warn("MediaConvert not configured. Video optimization skipped for: {}", mediaFile.getOriginalUrl());
+                    // Mark as completed with original URL (no optimization)
+                    markMediaFileCompleted(mediaFile.getId(), mediaFile.getOriginalUrl(), 0L);
+                    return;
+                }
+                
                 log.info("MediaConvert job started: {} for video: {}", jobId, mediaFile.getOriginalUrl());
                 // Note: Job completion will be handled by MediaConvert webhook/notification
                 // The MediaFile will be updated when the job completes
@@ -716,6 +723,13 @@ public class FileUploadService {
                 
                 // Start MediaConvert job
                 String jobId = mediaConvertVideoService.startVideoProcessingJob(mediaFile, s3Key);
+                
+                if (jobId == null) {
+                    log.warn("MediaConvert not configured. Video optimization skipped for: {}", s3Key);
+                    // Mark as completed with original URL (no optimization)
+                    markMediaFileCompleted(mediaFile.getId(), mediaFile.getOriginalUrl(), 0L);
+                    return;
+                }
                 
                 log.info("MediaConvert job started: {} for video: {}", jobId, mediaFile.getOriginalUrl());
                 

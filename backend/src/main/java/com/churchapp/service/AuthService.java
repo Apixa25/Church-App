@@ -112,8 +112,8 @@ public class AuthService {
             if (user.getGoogleId() == null) {
                 user.setGoogleId(googleId);
             }
-            // Update profile picture if available
-            if (pictureUrl != null && user.getProfilePicUrl() == null) {
+            // Update profile picture from Google if available (Google is source of truth for OAuth logins)
+            if (pictureUrl != null) {
                 user.setProfilePicUrl(pictureUrl);
             }
         } else {
