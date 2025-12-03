@@ -292,9 +292,9 @@ const Dashboard: React.FC = () => {
       
       // Fetch data on initial mount if conditions are met
       // This handles the case when user first logs in and contexts are ready
+      // Note: React Query will automatically fetch on mount, so this is mainly for logging
       if (shouldFetch) {
-        console.log('🔄 Dashboard - Initial mount with valid conditions, fetching dashboard data');
-        fetchDashboardData();
+        console.log('🔄 Dashboard - Initial mount with valid conditions, React Query will fetch dashboard data');
       } else {
         console.log('🔄 Dashboard - Initial mount but conditions not met yet, will fetch when ready');
       }
@@ -310,13 +310,13 @@ const Dashboard: React.FC = () => {
     console.log('🔄 Dashboard - prevOrgId:', prevDashboardOrgIdRef.current, 'currentOrgId:', currentOrgId);
 
     if (contextChanged || orgChanged) {
-      console.log('🔄 Context/Org changed, re-fetching dashboard data for:', activeOrganizationId);
+      console.log('🔄 Context/Org changed, React Query will automatically refetch dashboard data for:', activeOrganizationId);
       // Update refs BEFORE fetching to prevent duplicate calls
       prevDashboardContextRef.current = currentContext;
       prevDashboardOrgIdRef.current = currentOrgId;
-      // Force a fresh fetch - clear old data first to show loading state
-      setDashboardData(null);
-      fetchDashboardData();
+      // React Query automatically refetches when query key changes (activeOrganizationId)
+      // Force a manual refetch to ensure fresh data
+      refetchDashboard();
       // CRITICAL FIX: Also refresh the feed when context changes
       // This ensures the feed updates with the new organization's data
       // This matches the behavior when navigating to Announcements and back
