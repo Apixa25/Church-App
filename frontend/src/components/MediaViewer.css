@@ -120,6 +120,8 @@
   object-fit: contain;
   display: block;
   border-radius: 8px;
+  opacity: 1;
+  transition: opacity 0.3s ease;
 }
 
 /* Loading Spinner */
@@ -376,14 +378,8 @@
   outline-offset: 2px;
 }
 
-/* Loading states */
-.media-viewer-image[style*="display: none"],
-.media-viewer-video[style*="display: none"] {
-  opacity: 0;
-}
-
+/* Loading states - opacity transitions handled inline, but ensure smooth transitions */
 .media-viewer-image,
 .media-viewer-video {
-  opacity: 1;
-  transition: opacity 0.3s ease;
+  will-change: opacity;
 }
