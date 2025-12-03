@@ -162,7 +162,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 selected={selectedDate}
                 onChange={(date: Date | null) => date && onDateSelect(date)}
                 inline
-                showWeekNumbers
                 renderDayContents={renderDayContents}
                 calendarClassName="custom-calendar"
                 dayClassName={(date) => {
@@ -374,36 +373,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
         </div>
 
-        {/* Calendar Legend */}
-        <div className="calendar-legend">
-          <h4>Event Categories</h4>
-          <div className="legend-items">
-            <div className="legend-item">
-              <div className="legend-dot worship"></div>
-              <span>Worship</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-dot bible_study"></div>
-              <span>Bible Study</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-dot fellowship"></div>
-              <span>Fellowship</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-dot youth"></div>
-              <span>Youth</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-dot prayer"></div>
-              <span>Prayer</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-dot general"></div>
-              <span>Other</span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

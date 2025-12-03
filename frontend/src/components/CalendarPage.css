@@ -1,154 +1,152 @@
-/* CalendarPage Component Styles - Dark Modern Theme */
+/* CalendarPage Component Styles - Full Width Seamless */
 
 .calendar-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+  max-width: 100%;
+  margin: 0;
+  padding: 8px;
   background: var(--bg-primary);
   min-height: 100vh;
 }
 
-/* Header */
-.calendar-header {
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-primary);
-  padding: 24px 20px;
-  margin-bottom: 30px;
+/* Top Navigation - Back Home at very top */
+.page-top-nav {
+  margin-bottom: 8px;
 }
 
-.header-top {
+.back-home-btn {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  padding: 8px 14px;
+  border-radius: var(--border-radius-pill);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all var(--transition-base);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.back-home-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-primary);
+}
+
+/* Header - Compact, no box */
+.calendar-header {
+  background: transparent;
+  border: none;
+  padding: 0 0 8px 0;
+  margin-bottom: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 8px;
 }
 
 .header-title {
-  flex: 1;
-  text-align: center;
+  text-align: left;
 }
 
 .header-title h1 {
   color: var(--text-primary);
-  font-size: 32px;
+  font-size: 1.15rem;
   font-weight: 700;
-  margin: 0 0 5px 0;
-}
-
-.header-title p {
-  color: var(--text-secondary);
-  font-size: 16px;
   margin: 0;
-}
-
-.header-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.back-home-btn {
-  background: var(--gradient-primary);
-  color: white;
-  border: none;
-  padding: 0.8rem 1.2rem;
-  border-radius: var(--border-radius-md);
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all var(--transition-base);
   display: flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 2px 8px var(--button-primary-glow);
-  text-decoration: none;
-  min-width: 120px;
-  justify-content: center;
 }
 
-.back-home-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--glow-blue);
+.header-title p {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  margin: 0;
 }
 
-.back-home-btn:active {
-  transform: translateY(0);
-}
-
-/* Controls */
+/* Controls - Search/Filter at bottom, no box */
 .calendar-controls {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-  padding: 20px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--border-radius-md);
-  box-shadow: var(--shadow-md);
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px 0 0 0;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--border-primary);
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .filters {
   display: flex;
-  gap: 15px;
-  align-items: center;
+  flex-direction: row;
+  gap: 8px;
+  align-items: stretch;
+  flex-wrap: wrap;
 }
 
 .search-input {
-  padding: 10px 15px;
+  padding: 8px 12px;
   background: var(--bg-secondary);
-  border: 2px solid var(--border-primary);
+  border: 1px solid var(--border-primary);
   border-radius: var(--border-radius-md);
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-primary);
-  width: 250px;
+  flex: 2;
+  min-width: 120px;
   transition: all var(--transition-base);
+  box-sizing: border-box;
 }
 
 .search-input:focus {
   outline: none;
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.2),
-              0 0 20px var(--button-primary-glow);
   background: var(--bg-tertiary);
 }
 
 .filter-select {
-  padding: 10px 15px;
+  padding: 8px 12px;
   background: var(--bg-secondary);
-  border: 2px solid var(--border-primary);
+  border: 1px solid var(--border-primary);
   border-radius: var(--border-radius-md);
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-primary);
   cursor: pointer;
   transition: all var(--transition-base);
+  flex: 1;
+  min-width: 100px;
+  box-sizing: border-box;
 }
 
 .filter-select:focus {
   outline: none;
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.2),
-              0 0 20px var(--button-primary-glow);
   background: var(--bg-tertiary);
 }
 
+/* View Toggle in header - large pills */
 .view-toggle {
   display: flex;
-  gap: 5px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
-  padding: 5px;
-  border-radius: var(--border-radius-md);
+  gap: 10px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+  justify-content: flex-end;
 }
 
 .view-btn {
-  padding: 10px 20px;
+  padding: 14px 28px;
   border: none;
-  background: transparent;
-  border-radius: var(--border-radius-sm);
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-pill);
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   transition: all var(--transition-base);
   color: var(--text-secondary);
 }
@@ -156,21 +154,20 @@
 .view-btn.active {
   background: var(--accent-primary);
   color: white;
-  box-shadow: 0 2px 8px var(--button-primary-glow);
 }
 
 .view-btn:hover:not(.active) {
-  background: var(--bg-elevated);
+  background: var(--bg-tertiary);
   color: var(--text-primary);
 }
 
-/* Content */
+/* Content - No box, seamless */
 .calendar-content {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--border-radius-md);
-  box-shadow: var(--shadow-md);
-  overflow: hidden;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
 }
 
 /* Loading */
@@ -286,31 +283,37 @@
 /* Responsive */
 @media (max-width: 768px) {
   .calendar-page {
-    padding: 15px;
+    padding: 12px;
   }
-  
-  .header-top {
-    flex-direction: column;
-    gap: 15px;
-    align-items: stretch;
+
+  .page-top-nav {
+    margin-bottom: 12px;
   }
-  
-  .header-title {
-    text-align: center;
+
+  .back-home-btn {
+    padding: 8px 14px;
+    font-size: 13px;
   }
-  
+
+  .calendar-header {
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
   .header-title h1 {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
   }
-  
-  .header-actions {
-    justify-content: center;
+
+  .header-title p {
+    font-size: 13px;
   }
   
   .calendar-controls {
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
     align-items: stretch;
+    padding: 16px;
+    margin-bottom: 16px;
   }
   
   .filters {

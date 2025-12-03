@@ -1,127 +1,187 @@
-/* Calendar View Styles */
+/* Calendar View Styles - Clean & Seamless */
 .calendar-view {
-  padding: var(--spacing-xl);
+  padding: 0;
   color: var(--text-secondary);
 }
 
 .calendar-container {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xl);
+  gap: 4px;
   color: var(--text-secondary);
 }
 
-/* Calendar Controls */
+/* Calendar Controls - Month/Week/Day toggle */
 .calendar-controls {
   display: flex;
   justify-content: center;
-  padding: var(--spacing-sm);
+  padding: 0;
+  margin-bottom: 0;
 }
 
 .view-mode-toggle {
   display: flex;
-  background: rgba(91, 127, 255, 0.08);
-  border-radius: var(--border-radius-pill);
-  border: 1px solid var(--border-primary);
-  padding: 6px;
-  gap: 6px;
-  box-shadow: var(--shadow-sm);
+  background: transparent;
+  border: none;
+  padding: 0;
+  gap: 4px;
 }
 
 .mode-btn {
-  padding: 10px 20px;
+  padding: 8px 16px;
   border: none;
-  background: transparent;
+  background: var(--bg-secondary);
   border-radius: var(--border-radius-pill);
   cursor: pointer;
-  font-size: var(--font-size-sm);
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-tertiary);
   transition: all var(--transition-base);
-  letter-spacing: 0.5px;
 }
 
 .mode-btn.active {
   background: var(--accent-primary);
   color: var(--text-primary);
-  box-shadow: var(--glow-blue);
 }
 
 .mode-btn:hover:not(.active) {
-  background: rgba(91, 127, 255, 0.15);
+  background: var(--bg-tertiary);
   color: var(--text-secondary);
 }
 
 /* Main Calendar Layout */
 .calendar-main {
   display: flex;
-  gap: var(--spacing-xl);
-  justify-content: center;
-  align-items: flex-start;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 0;
+  align-items: stretch;
 }
 
-/* DatePicker Container */
+/* DatePicker Container - With background box */
 .datepicker-container {
   background: var(--bg-tertiary);
-  border-radius: var(--border-radius-xl);
-  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+  padding: 16px;
   border: 1px solid var(--border-primary);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-md);
   position: relative;
-  overflow: hidden;
-  display: inline-flex;
+  overflow: visible;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .datepicker-container::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(91, 127, 255, 0.08), transparent 60%);
-  pointer-events: none;
+  display: none;
 }
 
-/* Custom DatePicker Styles */
+/* Custom DatePicker Styles - Full width calendar */
 .custom-calendar {
-  width: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
   border: none !important;
   font-family: inherit !important;
   background: transparent !important;
 }
 
+.custom-calendar .react-datepicker__month-container {
+  width: 100% !important;
+  float: none !important;
+}
+
+.react-datepicker {
+  width: 100% !important;
+  display: block !important;
+}
+
+.react-datepicker__month-container {
+  width: 100% !important;
+}
+
+.react-datepicker__header,
+.react-datepicker__month {
+  width: 100% !important;
+}
+
+.react-datepicker__day-names,
+.react-datepicker__week {
+  display: flex !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+}
+
+.react-datepicker__day-name,
+.react-datepicker__day {
+  flex: 1 !important;
+  text-align: center !important;
+}
+
 .custom-calendar .react-datepicker__header {
-  background: rgba(91, 127, 255, 0.2) !important;
-  border-bottom: 1px solid var(--border-primary) !important;
-  border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0 !important;
-  padding: var(--spacing-md) var(--spacing-sm) !important;
+  background: transparent !important;
+  border-bottom: none !important;
+  border-radius: 0 !important;
+  padding: 4px 0 !important;
+  width: 100% !important;
+}
+
+.custom-calendar .react-datepicker__navigation {
+  top: 8px !important;
+}
+
+.custom-calendar .react-datepicker__navigation--previous {
+  left: 0 !important;
+}
+
+.custom-calendar .react-datepicker__navigation--next {
+  right: 0 !important;
 }
 
 .custom-calendar .react-datepicker__current-month {
   color: var(--text-primary) !important;
   font-weight: 600 !important;
-  font-size: var(--font-size-lg) !important;
-  margin-bottom: var(--spacing-xs) !important;
-  letter-spacing: 0.5px;
+  font-size: 1.1rem !important;
+  margin-bottom: 4px !important;
+}
+
+/* Hide week numbers column */
+.custom-calendar .react-datepicker__week-number {
+  display: none !important;
+}
+
+.custom-calendar .react-datepicker__day-names {
+  display: flex !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  padding: 0 !important;
 }
 
 .custom-calendar .react-datepicker__day-name {
-  color: var(--text-secondary) !important;
+  color: var(--text-tertiary) !important;
   font-weight: 600 !important;
   font-size: 0.85rem !important;
-  width: 2.5rem !important;
+  flex: 1 !important;
+  margin: 0 !important;
+  text-align: center !important;
   line-height: 2rem !important;
+}
+
+.custom-calendar .react-datepicker__month {
+  margin: 0 !important;
+  width: 100% !important;
 }
 
 .custom-calendar .react-datepicker__week {
   display: flex !important;
+  justify-content: space-between !important;
+  width: 100% !important;
 }
 
 .custom-calendar .react-datepicker__day {
-  width: 2.5rem !important;
-  height: 2.5rem !important;
-  line-height: 1.2 !important;
-  margin: 2px !important;
-  border-radius: var(--border-radius-md) !important;
+  flex: 1 !important;
+  height: 44px !important;
+  line-height: 44px !important;
+  margin: 1px !important;
+  border-radius: 8px !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
   display: flex !important;
@@ -129,7 +189,8 @@
   justify-content: center !important;
   position: relative !important;
   color: var(--text-secondary) !important;
-  background: rgba(255, 255, 255, 0.02) !important;
+  background: transparent !important;
+  font-size: 0.95rem !important;
 }
 
 .custom-calendar .react-datepicker__day:hover {
@@ -216,47 +277,44 @@
 .event-dot.general { background: #a5b4fc; box-shadow: 0 0 8px rgba(165, 180, 252, 0.6); }
 .event-dot.other { background: #d1d5db; box-shadow: 0 0 8px rgba(209, 213, 219, 0.5); }
 
-/* Selected Date Events */
+/* Selected Date Events - Clean, no box */
 .selected-date-events {
-  background: var(--bg-tertiary);
-  border-radius: var(--border-radius-xl);
-  padding: var(--spacing-lg);
-  border: 1px solid var(--border-primary);
-  box-shadow: var(--shadow-lg);
-  max-height: 600px;
-  overflow-y: auto;
+  background: transparent;
+  border-radius: 0;
+  padding: 12px 0;
+  border: none;
+  border-top: 1px solid var(--border-primary);
+  box-shadow: none;
+  max-height: none;
+  overflow-y: visible;
   position: relative;
   flex: 1;
-  min-width: 320px;
-  max-width: 420px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .selected-date-events::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(91, 127, 255, 0.12), transparent 55%);
-  pointer-events: none;
+  display: none;
 }
 
 .selected-date-header {
-  margin-bottom: var(--spacing-md);
-  padding-bottom: var(--spacing-sm);
-  border-bottom: 1px solid var(--border-primary);
+  margin-bottom: 8px;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .selected-date-header h3 {
   color: var(--text-primary);
-  font-size: var(--font-size-xl);
+  font-size: 1rem;
   font-weight: 600;
-  margin: 0 0 var(--spacing-xs) 0;
+  margin: 0;
 }
 
 .selected-date-header p {
   color: var(--text-tertiary);
-  font-size: var(--font-size-xs);
-  margin: 0;
-  letter-spacing: 1px;
+  font-size: 11px;
+  margin: 2px 0 0 0;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
 }
 
@@ -267,19 +325,19 @@
 
 .no-events {
   text-align: center;
-  padding: var(--spacing-lg);
+  padding: 16px 0;
   color: var(--text-tertiary);
 }
 
 .no-events p {
-  margin: 0 0 var(--spacing-sm) 0;
-  font-size: var(--font-size-base);
+  margin: 0 0 12px 0;
+  font-size: 14px;
 }
 
 .events-grid {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: 8px;
 }
 
 /* Calendar Legend */
