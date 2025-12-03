@@ -248,6 +248,7 @@ public class PostService {
     /**
      * Get multi-tenant feed based on user's organizations and groups
      * Excludes posts from blocked users (mutual blocking)
+     * Shows anonymous posts only to their author (userId)
      * 
      * FILTER BEHAVIOR (all logic is in FeedFilterService.getFeedParameters):
      * - EVERYTHING: Church + Family + Groups + Global Feed + Followed Users + Org-as-Groups
@@ -295,6 +296,7 @@ public class PostService {
                 params.getOrgAsGroupIds(),
                 blockedIds,
                 followingIds,
+                userId,  // currentUserId - so user can see their own anonymous posts
                 pageable
             );
         }
@@ -311,6 +313,7 @@ public class PostService {
             params.getOrgAsGroupIds(),
             blockedIds,
             followingIds,  // null for PRIMARY_ONLY and SELECTED_GROUPS
+            userId,  // currentUserId - so user can see their own anonymous posts
             pageable
         );
     }
@@ -345,7 +348,8 @@ public class PostService {
 
         // Get posts from followed users (works globally across all organizations)
         // Excludes posts from blocked users (mutual blocking)
-        return postRepository.findPostsByFollowingUsers(followingIds, blockedIds, pageable);
+        // Shows anonymous posts only to their author (userId)
+        return postRepository.findPostsByFollowingUsers(followingIds, blockedIds, userId, pageable);
     }
 
     public Page<Post> getTrendingFeed(UUID userId, Pageable pageable) {
@@ -360,16 +364,18 @@ public class PostService {
 
         // If user has primary org(s), show trending from first primary org (churchPrimary)
         // Note: For dual-primary system, we use churchPrimary for trending
+        // Shows anonymous posts only to their author (userId)
         if (!params.getPrimaryOrgIds().isEmpty()) {
-            return postRepository.findTrendingPostsByOrganization(params.getPrimaryOrgIds().get(0), since, blockedIds, pageable);
+            return postRepository.findTrendingPostsByOrganization(params.getPrimaryOrgIds().get(0), since, blockedIds, userId, pageable);
         } else {
             // Social-only user - show global trending
-            return postRepository.findTrendingPosts(since, blockedIds, pageable);
+            return postRepository.findTrendingPosts(since, blockedIds, userId, pageable);
         }
     }
 
-    public Page<Post> searchPosts(String searchTerm, Pageable pageable) {
-        return postRepository.findByContentContaining(searchTerm, null, pageable);
+    public Page<Post> searchPosts(String searchTerm, UUID currentUserId, Pageable pageable) {
+        // Shows anonymous posts only to their author (currentUserId)
+        return postRepository.findByContentContaining(searchTerm, null, currentUserId, pageable);
     }
 
     public List<Post> getPostThread(UUID postId) {

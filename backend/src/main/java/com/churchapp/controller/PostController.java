@@ -362,8 +362,10 @@ public class PostController {
         try {
             Post.PostType type = Post.PostType.valueOf(postType.toUpperCase());
             Pageable pageable = PageRequest.of(page, size);
-            Page<Post> posts = feedService.getPostsByType(type, pageable);
-            Page<PostResponse> responses = postResponseMapper.mapPage(posts, resolveUserId(user));
+            UUID currentUserId = resolveUserId(user);
+            // Pass currentUserId so user can see their own anonymous posts
+            Page<Post> posts = feedService.getPostsByType(type, currentUserId, pageable);
+            Page<PostResponse> responses = postResponseMapper.mapPage(posts, currentUserId);
 
             return ResponseEntity.ok(responses);
 
@@ -384,7 +386,8 @@ public class PostController {
             return ResponseEntity.badRequest().build();
         }
 
-        log.info("🔍 Searching posts for query: '{}', postType: '{}', page: {}, size: {}", query, postType, page, size);
+        UUID currentUserId = resolveUserId(user);
+        log.info("🔍 Searching posts for query: '{}', postType: '{}', page: {}, size: {}, user: {}", query, postType, page, size, currentUserId);
         Pageable pageable = PageRequest.of(page, size);
         
         Post.PostType type = null;
@@ -396,9 +399,10 @@ public class PostController {
             }
         }
         
-        Page<Post> posts = feedService.searchPosts(query, type, pageable);
+        // Pass currentUserId so user can see their own anonymous posts in search results
+        Page<Post> posts = feedService.searchPosts(query, type, currentUserId, pageable);
         log.info("📝 Found {} posts (total: {}) for query: '{}'", posts.getContent().size(), posts.getTotalElements(), query);
-        Page<PostResponse> responses = postResponseMapper.mapPage(posts, resolveUserId(user));
+        Page<PostResponse> responses = postResponseMapper.mapPage(posts, currentUserId);
 
         return ResponseEntity.ok(responses);
     }
