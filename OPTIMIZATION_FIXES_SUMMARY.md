@@ -16,8 +16,9 @@ Fixed both image and video optimization issues to ensure all media files are pro
 ### Solution
 
 1. **Added WebP Support Library**
-   - Added `imageio-webp` dependency to `pom.xml`
+   - Added `com.twelvemonkeys.imageio:imageio-webp:3.12.0` dependency to `pom.xml`
    - This enables Java ImageIO to read WebP format images
+   - TwelveMonkeys ImageIO is a well-maintained library available in Maven Central
 
 2. **Improved Image Reading Logic**
    - Updated `ImageProcessingService.java` to:
