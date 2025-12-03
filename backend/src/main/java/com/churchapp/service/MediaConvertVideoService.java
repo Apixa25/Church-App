@@ -120,9 +120,17 @@ public class MediaConvertVideoService {
      * Create MediaConvert job settings for video processing
      */
     private JobSettings createJobSettings(String inputUri, String outputUri, String mediaFileId) {
-        // Input settings
+        // Audio selector - selects the first audio track from input
+        AudioSelector audioSelector = AudioSelector.builder()
+                .selectorType(AudioSelectorType.TRACK)
+                .tracks(1) // Select first audio track
+                .defaultSelection(AudioDefaultSelection.DEFAULT)
+                .build();
+        
+        // Input settings with audio selector
         Input input = Input.builder()
                 .fileInput(inputUri)
+                .audioSelectors(java.util.Map.of("Audio Selector 1", audioSelector))
                 .build();
 
         // Video codec settings (H.264)
@@ -165,11 +173,12 @@ public class MediaConvertVideoService {
                         .build())
                 .build();
 
-        // Audio description
+        // Audio description - references the audio selector from input
         AudioDescription audioDescription = AudioDescription.builder()
                 .codecSettings(audioCodecSettings)
                 .audioTypeControl(AudioTypeControl.FOLLOW_INPUT)
                 .languageCodeControl(AudioLanguageCodeControl.FOLLOW_INPUT)
+                .audioSourceName("Audio Selector 1") // Reference the audio selector
                 .build();
 
         // Container settings (MP4)
