@@ -11,7 +11,7 @@ const SelectorContainer = styled.div`
 
   @media (max-width: 480px) {
     display: block;
-    width: 100%;
+    width: 100%; /* Will be overridden by parent .feed-view-toggle > * rule to 90% */
   }
 `;
 
@@ -42,6 +42,23 @@ const SelectorButton = styled.button`
   @media (max-width: 480px) {
     width: 100%;
     justify-content: center;
+    padding: 12px 16px;
+    background: var(--bg-elevated, #2a2a3e);
+    border: 1px solid var(--border-primary, #3a3a4e);
+    border-radius: 25px; /* Pill shape */
+    color: var(--text-primary, #fff);
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+    &:hover {
+      background: var(--bg-tertiary, #1e1e2e);
+      border-color: var(--border-glow, #5b7fff);
+      box-shadow: 0 0 8px var(--button-primary-glow, rgba(91, 127, 255, 0.3));
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
   }
 `;
 
@@ -375,9 +392,9 @@ const FeedFilterSelector: React.FC = () => {
       case 'PRIMARY_ONLY':
         // Context-aware: show which primary org is being filtered
         if (activeContext === 'church' && churchPrimary) {
-          return `⛪ ${churchPrimary.organizationName?.substring(0, 15) || 'Church'}...`;
+          return `⛪ ${churchPrimary.organizationName?.substring(0, 25) || 'Church'}...`;
         } else if (activeContext === 'family' && familyPrimary) {
-          return `🏠 ${familyPrimary.organizationName?.substring(0, 15) || 'Family'}...`;
+          return `🏠 ${familyPrimary.organizationName?.substring(0, 25) || 'Family'}...`;
         }
         return 'Primary Org Only';
       case 'SELECTED_GROUPS':

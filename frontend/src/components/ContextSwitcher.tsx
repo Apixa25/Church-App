@@ -26,7 +26,7 @@ const SwitcherContainer = styled.div`
 
   @media (max-width: 480px) {
     display: block;
-    width: 100%;
+    width: 100%; /* Will be overridden by parent .feed-view-toggle > * rule to 90% */
   }
 `;
 
@@ -57,10 +57,26 @@ const SwitcherButton = styled.button`
 
   @media (max-width: 480px) {
     width: 100%;
-    padding: 10px 12px;
-    font-size: 13px;
-    gap: 6px;
+    padding: 12px 16px;
+    font-size: 14px;
+    gap: 8px;
     justify-content: center;
+    background: var(--bg-elevated, #2a2a3e);
+    border: 1px solid var(--border-primary, #3a3a4e);
+    border-radius: 25px; /* Pill shape */
+    color: var(--text-primary, #fff);
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+    &:hover {
+      background: var(--bg-tertiary, #1e1e2e);
+      border-color: var(--border-glow, #5b7fff);
+      box-shadow: 0 0 8px var(--button-primary-glow, rgba(91, 127, 255, 0.3));
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
   }
 `;
 
@@ -83,9 +99,9 @@ const OrgName = styled.span`
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100px;
-  
+
   @media (max-width: 480px) {
-    max-width: 70px;
+    max-width: 150px;
   }
 `;
 
@@ -271,7 +287,7 @@ const ContextSwitcher: React.FC = () => {
         ) : (
           <OrgIcon>{getContextIcon()}</OrgIcon>
         )}
-        <OrgName>{activeOrganizationName}</OrgName>
+        <OrgName>{activeOrganizationName?.substring(0, 25) || activeOrganizationName}</OrgName>
         <DropdownArrow $isOpen={isOpen}>▼</DropdownArrow>
       </SwitcherButton>
 
