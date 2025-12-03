@@ -159,6 +159,24 @@ const PrayerNotifications: React.FC = () => {
           position: relative;
         }
 
+        @media (max-width: 480px) {
+          .notification-bell {
+            font-size: 24px !important; /* Match Search, Settings, Logout emoji size */
+            padding: 8px !important;
+            min-width: 40px !important;
+            min-height: 40px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: transparent !important;
+          }
+
+          .notification-bell:hover {
+            background: rgba(255, 255, 255, 0.1) !important;
+            transform: scale(1.1) !important;
+          }
+        }
+
         .notification-bell:hover {
           background: rgba(0, 0, 0, 0.1);
         }
