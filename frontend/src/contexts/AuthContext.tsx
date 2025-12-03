@@ -118,16 +118,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await profileAPI.getMyProfile();
       const freshUserData = response.data;
       
+      // 🖼️ DEBUG: Log profilePicUrl to identify OAuth image loading issue
+      console.log('🔍 AuthContext.fetchFreshUserData - Backend profilePicUrl:', freshUserData.profilePicUrl);
+      console.log('🔍 AuthContext.fetchFreshUserData - Previous profilePicUrl:', localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).profilePicUrl : 'none');
+      
       // Update user state with fresh data
       setUser(prevUser => {
         if (prevUser) {
           const updatedUser = { ...prevUser, ...freshUserData };
           
-          // Preserve profilePicUrl and bannerImageUrl if backend returns null/empty
-          // This prevents clearing Google OAuth profile pictures
-          if (!freshUserData.profilePicUrl || 
-              (typeof freshUserData.profilePicUrl === 'string' && freshUserData.profilePicUrl.trim() === '')) {
+          // 🖼️ FIX: Always use backend profilePicUrl if it exists (Google OAuth images come from backend)
+          // Only preserve prevUser.profilePicUrl if backend returns null/empty AND prevUser has a valid URL
+          if (freshUserData.profilePicUrl && 
+              typeof freshUserData.profilePicUrl === 'string' && 
+              freshUserData.profilePicUrl.trim() !== '') {
+            // Backend has a valid profilePicUrl - use it (this is the Google OAuth image)
+            updatedUser.profilePicUrl = freshUserData.profilePicUrl;
+            console.log('✅ AuthContext - Using backend profilePicUrl:', freshUserData.profilePicUrl);
+          } else if (prevUser.profilePicUrl && 
+                     typeof prevUser.profilePicUrl === 'string' && 
+                     prevUser.profilePicUrl.trim() !== '') {
+            // Backend doesn't have one, but prevUser does - preserve it
             updatedUser.profilePicUrl = prevUser.profilePicUrl;
+            console.log('⚠️ AuthContext - Preserving prevUser profilePicUrl:', prevUser.profilePicUrl);
           }
           
           if (!freshUserData.bannerImageUrl || 
@@ -137,6 +150,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           
           // Update localStorage with fresh user data
           localStorage.setItem('user', JSON.stringify(updatedUser));
+          console.log('💾 AuthContext - Saved user profilePicUrl to localStorage:', updatedUser.profilePicUrl);
           return updatedUser;
         }
         return null;

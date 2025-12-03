@@ -94,6 +94,15 @@ const Dashboard: React.FC = () => {
     loadHeartsData();
   }, [user?.userId]);
 
+  // 🖼️ DEBUG: Log profilePicUrl to identify OAuth image loading issue
+  useEffect(() => {
+    if (user?.profilePicUrl) {
+      console.log('🔍 Dashboard - user.profilePicUrl:', user.profilePicUrl);
+    } else {
+      console.log('🔍 Dashboard - user.profilePicUrl: MISSING');
+    }
+  }, [user?.profilePicUrl]);
+
   // Refresh user data when component mounts to ensure profile picture is current
   useEffect(() => {
     const refreshUserData = async () => {

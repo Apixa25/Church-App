@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import './ClickableAvatar.css';
@@ -25,6 +25,12 @@ const ClickableAvatar: React.FC<ClickableAvatarProps> = ({
   showConnectionStatus = false,
 }) => {
   const navigate = useNavigate();
+  const [imageError, setImageError] = useState(false);
+  
+  // Reset image error when profilePicUrl changes
+  useEffect(() => {
+    setImageError(false);
+  }, [profilePicUrl]);
   
   // Use WebSocket hook - must be called unconditionally (React hooks rule)
   // Note: This requires component to be used inside WebSocketProvider
@@ -69,11 +75,22 @@ const ClickableAvatar: React.FC<ClickableAvatarProps> = ({
       aria-label={isAnonymous ? 'Anonymous user' : `View ${userName}'s profile`}
       title={isAnonymous ? 'Anonymous' : userName}
     >
-      {profilePicUrl ? (
+      {profilePicUrl && !imageError ? (
         <img
           src={profilePicUrl}
           alt={isAnonymous ? 'Anonymous' : userName}
           className="avatar-image"
+          crossOrigin="anonymous"
+          referrerPolicy="no-referrer"
+          onError={(e) => {
+            // 🛡️ Fallback: If Google OAuth image fails to load, show placeholder
+            // This handles cases where:
+            // - Google image URL is invalid/expired
+            // - CORS issues prevent loading
+            // - Network errors
+            console.warn('⚠️ Profile image failed to load, falling back to placeholder:', profilePicUrl);
+            setImageError(true);
+          }}
         />
       ) : (
         <div className="avatar-placeholder">

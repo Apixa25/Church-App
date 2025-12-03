@@ -269,16 +269,33 @@
 /* Dashboard Styles */
 .dashboard-container {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: var(--bg-secondary) !important; /* Match header background */
   overflow-x: hidden;
   width: 100%;
   max-width: 100vw;
 }
 
+/* 🔴 FIX: Remove gap between header and content that creates black box */
+.dashboard-container > header + main {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.dashboard-container > header {
+  margin-bottom: 0 !important;
+}
+
+.dashboard-container > main {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  background: var(--bg-secondary) !important; /* Match header background */
+  margin-top: -1px !important; /* Negative margin to eliminate any gap */
+}
+
 .dashboard-header {
   position: relative;
   background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-primary);
+  border-bottom: none !important; /* 🔴 FIX: Remove border that might create black box */
   color: var(--text-primary);
   padding: 20px;
   backdrop-filter: blur(10px);
@@ -290,6 +307,8 @@
   z-index: 100;
   width: 100%;
   max-width: 100vw;
+  margin-bottom: 0 !important; /* 🔴 FIX: Remove margin-bottom that creates black box */
+  padding-bottom: 20px; /* Keep padding for content, but no margin */
 }
 
 /* Dashboard Banner Background */
@@ -570,6 +589,7 @@
   width: 100%;
   overflow-x: hidden;
   box-sizing: border-box;
+  background: transparent !important; /* 🔴 FIX: Ensure no background color creates black box */
 }
 
 .dashboard-grid {
@@ -1853,6 +1873,10 @@
 
 /* Responsive Updates for Enhanced Dashboard */
 @media (max-width: 768px) {
+  .dashboard-container {
+    background: var(--bg-secondary) !important; /* Match header background */
+  }
+
   .dashboard-container,
   .dashboard-header,
   .dashboard-content,
@@ -1866,6 +1890,12 @@
     gap: 20px;
   }
 
+  .dashboard-header {
+    margin-bottom: 0 !important; /* 🔴 FIX: Remove margin-bottom that creates black box */
+    padding-bottom: 0 !important; /* 🔴 FIX: Remove padding-bottom that might create black box */
+    border-bottom: none !important; /* 🔴 FIX: Remove border that might create black box */
+  }
+
   .header-content {
     flex-direction: column;
     gap: 15px;
@@ -1874,8 +1904,10 @@
 
   .dashboard-content {
     max-width: 100%;
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    margin-top: 0 !important; /* 🔴 DEBUG: Remove any margin-top that might create black box */
+    padding-top: 0 !important; /* 🔴 DEBUG: Remove any padding-top that might create black box */
   }
 
   .dashboard-card {
