@@ -811,16 +811,16 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
               }
               return (
                 <div className="profile-spiritual-gift-x">
-                  <span className="spiritual-gift-icon">✨</span>
-                  <div className="spiritual-gift-content">
+                  <div className="spiritual-gift-header">
+                    <span className="spiritual-gift-icon">✨</span>
                     <span className="spiritual-gift-label">Spiritual Gifts</span>
-                    <div className="spiritual-gift-badges">
-                      {spiritualGifts.map(gift => (
-                        <span key={gift} className="spiritual-gift-badge">
-                          {gift}
-                        </span>
-                      ))}
-                    </div>
+                  </div>
+                  <div className="spiritual-gift-badges">
+                    {spiritualGifts.map(gift => (
+                      <span key={gift} className="spiritual-gift-badge">
+                        {gift}
+                      </span>
+                    ))}
                   </div>
                 </div>
               );
@@ -837,16 +837,16 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
               }
               return (
                 <div className="profile-spiritual-gift-x equipping-gifts-card">
-                  <span className="spiritual-gift-icon">🛠️</span>
-                  <div className="spiritual-gift-content">
+                  <div className="spiritual-gift-header">
+                    <span className="spiritual-gift-icon">🛠️</span>
                     <span className="spiritual-gift-label">Equipping Gifts</span>
-                    <div className="spiritual-gift-badges">
-                      {equippingGifts.map(gift => (
-                        <span key={gift} className="spiritual-gift-badge">
-                          {gift}
-                        </span>
-                      ))}
-                    </div>
+                  </div>
+                  <div className="spiritual-gift-badges">
+                    {equippingGifts.map(gift => (
+                      <span key={gift} className="spiritual-gift-badge">
+                        {gift}
+                      </span>
+                    ))}
                   </div>
                 </div>
               );
