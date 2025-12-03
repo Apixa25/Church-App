@@ -373,7 +373,7 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
       const latitudeValue = latitude.trim() ? Number(latitude.trim()) : null;
       const longitudeValue = longitude.trim() ? Number(longitude.trim()) : null;
 
-      const updatedProfile = {
+      const updatedProfile: any = {
         ...restFormData,
         name: restFormData.name.trim(),
         email: restFormData.email.trim() || undefined,
@@ -389,13 +389,21 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
         country: restFormData.country.trim() || 'United States',
         spiritualGift: spiritualGifts.join(', '),
         equippingGifts: equippingGifts.join(', '),
-        profilePicUrl,
-        bannerImageUrl,
         interests: JSON.stringify(interests), // Convert array to JSON string for backend
         latitude: latitudeValue,
         longitude: longitudeValue,
         geocodeStatus: geocodeStatus.trim()
       };
+
+      // Only include profilePicUrl if it has a value (prevents clearing Google OAuth images)
+      if (profilePicUrl) {
+        updatedProfile.profilePicUrl = profilePicUrl;
+      }
+
+      // Only include bannerImageUrl if it has a value
+      if (bannerImageUrl) {
+        updatedProfile.bannerImageUrl = bannerImageUrl;
+      }
 
       const result = await updateUserProfile(user!.userId, updatedProfile);
 
