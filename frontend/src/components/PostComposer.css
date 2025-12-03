@@ -236,7 +236,8 @@
   cursor: not-allowed;
 }
 
-/* Camera button - double size emoji */
+/* Media and Camera buttons - double size emoji */
+.toolbar-button.media-button,
 .toolbar-button.camera-button {
   font-size: 32px;
   padding: 8px 16px;

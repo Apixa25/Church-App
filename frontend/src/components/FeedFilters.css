@@ -267,7 +267,9 @@
 @media (max-width: 480px) {
   .feed-filters {
     padding: 0 !important; /* Remove all padding */
-    margin: 0.75rem 0 !important; /* Use margin instead */
+    margin: 0 !important; /* 🔴 FIX: Zero ALL margins to eliminate dead space */
+    margin-top: 0 !important; /* 🔴 FIX: Explicit zero */
+    margin-bottom: 0 !important; /* 🔴 FIX: Explicit zero */
     overflow: visible !important; /* Allow button effects to show */
     background: transparent !important; /* Remove background */
     border: none !important; /* Remove border */
@@ -279,7 +281,8 @@
     flex-direction: row !important;
     justify-content: center;
     gap: 16px;
-    padding: 0.5rem 0 !important; /* Add small vertical padding to options container */
+    padding: 0 !important; /* 🔴 FIX: Zero padding */
+    margin: 0 !important; /* 🔴 FIX: Zero margin */
   }
 
   /* Make buttons circular on mobile */

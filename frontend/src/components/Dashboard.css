@@ -220,6 +220,7 @@
   .dashboard-layout {
     padding: 0 !important;
     margin: 0 !important;
+    gap: 0 !important; /* 🔴 FIX: Zero gap to eliminate dead space */
   }
 
   .dashboard-left {
@@ -227,6 +228,7 @@
     margin: 0 !important;
     margin-top: 0 !important;
     padding-top: 0 !important;
+    gap: 0 !important; /* 🔴 FIX: Zero gap */
   }
 }
 
@@ -352,9 +354,10 @@
   }
 
   .feed-view-toggle {
-    margin: 0 -16px 16px !important;
+    margin: 0 -16px 0 !important; /* 🔴 FIX: Zero bottom margin to eliminate dead space */
     margin-top: 0 !important;
-    margin-bottom: 16px !important;
+    margin-bottom: 0 !important; /* 🔴 FIX: Zero bottom margin */
+    padding-bottom: 0 !important; /* 🔴 FIX: Zero bottom padding */
     border-radius: 0;
   }
 
@@ -530,15 +533,6 @@
     width: 100% !important;
     max-width: 100% !important;
     flex: 0 0 auto !important; /* Don't grow, don't shrink, auto height */
-    max-height: 60px !important; /* Prevent vertical expansion */
-    background: red !important; /* DEBUG: SOLID RED to see if rendering */
-    border: 5px solid yellow !important; /* DEBUG: Yellow border */
-    min-height: 60px !important; /* DEBUG: Minimum height */
-    position: relative !important; /* DEBUG: Force position */
-    z-index: 9999 !important; /* DEBUG: Force on top */
-    opacity: 1 !important; /* DEBUG: Force visible */
-    visibility: visible !important; /* DEBUG: Force visible */
-    display: block !important; /* DEBUG: Force display */
   }
 
   /* Ensure the selector/switcher buttons inside styled-components are full width */
@@ -546,12 +540,6 @@
   .feed-view-toggle > div[class*="Switcher"] > button {
     width: 100% !important;
     max-width: 100% !important;
-    display: block !important; /* DEBUG: Force display */
-    background: lime !important; /* DEBUG: BRIGHT GREEN on button */
-    color: black !important;
-    min-height: 50px !important;
-    font-size: 20px !important;
-    font-weight: bold !important;
   }
 }
 
