@@ -38,28 +38,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
     return () => clearInterval(interval);
   }, [isRecording]);
 
-  // Lock orientation to portrait on mobile
-  useEffect(() => {
-    const lockOrientation = async () => {
-      try {
-        if (window.screen.orientation && window.screen.orientation.lock) {
-          await window.screen.orientation.lock('portrait');
-        }
-      } catch (err) {
-        // Orientation lock not supported or failed, that's okay
-        console.log('Orientation lock not supported');
-      }
-    };
-
-    lockOrientation();
-
-    return () => {
-      // Unlock orientation when component unmounts
-      if (window.screen.orientation && window.screen.orientation.unlock) {
-        window.screen.orientation.unlock();
-      }
-    };
-  }, []);
+  // No orientation lock - allow both portrait and landscape
 
   // Initialize camera
   useEffect(() => {

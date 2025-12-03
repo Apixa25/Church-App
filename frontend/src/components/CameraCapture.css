@@ -65,13 +65,13 @@
   width: 40px;
 }
 
-/* Viewport */
+/* Viewport - fills entire screen */
 .camera-viewport {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  bottom: 120px;
+  bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -184,15 +184,15 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Controls */
+/* Controls - overlaid on preview */
 .camera-controls {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 16px 24px;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom));
-  background: #000;
+  padding: 20px 24px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
   display: flex;
   align-items: center;
   justify-content: space-around;
@@ -324,12 +324,12 @@
   }
 
   .camera-viewport {
-    bottom: 140px;
+    bottom: 0;
   }
 
   .camera-controls {
-    padding: 16px;
-    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    padding: 20px 16px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
     min-height: 140px;
   }
 
