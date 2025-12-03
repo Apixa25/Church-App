@@ -149,14 +149,19 @@ const PrayerNotifications: React.FC = () => {
         }
 
         .notification-bell {
-          background: none;
+          background: transparent;
           border: none;
-          font-size: 1.5rem;
+          font-size: 31px; /* Increased by 30% from 24px (1.5rem) */
           cursor: pointer;
-          padding: 0.5rem;
+          padding: 8px;
           border-radius: 50%;
           transition: all 0.2s ease;
           position: relative;
+          min-width: 48px;
+          min-height: 48px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         @media (max-width: 480px) {
@@ -178,7 +183,8 @@ const PrayerNotifications: React.FC = () => {
         }
 
         .notification-bell:hover {
-          background: rgba(0, 0, 0, 0.1);
+          background: transparent;
+          transform: scale(1.1);
         }
 
         .notification-bell.has-unread {
