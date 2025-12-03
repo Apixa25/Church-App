@@ -89,6 +89,18 @@ const Dropdown = styled.div<{ $isOpen: boolean }>`
   visibility: ${props => props.$isOpen ? 'visible' : 'hidden'};
   transform: ${props => props.$isOpen ? 'translateY(0)' : 'translateY(-10px)'};
   transition: all 0.2s;
+
+  @media (max-width: 480px) {
+    position: fixed;
+    top: calc(30vh - 50px); /* Move up an additional 50 pixels */
+    left: 16px;
+    right: 16px;
+    min-width: auto;
+    max-width: none;
+    max-height: none; /* Remove height restriction */
+    overflow-y: visible; /* No scrolling - show full content */
+    transform: ${props => props.$isOpen ? 'translateY(0) scale(1)' : 'translateY(-20px) scale(0.95)'};
+  }
 `;
 
 const DropdownHeader = styled.div`
