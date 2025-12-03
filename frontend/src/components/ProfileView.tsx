@@ -12,7 +12,7 @@ import ProfileAnalytics from './ProfileAnalytics';
 import PostCard from './PostCard';
 import RepliesList from './RepliesList';
 import MediaGrid from './MediaGrid';
-import { parseEventDate } from '../utils/dateUtils';
+import { parseEventDate, formatBirthdayDate } from '../utils/dateUtils';
 import chatApi from '../services/chatApi';
 import OrganizationSelector from './OrganizationSelector';
 import { useOrganization } from '../contexts/OrganizationContext';
@@ -442,20 +442,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   };
 
-  // Format date for "Born" display
+  // Format date for "Born" display - uses timezone-safe parsing
   const formatBirthday = (dateString: string | undefined): string => {
-    if (!dateString) {
-      return 'Unknown';
-    }
-    
-    const date = parseEventDate(dateString);
-    
-    if (!date || isNaN(date.getTime())) {
-      console.warn('Invalid date format in formatBirthday:', dateString);
-      return 'Unknown';
-    }
-    
-    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    // Use the timezone-safe formatBirthdayDate to prevent off-by-one-day bugs
+    return formatBirthdayDate(dateString);
   };
 
   // Removed local formatDate function - now using robust dateUtils.formatFullDate
