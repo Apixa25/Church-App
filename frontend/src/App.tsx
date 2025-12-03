@@ -44,6 +44,8 @@ import CameraCapture from './components/CameraCapture';
 import './App.css';
 import './components/Dashboard.css'; // Import for composer modal styles
 import { GlobalSearchProvider } from './components/global-search/GlobalSearchProvider';
+import { UploadQueueProvider } from './contexts/UploadQueueContext';
+import UploadProgressIndicator from './components/UploadProgressIndicator';
 
 // 🚀 React Query Configuration - Smart Caching
 const queryClient = new QueryClient({
@@ -83,8 +85,11 @@ const App: React.FC = () => {
             <ActiveContextProvider>
               <GroupProvider>
                 <FeedFilterProvider>
+                  <UploadQueueProvider>
                   <Router>
                   <GlobalSearchProvider>
+                  {/* 🚀 Global Upload Progress Indicator - shows at top during background uploads */}
+                  <UploadProgressIndicator />
                   <div className="App">
                     {/* WebSocket status is now shown on the profile picture in Dashboard */}
                     {/* <WebSocketStatusIndicator /> */}
@@ -434,6 +439,7 @@ const App: React.FC = () => {
                   </div>
                 </GlobalSearchProvider>
               </Router>
+              </UploadQueueProvider>
               </FeedFilterProvider>
             </GroupProvider>
           </ActiveContextProvider>

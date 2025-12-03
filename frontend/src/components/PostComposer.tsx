@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { PostType, MediaFile, CreatePostRequest } from '../types/Post';
-import { createPost, uploadMediaDirect } from '../services/postApi';
+import { createPost } from '../services/postApi';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useGroup } from '../contexts/GroupContext';
+import { useUploadQueue } from '../contexts/UploadQueueContext';
 import CameraCapture from './CameraCapture';
 import './PostComposer.css';
 
@@ -38,6 +39,9 @@ const PostComposer: React.FC<PostComposerProps> = ({
   // Multi-tenant contexts
   const { primaryMembership, allMemberships } = useOrganization();
   const { unmutedGroups } = useGroup();
+  
+  // 🚀 Background upload queue - allows users to navigate while uploads continue
+  const { addUploadJob } = useUploadQueue();
 
   const [content, setContent] = useState('');
   const [selectedPostType, setSelectedPostType] = useState<PostType>(PostType.GENERAL);
@@ -169,35 +173,59 @@ const PostComposer: React.FC<PostComposerProps> = ({
       return;
     }
 
-    setIsSubmitting(true);
     setError('');
 
-    try {
-      let mediaUrls: string[] = [];
-      let mediaTypes: string[] = [];
+    // 🚀 BACKGROUND UPLOAD: If there are media files, use the upload queue
+    // This allows users to navigate freely while uploads happen in the background
+    if (mediaFiles.length > 0) {
+      // Queue the upload job - this returns immediately!
+      addUploadJob({
+        content: content,
+        mediaFiles: mediaFiles.map(mf => mf.file),
+        mediaTypes: mediaFiles.map(mf => mf.type),
+        postType: selectedPostType,
+        category: category.trim() || undefined,
+        location: location.trim() || undefined,
+        isAnonymous: isAnonymous,
+        organizationId: selectedOrganizationId,
+        groupId: selectedGroupId
+      });
 
-      // Upload media files if any (using direct S3 upload - bypasses Nginx)
-      if (mediaFiles.length > 0) {
-        const files = mediaFiles.map(mf => mf.file);
-        mediaUrls = await uploadMediaDirect(files, 'posts');
-        mediaTypes = mediaFiles.map(mf => mf.type);
+      // Clean up object URLs immediately
+      mediaFiles.forEach(mf => URL.revokeObjectURL(mf.url));
+      
+      // Clear form immediately - user is free to navigate!
+      setContent('');
+      setMediaFiles([]);
+      setCategory('');
+      setLocation('');
+      setIsAnonymous(false);
+      setSelectedPostType(PostType.GENERAL);
+
+      // Close composer immediately - upload continues in background
+      if (onCancel) {
+        onCancel();
       }
 
-      // Create the post request
+      return; // Done! Upload continues in background with progress indicator
+    }
+
+    // 🔄 NO MEDIA: Use original synchronous flow (fast, no upload needed)
+    setIsSubmitting(true);
+
+    try {
       const postRequest: CreatePostRequest = {
         content: content.trim(),
-        mediaUrls,
-        mediaTypes,
+        mediaUrls: [],
+        mediaTypes: [],
         postType: selectedPostType,
         category: category.trim() || undefined,
         location: location.trim() || undefined,
         anonymous: isAnonymous,
-        // Multi-tenant fields
         organizationId: selectedOrganizationId,
         groupId: selectedGroupId
       };
 
-      // Create the post
       const newPost = await createPost(postRequest);
 
       // Clear form
