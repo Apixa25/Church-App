@@ -48,7 +48,10 @@
 }
 
 /* Create Post Section */
+/* 🚫 HIDDEN: Post Something button hidden - redundant with bottom nav Post button */
+/* Code preserved for potential future use */
 .create-post-section {
+  display: none !important; /* Hide the section - code preserved below */
   margin-bottom: 16px;
 }
 
