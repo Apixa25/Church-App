@@ -158,6 +158,13 @@
 			<artifactId>thumbnailator</artifactId>
 			<version>0.4.20</version>
 		</dependency>
+		
+		<!-- WebP Image Support for ImageIO -->
+		<dependency>
+			<groupId>org.sejda.imageio</groupId>
+			<artifactId>imageio-webp</artifactId>
+			<version>0.1.6</version>
+		</dependency>
 
 		<!-- AWS MediaConvert SDK for Video Processing -->
 		<dependency>

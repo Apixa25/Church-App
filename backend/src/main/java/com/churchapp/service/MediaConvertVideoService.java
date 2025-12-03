@@ -46,6 +46,9 @@ public class MediaConvertVideoService {
     @Value("${media.video.max-duration-seconds:30}")
     private int maxDurationSeconds;
 
+    @Value("${aws.account-id:}")
+    private String awsAccountId;
+
     /**
      * Start a MediaConvert job to process a video
      * This is async - the job will process in the cloud and notify via SNS when complete
@@ -213,19 +216,35 @@ public class MediaConvertVideoService {
     /**
      * Get MediaConvert service role ARN
      * This role must have permissions to read from S3 input bucket and write to S3 output bucket
+     * 
+     * The role ARN format is: arn:aws:iam::ACCOUNT_ID:role/MediaConvert_Default_Role
+     * 
+     * You can also set AWS_MEDIACONVERT_ROLE_ARN environment variable to override this
      */
     private String getMediaConvertRoleArn() {
-        // In production, this should be an environment variable
-        // For now, we'll construct it from the account ID (you'll need to set this)
-        // Format: arn:aws:iam::ACCOUNT_ID:role/MediaConvert_Default_Role
-        String accountId = System.getenv("AWS_ACCOUNT_ID");
-        if (accountId == null || accountId.isEmpty()) {
-            log.warn("AWS_ACCOUNT_ID environment variable not set. Using placeholder. " +
-                    "Please set AWS_ACCOUNT_ID environment variable or create MediaConvert role manually.");
-            // Default role name - you should create this in IAM and set AWS_ACCOUNT_ID
-            return "arn:aws:iam::YOUR_ACCOUNT_ID:role/MediaConvert_Default_Role";
+        // First, check for explicit role ARN environment variable
+        String explicitRoleArn = System.getenv("AWS_MEDIACONVERT_ROLE_ARN");
+        if (explicitRoleArn != null && !explicitRoleArn.trim().isEmpty()) {
+            log.debug("Using explicit MediaConvert role ARN from environment variable");
+            return explicitRoleArn.trim();
         }
-        return String.format("arn:aws:iam::%s:role/MediaConvert_Default_Role", accountId);
+        
+        // Otherwise, construct from account ID
+        String accountId = awsAccountId != null && !awsAccountId.trim().isEmpty() 
+                ? awsAccountId.trim() 
+                : System.getenv("AWS_ACCOUNT_ID");
+        
+        if (accountId == null || accountId.isEmpty()) {
+            String errorMsg = "AWS_ACCOUNT_ID not configured. " +
+                    "Please set AWS_ACCOUNT_ID in application.properties or as environment variable. " +
+                    "Alternatively, set AWS_MEDIACONVERT_ROLE_ARN with the full role ARN.";
+            log.error(errorMsg);
+            throw new IllegalStateException(errorMsg);
+        }
+        
+        String roleArn = String.format("arn:aws:iam::%s:role/MediaConvert_Default_Role", accountId);
+        log.debug("Using MediaConvert role ARN: {}", roleArn);
+        return roleArn;
     }
 
     /**
