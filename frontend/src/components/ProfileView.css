@@ -75,6 +75,26 @@
 .profile-top-nav-actions {
   display: flex;
   gap: 8px;
+  flex-shrink: 0;
+}
+
+.profile-top-nav-actions .edit-profile-button-x {
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  margin-bottom: 0;
+}
+
+.profile-top-nav-actions .edit-profile-button-x:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-secondary);
 }
 
 /* Profile Banner */
@@ -100,9 +120,10 @@
 
 /* Profile Header Content */
 .profile-header-content {
-  padding: 0 16px;
+  padding: 0 16px 0 16px;
   max-width: 600px;
   margin: 0 auto;
+  overflow: visible; /* Allow heart button to show */
 }
 
 .profile-avatar-section {
@@ -111,11 +132,43 @@
   align-items: flex-end;
   margin-top: -60px;
   margin-bottom: 12px;
+  gap: 12px;
+  overflow: visible; /* Allow heart button to show */
+}
+
+/* Organization Selector Wrapper */
+.profile-org-selector-wrapper {
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 320px;
+  position: relative;
+  z-index: 2;
+}
+
+.profile-org-selector-wrapper > * {
+  max-width: 100%;
+}
+
+/* Override OrganizationSelector button styles for profile page */
+.profile-org-selector-wrapper button {
+  max-width: 100%;
+  padding: 8px 14px !important;
+  font-size: 13px !important;
+}
+
+.profile-org-selector-wrapper button span {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .profile-avatar {
   position: relative;
   z-index: 2;
+  /* Extra padding on left to prevent heart button cutoff */
+  margin-left: 40px;
+  padding-left: 0;
 }
 
 .profile-avatar .profile-picture-display,
@@ -825,12 +878,48 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .profile-top-nav {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .profile-top-nav .back-home-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .profile-top-nav-info h2 {
+    font-size: 16px;
+  }
+
+  .profile-top-nav-actions .edit-profile-button-x {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
   .profile-banner {
     height: 150px;
   }
 
   .profile-avatar-section {
     margin-top: -50px;
+  }
+
+  .profile-avatar {
+    margin-left: 30px;
+  }
+
+  .profile-org-selector-wrapper {
+    max-width: 260px;
+  }
+
+  .profile-org-selector-wrapper button {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+
+  .profile-org-selector-wrapper button span {
+    max-width: 160px;
   }
 
   .profile-avatar .profile-picture-display,
@@ -896,12 +985,40 @@
 }
 
 @media (max-width: 480px) {
+  .profile-top-nav {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .profile-top-nav .back-home-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .profile-top-nav-info h2 {
+    font-size: 14px;
+  }
+
+  .profile-top-nav-info .posts-count {
+    font-size: 11px;
+  }
+
+  .profile-top-nav-actions .edit-profile-button-x {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
   .profile-banner {
     height: 120px;
   }
 
   .profile-avatar-section {
     margin-top: -40px;
+  }
+
+  .profile-avatar {
+    margin-left: 25px;
   }
 
   .profile-avatar .profile-picture-display,
@@ -912,6 +1029,19 @@
 
   .profile-avatar .profile-picture-placeholder-large {
     font-size: 36px;
+  }
+
+  .profile-org-selector-wrapper {
+    max-width: 200px;
+  }
+
+  .profile-org-selector-wrapper button {
+    padding: 5px 8px !important;
+    font-size: 11px !important;
+  }
+
+  .profile-org-selector-wrapper button span {
+    max-width: 120px;
   }
 
   .profile-navigation-tabs {
