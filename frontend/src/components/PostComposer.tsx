@@ -3,6 +3,7 @@ import { PostType, MediaFile, CreatePostRequest } from '../types/Post';
 import { createPost, uploadMediaDirect } from '../services/postApi';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useGroup } from '../contexts/GroupContext';
+import CameraCapture from './CameraCapture';
 import './PostComposer.css';
 
 // ============================================================================
@@ -46,6 +47,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string>('');
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
 
   // Multi-tenant post targeting
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string | undefined>(
@@ -55,7 +57,6 @@ const PostComposer: React.FC<PostComposerProps> = ({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const maxContentLength = 2000;
   const maxMediaFiles = 4;
@@ -123,6 +124,25 @@ const PostComposer: React.FC<PostComposerProps> = ({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const handleCameraCapture = (file: File) => {
+    // Validate file count
+    if (mediaFiles.length >= maxMediaFiles) {
+      setError(`Maximum ${maxMediaFiles} media files allowed`);
+      return;
+    }
+
+    // Create media file object
+    const mediaFile: MediaFile = {
+      file,
+      url: URL.createObjectURL(file),
+      type: file.type.startsWith('image/') ? 'image' : 'video',
+      name: file.name,
+      size: file.size
+    };
+
+    setMediaFiles(prev => [...prev, mediaFile]);
   };
 
   const removeMediaFile = (index: number) => {
@@ -336,7 +356,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
 
             <button
               type="button"
-              onClick={() => cameraInputRef.current?.click()}
+              onClick={() => setShowCamera(true)}
               className="toolbar-button"
               disabled={mediaFiles.length >= maxMediaFiles}
               title="Take photo/video"
@@ -496,17 +516,6 @@ const PostComposer: React.FC<PostComposerProps> = ({
           style={{ display: 'none' }}
         />
 
-        {/* Camera input for direct camera access */}
-        <input
-          ref={cameraInputRef}
-          type="file"
-          accept="image/*,video/*"
-          capture="environment"
-          multiple
-          onChange={handleFileSelect}
-          style={{ display: 'none' }}
-        />
-
         {/* Error Message */}
         {error && (
           <div className="error-message">
@@ -534,6 +543,14 @@ const PostComposer: React.FC<PostComposerProps> = ({
           </button>
         </div>
       </form>
+
+      {/* Camera Modal */}
+      {showCamera && (
+        <CameraCapture
+          onCapture={handleCameraCapture}
+          onClose={() => setShowCamera(false)}
+        />
+      )}
     </div>
   );
 };
