@@ -433,9 +433,15 @@
     transform: scale(0.98) !important;
   }
 
+  /* Reduce the container padding around Post Something button */
+  .create-post-section {
+    margin-bottom: 2px !important; /* Reduced from 4px to 2px - further reduction */
+    padding: 0 !important; /* Remove any padding */
+  }
+
   .create-post-btn {
     width: 90% !important; /* 10% smaller than full width */
-    margin: 0 auto 16px !important; /* Center with equal spacing on both sides */
+    margin: 0 auto 2px !important; /* Reduced from 4px to 2px - further reduction */
     padding: 12px 16px;
     font-size: 15px;
     border-radius: 50px !important; /* Pill shape */
@@ -444,7 +450,7 @@
   /* Stack feed view toggle elements vertically on mobile */
   .feed-view-toggle {
     flex-direction: column;
-    gap: 12px;
+    gap: 2px; /* Reduced from 3px to 2px - further reduction */
     align-items: center; /* Center children horizontally */
   }
 
