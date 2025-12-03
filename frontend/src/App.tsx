@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import statusBarService from './services/statusBarService';
 import { AuthProvider } from './contexts/AuthContext';
 import { WebSocketProvider } from './contexts/WebSocketContext';
@@ -43,6 +44,19 @@ import './App.css';
 import './components/Dashboard.css'; // Import for composer modal styles
 import { GlobalSearchProvider } from './components/global-search/GlobalSearchProvider';
 
+// 🚀 React Query Configuration - Smart Caching
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes - data is fresh for 5 min
+      gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache for 10 min (formerly cacheTime)
+      refetchOnWindowFocus: false, // Don't refetch when window regains focus
+      refetchOnMount: false, // Don't refetch on mount if data is fresh
+      retry: 1, // Only retry once on failure
+    },
+  },
+});
+
 const App: React.FC = () => {
   const [showComposer, setShowComposer] = useState(false);
 
@@ -52,14 +66,15 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <AuthProvider>
-      <WebSocketProvider>
-        <OrganizationProvider>
-          <ActiveContextProvider>
-            <GroupProvider>
-              <FeedFilterProvider>
-                <Router>
-                <GlobalSearchProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <WebSocketProvider>
+          <OrganizationProvider>
+            <ActiveContextProvider>
+              <GroupProvider>
+                <FeedFilterProvider>
+                  <Router>
+                  <GlobalSearchProvider>
                   <div className="App">
                     {/* WebSocket status is now shown on the profile picture in Dashboard */}
                     {/* <WebSocketStatusIndicator /> */}
@@ -410,6 +425,7 @@ const App: React.FC = () => {
         </OrganizationProvider>
       </WebSocketProvider>
     </AuthProvider>
+    </QueryClientProvider>
   );
 };
 

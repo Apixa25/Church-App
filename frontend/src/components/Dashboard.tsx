@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useActiveContext } from '../contexts/ActiveContextContext';
@@ -53,9 +54,6 @@ const Dashboard: React.FC = () => {
   
   const navigate = useNavigate();
   const location = useLocation();
-  const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   // Default to social feed - will be adjusted based on primary org status
   const [feedView, setFeedView] = useState<'activity' | 'social'>('social');
   const [feedType, setFeedType] = useState<FeedType>(FeedType.CHRONOLOGICAL); // Make feedType dynamic
@@ -142,39 +140,33 @@ const Dashboard: React.FC = () => {
   // Check if user has any primary organization (Church OR Family) - used to optimize API calls
   const hasPrimaryOrg = hasAnyPrimary;
 
-  const fetchDashboardData = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      // Use enhanced dashboard service that includes all features (prayers, announcements, events)
-      // Pass hasPrimaryOrg to avoid unnecessary 404 errors for users without a primary org
-      // Pass activeOrganizationId to get context-specific data (Church or Family)
-      console.log('📊 Dashboard.fetchDashboardData - activeOrganizationId:', activeOrganizationId);
-      console.log('📊 Dashboard.fetchDashboardData - activeContext:', activeContext);
-      console.log('📊 Dashboard.fetchDashboardData - hasPrimaryOrg:', hasPrimaryOrg);
+  // 🚀 React Query - Smart caching with stale-while-revalidate
+  const { 
+    data: dashboardData, 
+    isLoading, 
+    error: queryError,
+    refetch: refetchDashboard 
+  } = useQuery({
+    queryKey: ['dashboard', activeOrganizationId, hasPrimaryOrg],
+    queryFn: async () => {
+      console.log('📊 Dashboard.useQuery - activeOrganizationId:', activeOrganizationId);
+      console.log('📊 Dashboard.useQuery - activeContext:', activeContext);
+      console.log('📊 Dashboard.useQuery - hasPrimaryOrg:', hasPrimaryOrg);
       const data = await dashboardApi.getDashboardWithAll(hasPrimaryOrg, activeOrganizationId || undefined);
-      console.log('📊 Dashboard.fetchDashboardData - received stats:', data.stats);
-      console.log('📊 Dashboard.fetchDashboardData - received quickActions count:', data.quickActions?.length);
-      setDashboardData(data);
-    } catch (err) {
-      console.error('Failed to fetch dashboard data:', err);
-      setError('Failed to load dashboard data. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [hasPrimaryOrg, activeOrganizationId]);
+      console.log('📊 Dashboard.useQuery - received stats:', data.stats);
+      console.log('📊 Dashboard.useQuery - received quickActions count:', data.quickActions?.length);
+      return data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes - data is fresh for 5 min
+    gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache
+    // This will:
+    // 1. Check cache first - if data exists and is fresh, use it immediately (no loading!)
+    // 2. Show cached data while fetching fresh data in background
+    // 3. Only show loading if no cached data exists
+  });
 
-  // Auto-refresh every 5 minutes (only after initial load)
-  useEffect(() => {
-    // Only set up auto-refresh if we have dashboard data (meaning initial load completed)
-    if (!dashboardData) return;
-    
-    const interval = setInterval(() => {
-      fetchDashboardData();
-    }, 5 * 60 * 1000);
-
-    return () => clearInterval(interval);
-  }, [dashboardData, fetchDashboardData]);
+  // Convert query error to string for compatibility
+  const error = queryError ? 'Failed to load dashboard data. Please try again.' : null;
 
   const handleLogout = () => {
     logout();
@@ -182,7 +174,7 @@ const Dashboard: React.FC = () => {
   };
 
   const handleRefresh = async () => {
-    await fetchDashboardData();
+    await refetchDashboard();
   };
 
   const handlePostCreated = (newPost: any) => {
@@ -361,7 +353,7 @@ const Dashboard: React.FC = () => {
       });
       
       // Force refresh of dashboard data
-      fetchDashboardData();
+      refetchDashboard();
       
       // Force refresh of feed by incrementing refresh key
       setFeedRefreshKey(prev => prev + 1);
@@ -369,7 +361,7 @@ const Dashboard: React.FC = () => {
       // Clear the reset flag from location state
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state, fetchDashboardData, navigate, location.pathname, resetFilter]);
+  }, [location.state, refetchDashboard, navigate, location.pathname, resetFilter]);
 
   // Determine if this is "The Gathering" global organization (no active context)
   const isGatheringGlobal = activeContext === 'gathering' ||
