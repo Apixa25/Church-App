@@ -236,6 +236,12 @@
   cursor: not-allowed;
 }
 
+/* Camera button - double size emoji */
+.toolbar-button.camera-button {
+  font-size: 32px;
+  padding: 8px 16px;
+}
+
 .media-count {
   font-size: 12px;
   color: var(--text-tertiary);

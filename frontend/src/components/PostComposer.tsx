@@ -358,38 +358,11 @@ const PostComposer: React.FC<PostComposerProps> = ({
             <button
               type="button"
               onClick={() => setShowCamera(true)}
-              className="toolbar-button"
+              className="toolbar-button camera-button"
               disabled={mediaFiles.length >= maxMediaFiles}
               title="Take photo/video"
             >
-              📷 Camera
-            </button>
-
-            <button
-              type="button"
-              onClick={() => insertEmoji('🙏')}
-              className="toolbar-button"
-              title="Add prayer emoji"
-            >
-              🙏
-            </button>
-
-            <button
-              type="button"
-              onClick={() => insertEmoji('❤️')}
-              className="toolbar-button"
-              title="Add heart emoji"
-            >
-              ❤️
-            </button>
-
-            <button
-              type="button"
-              onClick={() => insertEmoji('😂')}
-              className="toolbar-button"
-              title="Add laughing emoji"
-            >
-              😂
+              📷
             </button>
 
             <button
