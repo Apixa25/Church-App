@@ -82,6 +82,7 @@ public class AuthController {
             String email = URLEncoder.encode(authResponse.getEmail(), StandardCharsets.UTF_8);
             String name = URLEncoder.encode(authResponse.getName(), StandardCharsets.UTF_8);
             String role = URLEncoder.encode(authResponse.getRole(), StandardCharsets.UTF_8);
+            String profilePicUrl = URLEncoder.encode(authResponse.getProfilePicUrl() != null ? authResponse.getProfilePicUrl() : "", StandardCharsets.UTF_8);
             String isNewUser = String.valueOf(authResponse.isNewUser());
             
             // Remove trailing slash from frontendUrl if present
@@ -91,7 +92,7 @@ public class AuthController {
             
             // Redirect to frontend with token as URL parameter
             String redirectUrl = String.format(
-                "%s/auth/callback?token=%s&refreshToken=%s&userId=%s&email=%s&name=%s&role=%s&isNewUser=%s",
+                "%s/auth/callback?token=%s&refreshToken=%s&userId=%s&email=%s&name=%s&role=%s&profilePicUrl=%s&isNewUser=%s",
                 cleanFrontendUrl,
                 token,
                 refreshToken,
@@ -99,6 +100,7 @@ public class AuthController {
                 email,
                 name,
                 role,
+                profilePicUrl,
                 isNewUser
             );
             

@@ -1,7 +1,6 @@
 package com.churchapp.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -42,7 +41,6 @@ public class Post {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @NotBlank(message = "Post content cannot be blank")
     @Size(max = 2000, message = "Post content cannot exceed 2000 characters")
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;

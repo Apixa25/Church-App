@@ -50,17 +50,22 @@ public class PostService {
         User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Validate content length
-        if (content == null || content.trim().isEmpty()) {
-            throw new IllegalArgumentException("Post content cannot be empty");
+        // Validate that post has either content or media
+        boolean hasContent = content != null && !content.trim().isEmpty();
+        boolean hasMedia = mediaUrls != null && !mediaUrls.isEmpty();
+        
+        if (!hasContent && !hasMedia) {
+            throw new IllegalArgumentException("Post must have either content or media");
         }
-        if (content.length() > 2000) {
+
+        // Validate content length if content is provided
+        if (hasContent && content != null && content.length() > 2000) {
             throw new IllegalArgumentException("Post content cannot exceed 2000 characters");
         }
 
         Post post = new Post();
         post.setUser(user);
-        post.setContent(content.trim());
+        post.setContent(hasContent && content != null ? content.trim() : "");
         post.setMediaUrls(mediaUrls != null ? mediaUrls : List.of());
         post.setMediaTypes(mediaTypes != null ? mediaTypes : List.of());
         post.setPostType(postType != null ? postType : Post.PostType.GENERAL);

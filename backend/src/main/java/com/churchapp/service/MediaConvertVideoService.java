@@ -59,6 +59,13 @@ public class MediaConvertVideoService {
      */
     public String startVideoProcessingJob(MediaFile mediaFile, String s3InputKey) {
         try {
+            // Check if MediaConvert is configured
+            String roleArn = getMediaConvertRoleArn();
+            if (roleArn == null) {
+                log.warn("MediaConvert not configured. Skipping video optimization for: {}", s3InputKey);
+                return null; // Return null to indicate processing was skipped
+            }
+            
             log.info("Starting MediaConvert job for video: {} (MediaFile ID: {})", s3InputKey, mediaFile.getId());
 
             // Extract S3 key from original URL if full URL provided
@@ -74,7 +81,7 @@ public class MediaConvertVideoService {
 
             // Create the job
             CreateJobRequest createJobRequest = CreateJobRequest.builder()
-                    .role(getMediaConvertRoleArn())
+                    .role(roleArn)
                     .settings(jobSettings)
                     .build();
 
@@ -244,11 +251,9 @@ public class MediaConvertVideoService {
                 : System.getenv("AWS_ACCOUNT_ID");
         
         if (accountId == null || accountId.isEmpty()) {
-            String errorMsg = "AWS_ACCOUNT_ID not configured. " +
-                    "Please set AWS_ACCOUNT_ID in application.properties or as environment variable. " +
-                    "Alternatively, set AWS_MEDIACONVERT_ROLE_ARN with the full role ARN.";
-            log.error(errorMsg);
-            throw new IllegalStateException(errorMsg);
+            log.warn("AWS_ACCOUNT_ID not configured. MediaConvert video processing will be disabled. " +
+                    "Set AWS_ACCOUNT_ID or AWS_MEDIACONVERT_ROLE_ARN environment variable to enable.");
+            return null; // Return null instead of throwing - allows app to start
         }
         
         String roleArn = String.format("arn:aws:iam::%s:role/MediaConvert_Default_Role", accountId);

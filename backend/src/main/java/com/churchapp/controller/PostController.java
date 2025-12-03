@@ -74,8 +74,10 @@ public class PostController {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
         } catch (IllegalArgumentException e) {
+            log.error("Invalid request creating post: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().build();
         } catch (Exception e) {
+            log.error("Error creating post for user {}: {}", user != null ? user.getUsername() : "unknown", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
