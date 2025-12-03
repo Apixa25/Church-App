@@ -19,6 +19,24 @@
   transform: scale(1.05);
 }
 
+@media (max-width: 480px) {
+  .notification-toggle {
+    font-size: 24px !important; /* Match Search, Settings, Logout emoji size */
+    padding: 8px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+  }
+
+  .notification-toggle:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    transform: scale(1.1) !important;
+  }
+}
+
 .notification-toggle.has-unread {
   animation: pulse-button 2s infinite;
 }

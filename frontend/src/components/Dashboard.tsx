@@ -453,14 +453,14 @@ const Dashboard: React.FC = () => {
                 className="search-button"
                 title="Search posts and community"
               >
-                🔍 Search
+                🔍
               </button>
               <button
                 onClick={() => navigate('/settings')}
                 className="settings-button"
                 title="App Settings"
               >
-                ⚙️ Settings
+                ⚙️
               </button>
               {/* Only show prayer and event notifications if user has primary org */}
               {hasPrimaryOrg && (
@@ -470,7 +470,7 @@ const Dashboard: React.FC = () => {
                 </>
               )}
               <button onClick={handleLogout} className="logout-button">
-                🚪 Logout
+                🚪
               </button>
             </div>
           </div>
