@@ -560,7 +560,15 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
             <span className="posts-count">{postsCount} posts</span>
           </div>
           <div className="profile-top-nav-actions">
-            {/* Search, notifications, and more options can go here */}
+            {isOwnProfile && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="edit-profile-button-x"
+                aria-label="Edit profile"
+              >
+                Edit profile
+              </button>
+            )}
           </div>
         </div>
 
@@ -618,20 +626,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
               )}
             </div>
             {isOwnProfile && (
-              <div style={{ display: 'flex', flexDirection: 'row', gap: '12px', alignItems: 'center', position: 'relative', zIndex: 2 }}>
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="edit-profile-button-x"
-                  aria-label="Edit profile"
-                  style={{ marginBottom: 0 }}
-                >
-                  Edit profile
-                </button>
-                <div style={{ flexShrink: 0 }}>
-                  <OrganizationSelector
-                    onBrowseClick={() => navigate('/organizations')}
-                  />
-                </div>
+              <div className="profile-org-selector-wrapper">
+                <OrganizationSelector
+                  onBrowseClick={() => navigate('/organizations')}
+                />
               </div>
             )}
           </div>
