@@ -483,4 +483,34 @@ public class DashboardService {
             previews
         );
     }
+    
+    /**
+     * 🚀 OPTIMIZED: Get only quick actions without building the entire dashboard.
+     * This method is much faster than getDashboardData() because it skips:
+     * - Recent activity queries
+     * - Dashboard stats calculations
+     * - Notification summaries
+     * 
+     * @param currentUserEmail The email of the current user
+     * @param organizationId Optional organization ID for context switching
+     * @return List of QuickAction objects for the user
+     */
+    public List<QuickAction> getQuickActionsOnly(String currentUserEmail, UUID organizationId) {
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        // Use provided organizationId, or fall back to church primary for backward compatibility
+        UUID orgId = organizationId != null 
+            ? organizationId 
+            : (currentUser.getChurchPrimaryOrganization() != null 
+                ? currentUser.getChurchPrimaryOrganization().getId() 
+                : null);
+        
+        System.out.println("⚡ DashboardService.getQuickActionsOnly - organizationId param: " + organizationId);
+        System.out.println("⚡ DashboardService.getQuickActionsOnly - resolved orgId: " + orgId);
+        System.out.println("⚡ DashboardService.getQuickActionsOnly - user: " + currentUserEmail);
+        
+        // Only call getQuickActions - skip all the other dashboard building!
+        return getQuickActions(currentUser, orgId);
+    }
 }
