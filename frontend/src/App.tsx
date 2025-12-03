@@ -415,7 +415,10 @@ const App: React.FC = () => {
                   )}
 
                   {/* Global Bottom Navigation - Mobile Only */}
-                  <BottomNav onPostClick={() => setShowComposer(true)} />
+                  <BottomNav 
+                    onPostClick={() => setShowComposer(prev => !prev)} 
+                    showComposer={showComposer}
+                  />
                   </div>
                 </GlobalSearchProvider>
               </Router>
