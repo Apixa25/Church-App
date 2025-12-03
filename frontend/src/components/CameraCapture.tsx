@@ -44,7 +44,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
     return () => {
       stopCamera();
     };
-  }, [facingMode]);
+  }, [facingMode, captureMode]);
 
   const startCamera = async () => {
     try {
@@ -62,7 +62,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
           width: { ideal: 1920 },
           height: { ideal: 1080 }
         },
-        audio: captureMode === 'video'
+        audio: true // Always request audio so it's ready for video recording
       };
 
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);

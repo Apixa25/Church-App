@@ -24,7 +24,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
+  padding: 12px 16px;
   background: rgba(0, 0, 0, 0.8);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -176,7 +176,8 @@
 
 /* Controls */
 .camera-controls {
-  padding: 24px;
+  padding: 16px 24px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
   background: rgba(0, 0, 0, 0.8);
   display: flex;
   align-items: center;
@@ -223,12 +224,12 @@
 }
 
 .control-btn.icon-btn {
-  width: 56px;
-  height: 56px;
+  width: 72px;
+  height: 72px;
   min-width: auto;
   padding: 0;
   border-radius: 50%;
-  font-size: 24px;
+  font-size: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -285,7 +286,7 @@
 /* Mobile Optimizations */
 @media (max-width: 768px) {
   .camera-header {
-    padding: 12px;
+    padding: 10px 12px;
   }
 
   .camera-title {
@@ -293,8 +294,8 @@
   }
 
   .camera-controls {
-    padding: 20px 16px;
-    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    padding: 14px 16px;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
   }
 
   .control-btn {
@@ -304,9 +305,36 @@
   }
 
   .control-btn.icon-btn {
-    width: 48px;
-    height: 48px;
-    font-size: 20px;
+    width: 72px;
+    height: 72px;
+    font-size: 36px;
+  }
+
+  .capture-btn {
+    width: 80px;
+    height: 80px;
+  }
+
+  .capture-circle,
+  .record-circle {
+    width: 60px;
+    height: 60px;
+  }
+
+  .stop-square {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* Landscape mode adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
+  .camera-header {
+    padding: 8px 12px;
+  }
+
+  .camera-controls {
+    padding: 10px 12px;
   }
 
   .capture-btn {
@@ -316,35 +344,13 @@
 
   .capture-circle,
   .record-circle {
-    width: 52px;
-    height: 52px;
-  }
-
-  .stop-square {
-    width: 36px;
-    height: 36px;
-  }
-}
-
-/* Landscape mode adjustments */
-@media (max-height: 500px) and (orientation: landscape) {
-  .camera-controls {
-    padding: 12px;
-  }
-
-  .capture-btn {
-    width: 60px;
-    height: 60px;
-  }
-
-  .capture-circle,
-  .record-circle {
-    width: 45px;
-    height: 45px;
+    width: 55px;
+    height: 55px;
   }
 
   .control-btn.icon-btn {
-    width: 44px;
-    height: 44px;
+    width: 64px;
+    height: 64px;
+    font-size: 32px;
   }
 }
