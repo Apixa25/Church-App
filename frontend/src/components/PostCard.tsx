@@ -498,68 +498,59 @@ const PostCard: React.FC<PostCardProps> = ({
 
   return (
     <div className={`post-card ${compact ? 'compact' : ''}`}>
-      {/* Post Header */}
+      {/* Post Header - X-style layout */}
       <div className="post-header">
-        <div className="post-author">
-          <ClickableAvatar
-            userId={post.userId}
-            profilePicUrl={post.userProfilePicUrl}
-            userName={post.userName}
-            size="medium"
-            isAnonymous={post.isAnonymous}
-          />
-          <div className="author-info">
-            <div className="author-name">
+        <ClickableAvatar
+          userId={post.userId}
+          profilePicUrl={post.userProfilePicUrl}
+          userName={post.userName}
+          size="medium"
+          isAnonymous={post.isAnonymous}
+        />
+        <div className="author-info">
+          {/* Line 1: Name + badge */}
+          <div className="author-name-row">
+            <span className="author-name">
               {post.isAnonymous ? 'Anonymous' : post.userName}
-              {post.postType !== PostType.GENERAL && (
-                <span className="post-type-badge">
-                  {getPostTypeIcon(post.postType)} {getPostTypeLabel(post.postType)}
-                </span>
-              )}
-            </div>
-            <div className="post-meta">
-              {post.location && <span className="location">📍 {post.location}</span>}
-              {/* Organization/Group Label - Priority: Group takes precedence over organization */}
-              {(post.group || post.organization) && (
-                <span 
-                  className="post-context-name clickable"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    try {
-                      console.log('🔍 Filtering feed - Group:', post.group?.name, 'Organization:', post.organization?.name);
-                      if (post.group) {
-                        // Filter feed to show only posts from this group
-                        console.log('📌 Setting filter to SELECTED_GROUPS with group ID:', post.group.id);
-                        if (location.pathname !== '/dashboard') {
-                          navigate('/dashboard');
-                          // Wait a bit for navigation to complete
-                          await new Promise(resolve => setTimeout(resolve, 100));
-                        }
-                        await setFilter('SELECTED_GROUPS', [post.group.id]);
-                        console.log('✅ Filter set successfully for group:', post.group.name);
-                      } else if (post.organization) {
-                        // Filter feed to show only posts from this organization
-                        console.log('📌 Setting filter to PRIMARY_ONLY with organization ID:', post.organization.id);
-                        if (location.pathname !== '/dashboard') {
-                          navigate('/dashboard');
-                          // Wait a bit for navigation to complete
-                          await new Promise(resolve => setTimeout(resolve, 100));
-                        }
-                        await setFilter('PRIMARY_ONLY', [], post.organization.id);
-                        console.log('✅ Filter set successfully for organization:', post.organization.name);
+            </span>
+            {post.postType !== PostType.GENERAL && (
+              <span className="post-type-badge">
+                {getPostTypeIcon(post.postType)}
+              </span>
+            )}
+          </div>
+          {/* Line 2: Org/Group + Timestamp */}
+          <div className="post-meta">
+            {post.location && <span className="location">📍 {post.location}</span>}
+            {(post.group || post.organization) && (
+              <span 
+                className="post-context-name clickable"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  try {
+                    if (post.group) {
+                      if (location.pathname !== '/dashboard') {
+                        navigate('/dashboard');
+                        await new Promise(resolve => setTimeout(resolve, 100));
                       }
-                    } catch (error) {
-                      console.error('❌ Error filtering feed:', error);
-                      alert('Failed to filter feed. Please try again.');
+                      await setFilter('SELECTED_GROUPS', [post.group.id]);
+                    } else if (post.organization) {
+                      if (location.pathname !== '/dashboard') {
+                        navigate('/dashboard');
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                      }
+                      await setFilter('PRIMARY_ONLY', [], post.organization.id);
                     }
-                  }}
-                  title={post.group ? `Show posts from ${post.group.name}` : `Show posts from ${post.organization?.name}`}
-                >
-                  {post.group ? post.group.name : post.organization?.name}
-                </span>
-              )}
-              <span className="timestamp">{formatDate(post.createdAt)}</span>
-            </div>
+                  } catch (error) {
+                    console.error('Error filtering feed:', error);
+                  }
+                }}
+                title={post.group ? `Show posts from ${post.group.name}` : `Show posts from ${post.organization?.name}`}
+              >
+                {post.group ? post.group.name : post.organization?.name}
+              </span>
+            )}
+            <span className="timestamp">{formatDate(post.createdAt)}</span>
           </div>
         </div>
         <div className="post-header-actions">
