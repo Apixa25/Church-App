@@ -129,11 +129,14 @@ const Dropdown = styled.div<{ $isOpen: boolean }>`
 
   @media (max-width: 480px) {
     position: fixed;
-    top: auto;
-    bottom: 80px;
-    left: 16px;
-    right: 16px;
+    top: 50%;
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    transform: ${props => props.$isOpen ? 'translate(-50%, -50%) scale(1)' : 'translate(-50%, -50%) scale(0.95)'};
     min-width: auto;
+    width: calc(100% - 32px);
+    max-width: 400px;
   }
 `;
 
