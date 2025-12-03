@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { PostType, MediaFile, CreatePostRequest } from '../types/Post';
 import { createPost, uploadMediaDirect } from '../services/postApi';
 import { useOrganization } from '../contexts/OrganizationContext';
@@ -544,12 +545,13 @@ const PostComposer: React.FC<PostComposerProps> = ({
         </div>
       </form>
 
-      {/* Camera Modal */}
-      {showCamera && (
+      {/* Camera Modal - Rendered via Portal to escape parent container */}
+      {showCamera && ReactDOM.createPortal(
         <CameraCapture
           onCapture={handleCameraCapture}
           onClose={() => setShowCamera(false)}
-        />
+        />,
+        document.body
       )}
     </div>
   );

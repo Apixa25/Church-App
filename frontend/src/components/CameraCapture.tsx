@@ -284,7 +284,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
                 onClick={handleCaptureModeToggle}
                 disabled={isRecording}
               >
-                {captureMode === 'photo' ? '📷' : '🎥'}
+                {captureMode === 'photo' ? '🎥' : '📷'}
               </button>
 
               <button
