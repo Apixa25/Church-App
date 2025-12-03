@@ -56,6 +56,9 @@ public class FileUploadService {
     @Value("${aws.region}")
     private String region;
     
+    @Value("${aws.cloudfront.distribution-url:}")
+    private String cloudFrontDistributionUrl;
+    
     @Value("${media.processing.async.enabled:true}")
     private boolean asyncProcessingEnabled;
     
@@ -454,37 +457,37 @@ public class FileUploadService {
     
     /**
      * Generate an accessible URL for the uploaded file.
-     * First tries public URL, falls back to pre-signed URL if bucket is private.
+     * Uses CloudFront CDN if configured (faster delivery, better for videos),
+     * otherwise falls back to direct S3 URL.
+     * 
+     * CloudFront provides:
+     * - Edge caching for faster delivery
+     * - Better HTTP/2 support
+     * - Optimized range request handling for video streaming
+     * - Lower latency worldwide
      */
     private String generateAccessibleUrl(String key) {
         try {
-            // Try public URL first (faster and no expiration)
-            String publicUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
+            // Use CloudFront CDN if configured (preferred for performance)
+            if (cloudFrontDistributionUrl != null && !cloudFrontDistributionUrl.trim().isEmpty()) {
+                // Remove trailing slash if present
+                String baseUrl = cloudFrontDistributionUrl.trim();
+                if (baseUrl.endsWith("/")) {
+                    baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+                }
+                String cloudFrontUrl = baseUrl + "/" + key;
+                log.debug("Using CloudFront URL: {}", cloudFrontUrl);
+                return cloudFrontUrl;
+            }
             
-            // For now, always return public URL and let bucket policy handle access
-            // If you want to use pre-signed URLs instead, uncomment the lines below:
-            
-            /*
-            // Generate pre-signed URL (24 hour expiration)
-            GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(key)
-                    .build();
-            
-            GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                    .signatureDuration(Duration.ofHours(24))
-                    .getObjectRequest(getObjectRequest)
-                    .build();
-            
-            PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(presignRequest);
-            return presignedRequest.url().toString();
-            */
-            
-            return publicUrl;
+            // Fallback to direct S3 URL if CloudFront not configured
+            String s3Url = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
+            log.debug("Using direct S3 URL (CloudFront not configured): {}", s3Url);
+            return s3Url;
             
         } catch (Exception e) {
             log.error("Error generating accessible URL for key: {}", key, e);
-            // Fallback to public URL format
+            // Fallback to direct S3 URL format
             return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
         }
     }
