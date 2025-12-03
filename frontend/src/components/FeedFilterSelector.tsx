@@ -92,7 +92,7 @@ const Dropdown = styled.div<{ $isOpen: boolean }>`
 
   @media (max-width: 480px) {
     position: fixed;
-    top: calc(30vh - 50px); /* Move up an additional 50 pixels */
+    top: calc(30vh - 140px); /* Move up an additional 140 pixels total */
     left: 16px;
     right: 16px;
     min-width: auto;
