@@ -441,10 +441,11 @@
     transform: scale(0.98) !important;
   }
 
-  /* Reduce the container padding around Post Something button */
+  /* 🚫 HIDDEN: Post Something button hidden - redundant with bottom nav Post button */
   .create-post-section {
-    margin-bottom: 2px !important; /* Reduced from 4px to 2px - further reduction */
-    padding: 0 !important; /* Remove any padding */
+    display: none !important; /* Hide the section completely */
+    margin-bottom: 0 !important;
+    padding: 0 !important;
   }
 
   .create-post-btn {
