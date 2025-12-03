@@ -300,3 +300,62 @@ export const formatCalendarTime = (dateInput: string | number[]): string => {
     hour12: true
   });
 };
+
+/**
+ * Parse a date-only string (like birthdays) without timezone conversion.
+ * This prevents the "off by one day" bug when displaying dates that don't have a time component.
+ * 
+ * For example: "1977-05-23" or "1977-05-23T00:00:00Z" should display as May 23, 1977
+ * regardless of the user's timezone.
+ */
+export const parseDateOnly = (dateString: string | undefined): { year: number; month: number; day: number } | null => {
+  if (!dateString) return null;
+  
+  try {
+    // Extract just the date part (YYYY-MM-DD) from various formats
+    let datePart = dateString;
+    
+    // Handle ISO format with time (e.g., "1977-05-23T00:00:00Z" or "1977-05-23T00:00:00.000Z")
+    if (dateString.includes('T')) {
+      datePart = dateString.split('T')[0];
+    }
+    
+    // Parse YYYY-MM-DD format
+    const parts = datePart.split('-');
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+      
+      // Validate
+      if (!isNaN(year) && !isNaN(month) && !isNaN(day) && 
+          month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        return { year, month, day };
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error parsing date-only string:', error, dateString);
+    return null;
+  }
+};
+
+/**
+ * Format a birthday date without timezone issues.
+ * Takes a date string and returns it formatted without any timezone conversion.
+ */
+export const formatBirthdayDate = (dateString: string | undefined): string => {
+  const parsed = parseDateOnly(dateString);
+  
+  if (!parsed) {
+    return 'Unknown';
+  }
+  
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  
+  return `${monthNames[parsed.month - 1]} ${parsed.day}, ${parsed.year}`;
+};
