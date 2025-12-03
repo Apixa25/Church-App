@@ -13,6 +13,8 @@
   max-width: 100%;
   box-sizing: border-box;
   overflow: hidden;
+  margin: 0 !important; /* 🔴 FIX: Zero margin */
+  padding: 0 !important; /* 🔴 FIX: Zero padding */
 }
 
 /* Feed Error State */

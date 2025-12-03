@@ -348,11 +348,11 @@ const PostComposer: React.FC<PostComposerProps> = ({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="toolbar-button"
+              className="toolbar-button media-button"
               disabled={mediaFiles.length >= maxMediaFiles}
               title="Add media"
             >
-              📎 Media
+              📎
             </button>
 
             <button

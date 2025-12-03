@@ -406,13 +406,6 @@ const App: React.FC = () => {
                   {showComposer && (
                     <div className="composer-modal-overlay" onClick={() => setShowComposer(false)}>
                       <div className="composer-modal-content" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          className="composer-close-btn"
-                          onClick={() => setShowComposer(false)}
-                          aria-label="Close composer"
-                        >
-                          ✕
-                        </button>
                         <PostComposer
                           onCancel={() => setShowComposer(false)}
                           onPostCreated={() => {

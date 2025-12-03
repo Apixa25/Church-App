@@ -1245,6 +1245,18 @@
   gap: 30px;
 }
 
+/* 🔴 MOBILE FIX: Zero out all gaps on mobile to eliminate dead space */
+@media (max-width: 768px) {
+  .dashboard-layout {
+    gap: 0 !important;
+  }
+  
+  .dashboard-left,
+  .dashboard-right {
+    gap: 0 !important;
+  }
+}
+
 /* Activity Feed Styles */
 .activity-feed {
   /* Removed max-height and overflow-y to allow natural page scrolling like Social Feed */
