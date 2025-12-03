@@ -508,7 +508,7 @@ const PostCard: React.FC<PostCardProps> = ({
           isAnonymous={post.isAnonymous}
         />
         <div className="author-info">
-          {/* Line 1: Name + badge */}
+          {/* Line 1: Name + timestamp */}
           <div className="author-name-row">
             <span className="author-name">
               {post.isAnonymous ? 'Anonymous' : post.userName}
@@ -518,40 +518,42 @@ const PostCard: React.FC<PostCardProps> = ({
                 {getPostTypeIcon(post.postType)}
               </span>
             )}
-          </div>
-          {/* Line 2: Org/Group + Timestamp */}
-          <div className="post-meta">
-            {post.location && <span className="location">📍 {post.location}</span>}
-            {(post.group || post.organization) && (
-              <span 
-                className="post-context-name clickable"
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  try {
-                    if (post.group) {
-                      if (location.pathname !== '/dashboard') {
-                        navigate('/dashboard');
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                      }
-                      await setFilter('SELECTED_GROUPS', [post.group.id]);
-                    } else if (post.organization) {
-                      if (location.pathname !== '/dashboard') {
-                        navigate('/dashboard');
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                      }
-                      await setFilter('PRIMARY_ONLY', [], post.organization.id);
-                    }
-                  } catch (error) {
-                    console.error('Error filtering feed:', error);
-                  }
-                }}
-                title={post.group ? `Show posts from ${post.group.name}` : `Show posts from ${post.organization?.name}`}
-              >
-                {post.group ? post.group.name : post.organization?.name}
-              </span>
-            )}
             <span className="timestamp">{formatDate(post.createdAt)}</span>
           </div>
+          {/* Line 2: Org/Group (only if exists) */}
+          {(post.group || post.organization || post.location) && (
+            <div className="post-meta">
+              {post.location && <span className="location">📍 {post.location}</span>}
+              {(post.group || post.organization) && (
+                <span 
+                  className="post-context-name clickable"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      if (post.group) {
+                        if (location.pathname !== '/dashboard') {
+                          navigate('/dashboard');
+                          await new Promise(resolve => setTimeout(resolve, 100));
+                        }
+                        await setFilter('SELECTED_GROUPS', [post.group.id]);
+                      } else if (post.organization) {
+                        if (location.pathname !== '/dashboard') {
+                          navigate('/dashboard');
+                          await new Promise(resolve => setTimeout(resolve, 100));
+                        }
+                        await setFilter('PRIMARY_ONLY', [], post.organization.id);
+                      }
+                    } catch (error) {
+                      console.error('Error filtering feed:', error);
+                    }
+                  }}
+                  title={post.group ? `Show posts from ${post.group.name}` : `Show posts from ${post.organization?.name}`}
+                >
+                  {post.group ? post.group.name : post.organization?.name}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <div className="post-header-actions">
           {canDelete && (
