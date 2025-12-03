@@ -167,12 +167,15 @@ public class UserProfileService {
             user.setRole(request.getRole());
         }
         
-        if (request.getProfilePicUrl() != null) {
-            user.setProfilePicUrl(request.getProfilePicUrl());
+        // Only update profilePicUrl if it's explicitly provided and not empty
+        // This prevents clearing Google OAuth profile pictures when updating other fields
+        if (request.getProfilePicUrl() != null && !request.getProfilePicUrl().trim().isEmpty()) {
+            user.setProfilePicUrl(request.getProfilePicUrl().trim());
         }
         
-        if (request.getBannerImageUrl() != null) {
-            user.setBannerImageUrl(request.getBannerImageUrl());
+        // Only update bannerImageUrl if it's explicitly provided and not empty
+        if (request.getBannerImageUrl() != null && !request.getBannerImageUrl().trim().isEmpty()) {
+            user.setBannerImageUrl(request.getBannerImageUrl().trim());
         }
         
         User updatedUser = userRepository.save(user);
