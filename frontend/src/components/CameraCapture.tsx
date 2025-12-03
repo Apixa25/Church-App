@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { Camera, Video, RefreshCw, X } from 'lucide-react';
 import './CameraCapture.css';
 
 interface CameraCaptureProps {
@@ -217,7 +218,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
         {/* Header */}
         <div className="camera-header">
           <button className="camera-close-btn" onClick={handleClose}>
-            ✕
+            <X size={24} />
           </button>
           <h3 className="camera-title">
             {previewUrl ? 'Preview' : captureMode === 'photo' ? 'Take Photo' : 'Record Video'}
@@ -284,7 +285,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
                 onClick={handleCaptureModeToggle}
                 disabled={isRecording}
               >
-                {captureMode === 'photo' ? '🎥' : '📷'}
+                {captureMode === 'photo' ? <Video size={32} /> : <Camera size={32} />}
               </button>
 
               <button
@@ -305,7 +306,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
                 onClick={handleFlipCamera}
                 disabled={isRecording}
               >
-                🔄
+                <RefreshCw size={32} />
               </button>
             </>
           )}
