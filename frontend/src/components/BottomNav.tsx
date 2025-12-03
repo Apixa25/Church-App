@@ -5,10 +5,11 @@ import './BottomNav.css';
 
 interface BottomNavProps {
   onPostClick?: () => void;
+  onCameraClick?: () => void;
   showComposer?: boolean; // Add this prop to know if composer is open
 }
 
-const BottomNav: React.FC<BottomNavProps> = ({ onPostClick, showComposer = false }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ onPostClick, onCameraClick, showComposer = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -72,6 +73,15 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick, showComposer = false
         } else {
           navigate('/chats');
         }
+      }
+    },
+    {
+      id: 'camera',
+      label: 'Camera',
+      icon: '📷',
+      path: null,
+      onClick: () => {
+        onCameraClick?.();
       }
     },
     {
