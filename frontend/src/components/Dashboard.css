@@ -593,25 +593,27 @@
 }
 
 .search-button {
-  padding: 8px 16px;
-  background: var(--gradient-primary);
-  color: white;
+  padding: 8px;
+  background: transparent;
+  color: var(--text-primary);
   border: none;
-  border-radius: var(--border-radius-pill);
-  font-size: 14px;
+  border-radius: 50%;
+  font-size: 31px; /* Increased by 30% from ~24px */
   font-weight: 500;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 48px;
   transition: all var(--transition-base);
-  box-shadow: 0 2px 8px var(--button-primary-glow);
+  box-shadow: none;
 }
 
 .search-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--accent-primary-dark), var(--accent-secondary-dark));
-  transform: translateY(-1px);
-  box-shadow: var(--glow-blue);
+  background: transparent;
+  transform: scale(1.1);
+  box-shadow: none;
 }
 
 .search-button:disabled {
@@ -620,11 +622,59 @@
   transform: none;
 }
 
+/* Settings and Logout buttons - desktop styles */
+.settings-button,
+.logout-button {
+  padding: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  font-size: 31px; /* Increased by 30% from ~24px */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 48px;
+  transition: all var(--transition-base);
+  box-shadow: none;
+  color: var(--text-primary);
+}
+
+.settings-button:hover,
+.logout-button:hover {
+  background: transparent;
+  transform: scale(1.1);
+  box-shadow: none;
+}
+
 /* Ensure notification buttons are visible and properly styled */
 .header-actions .prayer-notifications,
 .header-actions .event-notifications {
   position: relative;
   z-index: 10;
+}
+
+/* Prayer and Event notification buttons - desktop styles */
+.header-actions .prayer-notifications .notification-bell,
+.header-actions .event-notifications .notification-toggle {
+  background: transparent !important;
+  border: none !important;
+  font-size: 31px !important; /* Increased by 30% from ~24px */
+  padding: 8px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.header-actions .prayer-notifications .notification-bell:hover,
+.header-actions .event-notifications .notification-toggle:hover {
+  background: transparent !important;
+  transform: scale(1.1) !important;
+  box-shadow: none !important;
 }
 
 /* Ensure notification buttons don't get hidden behind other elements */
