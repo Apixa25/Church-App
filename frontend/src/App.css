@@ -269,7 +269,7 @@
 /* Dashboard Styles */
 .dashboard-container {
   min-height: 100vh;
-  background: var(--bg-secondary) !important; /* Match header background */
+  background: transparent !important; /* Allow aurora gradient to show through */
   overflow-x: hidden;
   width: 100%;
   max-width: 100vw;
@@ -288,7 +288,7 @@
 .dashboard-container > main {
   margin-top: 0 !important;
   padding-top: 0 !important;
-  background: var(--bg-secondary) !important; /* Match header background */
+  background: transparent !important; /* Allow aurora gradient to show through */
   margin-top: -1px !important; /* Negative margin to eliminate any gap */
 }
 
