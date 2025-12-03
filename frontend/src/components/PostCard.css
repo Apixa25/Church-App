@@ -97,12 +97,24 @@
   gap: 1px;
 }
 
-/* Name row - contains name and badge on same line */
+/* Name row - contains name, badge, and timestamp on same line */
 .author-name-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex-wrap: wrap;
+}
+
+/* Timestamp in name row */
+.author-name-row .timestamp {
+  color: #71767b;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.author-name-row .timestamp::before {
+  content: '· ';
+  color: #71767b;
 }
 
 /* X-style: Name */
