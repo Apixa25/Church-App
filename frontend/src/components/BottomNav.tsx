@@ -5,9 +5,10 @@ import './BottomNav.css';
 
 interface BottomNavProps {
   onPostClick?: () => void;
+  showComposer?: boolean; // Add this prop to know if composer is open
 }
 
-const BottomNav: React.FC<BottomNavProps> = ({ onPostClick }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ onPostClick, showComposer = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -16,8 +17,18 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick }) => {
     return null;
   }
 
-  const isActive = (path: string) => {
+  const isActive = (path: string | null) => {
+    if (path === null) return false; // Post button doesn't have a path
     return location.pathname === path || location.pathname.startsWith(path);
+  };
+
+  // Helper function to navigate to Home
+  const goToHome = () => {
+    navigate('/dashboard', { 
+      state: { reset: true },
+      replace: true 
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const tabs = [
@@ -27,13 +38,12 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick }) => {
       icon: '🏠',
       path: '/dashboard',
       onClick: () => {
-        // Navigate to dashboard with reset flag to restore initial state
-        navigate('/dashboard', { 
-          state: { reset: true },
-          replace: true 
-        });
-        // Scroll to top immediately
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // If already on home, just scroll to top
+        if (isActive('/dashboard')) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          goToHome();
+        }
       }
     },
     {
@@ -41,21 +51,44 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick }) => {
       label: 'Actions',
       icon: '⚡',
       path: '/quick-actions',
-      onClick: () => navigate('/quick-actions')
+      onClick: () => {
+        // 🎯 Second tap: If already on quick-actions, go to Home
+        if (isActive('/quick-actions')) {
+          goToHome();
+        } else {
+          navigate('/quick-actions');
+        }
+      }
     },
     {
       id: 'messages',
       label: 'Messages',
       icon: '💬',
       path: '/chats',
-      onClick: () => navigate('/chats')
+      onClick: () => {
+        // 🎯 Second tap: If already on messages, go to Home
+        if (isActive('/chats')) {
+          goToHome();
+        } else {
+          navigate('/chats');
+        }
+      }
     },
     {
       id: 'post',
       label: 'Post',
       icon: '✍️',
       path: null,
-      onClick: () => onPostClick?.()
+      onClick: () => {
+        // 🎯 Second tap: If composer is already open, close it and go to Home
+        if (showComposer) {
+          onPostClick?.(); // Close composer first
+          goToHome();
+        } else {
+          // Open composer
+          onPostClick?.();
+        }
+      }
     }
   ];
 
@@ -65,7 +98,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick }) => {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            className={`bottom-nav-tab ${tab.path && isActive(tab.path) ? 'active' : ''}`}
+            className={`bottom-nav-tab ${tab.path && isActive(tab.path) ? 'active' : ''} ${tab.id === 'post' && showComposer ? 'active' : ''}`}
             onClick={tab.onClick}
             aria-label={tab.label}
           >
