@@ -2,7 +2,7 @@
 
 .worship-room {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: transparent;
   color: var(--text-primary);
 }
 

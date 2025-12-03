@@ -362,7 +362,7 @@ const PrayerRequestsPage: React.FC = () => {
           margin: 0 auto;
           padding: 1.5rem;
           min-height: 100vh;
-          background: var(--bg-primary);
+          background: transparent;
         }
 
         .page-header {
