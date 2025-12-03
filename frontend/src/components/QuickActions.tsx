@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QuickAction } from '../services/dashboardApi';
 
@@ -9,7 +9,6 @@ interface QuickActionsProps {
 
 const QuickActions: React.FC<QuickActionsProps> = ({ actions, isLoading }) => {
   const navigate = useNavigate();
-  const actionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   const getActionIcon = (iconType: string) => {
     const iconMap: Record<string, string> = {
@@ -52,18 +51,8 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions, isLoading }) => {
   };
 
   const handleEmojiClick = (action: QuickAction) => {
-    // Scroll to the action card if it exists
-    const actionId = action.id;
-    const element = actionRefs.current[actionId];
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // Add a brief highlight effect
-      element.classList.add('highlight');
-      setTimeout(() => element.classList.remove('highlight'), 1000);
-    } else {
-      // If not found, just navigate
-      handleActionClick(action);
-    }
+    // 🚀 Direct navigation - immediately go to the action destination
+    handleActionClick(action);
   };
 
   if (isLoading) {
@@ -104,7 +93,6 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions, isLoading }) => {
           <div 
             key={action.id} 
             className="action-card"
-            ref={(el) => (actionRefs.current[action.id] = el)}
           >
             <div className="action-icon">
               {getActionIcon(action.iconType)}
