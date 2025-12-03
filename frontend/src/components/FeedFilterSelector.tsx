@@ -547,8 +547,8 @@ const FeedFilterSelector: React.FC = () => {
 
         <DropdownSection>
           <ApplyButton
-            onClick={handleApply}
-            disabled={applying || !hasChanges}
+            onClick={hasChanges ? handleApply : () => setIsOpen(false)}
+            disabled={applying}
           >
             {applying ? 'Applying...' : hasChanges ? 'Apply Filter' : 'No Changes'}
           </ApplyButton>
