@@ -281,7 +281,7 @@
     flex-direction: row !important;
     justify-content: center;
     gap: 16px;
-    padding: 0 !important; /* 🔴 FIX: Zero padding */
+    padding: 5px 0 !important; /* 🔴 FIX: 5px top/bottom padding for breathing room from border lines */
     margin: 0 !important; /* 🔴 FIX: Zero margin */
   }
 
