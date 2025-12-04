@@ -55,7 +55,8 @@
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls s3://thegathrd-app-frontend/ --recursive --human-readable)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls s3://thegathrd-app-frontend/static/js/)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 sync frontend/build/ s3://thegathrd-app-frontend/ --exclude \"*\" --include \"*.html\" --include \"service-worker.js\" --include \"manifest.json\" --cache-control \"public, max-age=0, must-revalidate\")",
-      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 sync frontend/build/ s3://thegathrd-app-frontend/ --delete --cache-control \"public, max-age=0, must-revalidate\" --exclude \"*.js\" --exclude \"*.map\")"
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 sync frontend/build/ s3://thegathrd-app-frontend/ --delete --cache-control \"public, max-age=0, must-revalidate\" --exclude \"*.js\" --exclude \"*.map\")",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 sync frontend/build/ s3://thegathrd-app-frontend/ --delete --cache-control \"public, max-age=0, must-revalidate\")"
     ],
     "deny": [],
     "ask": []
