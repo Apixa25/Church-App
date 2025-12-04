@@ -83,7 +83,16 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scaleX(-1); /* Mirror front camera */
+  /* GPU acceleration for smoother rendering */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Mirror only front camera - applied via JavaScript class */
+.camera-video.mirrored {
+  transform: scaleX(-1) translateZ(0);
 }
 
 .camera-preview {

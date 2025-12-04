@@ -39,7 +39,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick, onCameraClick, showC
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // 🔄 Refresh handler - invalidates React Query cache to fetch fresh data
+  // 🔄 Refresh handler - invalidates React Query cache AND triggers feed refresh
   const handleRefresh = async () => {
     setIsRefreshing(true);
     console.log('🔄 Double-tap detected! Refreshing feed...');
@@ -47,9 +47,12 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick, onCameraClick, showC
     // Scroll to top first
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
-    // Invalidate all queries to force fresh data fetch
-    // This will refetch dashboard data, posts, and all cached content
+    // Invalidate React Query cache for dashboard data
     await queryClient.invalidateQueries();
+    
+    // 🎯 Dispatch custom event for PostFeed refresh (PostFeed doesn't use React Query)
+    // Dashboard listens for this event and increments feedRefreshKey
+    window.dispatchEvent(new CustomEvent('feedRefresh'));
     
     // Brief visual feedback
     setTimeout(() => {
