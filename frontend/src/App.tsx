@@ -63,6 +63,7 @@ const queryClient = new QueryClient({
 const App: React.FC = () => {
   const [showComposer, setShowComposer] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
+  const [capturedMediaFile, setCapturedMediaFile] = useState<File | undefined>(undefined);
 
   useEffect(() => {
     // Initialize native status bar styling
@@ -70,11 +71,17 @@ const App: React.FC = () => {
   }, []);
 
   const handleCameraCapture = (file: File) => {
-    // Open composer with the captured media
+    console.log('📸 App.tsx: Camera captured file:', file.name, file.size);
+    // Store the captured file and open the composer
+    setCapturedMediaFile(file);
     setShowCamera(false);
     setShowComposer(true);
-    // Note: We'll need to pass the file to PostComposer when it opens
-    // For now, user will need to add it manually via the media button
+  };
+  
+  const handleComposerClose = () => {
+    setShowComposer(false);
+    // Clear the captured file when composer closes
+    setCapturedMediaFile(undefined);
   };
 
   return (
@@ -409,14 +416,13 @@ const App: React.FC = () => {
 
                   {/* Global Post Composer Modal */}
                   {showComposer && (
-                    <div className="composer-modal-overlay" onClick={() => setShowComposer(false)}>
+                    <div className="composer-modal-overlay" onClick={handleComposerClose}>
                       <div className="composer-modal-content" onClick={(e) => e.stopPropagation()}>
                         <PostComposer
-                          onCancel={() => setShowComposer(false)}
-                          onPostCreated={() => {
-                            setShowComposer(false);
-                          }}
+                          onCancel={handleComposerClose}
+                          onPostCreated={handleComposerClose}
                           placeholder="Share what's happening in your community..."
+                          initialMediaFile={capturedMediaFile}
                         />
                       </div>
                     </div>

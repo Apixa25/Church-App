@@ -27,6 +27,8 @@ interface PostComposerProps {
     authorName: string;
     content: string;
   };
+  /** Initial media file to attach (e.g., from camera capture) */
+  initialMediaFile?: File;
 }
 
 const PostComposer: React.FC<PostComposerProps> = ({
@@ -34,7 +36,8 @@ const PostComposer: React.FC<PostComposerProps> = ({
   onCancel,
   placeholder = "Share what's happening in your community...",
   replyTo,
-  quoteTo
+  quoteTo,
+  initialMediaFile
 }) => {
   // Multi-tenant contexts
   const { primaryMembership, allMemberships } = useOrganization();
@@ -65,9 +68,33 @@ const PostComposer: React.FC<PostComposerProps> = ({
   
   // Ref to hold the latest camera capture handler - ensures Portal always has fresh reference
   const cameraCallbackRef = useRef<((file: File) => void) | null>(null);
+  
+  // Track if we've processed the initial file to avoid duplicates
+  const initialFileProcessedRef = useRef(false);
 
   const maxContentLength = 2000;
   const maxMediaFiles = 4;
+  
+  // Handle initial media file from camera capture (passed from App.tsx)
+  useEffect(() => {
+    if (initialMediaFile && !initialFileProcessedRef.current) {
+      console.log('📸 PostComposer: Processing initial media file from props:', initialMediaFile.name);
+      initialFileProcessedRef.current = true;
+      
+      // Create media file object
+      const objectUrl = URL.createObjectURL(initialMediaFile);
+      const mediaFile: MediaFile = {
+        file: initialMediaFile,
+        url: objectUrl,
+        type: initialMediaFile.type.startsWith('image/') ? 'image' : 'video',
+        name: initialMediaFile.name,
+        size: initialMediaFile.size
+      };
+      
+      setMediaFiles([mediaFile]);
+      console.log('📸 PostComposer: Initial media file added successfully');
+    }
+  }, [initialMediaFile]);
 
   const postTypes = [
     { type: PostType.GENERAL, label: 'General Post', icon: '💬', description: 'Share thoughts with your community' },
@@ -206,6 +233,15 @@ const PostComposer: React.FC<PostComposerProps> = ({
       console.error('📸 PostComposer: cameraCallbackRef.current is null!');
     }
   }, []);
+  
+  // DEBUG: Expose the capture function globally for testing
+  useEffect(() => {
+    console.log('📸 PostComposer: Registering global camera capture function');
+    (window as any).__cameraCaptureCallback = handleCameraCapture;
+    return () => {
+      delete (window as any).__cameraCaptureCallback;
+    };
+  }, [handleCameraCapture]);
 
   const removeMediaFile = (index: number) => {
     setMediaFiles(prev => {
