@@ -27,24 +27,18 @@ export const parseEventDate = (dateInput: string | number[]): Date | null => {
       if (cleanDateString.endsWith('Z')) {
         // UTC timezone - parse as UTC then convert to local
         date = new Date(cleanDateString);
-      } else if (cleanDateString.includes('+') || cleanDateString.includes('-')) {
-        // Has timezone offset - parse directly
+      } else if (cleanDateString.includes('+') || /T.*-\d{2}:\d{2}$/.test(cleanDateString)) {
+        // Has timezone offset (e.g., +05:00 or -05:00 after T) - parse directly
         date = new Date(cleanDateString);
       } else {
-        // No timezone info - assume local time
+        // No timezone info - ASSUME UTC (server sends UTC times without 'Z' suffix)
+        // This fixes the "Just now" bug where posts appear to be in the future
         if (cleanDateString.includes('T')) {
-          // ISO format without timezone - parse as local time
-          const parts = cleanDateString.split('T');
-          const datePart = parts[0];
-          const timePart = parts[1] || '00:00:00';
-          
-          const [year, month, day] = datePart.split('-').map(Number);
-          const [hour, minute, second] = timePart.split(':').map(Number);
-          
-          date = new Date(year, month - 1, day, hour || 0, minute || 0, second || 0);
+          // ISO format without timezone - treat as UTC by appending 'Z'
+          date = new Date(cleanDateString + 'Z');
         } else {
-          // Fallback to regular Date parsing
-          date = new Date(cleanDateString);
+          // Fallback - append time and treat as UTC
+          date = new Date(cleanDateString + 'T00:00:00Z');
         }
       }
     }
