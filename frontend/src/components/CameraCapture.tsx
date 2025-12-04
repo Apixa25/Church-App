@@ -195,10 +195,31 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
       // This ensures the parent receives the file before we do anything else
       try {
         console.log('📸 CameraCapture: Calling onCapture...');
+        console.log('📸 CameraCapture: onCapture type:', typeof onCapture);
+        console.log('📸 CameraCapture: onCapture:', onCapture?.toString().substring(0, 100));
+        
         onCapture(fileClone);
         console.log('📸 CameraCapture: onCapture returned successfully');
+        
+        // FALLBACK: Also try the global function if onCapture didn't work
+        const globalCapture = (window as any).__cameraCaptureCallback;
+        if (globalCapture && typeof globalCapture === 'function') {
+          console.log('📸 CameraCapture: Also calling global fallback...');
+          globalCapture(fileClone);
+        }
       } catch (error) {
         console.error('📸 CameraCapture: Error calling onCapture:', error);
+        
+        // Try global fallback on error
+        try {
+          const globalCapture = (window as any).__cameraCaptureCallback;
+          if (globalCapture && typeof globalCapture === 'function') {
+            console.log('📸 CameraCapture: Using global fallback after error...');
+            globalCapture(fileClone);
+          }
+        } catch (fallbackError) {
+          console.error('📸 CameraCapture: Global fallback also failed:', fallbackError);
+        }
       }
       
       // Now clean up AFTER the parent has the file
