@@ -3,8 +3,8 @@ package com.churchapp.service;
 import com.churchapp.entity.Donation;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -14,25 +14,49 @@ import org.springframework.stereotype.Service;
 import java.time.format.DateTimeFormatter;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class EmailService {
 
-    @Value("${church.name}")
+    @Value("${church.name:The Gathering}")
     private String churchName;
 
-    @Value("${church.email}")
+    @Value("${church.email:support@thegathrd.com}")
     private String churchEmail;
 
-    @Value("${spring.mail.username}")
+    @Value("${spring.mail.username:noreply@thegathrd.com}")
     private String fromEmail;
 
     private final JavaMailSender mailSender;
+    private final boolean emailEnabled;
+
+    @Autowired
+    public EmailService(@Autowired(required = false) JavaMailSender mailSender) {
+        this.mailSender = mailSender;
+        this.emailEnabled = mailSender != null;
+        if (!emailEnabled) {
+            log.warn("📧 EmailService initialized WITHOUT mail sender - emails will be logged but not sent");
+        } else {
+            log.info("📧 EmailService initialized with mail sender - emails will be sent");
+        }
+    }
+
+    /**
+     * Check if email sending is available
+     */
+    public boolean isEmailEnabled() {
+        return emailEnabled;
+    }
 
     /**
      * Send donation receipt email with PDF attachment
      */
     public void sendReceiptEmail(Donation donation, byte[] receiptPdf, String recipientEmail) {
+        if (!emailEnabled) {
+            log.info("📧 [EMAIL DISABLED] Would send receipt email for donation {} to {}", 
+                donation.getId(), recipientEmail);
+            return;
+        }
+        
         try {
             log.info("Sending receipt email for donation {} to {}", donation.getId(), recipientEmail);
 
@@ -69,6 +93,12 @@ public class EmailService {
      * Send donation confirmation email (without receipt)
      */
     public void sendDonationConfirmationEmail(Donation donation, String recipientEmail) {
+        if (!emailEnabled) {
+            log.info("📧 [EMAIL DISABLED] Would send confirmation email for donation {} to {}", 
+                donation.getId(), recipientEmail);
+            return;
+        }
+        
         try {
             log.info("Sending donation confirmation email for donation {} to {}",
                 donation.getId(), recipientEmail);
@@ -98,6 +128,11 @@ public class EmailService {
      */
     public void sendSubscriptionConfirmationEmail(String donorName, String donorEmail,
                                                  String amount, String frequency, String category) {
+        if (!emailEnabled) {
+            log.info("📧 [EMAIL DISABLED] Would send subscription confirmation email to {}", donorEmail);
+            return;
+        }
+        
         try {
             log.info("Sending subscription confirmation email to {}", donorEmail);
 
@@ -124,6 +159,11 @@ public class EmailService {
      */
     public void sendSubscriptionCancellationEmail(String donorName, String donorEmail,
                                                  String amount, String frequency, String category) {
+        if (!emailEnabled) {
+            log.info("📧 [EMAIL DISABLED] Would send subscription cancellation email to {}", donorEmail);
+            return;
+        }
+        
         try {
             log.info("Sending subscription cancellation email to {}", donorEmail);
 
@@ -324,6 +364,11 @@ public class EmailService {
      */
     public void sendFeedbackNotification(String ticketId, String userName, String userEmail,
                                         String type, String subject, String message) {
+        if (!emailEnabled) {
+            log.info("📧 [EMAIL DISABLED] Would send feedback notification for ticket {} to support team", ticketId);
+            return;
+        }
+        
         try {
             log.info("Sending feedback notification for ticket {} to support team", ticketId);
 
@@ -351,6 +396,12 @@ public class EmailService {
      */
     public void sendAccountDeletionConfirmationEmail(String userName, String userEmail,
                                                     String confirmationToken, String confirmationUrl) {
+        if (!emailEnabled) {
+            log.info("📧 [EMAIL DISABLED] Would send account deletion confirmation email to {}", userEmail);
+            log.warn("⚠️ Account deletion requires email confirmation - user {} cannot delete account without email enabled", userEmail);
+            throw new RuntimeException("Email service is not configured. Account deletion requires email confirmation.");
+        }
+        
         try {
             log.info("Sending account deletion confirmation email to {}", userEmail);
 

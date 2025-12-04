@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { PostType, MediaFile, CreatePostRequest } from '../types/Post';
 import { createPost } from '../services/postApi';
@@ -62,6 +62,9 @@ const PostComposer: React.FC<PostComposerProps> = ({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Ref to hold the latest camera capture handler - ensures Portal always has fresh reference
+  const cameraCallbackRef = useRef<((file: File) => void) | null>(null);
 
   const maxContentLength = 2000;
   const maxMediaFiles = 4;
@@ -131,24 +134,78 @@ const PostComposer: React.FC<PostComposerProps> = ({
     }
   };
 
-  const handleCameraCapture = (file: File) => {
-    // Validate file count
-    if (mediaFiles.length >= maxMediaFiles) {
-      setError(`Maximum ${maxMediaFiles} media files allowed`);
+  // The actual camera capture handler - wrapped in useCallback for stability
+  const handleCameraCapture = useCallback((file: File) => {
+    console.log('📸 PostComposer: handleCameraCapture called');
+    console.log('📸 PostComposer: File received:', file.name, file.type, file.size);
+    
+    // Validate the file object
+    if (!file || !(file instanceof File)) {
+      console.error('📸 PostComposer: Invalid file object received!');
+      setError('Failed to capture media. Please try again.');
       return;
     }
+    
+    // Validate file has data
+    if (file.size === 0) {
+      console.error('📸 PostComposer: File is empty!');
+      setError('Captured media is empty. Please try again.');
+      return;
+    }
+    
+    // Validate file count using functional check to avoid stale closure
+    setMediaFiles(prev => {
+      if (prev.length >= maxMediaFiles) {
+        console.warn('📸 PostComposer: Max files reached');
+        setError(`Maximum ${maxMediaFiles} media files allowed`);
+        return prev; // Return unchanged
+      }
 
-    // Create media file object
-    const mediaFile: MediaFile = {
-      file,
-      url: URL.createObjectURL(file),
-      type: file.type.startsWith('image/') ? 'image' : 'video',
-      name: file.name,
-      size: file.size
-    };
+      // Create object URL for preview
+      const objectUrl = URL.createObjectURL(file);
+      console.log('📸 PostComposer: Created object URL:', objectUrl);
 
-    setMediaFiles(prev => [...prev, mediaFile]);
-  };
+      // Create media file object
+      const mediaFile: MediaFile = {
+        file,
+        url: objectUrl,
+        type: file.type.startsWith('image/') ? 'image' : 'video',
+        name: file.name,
+        size: file.size
+      };
+
+      console.log('📸 PostComposer: Adding media file to state:', {
+        name: mediaFile.name,
+        type: mediaFile.type,
+        size: mediaFile.size,
+        url: mediaFile.url
+      });
+      
+      const newFiles = [...prev, mediaFile];
+      console.log('📸 PostComposer: Media files count after update:', newFiles.length);
+      return newFiles;
+    });
+    
+    // Close camera modal
+    setShowCamera(false);
+    
+    console.log('📸 PostComposer: handleCameraCapture completed successfully');
+  }, [maxMediaFiles]);
+  
+  // Keep the ref updated with the latest handler
+  useEffect(() => {
+    cameraCallbackRef.current = handleCameraCapture;
+  }, [handleCameraCapture]);
+  
+  // Stable wrapper that always calls through the ref - survives Portal remounts
+  const stableCameraCapture = useCallback((file: File) => {
+    console.log('📸 PostComposer: stableCameraCapture called - routing through ref');
+    if (cameraCallbackRef.current) {
+      cameraCallbackRef.current(file);
+    } else {
+      console.error('📸 PostComposer: cameraCallbackRef.current is null!');
+    }
+  }, []);
 
   const removeMediaFile = (index: number) => {
     setMediaFiles(prev => {
@@ -549,7 +606,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
       {/* Camera Modal - Rendered via Portal to escape parent container */}
       {showCamera && ReactDOM.createPortal(
         <CameraCapture
-          onCapture={handleCameraCapture}
+          onCapture={stableCameraCapture}
           onClose={() => setShowCamera(false)}
         />,
         document.body

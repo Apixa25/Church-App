@@ -184,8 +184,34 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
 
   const handleUseCapture = () => {
     if (capturedFile) {
-      onCapture(capturedFile);
-      handleClose();
+      console.log('📸 CameraCapture: handleUseCapture called with file:', capturedFile.name, capturedFile.size);
+      
+      // IMPORTANT: Clone the file data before the component might unmount
+      // This ensures the file data is preserved even if React batches updates
+      const fileClone = new File([capturedFile], capturedFile.name, { type: capturedFile.type });
+      console.log('📸 CameraCapture: Created file clone:', fileClone.name, fileClone.size);
+      
+      // CRITICAL: Call onCapture FIRST, before any cleanup
+      // This ensures the parent receives the file before we do anything else
+      try {
+        console.log('📸 CameraCapture: Calling onCapture...');
+        onCapture(fileClone);
+        console.log('📸 CameraCapture: onCapture returned successfully');
+      } catch (error) {
+        console.error('📸 CameraCapture: Error calling onCapture:', error);
+      }
+      
+      // Now clean up AFTER the parent has the file
+      // Use setTimeout to let React process the state update first
+      setTimeout(() => {
+        console.log('📸 CameraCapture: Starting cleanup...');
+        stopCamera();
+        if (previewUrl) {
+          URL.revokeObjectURL(previewUrl);
+        }
+        // Call onClose to close the modal from our side as backup
+        onClose();
+      }, 100);
     }
   };
 
