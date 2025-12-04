@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import './BottomNav.css';
 
@@ -13,6 +14,12 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick, onCameraClick, showC
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const queryClient = useQueryClient();
+  
+  // 🔄 Double-tap detection for Home button refresh
+  const lastTapTimeRef = useRef<number>(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const DOUBLE_TAP_THRESHOLD = 300; // milliseconds
 
   if (!isMobile) {
     return null;
@@ -32,20 +39,51 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick, onCameraClick, showC
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // 🔄 Refresh handler - invalidates React Query cache to fetch fresh data
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    console.log('🔄 Double-tap detected! Refreshing feed...');
+    
+    // Scroll to top first
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Invalidate all queries to force fresh data fetch
+    // This will refetch dashboard data, posts, and all cached content
+    await queryClient.invalidateQueries();
+    
+    // Brief visual feedback
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 500);
+  };
+
+  // 🏠 Home button tap handler with double-tap detection
+  const handleHomeTap = () => {
+    const now = Date.now();
+    const timeSinceLastTap = now - lastTapTimeRef.current;
+    
+    if (isActive('/dashboard') && timeSinceLastTap < DOUBLE_TAP_THRESHOLD) {
+      // 🔄 DOUBLE TAP detected while on home - REFRESH!
+      handleRefresh();
+      lastTapTimeRef.current = 0; // Reset to prevent triple-tap issues
+    } else if (isActive('/dashboard')) {
+      // Single tap while on home - just scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      lastTapTimeRef.current = now;
+    } else {
+      // Not on home - navigate to home
+      goToHome();
+      lastTapTimeRef.current = now;
+    }
+  };
+
   const tabs = [
     {
       id: 'home',
       label: 'Home',
-      icon: '🏠',
+      icon: isRefreshing ? '🔄' : '🏠',
       path: '/dashboard',
-      onClick: () => {
-        // If already on home, just scroll to top
-        if (isActive('/dashboard')) {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else {
-          goToHome();
-        }
-      }
+      onClick: handleHomeTap
     },
     {
       id: 'quick-actions',
@@ -112,7 +150,9 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick, onCameraClick, showC
             onClick={tab.onClick}
             aria-label={tab.label}
           >
-            <span className="bottom-nav-icon">{tab.icon}</span>
+            <span className={`bottom-nav-icon ${tab.id === 'home' && isRefreshing ? 'refreshing' : ''}`}>
+              {tab.icon}
+            </span>
             <span className="bottom-nav-label">{tab.label}</span>
           </button>
         ))}

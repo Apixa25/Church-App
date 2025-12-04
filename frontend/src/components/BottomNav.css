@@ -67,6 +67,21 @@
   line-height: 1;
 }
 
+/* 🔄 Spinning animation for refresh icon */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.bottom-nav-icon.refreshing {
+  animation: spin 0.6s linear infinite;
+  display: inline-block;
+}
+
 .bottom-nav-label {
   font-size: 10px;
   font-weight: 500;
