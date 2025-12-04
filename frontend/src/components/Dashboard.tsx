@@ -406,8 +406,10 @@ const Dashboard: React.FC = () => {
             src={bannerImageUrl} 
             alt={primaryMembership?.organizationName || 'Church banner'} 
             className="banner-bg-image"
+            crossOrigin="anonymous"
             onError={(e) => {
               // Fallback to default banner if organization logo fails to load
+              console.warn('⚠️ Banner image failed to load, falling back to default:', bannerImageUrl);
               const target = e.target as HTMLImageElement;
               if (target.src !== '/dashboard-banner.jpg') {
                 target.src = '/dashboard-banner.jpg';
