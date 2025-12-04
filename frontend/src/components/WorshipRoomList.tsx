@@ -57,11 +57,25 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
   useEffect(() => {
     loadRooms();
 
-    // Subscribe to room list updates
-    const cleanup = websocketService.subscribeToWorshipRoom('global', handleRoomUpdate);
+    // Subscribe to room list updates with error handling
+    let cleanup: (() => void) | null = null;
+
+    try {
+      cleanup = websocketService.subscribeToWorshipRoom('global', handleRoomUpdate);
+    } catch (err) {
+      console.warn('WebSocket not connected yet for worship rooms:', err);
+      // Polling fallback - refresh room list periodically if WebSocket isn't available
+      const pollInterval = setInterval(() => {
+        loadRooms();
+      }, 30000); // Refresh every 30 seconds
+
+      cleanup = () => clearInterval(pollInterval);
+    }
 
     return () => {
-      cleanup();
+      if (cleanup) {
+        cleanup();
+      }
     };
   }, []);
 
