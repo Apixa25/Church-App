@@ -9,17 +9,19 @@
 /* Header */
 .worship-room-list-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   margin-bottom: 24px;
   padding-bottom: 20px;
   border-bottom: 1px solid var(--border-primary);
+  gap: 16px;
 }
 
 .header-left {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 .header-left h2 {
@@ -55,56 +57,60 @@
   transform: translateY(-1px);
 }
 
-/* Navigation Buttons */
-.header-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  align-items: center;
+/* Navigation Buttons - Using specific selector to override App.css */
+.worship-room-list .header-actions {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 12px !important;
+  width: 100% !important;
+  flex-wrap: unset !important;
 }
 
-.nav-btn {
-  padding: 15px 27px;
+.worship-room-list .nav-btn {
+  padding: 18px 24px;
   background: var(--bg-secondary);
   color: var(--text-secondary);
   border: 1px solid var(--border-primary);
-  border-radius: var(--border-radius-md);
-  font-size: 21px;
+  border-radius: var(--border-radius-pill);
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-base);
   display: flex;
   align-items: center;
-  gap: 9px;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  min-height: 56px;
 }
 
-.nav-btn:hover {
+.worship-room-list .nav-btn:hover {
   background: var(--bg-elevated);
   color: var(--text-primary);
   border-color: var(--border-glow);
   box-shadow: 0 0 8px var(--button-primary-glow);
 }
 
-.nav-btn.active {
+.worship-room-list .nav-btn.active {
   background: var(--gradient-primary);
   color: white;
   border-color: transparent;
   box-shadow: 0 2px 8px var(--button-primary-glow);
 }
 
-.nav-btn.active:hover {
+.worship-room-list .nav-btn.active:hover {
   background: linear-gradient(135deg, var(--accent-primary-dark), var(--accent-secondary-dark));
   box-shadow: var(--glow-blue);
 }
 
-.nav-btn.create-btn {
+.worship-room-list .nav-btn.create-btn {
   background: var(--gradient-primary);
   color: white;
   border-color: transparent;
   box-shadow: 0 2px 8px var(--button-primary-glow);
 }
 
-.nav-btn.create-btn:hover {
+.worship-room-list .nav-btn.create-btn:hover {
   background: linear-gradient(135deg, var(--accent-primary-dark), var(--accent-secondary-dark));
   box-shadow: var(--glow-blue);
   transform: translateY(-1px);
@@ -799,19 +805,10 @@
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   }
 
-  /* Apply grid layout for buttons on tablets */
-  .header-actions {
-    width: 100%;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-
-  .nav-btn {
-    width: 100%;
-    justify-content: center;
-    padding: 12px 20px;
-    font-size: 18px;
+  .worship-room-list .nav-btn {
+    padding: 16px 20px;
+    font-size: 13px;
+    min-height: 52px;
   }
 }
 
@@ -820,40 +817,33 @@
     padding: 16px;
   }
 
-  .worship-room-list-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .header-left {
+  .worship-room-list .header-left {
     width: 100%;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 12px;
   }
 
-  .header-left h2 {
+  .worship-room-list .header-left h2 {
     font-size: 24px;
+    text-align: center;
   }
 
-  .back-home-button {
+  .worship-room-list .back-home-button {
     width: 100%;
     justify-content: center;
   }
 
-  .header-actions {
-    width: 100%;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+  .worship-room-list .header-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
   }
 
-  .nav-btn {
-    width: 100%;
-    justify-content: center;
-    padding: 12px 16px;
-    font-size: 17px;
+  .worship-room-list .nav-btn {
+    padding: 14px 16px;
+    font-size: 12px;
+    min-height: 48px;
   }
 
   .rooms-grid {
@@ -870,19 +860,26 @@
     padding: 12px;
   }
 
-  .header-left h2 {
+  .worship-room-list .header-left h2 {
     font-size: 20px;
   }
 
-  .back-home-button {
+  .worship-room-list .back-home-button {
     font-size: 13px;
-    padding: 8px 12px;
+    padding: 10px 14px;
   }
 
-  .nav-btn {
-    font-size: 15px;
-    padding: 10px 14px;
-    white-space: nowrap;
+  .worship-room-list .header-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .worship-room-list .nav-btn {
+    font-size: 11px;
+    padding: 12px 10px;
+    min-height: 44px;
+    gap: 4px;
   }
 
   .room-thumbnail {
@@ -912,13 +909,13 @@
 }
 
 /* Accessibility */
-.nav-btn:focus,
-.join-room-button:focus,
-.primary-button:focus,
-.secondary-button:focus,
-.submit-button:focus,
-.cancel-button:focus,
-.back-home-button:focus {
+.worship-room-list .nav-btn:focus,
+.worship-room-list .join-room-button:focus,
+.worship-room-list .primary-button:focus,
+.worship-room-list .secondary-button:focus,
+.worship-room-list .submit-button:focus,
+.worship-room-list .cancel-button:focus,
+.worship-room-list .back-home-button:focus {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
   box-shadow: 0 0 0 4px rgba(91, 127, 255, 0.2);
