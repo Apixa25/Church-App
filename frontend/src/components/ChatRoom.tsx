@@ -188,6 +188,16 @@ const ChatRoom: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
+  // 📱 Scroll to bottom when chat initially loads to show message input
+  useEffect(() => {
+    if (!loading && messages.length > 0) {
+      // Small delay to ensure DOM has rendered
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    }
+  }, [loading, scrollToBottom]); // Only trigger when loading state changes
+
   const handleSendMessage = async (content: string, file?: File, parentMessageId?: string) => {
     if (!groupId || (!content.trim() && !file)) return;
 

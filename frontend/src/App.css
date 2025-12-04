@@ -2438,6 +2438,13 @@
   background: var(--bg-primary);
 }
 
+/* 📱 Mobile: Account for bottom navigation bar */
+@media (max-width: 768px) {
+  .chat-room {
+    height: calc(100vh - 60px - env(safe-area-inset-bottom, 0px));
+  }
+}
+
 .chat-header {
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-primary);
@@ -3741,7 +3748,8 @@
   }
 
   .chat-room {
-    height: 100vh;
+    /* 📱 Account for bottom navigation (60px + safe area) */
+    height: calc(100vh - 60px - env(safe-area-inset-bottom, 0px));
   }
   
   .chat-content {

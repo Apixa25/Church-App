@@ -489,10 +489,10 @@ const PostComposer: React.FC<PostComposerProps> = ({
             <button
               type="button"
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="toolbar-button"
-              title="Who sees this?"
+              className="toolbar-button group-select-button"
+              title="What group do you want to post to?"
             >
-              Who sees this?
+              What group do you want to post to?
             </button>
           </div>
 
