@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Camera, Video, RefreshCw, X } from 'lucide-react';
+import { Camera, Video, RefreshCw, X, Check, RotateCcw } from 'lucide-react';
 import './CameraCapture.css';
 
 interface CameraCaptureProps {
@@ -324,14 +324,16 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
         {/* Controls */}
         <div className="camera-controls">
           {previewUrl ? (
-            <>
-              <button className="control-btn secondary" onClick={handleRetake}>
-                Retake
+            <div className="preview-actions">
+              <button className="preview-btn retake-btn" onClick={handleRetake}>
+                <RotateCcw size={28} strokeWidth={2.5} />
+                <span>Retake</span>
               </button>
-              <button className="control-btn primary" onClick={handleUseCapture}>
-                Use This
+              <button className="preview-btn use-btn" onClick={handleUseCapture}>
+                <Check size={32} strokeWidth={3} />
+                <span>Use This</span>
               </button>
-            </>
+            </div>
           ) : (
             <>
               <button
