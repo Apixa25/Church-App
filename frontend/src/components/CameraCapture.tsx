@@ -41,13 +41,14 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
 
   // No orientation lock - allow both portrait and landscape
 
-  // Initialize camera
+  // Initialize camera - only restart when facingMode changes
+  // No need to restart when switching photo/video since audio is always requested
   useEffect(() => {
     startCamera();
     return () => {
       stopCamera();
     };
-  }, [facingMode, captureMode]);
+  }, [facingMode]); // Removed captureMode - no need to restart camera
 
   const startCamera = async () => {
     try {
@@ -59,13 +60,19 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
         stream.getTracks().forEach(track => track.stop());
       }
 
+      // Optimized for social media video (like X/Twitter, Instagram)
+      // 720p @ 30fps is the industry standard for mobile social apps
+      // This provides smooth capture while keeping files small for fast uploads
       const constraints: MediaStreamConstraints = {
         video: {
           facingMode: facingMode,
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
+          // 720p is optimal for social feeds - users watch on small screens anyway
+          width: { ideal: 1280, min: 640, max: 1280 },
+          height: { ideal: 720, min: 480, max: 720 },
+          // 30fps is smooth and battery-friendly (X, Instagram, TikTok all use 30fps default)
+          frameRate: { ideal: 30, min: 24, max: 30 }
         },
-        audio: true // Always request audio so it's ready for video recording
+        audio: true // Always request audio so switching to video mode doesn't restart camera
       };
 
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -300,7 +307,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
                 autoPlay
                 playsInline
                 muted
-                className="camera-video"
+                className={`camera-video ${facingMode === 'user' ? 'mirrored' : ''}`}
               />
               <canvas ref={canvasRef} style={{ display: 'none' }} />
 

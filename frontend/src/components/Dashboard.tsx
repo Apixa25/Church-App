@@ -62,6 +62,17 @@ const Dashboard: React.FC = () => {
   const [feedRefreshKey, setFeedRefreshKey] = useState(0); // Increment to trigger feed refresh
   const [showWarningsSection, setShowWarningsSection] = useState(false);
 
+  // 🔄 Listen for feedRefresh event from BottomNav double-tap
+  useEffect(() => {
+    const handleFeedRefresh = () => {
+      console.log('🔄 Dashboard: Received feedRefresh event - refreshing posts...');
+      setFeedRefreshKey(prev => prev + 1);
+    };
+
+    window.addEventListener('feedRefresh', handleFeedRefresh);
+    return () => window.removeEventListener('feedRefresh', handleFeedRefresh);
+  }, []);
+
   // Debug: Log render conditions
   useEffect(() => {
     console.log('🔍 Dashboard Render Debug:', {
