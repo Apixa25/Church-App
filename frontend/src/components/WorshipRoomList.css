@@ -60,6 +60,7 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .nav-btn {
@@ -797,6 +798,19 @@
   .rooms-grid {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   }
+
+  /* Apply grid layout for buttons on tablets */
+  .header-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .nav-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 @media (max-width: 768px) {
@@ -807,16 +821,37 @@
   .worship-room-list-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+    gap: 12px;
   }
 
   .header-left {
     width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .header-left h2 {
+    font-size: 24px;
+  }
+
+  .back-home-button {
+    width: 100%;
+    justify-content: center;
   }
 
   .header-actions {
     width: 100%;
-    justify-content: flex-start;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .nav-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 10px 12px;
+    font-size: 13px;
   }
 
   .rooms-grid {
@@ -829,13 +864,23 @@
 }
 
 @media (max-width: 480px) {
+  .worship-room-list {
+    padding: 12px;
+  }
+
   .header-left h2 {
-    font-size: 24px;
+    font-size: 20px;
+  }
+
+  .back-home-button {
+    font-size: 13px;
+    padding: 8px 12px;
   }
 
   .nav-btn {
-    font-size: 13px;
-    padding: 8px 14px;
+    font-size: 12px;
+    padding: 8px 10px;
+    white-space: nowrap;
   }
 
   .room-thumbnail {
