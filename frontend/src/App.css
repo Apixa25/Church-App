@@ -1954,16 +1954,16 @@
     flex-shrink: 0 !important;
   }
 
-  /* User info section - positioned lower-left for more background visibility */
+  /* User info section - positioned lower-left, moved down 3x more */
   .user-info {
     order: 2 !important;
     width: 100% !important;
     flex-direction: column !important;
     align-items: flex-start !important;
-    gap: 6px !important;
+    gap: 2px !important;
     justify-content: flex-end !important;
     margin-top: auto !important;
-    padding-top: 40px !important; /* Adjusted for smaller header */
+    padding-top: 120px !important; /* 3x the previous amount */
   }
 
   /* User details - left-aligned profile pic and welcome message */
@@ -1982,43 +1982,44 @@
     margin-bottom: 0 !important;
   }
 
-  /* Make profile picture LARGE on mobile */
+  /* Make profile picture on mobile - 75px */
   .dashboard-avatar-wrapper .profile-pic,
   .dashboard-avatar-wrapper .profile-pic-placeholder,
   .dashboard-avatar-wrapper .clickable-avatar,
   .dashboard-avatar-wrapper .profile-pic-container,
   .dashboard-avatar-wrapper .profile-pic-container .profile-pic-placeholder,
   .dashboard-avatar-wrapper .profile-pic-container img {
-    width: 120px !important;
-    height: 120px !important;
-    font-size: 48px !important;
-    border-width: 4px !important;
+    width: 75px !important;
+    height: 75px !important;
+    font-size: 30px !important;
+    border-width: 3px !important;
   }
 
-  /* Heart button positioning for large avatar */
+  /* Heart button positioning for 75px avatar */
   .dashboard-heart-button {
-    bottom: -10px !important;
-    left: -15px !important;
-    width: 50px !important;
-    height: 50px !important;
-    font-size: 28px !important;
+    bottom: -6px !important;
+    left: -10px !important;
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 18px !important;
   }
 
   /* Hearts count badge styling */
   .dashboard-hearts-count {
-    bottom: -10px !important;
-    left: -15px !important;
-    width: 50px !important;
-    height: 50px !important;
-    font-size: 18px !important;
+    bottom: -6px !important;
+    left: -10px !important;
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 12px !important;
   }
 
-  /* Welcome message - left-aligned below avatar */
+  /* Welcome message - left-aligned below avatar, closer to icons */
   .dashboard-header .user-name {
-    font-size: 18px !important;
+    font-size: 16px !important;
     text-align: left !important;
     width: 100% !important;
-    margin-top: 4px !important;
+    margin-top: 2px !important;
+    margin-bottom: 0 !important;
     padding-left: 4px !important;
   }
 
@@ -2029,7 +2030,7 @@
     display: flex !important;
     justify-content: space-evenly !important;
     gap: 0 !important;
-    margin-top: 12px !important;
+    margin-top: 15px !important; /* ~15px spacing from welcome text */
     padding: 0 !important;
     flex-wrap: nowrap !important;
   }
@@ -2174,36 +2175,37 @@
     font-size: 24px !important;
   }
 
-  /* Slightly smaller profile pic on very small screens */
+  /* Profile pic on small screens - 75px */
   .dashboard-avatar-wrapper .profile-pic,
   .dashboard-avatar-wrapper .profile-pic-placeholder,
   .dashboard-avatar-wrapper .clickable-avatar,
   .dashboard-avatar-wrapper .profile-pic-container,
   .dashboard-avatar-wrapper .profile-pic-container .profile-pic-placeholder,
   .dashboard-avatar-wrapper .profile-pic-container img {
-    width: 100px !important;
-    height: 100px !important;
-    font-size: 40px !important;
+    width: 75px !important;
+    height: 75px !important;
+    font-size: 30px !important;
+    border-width: 3px !important;
   }
 
   .dashboard-heart-button {
-    bottom: -8px !important;
-    left: -12px !important;
-    width: 44px !important;
-    height: 44px !important;
-    font-size: 24px !important;
+    bottom: -6px !important;
+    left: -10px !important;
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 18px !important;
   }
 
   .dashboard-hearts-count {
-    bottom: -8px !important;
-    left: -12px !important;
-    width: 44px !important;
-    height: 44px !important;
-    font-size: 16px !important;
+    bottom: -6px !important;
+    left: -10px !important;
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 12px !important;
   }
 
   .dashboard-header .user-name {
-    font-size: 16px !important;
+    font-size: 14px !important;
     margin-top: 6px !important;
   }
 
