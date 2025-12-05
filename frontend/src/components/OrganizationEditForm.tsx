@@ -50,9 +50,9 @@ const OrganizationEditForm: React.FC<OrganizationEditFormProps> = ({
         return;
       }
       
-      // Validate file size (5MB max)
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Image size must be less than 5MB');
+      // Validate file size (15MB max)
+      if (file.size > 15 * 1024 * 1024) {
+        setError('Image size must be less than 15MB');
         return;
       }
 
@@ -195,7 +195,7 @@ const OrganizationEditForm: React.FC<OrganizationEditFormProps> = ({
                       <UploadIcon>📷</UploadIcon>
                       <span>Click to upload logo</span>
                       <span style={{ fontSize: '12px', color: '#666' }}>
-                        PNG, JPG, GIF up to 5MB
+                        PNG, JPG, GIF up to 15MB
                       </span>
                     </LogoUploadLabel>
                   </LogoUploadArea>
