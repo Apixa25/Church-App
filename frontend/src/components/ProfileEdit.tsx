@@ -174,15 +174,32 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
   const handleProfilePicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        setError('Please select a valid image file');
+      // Validate file type - more permissive for mobile browsers (especially iOS)
+      // iOS devices may report empty type or application/octet-stream for camera photos
+      const fileType = file.type.toLowerCase();
+      const fileName = file.name.toLowerCase();
+      const validImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'];
+      const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
+      
+      // Check by MIME type first, then by extension as fallback for mobile
+      const hasValidType = fileType.startsWith('image/') || validImageTypes.includes(fileType);
+      const hasValidExtension = validImageExtensions.some(ext => fileName.endsWith(ext));
+      
+      // Accept if either type or extension is valid (mobile browsers may not report correct MIME type)
+      // Also accept empty/generic types if extension looks like an image (common on mobile)
+      const isLikelyImage = hasValidType || hasValidExtension || 
+        (fileType === '' && hasValidExtension) ||
+        (fileType === 'application/octet-stream' && hasValidExtension);
+      
+      if (!isLikelyImage) {
+        setError('Please select a valid image file (JPG, PNG, GIF, WebP, or HEIC)');
+        console.log('File rejected - type:', fileType, 'name:', fileName);
         return;
       }
 
-      // Validate file size (5MB max)
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Image file size must be less than 5MB');
+      // Validate file size (15MB max)
+      if (file.size > 15 * 1024 * 1024) {
+        setError('Image file size must be less than 15MB');
         return;
       }
 
@@ -195,15 +212,32 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
   const handleBannerImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        setError('Please select a valid image file');
+      // Validate file type - more permissive for mobile browsers (especially iOS)
+      // iOS devices may report empty type or application/octet-stream for camera photos
+      const fileType = file.type.toLowerCase();
+      const fileName = file.name.toLowerCase();
+      const validImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'];
+      const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
+      
+      // Check by MIME type first, then by extension as fallback for mobile
+      const hasValidType = fileType.startsWith('image/') || validImageTypes.includes(fileType);
+      const hasValidExtension = validImageExtensions.some(ext => fileName.endsWith(ext));
+      
+      // Accept if either type or extension is valid (mobile browsers may not report correct MIME type)
+      // Also accept empty/generic types if extension looks like an image (common on mobile)
+      const isLikelyImage = hasValidType || hasValidExtension || 
+        (fileType === '' && hasValidExtension) ||
+        (fileType === 'application/octet-stream' && hasValidExtension);
+      
+      if (!isLikelyImage) {
+        setError('Please select a valid image file (JPG, PNG, GIF, WebP, or HEIC)');
+        console.log('File rejected - type:', fileType, 'name:', fileName);
         return;
       }
 
-      // Validate file size (5MB max)
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Banner image file size must be less than 5MB');
+      // Validate file size (15MB max)
+      if (file.size > 15 * 1024 * 1024) {
+        setError('Banner image file size must be less than 15MB');
         return;
       }
 
@@ -552,7 +586,7 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
           </div>
 
           <div className="banner-help">
-            <small>Upload a wide image (JPG, PNG) up to 5MB. Recommended size: 1500x500px</small>
+            <small>Upload a wide image (JPG, PNG) up to 15MB. Recommended size: 1500x500px</small>
           </div>
         </div>
 
@@ -604,7 +638,7 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
           </div>
 
           <div className="pic-help">
-            <small>Upload a square image (JPG, PNG) up to 5MB for best results</small>
+            <small>Upload a square image (JPG, PNG) up to 15MB for best results</small>
           </div>
         </div>
 

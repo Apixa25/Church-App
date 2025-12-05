@@ -10,6 +10,19 @@
   gap: 0;
 }
 
+/* ============================================
+   WEB & TABLET ONLY STYLES (min-width: 769px)
+   Constrain layout similar to Prayer Requests page
+   ============================================ */
+
+@media (min-width: 769px) {
+  .calendar-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem;
+  }
+}
+
 /* Top Navigation - Back Home at very top */
 .page-top-nav {
   margin-bottom: 8px;
@@ -49,6 +62,17 @@
   gap: 8px;
 }
 
+@media (min-width: 769px) {
+  .calendar-header {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--border-radius-md);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-md);
+  }
+}
+
 .header-title {
   text-align: left;
 }
@@ -61,6 +85,18 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+@media (min-width: 769px) {
+  .header-title h1 {
+    font-size: 2rem;
+    margin: 0 0 0.5rem 0;
+  }
+  
+  .header-title p {
+    font-size: 1.1rem;
+    line-height: 1.4;
+  }
 }
 
 .header-title p {
@@ -81,6 +117,19 @@
   border-top: 1px solid var(--border-primary);
   border-radius: 0;
   box-shadow: none;
+}
+
+@media (min-width: 769px) {
+  .calendar-controls {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--border-radius-md);
+    padding: 1rem;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow-md);
+    border-top: 1px solid var(--border-primary);
+  }
 }
 
 .filters {
