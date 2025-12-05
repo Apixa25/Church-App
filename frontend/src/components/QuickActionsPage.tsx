@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import QuickActions from './QuickActions';
+import CommunityStatsModal from './CommunityStatsModal';
 import dashboardApi, { QuickAction } from '../services/dashboardApi';
 import { useActiveContext } from '../contexts/ActiveContextContext';
 import api from '../services/api';
@@ -10,6 +11,7 @@ import './QuickActionsPage.css';
 const QuickActionsPage: React.FC = () => {
   const navigate = useNavigate();
   const { hasAnyPrimary, activeOrganizationId } = useActiveContext();
+  const [showStatsModal, setShowStatsModal] = useState(false);
 
   // 🚀 React Query - Smart caching with stale-while-revalidate
   const { data: quickActions = [], isLoading } = useQuery({
@@ -71,11 +73,29 @@ const QuickActionsPage: React.FC = () => {
       </header>
 
       <main className="quick-actions-content">
+        {/* Community Stats Quick Access Button */}
+        <div className="community-stats-quick-action">
+          <button
+            className="community-stats-button"
+            onClick={() => setShowStatsModal(true)}
+            aria-label="View Community Stats"
+          >
+            <span className="stats-icon">📊</span>
+            <span className="stats-text">Community Stats</span>
+          </button>
+        </div>
+
         <QuickActions
           actions={quickActions}
           isLoading={isLoading}
         />
       </main>
+
+      {/* Community Stats Modal */}
+      <CommunityStatsModal
+        isOpen={showStatsModal}
+        onClose={() => setShowStatsModal(false)}
+      />
     </div>
   );
 };
