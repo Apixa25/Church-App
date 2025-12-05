@@ -465,3 +465,17 @@ textarea::placeholder {
 .glow-purple { box-shadow: var(--glow-purple); }
 .glow-teal { box-shadow: var(--glow-teal); }
 
+/* ========================================
+   MOBILE: HIDE BACK BUTTONS
+   Users can use the bottom navigation instead
+   ======================================== */
+
+@media (max-width: 768px) {
+  .back-button,
+  .back-home-button,
+  .back-home-btn,
+  .back-btn {
+    display: none !important;
+  }
+}
+
