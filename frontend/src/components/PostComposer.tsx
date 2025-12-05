@@ -54,7 +54,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string>('');
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
 
   // Multi-tenant post targeting
@@ -486,119 +486,107 @@ const PostComposer: React.FC<PostComposerProps> = ({
               📷
             </button>
 
-            <button
-              type="button"
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="toolbar-button group-select-button"
-              title="What group do you want to post to?"
+            {/* Organization selector - immediately visible so users know where post is going */}
+            <select
+              value={selectedOrganizationId || ''}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSelectedOrganizationId(
+                  value === '' ? '00000000-0000-0000-0000-000000000001' : (value || undefined)
+                );
+                setSelectedGroupId(undefined);
+              }}
+              className="toolbar-organization-select"
+              title="Post to organization"
             >
-              What group do you want to post to?
-            </button>
+              <option value="">🌐 Global Feed</option>
+              {allMemberships.map(membership => (
+                <option key={membership.id} value={membership.organizationId}>
+                  {membership.organizationName}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="toolbar-right">
-            <span className="media-count">
-              {mediaFiles.length}/{maxMediaFiles} media
-            </span>
+            <button
+              type="button"
+              onClick={() => setShowMoreOptions(true)}
+              className="toolbar-button more-options-button"
+              title="More options"
+            >
+              More Options
+            </button>
           </div>
         </div>
 
-        {/* Advanced Options */}
-        {showAdvanced && (
-          <div className="advanced-options">
-            {/* Multi-tenant: Organization selector */}
-            <div className="option-group">
-              <label htmlFor="organization">Post to Organization:</label>
-              <select
-                id="organization"
-                value={selectedOrganizationId || ''}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  // If empty string (Global Feed), use the actual Global Organization UUID
-                  setSelectedOrganizationId(
-                    value === '' ? '00000000-0000-0000-0000-000000000001' : (value || undefined)
-                  );
-                  setSelectedGroupId(undefined); // Reset group when org changes
-                }}
-                className="organization-select"
-              >
-                <option value="">🌐 Global Feed (All Organizations)</option>
-                {allMemberships.map(membership => (
-                  <option key={membership.id} value={membership.organizationId}>
-                    {membership.organizationName}
-                    {membership.organizationId === primaryMembership?.organizationId ? ' (Primary)' : ' (Secondary)'}
-                  </option>
-                ))}
-              </select>
-            </div>
+        {/* More Options Modal */}
+        {showMoreOptions && ReactDOM.createPortal(
+          <div className="more-options-modal-overlay" onClick={() => setShowMoreOptions(false)}>
+            <div className="more-options-modal" onClick={(e) => e.stopPropagation()}>
+              <h3>⚙️ More Options</h3>
+              
+              {/* Multi-tenant: Group selector */}
+              {unmutedGroups.length > 0 && (
+                <div className="option-group">
+                  <label htmlFor="group">Post to Group (optional):</label>
+                  <select
+                    id="group"
+                    value={selectedGroupId || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setSelectedGroupId(value || undefined);
+                      // Clear organization when group is selected (group takes priority)
+                      if (value) {
+                        setSelectedOrganizationId(undefined);
+                      }
+                    }}
+                    className="group-select"
+                  >
+                    <option value="">No specific group</option>
+                    {unmutedGroups.map(membership => (
+                      <option key={membership.id} value={membership.groupId}>
+                        {membership.groupName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
-            {/* Multi-tenant: Group selector */}
-            {unmutedGroups.length > 0 && (
               <div className="option-group">
-                <label htmlFor="group">Post to Group (optional):</label>
-                <select
-                  id="group"
-                  value={selectedGroupId || ''}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setSelectedGroupId(value || undefined);
-                    // Clear organization when group is selected (group takes priority)
-                    if (value) {
-                      setSelectedOrganizationId(undefined);
-                    }
-                  }}
-                  className="group-select"
-                >
-                  <option value="">No specific group</option>
-                  {unmutedGroups.map(membership => (
-                    <option key={membership.id} value={membership.groupId}>
-                      {membership.groupName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Category dropdown - Hidden for now, but keeping code for future use */}
-            {/* <div className="option-group">
-              <label htmlFor="category">Category:</label>
-              <select
-                id="category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="category-select"
-              >
-                <option value="">Select category (optional)</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div> */}
-
-            <div className="option-group">
-              <label htmlFor="location">Location:</label>
-              <input
-                id="location"
-                type="text"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="where was this?"
-                className="location-input"
-                maxLength={100}
-              />
-            </div>
-
-            <div className="option-group">
-              <label className="checkbox-label">
+                <label htmlFor="location">Location:</label>
                 <input
-                  type="checkbox"
-                  checked={isAnonymous}
-                  onChange={(e) => setIsAnonymous(e.target.checked)}
+                  id="location"
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="where was this?"
+                  className="location-input"
+                  maxLength={100}
                 />
-                Post anonymously
-              </label>
+              </div>
+
+              <div className="option-group">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={isAnonymous}
+                    onChange={(e) => setIsAnonymous(e.target.checked)}
+                  />
+                  Post anonymously
+                </label>
+              </div>
+
+              <button
+                type="button"
+                className="close-modal-button"
+                onClick={() => setShowMoreOptions(false)}
+              >
+                Close
+              </button>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* Hidden file input */}
