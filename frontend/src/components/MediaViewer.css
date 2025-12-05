@@ -124,6 +124,21 @@
   transition: opacity 0.3s ease;
 }
 
+/* Clickable media - click anywhere on image to close */
+.media-viewer-clickable {
+  cursor: pointer;
+  transition: opacity 0.3s ease, transform 0.2s ease;
+}
+
+.media-viewer-clickable:hover {
+  opacity: 0.95;
+  transform: scale(0.995);
+}
+
+.media-viewer-clickable:active {
+  transform: scale(0.99);
+}
+
 /* Loading Spinner */
 .media-viewer-loading {
   position: absolute;
