@@ -449,17 +449,71 @@ public class FileUploadService {
     }
     
     private String extractKeyFromUrl(String fileUrl) {
-        if (fileUrl == null || !fileUrl.contains(bucketName)) {
-            throw new IllegalArgumentException("Invalid file URL");
+        if (fileUrl == null || fileUrl.trim().isEmpty()) {
+            throw new IllegalArgumentException("Invalid file URL: URL is null or empty");
         }
         
-        // Extract the key part after the bucket name in the URL
-        String urlPattern = String.format("https://%s.s3.%s.amazonaws.com/", bucketName, region);
-        if (fileUrl.startsWith(urlPattern)) {
-            return fileUrl.substring(urlPattern.length());
+        // Handle CloudFront URLs first (e.g., https://d3loytcgioxpml.cloudfront.net/banner-images/originals/...)
+        if (cloudFrontDistributionUrl != null && !cloudFrontDistributionUrl.trim().isEmpty()) {
+            String baseUrl = cloudFrontDistributionUrl.trim();
+            // Remove trailing slash if present
+            if (baseUrl.endsWith("/")) {
+                baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+            }
+            
+            if (fileUrl.startsWith(baseUrl + "/") || fileUrl.startsWith(baseUrl)) {
+                // Extract key by removing the CloudFront base URL
+                String key = fileUrl.startsWith(baseUrl + "/") 
+                    ? fileUrl.substring(baseUrl.length() + 1)
+                    : fileUrl.substring(baseUrl.length());
+                // Remove query parameters if present
+                int queryIndex = key.indexOf('?');
+                if (queryIndex > 0) {
+                    key = key.substring(0, queryIndex);
+                }
+                return key;
+            }
         }
         
-        throw new IllegalArgumentException("URL format not recognized");
+        // Handle direct S3 URLs (e.g., https://bucket.s3.region.amazonaws.com/key)
+        String s3UrlPattern = String.format("https://%s.s3.%s.amazonaws.com/", bucketName, region);
+        if (fileUrl.startsWith(s3UrlPattern)) {
+            String key = fileUrl.substring(s3UrlPattern.length());
+            // Remove query parameters if present
+            int queryIndex = key.indexOf('?');
+            if (queryIndex > 0) {
+                key = key.substring(0, queryIndex);
+            }
+            return key;
+        }
+        
+        // Try alternative S3 URL format (s3-region instead of s3.region)
+        String altS3UrlPattern = String.format("https://%s.s3-%s.amazonaws.com/", bucketName, region);
+        if (fileUrl.startsWith(altS3UrlPattern)) {
+            String key = fileUrl.substring(altS3UrlPattern.length());
+            // Remove query parameters if present
+            int queryIndex = key.indexOf('?');
+            if (queryIndex > 0) {
+                key = key.substring(0, queryIndex);
+            }
+            return key;
+        }
+        
+        // If it's already just a key (no URL protocol), return as-is
+        if (!fileUrl.contains("://")) {
+            return fileUrl;
+        }
+        
+        // Check if it's an external URL (e.g., Google OAuth profile images)
+        // These shouldn't be deleted from S3 as they're hosted externally
+        if (fileUrl.startsWith("https://lh3.googleusercontent.com") ||
+            fileUrl.startsWith("https://www.google.com") ||
+            (fileUrl.startsWith("http://") || fileUrl.startsWith("https://"))) {
+            // If we get here and it's not an S3/CloudFront URL, it's an external URL
+            throw new IllegalArgumentException("Cannot delete external URL (not an S3/CloudFront URL): " + fileUrl);
+        }
+        
+        throw new IllegalArgumentException("URL format not recognized: " + fileUrl);
     }
     
     /**

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { useFeedFilter } from '../contexts/FeedFilterContext';
 import { useGroup } from '../contexts/GroupContext';
 import { useActiveContext } from '../contexts/ActiveContextContext';
@@ -74,6 +75,48 @@ const DropdownIcon = styled.span<{ $isOpen: boolean }>`
   transform: ${props => props.$isOpen ? 'rotate(180deg)' : 'rotate(0deg)'};
 `;
 
+/* 
+ * iOS Safari Fix: Using React Portal to render dropdown outside the dashboard-header DOM tree.
+ * This completely escapes the stacking context created by backdrop-filter: blur() on iOS Safari.
+ * Only visible on mobile (max-width: 480px) - desktop uses the regular Dropdown.
+ */
+const PortalOverlay = styled.div<{ $isOpen: boolean }>`
+  display: none; /* Hidden on desktop */
+  
+  @media (max-width: 480px) {
+    display: ${props => props.$isOpen ? 'block' : 'none'};
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99998;
+  }
+`;
+
+const PortalDropdown = styled.div<{ $isOpen: boolean }>`
+  display: none; /* Hidden on desktop */
+  
+  @media (max-width: 480px) {
+    display: ${props => props.$isOpen ? 'block' : 'none'};
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100% - 32px);
+    max-width: 400px;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    z-index: 99999;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+`;
+
+/* Desktop-only: Non-portal dropdown for desktop browsers (no iOS Safari issues) */
 const Dropdown = styled.div<{ $isOpen: boolean }>`
   position: absolute;
   top: calc(100% + 8px);
@@ -91,15 +134,8 @@ const Dropdown = styled.div<{ $isOpen: boolean }>`
   transition: all 0.2s;
 
   @media (max-width: 480px) {
-    position: fixed;
-    top: calc(30vh - 140px); /* Move up an additional 140 pixels total */
-    left: 16px;
-    right: 16px;
-    min-width: auto;
-    max-width: none;
-    max-height: none; /* Remove height restriction */
-    overflow-y: visible; /* No scrolling - show full content */
-    transform: ${props => props.$isOpen ? 'translateY(0) scale(1)' : 'translateY(-20px) scale(0.95)'};
+    /* Hide on mobile - use portal version instead */
+    display: none !important;
   }
 `;
 
@@ -430,6 +466,125 @@ const FeedFilterSelector: React.FC = () => {
     );
   }
 
+  // Shared dropdown content - used by both desktop and mobile versions
+  const dropdownContent = (
+    <>
+      <DropdownHeader>
+        <DropdownTitle>Filter Your Feed</DropdownTitle>
+        <DropdownSubtitle>
+          Choose what posts you want to see
+        </DropdownSubtitle>
+      </DropdownHeader>
+
+      {error && <ErrorMessage>{error}</ErrorMessage>}
+
+      <DropdownSection>
+        <FilterOption
+          $isActive={tempFilter === 'EVERYTHING'}
+          onClick={() => handleFilterChange('EVERYTHING')}
+        >
+          <RadioCircle $isActive={tempFilter === 'EVERYTHING'} />
+          <OptionContent>
+            <OptionTitle>🌐 Everything</OptionTitle>
+            <OptionDescription>
+              See posts from your Church, Family, Groups, the Global Feed, and users you follow
+            </OptionDescription>
+          </OptionContent>
+        </FilterOption>
+
+        <FilterOption
+          $isActive={tempFilter === 'ALL'}
+          onClick={() => handleFilterChange('ALL')}
+        >
+          <RadioCircle $isActive={tempFilter === 'ALL'} />
+          <OptionContent>
+            <OptionTitle>📋 All My Groups</OptionTitle>
+            <OptionDescription>
+              {(hasChurchPrimary || hasFamilyPrimary)
+                ? 'See posts from your Church, Family, all Groups you\'re in, and users you follow'
+                : 'See posts from all groups you\'re in and users you follow'}
+            </OptionDescription>
+          </OptionContent>
+        </FilterOption>
+
+        <FilterOption
+          $isActive={tempFilter === 'PRIMARY_ONLY'}
+          onClick={() => handleFilterChange('PRIMARY_ONLY')}
+          disabled={!hasChurchPrimary && !hasFamilyPrimary}
+        >
+          <RadioCircle $isActive={tempFilter === 'PRIMARY_ONLY'} />
+          <OptionContent>
+            <OptionTitle>
+              {activeContext === 'church' ? '⛪ Church Only' : 
+               activeContext === 'family' ? '🏠 Family Only' : 
+               '📍 Active Context Only'}
+            </OptionTitle>
+            <OptionDescription>
+              {(hasChurchPrimary || hasFamilyPrimary)
+                ? `See only posts from ${activeOrganizationName || 'your active organization'}`
+                : 'Set a Church or Family primary to use this filter'}
+            </OptionDescription>
+          </OptionContent>
+        </FilterOption>
+
+        <FilterOption
+          $isActive={tempFilter === 'SELECTED_GROUPS'}
+          onClick={() => handleFilterChange('SELECTED_GROUPS')}
+          disabled={unmutedGroups.length === 0}
+        >
+          <RadioCircle $isActive={tempFilter === 'SELECTED_GROUPS'} />
+          <OptionContent>
+            <OptionTitle>👥 Selected Groups Only</OptionTitle>
+            <OptionDescription>
+              {unmutedGroups.length > 0
+                ? 'Choose specific groups to see in your feed'
+                : 'Join some groups first to use this filter'}
+            </OptionDescription>
+          </OptionContent>
+        </FilterOption>
+      </DropdownSection>
+
+      {tempFilter === 'SELECTED_GROUPS' && unmutedGroups.length > 0 && (
+        <GroupSelectionSection>
+          <GroupSelectionTitle>
+            Select Groups ({tempSelectedGroups.length} selected)
+          </GroupSelectionTitle>
+          <GroupList>
+            {unmutedGroups.length === 0 ? (
+              <EmptyState>
+                You haven't joined any groups yet
+              </EmptyState>
+            ) : (
+              unmutedGroups.map(membership => (
+                <GroupItem key={membership.id}>
+                  <Checkbox
+                    type="checkbox"
+                    checked={tempSelectedGroups.includes(membership.groupId)}
+                    onChange={() => handleGroupToggle(membership.groupId)}
+                  />
+                  <GroupName>{membership.groupName || 'Unknown Group'}</GroupName>
+                  <GroupMemberCount>
+                    {membership.role.toLowerCase().charAt(0).toUpperCase() +
+                     membership.role.toLowerCase().slice(1)}
+                  </GroupMemberCount>
+                </GroupItem>
+              ))
+            )}
+          </GroupList>
+        </GroupSelectionSection>
+      )}
+
+      <DropdownSection>
+        <ApplyButton
+          onClick={hasChanges ? handleApply : () => setIsOpen(false)}
+          disabled={applying}
+        >
+          {applying ? 'Applying...' : hasChanges ? 'Apply Filter' : 'No Changes'}
+        </ApplyButton>
+      </DropdownSection>
+    </>
+  );
+
   return (
     <SelectorContainer ref={dropdownRef}>
       <SelectorButton onClick={() => setIsOpen(!isOpen)}>
@@ -439,121 +594,21 @@ const FeedFilterSelector: React.FC = () => {
         <DropdownIcon $isOpen={isOpen}>▼</DropdownIcon>
       </SelectorButton>
 
+      {/* Desktop: Regular dropdown (no iOS Safari issues on desktop) */}
       <Dropdown $isOpen={isOpen}>
-        <DropdownHeader>
-          <DropdownTitle>Filter Your Feed</DropdownTitle>
-          <DropdownSubtitle>
-            Choose what posts you want to see
-          </DropdownSubtitle>
-        </DropdownHeader>
-
-        {error && <ErrorMessage>{error}</ErrorMessage>}
-
-        <DropdownSection>
-          <FilterOption
-            $isActive={tempFilter === 'EVERYTHING'}
-            onClick={() => handleFilterChange('EVERYTHING')}
-          >
-            <RadioCircle $isActive={tempFilter === 'EVERYTHING'} />
-            <OptionContent>
-              <OptionTitle>🌐 Everything</OptionTitle>
-              <OptionDescription>
-                See posts from your Church, Family, Groups, the Global Feed, and users you follow
-              </OptionDescription>
-            </OptionContent>
-          </FilterOption>
-
-          <FilterOption
-            $isActive={tempFilter === 'ALL'}
-            onClick={() => handleFilterChange('ALL')}
-          >
-            <RadioCircle $isActive={tempFilter === 'ALL'} />
-            <OptionContent>
-              <OptionTitle>📋 All My Groups</OptionTitle>
-              <OptionDescription>
-                {(hasChurchPrimary || hasFamilyPrimary)
-                  ? 'See posts from your Church, Family, all Groups you\'re in, and users you follow'
-                  : 'See posts from all groups you\'re in and users you follow'}
-              </OptionDescription>
-            </OptionContent>
-          </FilterOption>
-
-          <FilterOption
-            $isActive={tempFilter === 'PRIMARY_ONLY'}
-            onClick={() => handleFilterChange('PRIMARY_ONLY')}
-            disabled={!hasChurchPrimary && !hasFamilyPrimary}
-          >
-            <RadioCircle $isActive={tempFilter === 'PRIMARY_ONLY'} />
-            <OptionContent>
-              <OptionTitle>
-                {activeContext === 'church' ? '⛪ Church Only' : 
-                 activeContext === 'family' ? '🏠 Family Only' : 
-                 '📍 Active Context Only'}
-              </OptionTitle>
-              <OptionDescription>
-                {(hasChurchPrimary || hasFamilyPrimary)
-                  ? `See only posts from ${activeOrganizationName || 'your active organization'}`
-                  : 'Set a Church or Family primary to use this filter'}
-              </OptionDescription>
-            </OptionContent>
-          </FilterOption>
-
-          <FilterOption
-            $isActive={tempFilter === 'SELECTED_GROUPS'}
-            onClick={() => handleFilterChange('SELECTED_GROUPS')}
-            disabled={unmutedGroups.length === 0}
-          >
-            <RadioCircle $isActive={tempFilter === 'SELECTED_GROUPS'} />
-            <OptionContent>
-              <OptionTitle>👥 Selected Groups Only</OptionTitle>
-              <OptionDescription>
-                {unmutedGroups.length > 0
-                  ? 'Choose specific groups to see in your feed'
-                  : 'Join some groups first to use this filter'}
-              </OptionDescription>
-            </OptionContent>
-          </FilterOption>
-        </DropdownSection>
-
-        {tempFilter === 'SELECTED_GROUPS' && unmutedGroups.length > 0 && (
-          <GroupSelectionSection>
-            <GroupSelectionTitle>
-              Select Groups ({tempSelectedGroups.length} selected)
-            </GroupSelectionTitle>
-            <GroupList>
-              {unmutedGroups.length === 0 ? (
-                <EmptyState>
-                  You haven't joined any groups yet
-                </EmptyState>
-              ) : (
-                unmutedGroups.map(membership => (
-                  <GroupItem key={membership.id}>
-                    <Checkbox
-                      type="checkbox"
-                      checked={tempSelectedGroups.includes(membership.groupId)}
-                      onChange={() => handleGroupToggle(membership.groupId)}
-                    />
-                    <GroupName>{membership.groupName || 'Unknown Group'}</GroupName>
-                    <GroupMemberCount>
-                      {membership.role.toLowerCase().charAt(0).toUpperCase() +
-                       membership.role.toLowerCase().slice(1)}
-                    </GroupMemberCount>
-                  </GroupItem>
-                ))
-              )}
-            </GroupList>
-          </GroupSelectionSection>
-        )}
-
-        <DropdownSection>
-          <ApplyButton
-            onClick={hasChanges ? handleApply : () => setIsOpen(false)}
-            disabled={applying}
-          >
-            {applying ? 'Applying...' : hasChanges ? 'Apply Filter' : 'No Changes'}
-          </ApplyButton>
-        </DropdownSection>
+        {dropdownContent}
       </Dropdown>
+
+      {/* Mobile: Portal-based dropdown - renders at document.body level to escape iOS Safari stacking context */}
+      {ReactDOM.createPortal(
+        <>
+          <PortalOverlay $isOpen={isOpen} onClick={() => setIsOpen(false)} />
+          <PortalDropdown $isOpen={isOpen}>
+            {dropdownContent}
+          </PortalDropdown>
+        </>,
+        document.body
+      )}
     </SelectorContainer>
   );
 };
