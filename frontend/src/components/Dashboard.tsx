@@ -419,7 +419,10 @@ const Dashboard: React.FC = () => {
             src={bannerImageUrl} 
             alt={primaryMembership?.organizationName || 'Church banner'} 
             className="banner-bg-image"
-            crossOrigin="anonymous"
+            // Only use crossOrigin in production - localhost has CORS issues with CloudFront
+            {...(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+              ? {} 
+              : { crossOrigin: 'anonymous' })}
             onError={(e) => {
               // Fallback to default banner if organization logo fails to load
               console.warn('⚠️ Banner image failed to load, falling back to default:', bannerImageUrl);

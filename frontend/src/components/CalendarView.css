@@ -78,6 +78,19 @@
   margin-top: 0 !important;
 }
 
+/* ============================================
+   WEB & TABLET ONLY STYLES (min-width: 769px)
+   Constrain calendar width similar to Prayer Requests
+   ============================================ */
+
+@media (min-width: 769px) {
+  .datepicker-container {
+    max-width: 800px;
+    margin: 0 auto !important;
+    padding: 24px;
+  }
+}
+
 .datepicker-container::after {
   display: none;
 }
@@ -89,6 +102,12 @@
   border: none !important;
   font-family: inherit !important;
   background: transparent !important;
+}
+
+@media (min-width: 769px) {
+  .custom-calendar {
+    max-width: 100% !important;
+  }
 }
 
 .custom-calendar .react-datepicker__month-container {
@@ -200,6 +219,14 @@
   font-size: 0.95rem !important;
 }
 
+@media (min-width: 769px) {
+  .custom-calendar .react-datepicker__day {
+    height: 60px !important;
+    line-height: 60px !important;
+    font-size: 1.1rem !important;
+  }
+}
+
 .custom-calendar .react-datepicker__day:hover {
   background: rgba(91, 127, 255, 0.25) !important;
   color: var(--text-primary) !important;
@@ -259,6 +286,18 @@
   flex-shrink: 0;
 }
 
+@media (min-width: 769px) {
+  .event-indicators {
+    gap: 6px;
+    margin-top: 6px;
+  }
+  
+  .event-dot {
+    width: 10px;
+    height: 10px;
+  }
+}
+
 .more-events {
   font-size: 0.65rem;
   color: var(--text-tertiary);
@@ -298,6 +337,20 @@
   flex: 1;
   min-width: 0;
   max-width: 100%;
+}
+
+@media (min-width: 769px) {
+  .selected-date-events {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--border-radius-md);
+    padding: 1.5rem;
+    margin-top: 1rem;
+    box-shadow: var(--shadow-md);
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 
 .selected-date-events::before {
@@ -430,6 +483,13 @@
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--border-primary);
   position: relative;
+}
+
+@media (min-width: 769px) {
+  .week-view {
+    max-width: 800px;
+    margin: 0 auto;
+  }
 }
 
 .week-header {
@@ -590,6 +650,13 @@
   border: 1px solid var(--border-primary);
 }
 
+@media (min-width: 769px) {
+  .day-view {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+}
+
 .day-header {
   display: flex;
   justify-content: space-between;
@@ -692,6 +759,27 @@
   
   .selected-date-events {
     max-height: none;
+  }
+}
+
+/* Desktop-only enhancements (screens 1025px and wider) */
+@media (min-width: 1025px) {
+  .datepicker-container {
+    max-width: 900px;
+  }
+  
+  .selected-date-events {
+    max-width: 900px;
+  }
+  
+  .week-view,
+  .day-view {
+    max-width: 900px;
+  }
+  
+  .custom-calendar .react-datepicker__day {
+    height: 70px !important;
+    line-height: 70px !important;
   }
 }
 
