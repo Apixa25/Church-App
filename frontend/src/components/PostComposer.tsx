@@ -39,8 +39,8 @@ const PostComposer: React.FC<PostComposerProps> = ({
   quoteTo,
   initialMediaFile
 }) => {
-  // Multi-tenant contexts
-  const { primaryMembership, allMemberships } = useOrganization();
+  // Multi-tenant contexts - Dual Primary System
+  const { primaryMembership, familyPrimary, allMemberships } = useOrganization();
   const { unmutedGroups } = useGroup();
   
   // 🚀 Background upload queue - allows users to navigate while uploads continue
@@ -57,9 +57,9 @@ const PostComposer: React.FC<PostComposerProps> = ({
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
 
-  // Multi-tenant post targeting
+  // Multi-tenant post targeting - Default to Family Primary if available, otherwise Church Primary
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string | undefined>(
-    primaryMembership?.organizationId
+    familyPrimary?.organizationId || primaryMembership?.organizationId
   );
   const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(undefined);
 
@@ -95,6 +95,17 @@ const PostComposer: React.FC<PostComposerProps> = ({
       console.log('📸 PostComposer: Initial media file added successfully');
     }
   }, [initialMediaFile]);
+
+  // Sync selected organization when memberships load (Family Primary takes precedence)
+  useEffect(() => {
+    // Only update if no organization is currently selected and we have memberships
+    if (!selectedOrganizationId && (familyPrimary || primaryMembership)) {
+      const defaultOrgId = familyPrimary?.organizationId || primaryMembership?.organizationId;
+      if (defaultOrgId) {
+        setSelectedOrganizationId(defaultOrgId);
+      }
+    }
+  }, [familyPrimary, primaryMembership, selectedOrganizationId]);
 
   const postTypes = [
     { type: PostType.GENERAL, label: 'General Post', icon: '💬', description: 'Share thoughts with your community' },
