@@ -33,6 +33,46 @@ if (Test-Path $envFile) {
     }
     
     Write-Host "`nEnvironment variables loaded!`n" -ForegroundColor Green
+    
+    # Check if the application port is already in use
+    $appPort = [Environment]::GetEnvironmentVariable("PORT", "Process")
+    if ([string]::IsNullOrEmpty($appPort)) {
+        $appPort = "8083"  # Default port
+    }
+    
+    Write-Host "Checking if port $appPort is available...`n" -ForegroundColor Cyan
+    
+    $portInUse = Get-NetTCPConnection -LocalPort $appPort -State Listen -ErrorAction SilentlyContinue
+    if ($portInUse) {
+        $pid = $portInUse.OwningProcess
+        $process = Get-Process -Id $pid -ErrorAction SilentlyContinue
+        
+        Write-Host "  [WARNING] Port $appPort is already in use!" -ForegroundColor Yellow
+        if ($process) {
+            Write-Host "  Process: $($process.ProcessName) (PID: $pid)" -ForegroundColor Yellow
+            Write-Host "  Memory: $([math]::Round($process.WorkingSet64 / 1MB, 2)) MB" -ForegroundColor Yellow
+        } else {
+            Write-Host "  Process ID: $pid (process details unavailable)" -ForegroundColor Yellow
+        }
+        
+        Write-Host "`n  Would you like to kill this process? (Y/N): " -ForegroundColor Cyan -NoNewline
+        $response = Read-Host
+        
+        if ($response -eq 'Y' -or $response -eq 'y') {
+            try {
+                Stop-Process -Id $pid -Force -ErrorAction Stop
+                Write-Host "  [OK] Process $pid terminated successfully!`n" -ForegroundColor Green
+                Start-Sleep -Seconds 1  # Brief pause to let port release
+            } catch {
+                Write-Host "  [ERROR] Failed to kill process: $_`n" -ForegroundColor Red
+            }
+        } else {
+            Write-Host "  [INFO] Process left running. You may need to stop it manually or use a different port.`n" -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "  [OK] Port $appPort is available!`n" -ForegroundColor Green
+    }
+    
     Write-Host "You can now run: .\mvnw.cmd spring-boot:run`n" -ForegroundColor Cyan
 } else {
     Write-Host "`nERROR: Neither .env.local nor .env file found!" -ForegroundColor Red
