@@ -507,6 +507,8 @@
     flex-direction: column;
     gap: 2px; /* Reduced from 3px to 2px - further reduction */
     align-items: center; /* Center children horizontally */
+    margin-top: 5px !important; /* 🆕 5px space ABOVE the Activity Feed section */
+    padding-bottom: 2px !important; /* 🆕 Reduced to ~half - padding below the ContextSwitcher */
   }
 
   /* Make all direct children of feed-view-toggle 90% width on mobile */
