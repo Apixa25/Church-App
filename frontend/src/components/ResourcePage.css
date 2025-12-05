@@ -3,42 +3,46 @@
 .resource-page {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 12px;
   background: transparent;
   min-height: 100vh;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .resource-page-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 30px;
-  padding-bottom: 20px;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
   border-bottom: 2px solid var(--border-primary);
 }
 
 .resource-page-title h1 {
-  font-size: 2.5rem;
+  font-size: 1.75rem;
   color: var(--text-primary);
-  margin: 0 0 8px 0;
+  margin: 0 0 4px 0;
   font-weight: 700;
 }
 
 .resource-page-title p {
   color: var(--text-secondary);
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   margin: 0;
 }
 
 .resource-navigation {
   display: flex;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .resource-page-actions {
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
 }
 
 .resource-page-content {
@@ -81,17 +85,21 @@
 
 /* Button Styles */
 .btn {
-  padding: 12px 24px;
+  padding: 10px 16px;
   border: none;
   border-radius: var(--border-radius-md);
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-base);
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .btn:hover {
@@ -198,38 +206,67 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .resource-page {
-    padding: 16px;
+    padding: 10px;
   }
   
   .resource-page-header {
     flex-direction: column;
-    gap: 16px;
+    gap: 10px;
     align-items: stretch;
   }
   
   .resource-page-title h1 {
-    font-size: 2rem;
+    font-size: 1.5rem;
   }
   
   .resource-page-actions {
     justify-content: stretch;
+    flex-wrap: wrap;
   }
   
   .btn {
-    flex: 1;
+    flex: 1 1 calc(50% - 4px);
+    min-width: 120px;
     justify-content: center;
-    padding: 14px 20px;
+    padding: 10px 12px;
+    font-size: 0.85rem;
   }
 }
 
 @media (max-width: 480px) {
+  .resource-page {
+    padding: 8px;
+  }
+  
   .resource-page-title h1 {
-    font-size: 1.75rem;
+    font-size: 1.35rem;
+  }
+  
+  .resource-page-title p {
+    font-size: 0.85rem;
+  }
+  
+  .resource-page-header {
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+  }
+  
+  .resource-page-actions {
+    gap: 6px;
+  }
+  
+  .btn {
+    flex: 1 1 calc(50% - 3px);
+    min-width: 100px;
+    padding: 8px 10px;
+    font-size: 0.8rem;
   }
   
   .error-message {
-    padding: 12px 16px;
+    padding: 10px 12px;
     flex-direction: column;
     text-align: center;
+    gap: 8px;
   }
 }
