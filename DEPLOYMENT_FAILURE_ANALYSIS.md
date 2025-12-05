@@ -198,3 +198,4 @@ Before deploying again:
 - Port: 5000 (configured in .ebextensions)
 - Health check: `/api/actuator/health`
 
+

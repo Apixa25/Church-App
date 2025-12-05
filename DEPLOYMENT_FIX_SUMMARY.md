@@ -164,3 +164,4 @@ java -jar target/church-app-backend-0.0.1-SNAPSHOT.jar
 - App functionality is not affected by MediaConvert configuration
 - Can enable MediaConvert later by just adding environment variable
 
+
