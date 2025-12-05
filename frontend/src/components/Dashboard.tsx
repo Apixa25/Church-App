@@ -389,10 +389,23 @@ const Dashboard: React.FC = () => {
                             activeOrganizationName?.includes('The Gathering') ||
                             activeOrganizationName?.includes('Gathering Community');
   
+  // 🖼️ DEBUG: Log banner image decision
+  console.log('🖼️ Banner Image Debug:', {
+    activeContext,
+    activeOrganizationLogo,
+    activeOrganizationName,
+    activeMembershipType: activeMembership?.organizationType,
+    activeMembershipLogoUrl: activeMembership?.organizationLogoUrl,
+    isGatheringGlobal,
+    willUseOrgLogo: activeOrganizationLogo && !isGatheringGlobal
+  });
+  
   // Use active context's organization logo as background if available and not The Gathering
   const bannerImageUrl = activeOrganizationLogo && !isGatheringGlobal 
     ? activeOrganizationLogo 
     : '/dashboard-banner.jpg';
+  
+  console.log('🖼️ Final bannerImageUrl:', bannerImageUrl);
     
   // Get display name for header - uses active context
   const displayOrgName = activeOrganizationName || 'The Gathering';
