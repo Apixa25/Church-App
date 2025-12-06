@@ -80,7 +80,6 @@ const ClickableAvatar: React.FC<ClickableAvatarProps> = ({
           src={profilePicUrl}
           alt={isAnonymous ? 'Anonymous' : userName}
           className="avatar-image"
-          crossOrigin="anonymous"
           referrerPolicy="no-referrer"
           onError={(e) => {
             // 🛡️ Fallback: If Google OAuth image fails to load, show placeholder

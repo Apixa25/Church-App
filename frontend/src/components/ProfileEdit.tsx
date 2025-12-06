@@ -194,18 +194,36 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
       if (!isLikelyImage) {
         setError('Please select a valid image file (JPG, PNG, GIF, WebP, or HEIC)');
         console.log('File rejected - type:', fileType, 'name:', fileName);
+        // Reset input value so user can try again
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
         return;
       }
 
       // Validate file size (15MB max)
       if (file.size > 15 * 1024 * 1024) {
         setError('Image file size must be less than 15MB');
+        // Reset input value so user can try again
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
         return;
+      }
+
+      // Clean up previous preview URL if it exists
+      if (profilePicPreview && profilePicPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(profilePicPreview);
       }
 
       setProfilePicFile(file);
       setProfilePicPreview(URL.createObjectURL(file));
       setError('');
+      
+      // Reset input value to allow selecting the same file again if needed
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -232,18 +250,36 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
       if (!isLikelyImage) {
         setError('Please select a valid image file (JPG, PNG, GIF, WebP, or HEIC)');
         console.log('File rejected - type:', fileType, 'name:', fileName);
+        // Reset input value so user can try again
+        if (bannerInputRef.current) {
+          bannerInputRef.current.value = '';
+        }
         return;
       }
 
       // Validate file size (15MB max)
       if (file.size > 15 * 1024 * 1024) {
         setError('Banner image file size must be less than 15MB');
+        // Reset input value so user can try again
+        if (bannerInputRef.current) {
+          bannerInputRef.current.value = '';
+        }
         return;
+      }
+
+      // Clean up previous preview URL if it exists
+      if (bannerImagePreview && bannerImagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(bannerImagePreview);
       }
 
       setBannerImageFile(file);
       setBannerImagePreview(URL.createObjectURL(file));
       setError('');
+      
+      // Reset input value to allow selecting the same file again if needed
+      if (bannerInputRef.current) {
+        bannerInputRef.current.value = '';
+      }
     }
   };
 
@@ -383,13 +419,22 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
       let bannerImageUrl = (user as any).bannerImageUrl || (externalProfile as any)?.bannerImageUrl;
       if (bannerImageFile) {
         try {
+          console.log('🖼️ Uploading banner image...');
           const uploadResult = await uploadBannerImage(bannerImageFile);
           bannerImageUrl = uploadResult;
+          console.log('✅ Banner image uploaded successfully:', uploadResult);
         } catch (bannerErr: any) {
+          console.error('❌ Banner upload error:', bannerErr);
           // If banner upload endpoint doesn't exist yet, use profile picture endpoint as fallback
-          console.warn('Banner upload endpoint not available, using profile picture endpoint:', bannerErr);
-          const uploadResult = await uploadProfilePicture(bannerImageFile);
-          bannerImageUrl = uploadResult;
+          try {
+            console.warn('⚠️ Banner upload endpoint not available, using profile picture endpoint as fallback');
+            const uploadResult = await uploadProfilePicture(bannerImageFile);
+            bannerImageUrl = uploadResult;
+            console.log('✅ Banner image uploaded via fallback endpoint:', uploadResult);
+          } catch (fallbackErr: any) {
+            console.error('❌ Fallback upload also failed:', fallbackErr);
+            throw new Error(`Failed to upload banner image: ${bannerErr.message || 'Unknown error'}`);
+          }
         }
       }
 
@@ -483,10 +528,24 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
 
       setSuccess('Profile updated successfully!');
 
-      // Navigate back to profile after a short delay
+      // Navigate back to profile and scroll to top after a short delay
       setTimeout(() => {
-        navigate(`/profile/${user.id}`);
-      }, 2000);
+        navigate('/profile', { 
+          replace: false,
+          state: { scrollToTop: true } // Pass flag to indicate we want to scroll to top
+        });
+        // Scroll to top after navigation - use requestAnimationFrame for reliable timing
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          // Additional scroll attempts to ensure it works after React renders
+          setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }, 200);
+          setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }, 500);
+        });
+      }, 1500);
 
     } catch (err: any) {
       console.error('Error updating profile:', err);
@@ -500,18 +559,34 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
     if (onCancel) {
       onCancel();
     } else {
-      navigate(`/profile/${user?.id}`);
+      navigate('/profile');
     }
   };
 
   const removeProfilePicture = () => {
+    // Clean up preview URL if it's a blob URL
+    if (profilePicPreview && profilePicPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(profilePicPreview);
+    }
     setProfilePicFile(null);
     setProfilePicPreview('');
+    // Reset input value
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const removeBannerImage = () => {
+    // Clean up preview URL if it's a blob URL
+    if (bannerImagePreview && bannerImagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(bannerImagePreview);
+    }
     setBannerImageFile(null);
     setBannerImagePreview('');
+    // Reset input value
+    if (bannerInputRef.current) {
+      bannerInputRef.current.value = '';
+    }
   };
 
   if (isLoading) {
