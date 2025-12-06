@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authAPI } from '../services/api';
 import webSocketService from '../services/websocketService';
+import { tokenService } from '../services/tokenService';
 
 export interface User {
   userId: string;
@@ -103,6 +104,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Update WebSocket service with existing token
       webSocketService.updateToken(savedToken);
       
+      // Schedule automatic token refresh (silent refresh)
+      tokenService.scheduleTokenRefresh();
+      
       // Fetch fresh user data from backend to ensure profilePicUrl is current
       fetchFreshUserData(savedToken);
     }
@@ -188,6 +192,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Update WebSocket service with new token
       webSocketService.updateToken(authData.token);
 
+      // Schedule automatic token refresh (silent refresh)
+      tokenService.scheduleTokenRefresh();
+
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 'Login failed';
       throw new Error(errorMessage);
@@ -223,6 +230,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Update WebSocket service with new token
       webSocketService.updateToken(authData.token);
 
+      // Schedule automatic token refresh (silent refresh)
+      tokenService.scheduleTokenRefresh();
+
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 'Registration failed';
       throw new Error(errorMessage);
@@ -239,6 +249,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
+
+    // Clear token refresh timer
+    tokenService.clearRefreshTimer();
 
     // Update WebSocket service to disconnect
     webSocketService.updateToken(null);
