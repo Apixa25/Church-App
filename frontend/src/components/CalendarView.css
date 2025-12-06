@@ -62,6 +62,23 @@
   margin: 0 !important;
 }
 
+/* Calendar Month Layout - Side by side on desktop */
+.calendar-month-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+/* Desktop: Side by side layout */
+@media (min-width: 769px) {
+  .calendar-month-layout {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 24px;
+  }
+}
+
 /* DatePicker Container - With background box */
 .datepicker-container {
   background: var(--bg-tertiary);
@@ -76,6 +93,7 @@
   box-sizing: border-box;
   margin: 0 !important;
   margin-top: 0 !important;
+  flex-shrink: 0;
 }
 
 /* ============================================
@@ -85,9 +103,10 @@
 
 @media (min-width: 769px) {
   .datepicker-container {
-    max-width: 800px;
-    margin: 0 auto !important;
+    max-width: 600px;
+    margin: 0 !important;
     padding: 24px;
+    flex: 0 0 600px;
   }
 }
 
@@ -339,8 +358,23 @@
   max-width: 100%;
 }
 
+/* Desktop: Side by side with calendar */
 @media (min-width: 769px) {
-  .selected-date-events {
+  .calendar-month-layout .selected-date-events {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--border-radius-md);
+    padding: 1.5rem;
+    margin-top: 0;
+    box-shadow: var(--shadow-md);
+    flex: 1;
+    min-width: 300px;
+    max-width: 400px;
+    border-top: 1px solid var(--border-primary);
+  }
+  
+  /* For week/day views, keep centered below */
+  .calendar-main > .selected-date-events {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-primary);
     border-radius: var(--border-radius-md);

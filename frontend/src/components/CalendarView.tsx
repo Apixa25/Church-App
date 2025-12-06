@@ -157,25 +157,63 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         {/* Main Calendar */}
         <div className="calendar-main">
           {viewMode === 'month' && (
-            <div className="datepicker-container">
-              <DatePicker
-                selected={selectedDate}
-                onChange={(date: Date | null) => date && onDateSelect(date)}
-                inline
-                renderDayContents={renderDayContents}
-                calendarClassName="custom-calendar"
-                dayClassName={(date) => {
-                  const dateKey = date.toDateString();
-                  const hasEvents = eventsByDate[dateKey]?.length > 0;
-                  const isToday = date.toDateString() === new Date().toDateString();
-                  
-                  let className = 'calendar-day';
-                  if (hasEvents) className += ' has-events';
-                  if (isToday) className += ' today';
-                  
-                  return className;
-                }}
-              />
+            <div className="calendar-month-layout">
+              <div className="datepicker-container">
+                <DatePicker
+                  selected={selectedDate}
+                  onChange={(date: Date | null) => date && onDateSelect(date)}
+                  inline
+                  renderDayContents={renderDayContents}
+                  calendarClassName="custom-calendar"
+                  dayClassName={(date) => {
+                    const dateKey = date.toDateString();
+                    const hasEvents = eventsByDate[dateKey]?.length > 0;
+                    const isToday = date.toDateString() === new Date().toDateString();
+                    
+                    let className = 'calendar-day';
+                    if (hasEvents) className += ' has-events';
+                    if (isToday) className += ' today';
+                    
+                    return className;
+                  }}
+                />
+              </div>
+
+              {/* Selected Date Events - Side by side on desktop */}
+              <div className="selected-date-events">
+                <div className="selected-date-header">
+                  <h3>{formatSelectedDate(selectedDate)}</h3>
+                  <p>{selectedDateEvents.length} event{selectedDateEvents.length !== 1 ? 's' : ''}</p>
+                </div>
+
+                <div className="events-list">
+                  {selectedDateEvents.length === 0 ? (
+                    <div className="no-events">
+                      <p>No events scheduled for this date</p>
+                      <button 
+                        className="btn btn-primary btn-sm"
+                        onClick={() => onCreateEvent && onCreateEvent(selectedDate)}
+                      >
+                        Create Event
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="events-grid">
+                      {selectedDateEvents.map(event => (
+                        <EventCard
+                          key={event.id}
+                          event={event}
+                          onSelect={() => onEventSelect(event)}
+                          onUpdate={onEventUpdate}
+                          onDelete={onEventDelete}
+                          onRsvpUpdate={onRsvpUpdate}
+                          compact={true}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
@@ -336,41 +374,43 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             </div>
           )}
 
-          {/* Selected Date Events */}
-          <div className="selected-date-events">
-            <div className="selected-date-header">
-              <h3>{formatSelectedDate(selectedDate)}</h3>
-              <p>{selectedDateEvents.length} event{selectedDateEvents.length !== 1 ? 's' : ''}</p>
-            </div>
+          {/* Selected Date Events - For Week and Day views (below calendar) */}
+          {(viewMode === 'week' || viewMode === 'day') && (
+            <div className="selected-date-events">
+              <div className="selected-date-header">
+                <h3>{formatSelectedDate(selectedDate)}</h3>
+                <p>{selectedDateEvents.length} event{selectedDateEvents.length !== 1 ? 's' : ''}</p>
+              </div>
 
-            <div className="events-list">
-              {selectedDateEvents.length === 0 ? (
-                <div className="no-events">
-                  <p>No events scheduled for this date</p>
-                  <button 
-                    className="btn btn-primary btn-sm"
-                    onClick={() => onCreateEvent && onCreateEvent(selectedDate)}
-                  >
-                    Create Event
-                  </button>
-                </div>
-              ) : (
-                <div className="events-grid">
-                  {selectedDateEvents.map(event => (
-                    <EventCard
-                      key={event.id}
-                      event={event}
-                      onSelect={() => onEventSelect(event)}
-                      onUpdate={onEventUpdate}
-                      onDelete={onEventDelete}
-                      onRsvpUpdate={onRsvpUpdate}
-                      compact={true}
-                    />
-                  ))}
-                </div>
-              )}
+              <div className="events-list">
+                {selectedDateEvents.length === 0 ? (
+                  <div className="no-events">
+                    <p>No events scheduled for this date</p>
+                    <button 
+                      className="btn btn-primary btn-sm"
+                      onClick={() => onCreateEvent && onCreateEvent(selectedDate)}
+                    >
+                      Create Event
+                    </button>
+                  </div>
+                ) : (
+                  <div className="events-grid">
+                    {selectedDateEvents.map(event => (
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        onSelect={() => onEventSelect(event)}
+                        onUpdate={onEventUpdate}
+                        onDelete={onEventDelete}
+                        onRsvpUpdate={onRsvpUpdate}
+                        compact={true}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
       </div>
