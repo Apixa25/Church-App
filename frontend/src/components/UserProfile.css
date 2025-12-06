@@ -125,19 +125,19 @@
 /* Profile Heart Button and Count */
 .profile-heart-button {
   position: absolute;
-  bottom: -20px;
-  left: -35px;
+  bottom: -30px;
+  left: -45px;
   width: 75%;
   height: 75%;
-  min-width: 60px;
-  min-height: 60px;
-  max-width: 90px;
-  max-height: 90px;
+  min-width: 90px;
+  min-height: 90px;
+  max-width: 135px;
+  max-height: 135px;
   border-radius: 50%;
   border: none;
   background: transparent;
   color: white;
-  font-size: 45px;
+  font-size: 68px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -163,20 +163,20 @@
 
 .profile-hearts-count {
   position: absolute;
-  bottom: -20px;
-  left: -35px;
+  bottom: -30px;
+  left: -45px;
   width: 75%;
   height: 75%;
-  min-width: 60px;
-  min-height: 60px;
-  max-width: 90px;
-  max-height: 90px;
+  min-width: 90px;
+  min-height: 90px;
+  max-width: 135px;
+  max-height: 135px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: 700;
-  font-size: 30px;
+  font-size: 45px;
   z-index: 9;
   pointer-events: none;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
@@ -719,15 +719,15 @@
   }
 
   .profile-heart-button {
-    font-size: 38px;
-    bottom: -15px;
-    left: -26px;
+    font-size: 57px;
+    bottom: -25px;
+    left: -36px;
   }
 
   .profile-hearts-count {
-    font-size: 25px;
-    bottom: -15px;
-    left: -26px;
+    font-size: 38px;
+    bottom: -25px;
+    left: -36px;
   }
 
   .profile-name {
@@ -791,15 +791,15 @@
   }
 
   .profile-heart-button {
-    font-size: 30px;
-    bottom: -12px;
-    left: -21px;
+    font-size: 45px;
+    bottom: -22px;
+    left: -31px;
   }
 
   .profile-hearts-count {
-    font-size: 20px;
-    bottom: -12px;
-    left: -21px;
+    font-size: 30px;
+    bottom: -22px;
+    left: -31px;
   }
 
   .profile-name {
