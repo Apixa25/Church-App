@@ -11,6 +11,7 @@ import ReportModal from './ReportModal';
 import PostStatsModal from './PostStatsModal';
 import ClickableAvatar from './ClickableAvatar';
 import MediaViewer from './MediaViewer';
+import LoadingSpinner from './LoadingSpinner';
 import './PostCard.css';
 
 interface PostCardProps {
@@ -374,7 +375,13 @@ const PostCard: React.FC<PostCardProps> = ({
     return formatRelativeDate(dateString);
   };
 
-  const handleMediaClick = (index: number) => {
+  const handleMediaClick = (index: number, e?: React.MouseEvent | React.KeyboardEvent) => {
+    if (e) {
+      e.stopPropagation();
+      if (e.type === 'click') {
+        e.preventDefault();
+      }
+    }
     setMediaViewerIndex(index);
     setShowMediaViewer(true);
   };
@@ -382,117 +389,163 @@ const PostCard: React.FC<PostCardProps> = ({
   const renderMedia = () => {
     if (!post.mediaUrls || post.mediaUrls.length === 0) return null;
 
-    return (
-      <div className="post-media">
-        {post.mediaUrls.map((url, index) => {
-          const mediaType = post.mediaTypes?.[index] || 'image';
-          const isImage = mediaType.startsWith('image');
+    const mediaCount = post.mediaUrls.length;
 
-          return (
-            <div 
-              key={index} 
-              className="media-item"
-              onClick={() => handleMediaClick(index)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleMediaClick(index);
-                }
-              }}
-              aria-label={`View full ${isImage ? 'image' : 'video'} ${index + 1}`}
-            >
-              {isImage ? (
-                <img
-                  src={url}
-                  alt={`Post media ${index + 1}`}
-                  className="media-image"
-                  loading="lazy"
-                />
-              ) : (
-                <video
-                  src={url}
-                  controls
-                  className="media-video"
-                  preload="metadata"
-                  onClick={(e) => {
-                    // Only open viewer if clicking outside the controls area
-                    // Check if the click target is the video element itself (not controls)
-                    if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === 'VIDEO') {
-                      // Check if click is in the bottom 25% where controls typically are
-                      const rect = (e.currentTarget as HTMLVideoElement).getBoundingClientRect();
-                      const clickY = e.clientY - rect.top;
-                      const videoHeight = rect.height;
-                      if (clickY < videoHeight * 0.75) {
-                        handleMediaClick(index);
-                      }
-                    }
-                  }}
-                />
-              )}
-            </div>
-          );
-        })}
+    // Single image - full width with natural aspect ratio
+    if (mediaCount === 1) {
+      const mediaType = post.mediaTypes?.[0] || 'image';
+      const isImage = mediaType.startsWith('image');
+      
+      return (
+        <div className="post-media">
+          <div 
+            className="media-item media-item-single"
+            onClick={(e) => handleMediaClick(0, e)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleMediaClick(0, e);
+              }
+            }}
+            aria-label={`View full ${isImage ? 'image' : 'video'}`}
+          >
+            {isImage ? (
+              <img
+                src={post.mediaUrls[0]}
+                alt="Post media"
+                className="media-image"
+                loading="lazy"
+              />
+            ) : (
+              <video
+                src={post.mediaUrls[0]}
+                controls
+                className="media-video"
+                preload="metadata"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const rect = (e.currentTarget as HTMLVideoElement).getBoundingClientRect();
+                  const clickY = e.clientY - rect.top;
+                  const videoHeight = rect.height;
+                  if (clickY < videoHeight * 0.75) {
+                    handleMediaClick(0, e);
+                  }
+                }}
+              />
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Multiple images - grid layout
+    return (
+      <div className="post-media post-media-grid">
+        <div className={`media-grid media-grid-${Math.min(mediaCount, 4)}`}>
+          {post.mediaUrls.slice(0, 4).map((url, index) => {
+            const mediaType = post.mediaTypes?.[index] || 'image';
+            const isImage = mediaType.startsWith('image');
+            const isLastVisible = index === 3 && mediaCount > 4;
+            const remainingCount = mediaCount - 4;
+
+            return (
+              <div 
+                key={index} 
+                className={`media-item media-item-grid ${isLastVisible ? 'media-item-overlay' : ''}`}
+                onClick={(e) => handleMediaClick(index, e)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleMediaClick(index, e);
+                  }
+                }}
+                aria-label={`View image ${index + 1} of ${mediaCount}`}
+              >
+                {isImage ? (
+                  <img
+                    src={url}
+                    alt={`Post media ${index + 1}`}
+                    className="media-image"
+                    loading="lazy"
+                  />
+                ) : (
+                  <video
+                    src={url}
+                    controls={false}
+                    className="media-video"
+                    preload="metadata"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMediaClick(index, e);
+                    }}
+                  />
+                )}
+                {isLastVisible && (
+                  <div className="media-overlay-count">
+                    +{remainingCount} more
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   };
 
   return (
     <div className={`post-card ${compact ? 'compact' : ''}`}>
-      {/* Post Header */}
+      {/* Post Header - X-style layout */}
       <div className="post-header">
-        <div className="post-author">
-          <ClickableAvatar
-            userId={post.userId}
-            profilePicUrl={post.userProfilePicUrl}
-            userName={post.userName}
-            size="medium"
-            isAnonymous={post.isAnonymous}
-          />
-          <div className="author-info">
-            <div className="author-name">
+        <ClickableAvatar
+          userId={post.userId}
+          profilePicUrl={post.userProfilePicUrl}
+          userName={post.userName}
+          size="medium"
+          isAnonymous={post.isAnonymous}
+        />
+        <div className="author-info">
+          {/* Line 1: Name + timestamp */}
+          <div className="author-name-row">
+            <span className="author-name">
               {post.isAnonymous ? 'Anonymous' : post.userName}
-              {post.postType !== PostType.GENERAL && (
-                <span className="post-type-badge">
-                  {getPostTypeIcon(post.postType)} {getPostTypeLabel(post.postType)}
-                </span>
-              )}
-            </div>
+            </span>
+            {post.postType !== PostType.GENERAL && (
+              <span className="post-type-badge">
+                {getPostTypeIcon(post.postType)}
+              </span>
+            )}
+            <span className="timestamp">{formatDate(post.createdAt)}</span>
+          </div>
+          {/* Line 2: Org/Group (only if exists) */}
+          {(post.group || post.organization || post.location) && (
             <div className="post-meta">
               {post.location && <span className="location">📍 {post.location}</span>}
-              {/* Organization/Group Label - Priority: Group takes precedence over organization */}
               {(post.group || post.organization) && (
                 <span 
                   className="post-context-name clickable"
                   onClick={async (e) => {
                     e.stopPropagation();
                     try {
-                      console.log('🔍 Filtering feed - Group:', post.group?.name, 'Organization:', post.organization?.name);
                       if (post.group) {
-                        // Filter feed to show only posts from this group
-                        console.log('📌 Setting filter to SELECTED_GROUPS with group ID:', post.group.id);
                         if (location.pathname !== '/dashboard') {
                           navigate('/dashboard');
-                          // Wait a bit for navigation to complete
                           await new Promise(resolve => setTimeout(resolve, 100));
                         }
                         await setFilter('SELECTED_GROUPS', [post.group.id]);
-                        console.log('✅ Filter set successfully for group:', post.group.name);
                       } else if (post.organization) {
-                        // Filter feed to show only posts from this organization
-                        console.log('📌 Setting filter to PRIMARY_ONLY with organization ID:', post.organization.id);
                         if (location.pathname !== '/dashboard') {
                           navigate('/dashboard');
-                          // Wait a bit for navigation to complete
                           await new Promise(resolve => setTimeout(resolve, 100));
                         }
                         await setFilter('PRIMARY_ONLY', [], post.organization.id);
-                        console.log('✅ Filter set successfully for organization:', post.organization.name);
                       }
                     } catch (error) {
-                      console.error('❌ Error filtering feed:', error);
-                      alert('Failed to filter feed. Please try again.');
+                      console.error('Error filtering feed:', error);
                     }
                   }}
                   title={post.group ? `Show posts from ${post.group.name}` : `Show posts from ${post.organization?.name}`}
@@ -500,9 +553,8 @@ const PostCard: React.FC<PostCardProps> = ({
                   {post.group ? post.group.name : post.organization?.name}
                 </span>
               )}
-              <span className="timestamp">{formatDate(post.createdAt)}</span>
             </div>
-          </div>
+          )}
         </div>
         <div className="post-header-actions">
           {canDelete && (
@@ -540,7 +592,9 @@ const PostCard: React.FC<PostCardProps> = ({
                       disabled={blockLoading}
                     >
                       {blockLoading ? (
-                        <span className="loading-spinner">...</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px' }}>
+                          <LoadingSpinner type="multi-ring" size="inline" />
+                        </span>
                       ) : isBlocked ? (
                         '🚫 Unblock'
                       ) : (

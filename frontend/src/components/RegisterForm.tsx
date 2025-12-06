@@ -35,7 +35,9 @@ const RegisterForm: React.FC = () => {
   };
 
   const handleGoogleSignup = () => {
-    window.location.href = 'http://localhost:8083/api/oauth2/authorization/google';
+    const { getApiUrl } = require('../config/runtimeConfig');
+    const apiUrl = getApiUrl();
+    window.location.href = `${apiUrl}/oauth2/authorization/google`;
   };
 
   return (

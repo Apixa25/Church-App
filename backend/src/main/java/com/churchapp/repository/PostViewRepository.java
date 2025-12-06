@@ -4,9 +4,11 @@ import com.churchapp.entity.PostView;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -47,5 +49,21 @@ public interface PostViewRepository extends JpaRepository<PostView, UUID> {
     // Use native query for DATE() function support
     @Query(value = "SELECT DATE(pv.viewed_at) as viewDate, COUNT(pv.id) as viewCount FROM post_views pv WHERE pv.post_id = :postId GROUP BY DATE(pv.viewed_at) ORDER BY viewDate DESC", nativeQuery = true)
     List<Object[]> getViewsByDate(@Param("postId") UUID postId);
+    
+    /**
+     * Insert post view with conflict handling (upsert)
+     * Uses PostgreSQL's ON CONFLICT DO NOTHING to handle race conditions gracefully
+     * This prevents duplicate key violations when multiple requests try to record the same view
+     * Note: Uses the unique index columns (post_id, viewer_id, DATE(viewed_at)) for conflict detection
+     */
+    @Modifying
+    @Transactional
+    @Query(value = "INSERT INTO post_views (id, post_id, viewer_id, viewed_at, time_spent_seconds) " +
+            "VALUES (gen_random_uuid(), :postId, :viewerId, NOW(), :timeSpentSeconds) " +
+            "ON CONFLICT (post_id, viewer_id, DATE(viewed_at)) WHERE viewer_id IS NOT NULL DO NOTHING", 
+            nativeQuery = true)
+    void insertPostViewIfNotExists(@Param("postId") UUID postId, 
+                                   @Param("viewerId") UUID viewerId, 
+                                   @Param("timeSpentSeconds") Integer timeSpentSeconds);
 }
 

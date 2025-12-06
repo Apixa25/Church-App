@@ -3,8 +3,9 @@ import axios from 'axios';
 import { useAuth } from './AuthContext';
 import { useOrganization } from './OrganizationContext';
 import { useActiveContext } from './ActiveContextContext';
+import { getApiUrl } from '../config/runtimeConfig';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
+const API_BASE_URL = getApiUrl();
 
 export type FeedFilter = 'EVERYTHING' | 'ALL' | 'PRIMARY_ONLY' | 'SELECTED_GROUPS';
 

@@ -1,0 +1,19 @@
+{
+  "AWSEBDockerrunVersion": "1",
+  "Image": {
+    "Name": "your-ecr-repo/church-app-backend:latest",
+    "Update": "true"
+  },
+  "Ports": [
+    {
+      "ContainerPort": "8083"
+    }
+  ],
+  "Environment": [
+    {
+      "Name": "SPRING_PROFILES_ACTIVE",
+      "Value": "production"
+    }
+  ]
+}
+

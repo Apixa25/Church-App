@@ -75,6 +75,26 @@
 .profile-top-nav-actions {
   display: flex;
   gap: 8px;
+  flex-shrink: 0;
+}
+
+.profile-top-nav-actions .edit-profile-button-x {
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  margin-bottom: 0;
+}
+
+.profile-top-nav-actions .edit-profile-button-x:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-secondary);
 }
 
 /* Profile Banner */
@@ -100,9 +120,10 @@
 
 /* Profile Header Content */
 .profile-header-content {
-  padding: 0 16px;
+  padding: 0 16px 0 16px;
   max-width: 600px;
   margin: 0 auto;
+  overflow: visible; /* Allow heart button to show */
 }
 
 .profile-avatar-section {
@@ -111,11 +132,43 @@
   align-items: flex-end;
   margin-top: -60px;
   margin-bottom: 12px;
+  gap: 12px;
+  overflow: visible; /* Allow heart button to show */
+}
+
+/* Organization Selector Wrapper */
+.profile-org-selector-wrapper {
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 320px;
+  position: relative;
+  z-index: 2;
+}
+
+.profile-org-selector-wrapper > * {
+  max-width: 100%;
+}
+
+/* Override OrganizationSelector button styles for profile page */
+.profile-org-selector-wrapper button {
+  max-width: 100%;
+  padding: 8px 14px !important;
+  font-size: 13px !important;
+}
+
+.profile-org-selector-wrapper button span {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .profile-avatar {
   position: relative;
   z-index: 2;
+  /* Extra padding on left to prevent heart button cutoff */
+  margin-left: 40px;
+  padding-left: 0;
 }
 
 .profile-avatar .profile-picture-display,
@@ -140,19 +193,19 @@
 /* Profile Heart Button and Count */
 .profile-heart-button {
   position: absolute;
-  bottom: -20px;
-  left: -35px;
+  bottom: -30px;
+  left: -45px;
   width: 68%;
   height: 68%;
-  min-width: 54px;
-  min-height: 54px;
-  max-width: 90px;
-  max-height: 90px;
+  min-width: 81px;
+  min-height: 81px;
+  max-width: 135px;
+  max-height: 135px;
   border-radius: 50%;
   border: none;
   background: transparent;
   color: white;
-  font-size: 45px;
+  font-size: 68px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -178,20 +231,20 @@
 
 .profile-hearts-count {
   position: absolute;
-  bottom: -20px;
-  left: -35px;
+  bottom: -30px;
+  left: -45px;
   width: 68%;
   height: 68%;
-  min-width: 54px;
-  min-height: 54px;
-  max-width: 90px;
-  max-height: 90px;
+  min-width: 81px;
+  min-height: 81px;
+  max-width: 135px;
+  max-height: 135px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: 700;
-  font-size: 30px;
+  font-size: 45px;
   z-index: 9;
   pointer-events: none;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
@@ -403,8 +456,8 @@
 /* Spiritual Gifts */
 .profile-spiritual-gift-x {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  flex-direction: column;
+  gap: 8px;
   margin-top: 12px;
   padding: 12px;
   background: var(--bg-tertiary);
@@ -412,22 +465,24 @@
   border: 1px solid var(--border-primary);
 }
 
+/* Header row with icon and label on same line */
+.spiritual-gift-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .spiritual-gift-icon {
-  font-size: 20px;
+  font-size: 16px;
+  flex-shrink: 0;
 }
 
 .spiritual-gift-label {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--text-secondary);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-}
-
-.spiritual-gift-content {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
 
 .spiritual-gift-badges {
@@ -825,12 +880,48 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .profile-top-nav {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .profile-top-nav .back-home-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .profile-top-nav-info h2 {
+    font-size: 16px;
+  }
+
+  .profile-top-nav-actions .edit-profile-button-x {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
   .profile-banner {
     height: 150px;
   }
 
   .profile-avatar-section {
     margin-top: -50px;
+  }
+
+  .profile-avatar {
+    margin-left: 30px;
+  }
+
+  .profile-org-selector-wrapper {
+    max-width: 260px;
+  }
+
+  .profile-org-selector-wrapper button {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+
+  .profile-org-selector-wrapper button span {
+    max-width: 160px;
   }
 
   .profile-avatar .profile-picture-display,
@@ -844,15 +935,15 @@
   }
 
   .profile-heart-button {
-    font-size: 34px;
-    bottom: -15px;
-    left: -26px;
+    font-size: 51px;
+    bottom: -25px;
+    left: -36px;
   }
 
   .profile-hearts-count {
-    font-size: 22px;
-    bottom: -15px;
-    left: -26px;
+    font-size: 33px;
+    bottom: -25px;
+    left: -36px;
   }
 
   .profile-name-x {
@@ -896,12 +987,40 @@
 }
 
 @media (max-width: 480px) {
+  .profile-top-nav {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .profile-top-nav .back-home-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .profile-top-nav-info h2 {
+    font-size: 14px;
+  }
+
+  .profile-top-nav-info .posts-count {
+    font-size: 11px;
+  }
+
+  .profile-top-nav-actions .edit-profile-button-x {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
   .profile-banner {
     height: 120px;
   }
 
   .profile-avatar-section {
     margin-top: -40px;
+  }
+
+  .profile-avatar {
+    margin-left: 25px;
   }
 
   .profile-avatar .profile-picture-display,
@@ -912,6 +1031,19 @@
 
   .profile-avatar .profile-picture-placeholder-large {
     font-size: 36px;
+  }
+
+  .profile-org-selector-wrapper {
+    max-width: 200px;
+  }
+
+  .profile-org-selector-wrapper button {
+    padding: 5px 8px !important;
+    font-size: 11px !important;
+  }
+
+  .profile-org-selector-wrapper button span {
+    max-width: 120px;
   }
 
   .profile-navigation-tabs {
@@ -926,15 +1058,15 @@
   }
 
   .profile-heart-button {
-    font-size: 27px;
-    bottom: -12px;
-    left: -21px;
+    font-size: 41px;
+    bottom: -22px;
+    left: -31px;
   }
 
   .profile-hearts-count {
-    font-size: 18px;
-    bottom: -12px;
-    left: -21px;
+    font-size: 27px;
+    bottom: -22px;
+    left: -31px;
   }
 
   .profile-name-x {

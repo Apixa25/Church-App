@@ -6,6 +6,7 @@ import webSocketService from '../services/websocketService';
 import MessageInput from './MessageInput';
 import ChatMessageComponent from './ChatMessage';
 import ChatMembers from './ChatMembers';
+import LoadingSpinner from './LoadingSpinner';
 
 const ChatRoom: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
@@ -188,6 +189,16 @@ const ChatRoom: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
+  // 📱 Scroll to bottom when chat initially loads to show message input
+  useEffect(() => {
+    if (!loading && messages.length > 0) {
+      // Small delay to ensure DOM has rendered
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    }
+  }, [loading, scrollToBottom]); // Only trigger when loading state changes
+
   const handleSendMessage = async (content: string, file?: File, parentMessageId?: string) => {
     if (!groupId || (!content.trim() && !file)) return;
 
@@ -269,10 +280,7 @@ const ChatRoom: React.FC = () => {
   if (loading) {
     return (
       <div className="chat-room loading">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading chat room...</p>
-        </div>
+        <LoadingSpinner type="multi-ring" size="medium" text="Loading chat room..." />
       </div>
     );
   }

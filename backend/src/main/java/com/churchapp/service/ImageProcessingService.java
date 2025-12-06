@@ -10,8 +10,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Iterator;
 
 /**
  * Service for processing and optimizing images
@@ -52,10 +54,38 @@ public class ImageProcessingService {
         }
         log.info("Processing image: {} ({} bytes)", file.getOriginalFilename(), originalSize);
 
-        // Read original image
-        BufferedImage originalImage = ImageIO.read(file.getInputStream());
-        if (originalImage == null) {
-            throw new IOException("Could not read image file");
+        // Read original image - support WebP and other formats
+        BufferedImage originalImage;
+        try {
+            // Read bytes first to ensure we can retry if needed
+            byte[] imageBytes = file.getBytes();
+            
+            // Try ImageIO first (now supports WebP with imageio-webp library)
+            ByteArrayInputStream inputStream1 = new ByteArrayInputStream(imageBytes);
+            originalImage = ImageIO.read(inputStream1);
+            
+            // If ImageIO fails, try Thumbnailator as fallback
+            if (originalImage == null) {
+                log.debug("ImageIO returned null, trying Thumbnailator...");
+                ByteArrayInputStream inputStream2 = new ByteArrayInputStream(imageBytes);
+                originalImage = Thumbnails.of(inputStream2)
+                        .scale(1.0)  // Read at original size
+                        .asBufferedImage();
+            }
+            
+            if (originalImage == null) {
+                // Log available ImageIO readers for debugging
+                String[] readerFormatNames = ImageIO.getReaderFormatNames();
+                log.error("Could not read image. Available formats: {}", String.join(", ", readerFormatNames));
+                throw new IOException("Could not read image file. Format may not be supported. " +
+                        "File: " + file.getOriginalFilename() + ", ContentType: " + file.getContentType());
+            }
+        } catch (IOException e) {
+            log.error("Error reading image file: {}", e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error reading image: {}", e.getMessage(), e);
+            throw new IOException("Could not read image file: " + e.getMessage(), e);
         }
 
         int originalWidth = originalImage.getWidth();
@@ -121,7 +151,21 @@ public class ImageProcessingService {
      */
     public boolean needsProcessing(MultipartFile file) {
         try {
-            BufferedImage image = ImageIO.read(file.getInputStream());
+            // Read bytes first to support multiple read attempts
+            byte[] imageBytes = file.getBytes();
+            
+            // Try ImageIO first (supports WebP with imageio-webp library)
+            ByteArrayInputStream inputStream1 = new ByteArrayInputStream(imageBytes);
+            BufferedImage image = ImageIO.read(inputStream1);
+            
+            // Fallback to Thumbnailator if ImageIO fails
+            if (image == null) {
+                ByteArrayInputStream inputStream2 = new ByteArrayInputStream(imageBytes);
+                image = Thumbnails.of(inputStream2)
+                        .scale(1.0)
+                        .asBufferedImage();
+            }
+            
             if (image == null) {
                 return false;
             }
@@ -129,9 +173,10 @@ public class ImageProcessingService {
             return image.getWidth() > maxWidth || 
                    image.getHeight() > maxHeight ||
                    file.getSize() > (2 * 1024 * 1024); // More than 2MB
-        } catch (IOException e) {
-            log.warn("Could not check if image needs processing", e);
-            return true; // Process anyway to be safe
+        } catch (Exception e) {
+            log.warn("Could not check if image needs processing: {}", e.getMessage());
+            // If we can't read it, assume it needs processing
+            return true;
         }
     }
 }

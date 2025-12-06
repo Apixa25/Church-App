@@ -3,8 +3,9 @@ import styled from 'styled-components';
 import axios from 'axios';
 import { isOnlyEmojis, generateUniqueSlug } from '../utils/emojiUtils';
 import './FamilyGroupCreateForm.css';
+import { getApiUrl } from '../config/runtimeConfig';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
+const API_BASE_URL = getApiUrl();
 
 interface FamilyGroupCreateFormProps {
   onSuccess?: (organization: any) => void;

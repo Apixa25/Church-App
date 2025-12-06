@@ -38,9 +38,16 @@ const PullToRefresh: React.FC<PullToRefreshProps> = ({
       return containerRef.current?.scrollTop || 0;
     };
 
+    let lastScrollY = 0;
+    let scrollDirection: 'up' | 'down' | null = null;
+
     const handleTouchStart = (e: TouchEvent) => {
-      scrollTopRef.current = getScrollTop();
-      if (scrollTopRef.current === 0) {
+      const scrollTop = getScrollTop();
+      lastScrollY = scrollTop;
+      scrollTopRef.current = scrollTop;
+
+      // Only enable pull-to-refresh when absolutely at the top
+      if (scrollTop === 0) {
         startYRef.current = e.touches[0].clientY;
         isDraggingRef.current = true;
       }
@@ -49,9 +56,18 @@ const PullToRefresh: React.FC<PullToRefreshProps> = ({
     const handleTouchMove = (e: TouchEvent) => {
       if (!isDraggingRef.current) return;
 
-      // Check scroll position again in case it changed
       const currentScrollTop = getScrollTop();
-      if (currentScrollTop > 0) {
+
+      // Track scroll direction to prevent accidental triggers while scrolling
+      if (currentScrollTop > lastScrollY) {
+        scrollDirection = 'down';
+      } else if (currentScrollTop < lastScrollY) {
+        scrollDirection = 'up';
+      }
+      lastScrollY = currentScrollTop;
+
+      // Cancel pull-to-refresh if user has scrolled down at all
+      if (currentScrollTop > 5) {
         isDraggingRef.current = false;
         setPullDistance(0);
         setIsPulling(false);
@@ -61,11 +77,17 @@ const PullToRefresh: React.FC<PullToRefreshProps> = ({
       currentYRef.current = e.touches[0].clientY;
       const deltaY = currentYRef.current - startYRef.current;
 
+      // Only trigger pull when at absolute top AND pulling down
       if (deltaY > 0 && currentScrollTop === 0) {
         e.preventDefault(); // Prevent default scroll behavior
         const distance = Math.min(deltaY * 0.5, threshold * 2); // Damping effect
         setPullDistance(distance);
         setIsPulling(distance > pullDownThreshold);
+      } else if (deltaY < 0) {
+        // User is pulling up, cancel the pull
+        isDraggingRef.current = false;
+        setPullDistance(0);
+        setIsPulling(false);
       }
     };
 

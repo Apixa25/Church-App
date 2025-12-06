@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { profileAPI } from '../services/api';
 import { UserProfile, ProfileCompletionStatus } from '../types/Profile';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,12 +12,14 @@ import ProfileAnalytics from './ProfileAnalytics';
 import PostCard from './PostCard';
 import RepliesList from './RepliesList';
 import MediaGrid from './MediaGrid';
-import { parseEventDate } from '../utils/dateUtils';
+import { parseEventDate, formatBirthdayDate } from '../utils/dateUtils';
 import chatApi from '../services/chatApi';
 import OrganizationSelector from './OrganizationSelector';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { Membership } from '../contexts/OrganizationContext';
 import FamilyGroupCreateForm from './FamilyGroupCreateForm';
+import LoadingSpinner from './LoadingSpinner';
+import { getImageUrlWithFallback } from '../utils/imageUrlUtils';
 import './ProfileView.css';
 
 interface ProfileViewProps {
@@ -29,6 +31,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const { user } = useAuth();
   const { userId: paramUserId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const userId = propUserId || paramUserId;
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [completionStatus, setCompletionStatus] = useState<ProfileCompletionStatus | null>(null);
@@ -45,6 +48,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [postsCount, setPostsCount] = useState(0);
   const [imageError, setImageError] = useState(false);
+  const [profilePicUrl, setProfilePicUrl] = useState<string>('');
+  const [profilePicFallback, setProfilePicFallback] = useState<string>('');
+  const [bannerImageUrl, setBannerImageUrl] = useState<string>('');
+  const [bannerImageFallback, setBannerImageFallback] = useState<string>('');
   const [sharesReceived, setSharesReceived] = useState(0);
 
   // Bookmarks state
@@ -109,6 +116,26 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
       
       setProfile(response.data);
       setImageError(false); // Reset image error when profile loads
+      
+      // Set up image URLs with fallback
+      if (response.data.profilePicUrl) {
+        const { primary, fallback } = getImageUrlWithFallback(response.data.profilePicUrl);
+        setProfilePicUrl(primary);
+        setProfilePicFallback(fallback);
+      } else {
+        setProfilePicUrl('');
+        setProfilePicFallback('');
+      }
+      
+      if (response.data.bannerImageUrl) {
+        const { primary, fallback } = getImageUrlWithFallback(response.data.bannerImageUrl);
+        setBannerImageUrl(primary);
+        setBannerImageFallback(fallback);
+      } else {
+        setBannerImageUrl('');
+        setBannerImageFallback('');
+      }
+      
       // Set hearts data
       setHeartsCount(response.data.heartsCount || 0);
       setIsLikedByCurrentUser(response.data.isLikedByCurrentUser || false);
@@ -250,6 +277,24 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
       loadBookmarkedPosts(true);
     }
   }, [activeTab, isOwnProfile, bookmarkedPosts.length, loadBookmarkedPosts]);
+
+  // Scroll to top when navigating from profile edit
+  useEffect(() => {
+    if (location.state && (location.state as any).scrollToTop) {
+      // Use multiple scroll attempts to ensure it works after React renders
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 200);
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 500);
+      // Clear the state to prevent scrolling on subsequent renders
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, location.pathname]);
 
   const fetchCompletionStatus = async () => {
     try {
@@ -442,20 +487,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   };
 
-  // Format date for "Born" display
+  // Format date for "Born" display - uses timezone-safe parsing
   const formatBirthday = (dateString: string | undefined): string => {
-    if (!dateString) {
-      return 'Unknown';
-    }
-    
-    const date = parseEventDate(dateString);
-    
-    if (!date || isNaN(date.getTime())) {
-      console.warn('Invalid date format in formatBirthday:', dateString);
-      return 'Unknown';
-    }
-    
-    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    // Use the timezone-safe formatBirthdayDate to prevent off-by-one-day bugs
+    return formatBirthdayDate(dateString);
   };
 
   // Removed local formatDate function - now using robust dateUtils.formatFullDate
@@ -504,8 +539,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   if (loading) {
     return (
       <div className="profile-loading">
-        <div className="loading-spinner">⏳</div>
-        <p>Loading profile...</p>
+        <LoadingSpinner type="multi-ring" size="large" text="Loading profile..." />
       </div>
     );
   }
@@ -560,17 +594,33 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
             <span className="posts-count">{postsCount} posts</span>
           </div>
           <div className="profile-top-nav-actions">
-            {/* Search, notifications, and more options can go here */}
+            {isOwnProfile && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="edit-profile-button-x"
+                aria-label="Edit profile"
+              >
+                Edit profile
+              </button>
+            )}
           </div>
         </div>
 
         {/* Profile Banner */}
         <div className="profile-banner">
-          {profile.bannerImageUrl ? (
+          {bannerImageUrl ? (
             <img 
-              src={profile.bannerImageUrl} 
+              src={bannerImageUrl} 
               alt="Profile banner"
               className="banner-image"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                // Try S3 fallback if CloudFront fails
+                if (target.src === bannerImageUrl && bannerImageFallback && bannerImageFallback !== bannerImageUrl) {
+                  console.warn('⚠️ Banner CloudFront URL failed, trying S3 fallback:', bannerImageUrl);
+                  target.src = bannerImageFallback;
+                }
+              }}
             />
           ) : (
             <div className="banner-placeholder"></div>
@@ -581,14 +631,22 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
         <div className="profile-header-content">
           <div className="profile-avatar-section">
             <div className="profile-avatar">
-              {profile.profilePicUrl && !imageError ? (
+              {profilePicUrl && !imageError ? (
                 <img 
-                  src={profile.profilePicUrl} 
+                  src={profilePicUrl} 
                   alt={profile.name}
                   className="profile-picture-display"
-                  key={profile.profilePicUrl}
-                  onError={() => {
-                    console.error('Failed to load profile image:', profile.profilePicUrl);
+                  key={profilePicUrl}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    // Try S3 fallback if CloudFront fails
+                    if (target.src === profilePicUrl && profilePicFallback && profilePicFallback !== profilePicUrl) {
+                      console.warn('⚠️ Profile CloudFront URL failed, trying S3 fallback:', profilePicUrl);
+                      target.src = profilePicFallback;
+                      return; // Don't set error yet, try fallback first
+                    }
+                    // Both URLs failed
+                    console.error('Failed to load profile image (both CloudFront and S3):', profilePicUrl);
                     setImageError(true);
                   }}
                   onLoad={() => setImageError(false)}
@@ -618,20 +676,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
               )}
             </div>
             {isOwnProfile && (
-              <div style={{ display: 'flex', flexDirection: 'row', gap: '12px', alignItems: 'center', position: 'relative', zIndex: 2 }}>
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="edit-profile-button-x"
-                  aria-label="Edit profile"
-                  style={{ marginBottom: 0 }}
-                >
-                  Edit profile
-                </button>
-                <div style={{ flexShrink: 0 }}>
-                  <OrganizationSelector
-                    onBrowseClick={() => navigate('/organizations')}
-                  />
-                </div>
+              <div className="profile-org-selector-wrapper">
+                <OrganizationSelector
+                  onBrowseClick={() => navigate('/organizations')}
+                />
               </div>
             )}
           </div>
@@ -813,16 +861,16 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
               }
               return (
                 <div className="profile-spiritual-gift-x">
-                  <span className="spiritual-gift-icon">✨</span>
-                  <div className="spiritual-gift-content">
+                  <div className="spiritual-gift-header">
+                    <span className="spiritual-gift-icon">✨</span>
                     <span className="spiritual-gift-label">Spiritual Gifts</span>
-                    <div className="spiritual-gift-badges">
-                      {spiritualGifts.map(gift => (
-                        <span key={gift} className="spiritual-gift-badge">
-                          {gift}
-                        </span>
-                      ))}
-                    </div>
+                  </div>
+                  <div className="spiritual-gift-badges">
+                    {spiritualGifts.map(gift => (
+                      <span key={gift} className="spiritual-gift-badge">
+                        {gift}
+                      </span>
+                    ))}
                   </div>
                 </div>
               );
@@ -839,16 +887,16 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
               }
               return (
                 <div className="profile-spiritual-gift-x equipping-gifts-card">
-                  <span className="spiritual-gift-icon">🛠️</span>
-                  <div className="spiritual-gift-content">
+                  <div className="spiritual-gift-header">
+                    <span className="spiritual-gift-icon">🛠️</span>
                     <span className="spiritual-gift-label">Equipping Gifts</span>
-                    <div className="spiritual-gift-badges">
-                      {equippingGifts.map(gift => (
-                        <span key={gift} className="spiritual-gift-badge">
-                          {gift}
-                        </span>
-                      ))}
-                    </div>
+                  </div>
+                  <div className="spiritual-gift-badges">
+                    {equippingGifts.map(gift => (
+                      <span key={gift} className="spiritual-gift-badge">
+                        {gift}
+                      </span>
+                    ))}
                   </div>
                 </div>
               );
@@ -991,8 +1039,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
           <div className="profile-posts-feed">
             {postsLoading && posts.length === 0 ? (
               <div className="posts-loading">
-                <div className="loading-spinner"></div>
-                <span>Loading posts...</span>
+                <LoadingSpinner type="multi-ring" size="medium" text="Loading posts..." />
               </div>
             ) : postsError ? (
               <div className="posts-error">
@@ -1055,8 +1102,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
               </div>
             ) : bookmarksLoading && bookmarkedPosts.length === 0 ? (
               <div className="posts-loading">
-                <div className="loading-spinner"></div>
-                <span>Loading bookmarks...</span>
+                <LoadingSpinner type="multi-ring" size="medium" text="Loading bookmarks..." />
               </div>
             ) : bookmarksError ? (
               <div className="posts-error">

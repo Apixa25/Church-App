@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { worshipAPI } from '../services/worshipApi';
 import { WorshipRoom, PlaybackStatus } from '../types/Worship';
 import websocketService from '../services/websocketService';
+import LoadingSpinner from './LoadingSpinner';
 import './WorshipRoomList.css';
 
 interface WorshipRoomListProps {
@@ -57,11 +58,25 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
   useEffect(() => {
     loadRooms();
 
-    // Subscribe to room list updates
-    const cleanup = websocketService.subscribeToWorshipRoom('global', handleRoomUpdate);
+    // Subscribe to room list updates with error handling
+    let cleanup: (() => void) | null = null;
+
+    try {
+      cleanup = websocketService.subscribeToWorshipRoom('global', handleRoomUpdate);
+    } catch (err) {
+      console.warn('WebSocket not connected yet for worship rooms:', err);
+      // Polling fallback - refresh room list periodically if WebSocket isn't available
+      const pollInterval = setInterval(() => {
+        loadRooms();
+      }, 30000); // Refresh every 30 seconds
+
+      cleanup = () => clearInterval(pollInterval);
+    }
 
     return () => {
-      cleanup();
+      if (cleanup) {
+        cleanup();
+      }
     };
   }, []);
 
@@ -407,10 +422,7 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
   if (loading) {
     return (
       <div className="worship-room-list loading">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading worship rooms...</p>
-        </div>
+        <LoadingSpinner type="multi-ring" size="medium" text="Loading worship rooms..." />
       </div>
     );
   }

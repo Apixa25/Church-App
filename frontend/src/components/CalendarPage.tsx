@@ -7,6 +7,7 @@ import CalendarView from './CalendarView';
 import EventList from './EventList';
 import EventCreateForm from './EventCreateForm';
 import webSocketService, { EventUpdate, EventRsvpUpdate } from '../services/websocketService';
+import LoadingSpinner from './LoadingSpinner';
 import './CalendarPage.css';
 
 interface CalendarPageProps {}
@@ -201,8 +202,7 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
     return (
       <div className="calendar-page">
         <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>Loading events...</p>
+          <LoadingSpinner type="multi-ring" size="medium" text="Loading events..." />
         </div>
       </div>
     );
@@ -210,69 +210,23 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
 
   return (
     <div className="calendar-page">
-      {/* Header */}
-      <div className="calendar-header">
-        <div className="header-top">
-          <button 
-            className="back-home-btn"
-            onClick={() => navigate('/')}
-            title="Back to Dashboard"
-          >
-            🏠 Back Home
-          </button>
-          <div className="header-title">
-            <h1>📅 Calendar & Events</h1>
-            <p>Manage and view church events</p>
-          </div>
-          <div className="header-actions">
-            <button 
-              className="btn btn-primary"
-              onClick={() => setShowCreateForm(true)}
-            >
-              + Create Event
-            </button>
-          </div>
-        </div>
+      {/* Back Home Button - Desktop Only */}
+      <div className="page-top-nav">
+        <button
+          className="back-home-btn"
+          onClick={() => navigate('/dashboard')}
+          title="Back to Dashboard"
+        >
+          🏠 Back Home
+        </button>
       </div>
 
-      {/* Filters and View Toggle */}
-      <div className="calendar-controls">
-        <div className="filters">
-          <input
-            type="text"
-            placeholder="Search events..."
-            value={filters.search}
-            onChange={(e) => handleFilterChange('search', e.target.value)}
-            className="search-input"
-          />
-          
-          <select
-            value={filters.category}
-            onChange={(e) => handleFilterChange('category', e.target.value)}
-            className="filter-select"
-          >
-            <option value="">All Categories</option>
-            {Object.values(EventCategory).map(category => (
-              <option key={category} value={category}>
-                {category.replace(/_/g, ' ')}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={filters.status}
-            onChange={(e) => handleFilterChange('status', e.target.value)}
-            className="filter-select"
-          >
-            <option value="">All Status</option>
-            {Object.values(EventStatus).map(status => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
+      {/* Calendar & Events Header with View Toggle */}
+      <div className="calendar-header">
+        <div className="header-title">
+          <h1>🗓 Calendar & Events</h1>
+          <p>Manage and view events</p>
         </div>
-
         <div className="view-toggle">
           <button
             className={`view-btn ${view === 'calendar' ? 'active' : ''}`}
@@ -299,7 +253,69 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
         </div>
       )}
 
-      {/* Main Content */}
+      {/* Filters Section - Above Month/Week/Day toggles */}
+      <div className="calendar-controls">
+        <div className="filters">
+          <input
+            type="text"
+            placeholder="Search events..."
+            value={filters.search}
+            onChange={(e) => handleFilterChange('search', e.target.value)}
+            className="search-input"
+          />
+          
+          <select
+            value={filters.category}
+            onChange={(e) => handleFilterChange('category', e.target.value)}
+            className="filter-select"
+          >
+            <option value="">All Categories</option>
+            {Object.values(EventCategory).map(category => (
+              <option key={category} value={category}>
+                {category.replace(/_/g, ' ')}
+              </option>
+            ))}
+          </select>
+
+          {/* All Status selector - Hidden on mobile, visible on desktop */}
+          <select
+            value={filters.status}
+            onChange={(e) => handleFilterChange('status', e.target.value)}
+            className="filter-select filter-select-status"
+          >
+            <option value="">All Status</option>
+            {Object.values(EventStatus).map(status => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
+
+          {/* Create Event button - Mobile only */}
+          <button
+            className="create-event-btn-mobile"
+            onClick={() => {
+              setSelectedDate(new Date());
+              setShowCreateForm(true);
+            }}
+          >
+            Create Event
+          </button>
+
+          {/* Create Event button - Web/Desktop only */}
+          <button
+            className="create-event-btn-web"
+            onClick={() => {
+              setSelectedDate(new Date());
+              setShowCreateForm(true);
+            }}
+          >
+            Create Event
+          </button>
+        </div>
+      </div>
+
+      {/* 3. The Actual Calendar */}
       <div className="calendar-content">
         {view === 'calendar' ? (
           <CalendarView

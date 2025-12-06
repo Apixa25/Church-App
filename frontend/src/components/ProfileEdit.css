@@ -2,7 +2,7 @@
 
 .profile-edit {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: transparent;
   padding: 20px 0;
 }
 

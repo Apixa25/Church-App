@@ -11,6 +11,7 @@ import { parseEventDate } from '../utils/dateUtils';
 import OrganizationSelector from './OrganizationSelector';
 import WarningBanner from './WarningBanner';
 import WarningsSection from './WarningsSection';
+import LoadingSpinner from './LoadingSpinner';
 import './UserProfile.css';
 
 interface UserProfileProps {
@@ -287,8 +288,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
     return (
       <div className="user-profile loading">
         <div className="profile-loading">
-          <div className="loading-spinner"></div>
-          <span>Loading profile...</span>
+          <LoadingSpinner type="multi-ring" size="medium" text="Loading profile..." />
         </div>
       </div>
     );
@@ -567,8 +567,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
 
                 {bookmarksLoading && bookmarkedPosts.length === 0 && (
                   <div className="profile-loading">
-                    <div className="loading-spinner"></div>
-                    <span>Loading bookmarks...</span>
+                    <LoadingSpinner type="multi-ring" size="medium" text="Loading bookmarks..." />
                   </div>
                 )}
 

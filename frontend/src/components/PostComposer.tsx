@@ -1,8 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { PostType, MediaFile, CreatePostRequest } from '../types/Post';
-import { createPost, uploadMedia } from '../services/postApi';
+import { createPost } from '../services/postApi';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useGroup } from '../contexts/GroupContext';
+import { useUploadQueue } from '../contexts/UploadQueueContext';
+import CameraCapture from './CameraCapture';
 import './PostComposer.css';
 
 // ============================================================================
@@ -24,6 +27,8 @@ interface PostComposerProps {
     authorName: string;
     content: string;
   };
+  /** Initial media file to attach (e.g., from camera capture) */
+  initialMediaFile?: File;
 }
 
 const PostComposer: React.FC<PostComposerProps> = ({
@@ -31,11 +36,15 @@ const PostComposer: React.FC<PostComposerProps> = ({
   onCancel,
   placeholder = "Share what's happening in your community...",
   replyTo,
-  quoteTo
+  quoteTo,
+  initialMediaFile
 }) => {
-  // Multi-tenant contexts
-  const { primaryMembership, allMemberships } = useOrganization();
+  // Multi-tenant contexts - Dual Primary System
+  const { primaryMembership, familyPrimary, allMemberships } = useOrganization();
   const { unmutedGroups } = useGroup();
+  
+  // 🚀 Background upload queue - allows users to navigate while uploads continue
+  const { addUploadJob } = useUploadQueue();
 
   const [content, setContent] = useState('');
   const [selectedPostType, setSelectedPostType] = useState<PostType>(PostType.GENERAL);
@@ -45,19 +54,58 @@ const PostComposer: React.FC<PostComposerProps> = ({
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string>('');
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
 
-  // Multi-tenant post targeting
+  // Multi-tenant post targeting - Default to Family Primary if available, otherwise Church Primary
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string | undefined>(
-    primaryMembership?.organizationId
+    familyPrimary?.organizationId || primaryMembership?.organizationId
   );
   const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(undefined);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Ref to hold the latest camera capture handler - ensures Portal always has fresh reference
+  const cameraCallbackRef = useRef<((file: File) => void) | null>(null);
+  
+  // Track if we've processed the initial file to avoid duplicates
+  const initialFileProcessedRef = useRef(false);
 
   const maxContentLength = 2000;
   const maxMediaFiles = 4;
+  
+  // Handle initial media file from camera capture (passed from App.tsx)
+  useEffect(() => {
+    if (initialMediaFile && !initialFileProcessedRef.current) {
+      console.log('📸 PostComposer: Processing initial media file from props:', initialMediaFile.name);
+      initialFileProcessedRef.current = true;
+      
+      // Create media file object
+      const objectUrl = URL.createObjectURL(initialMediaFile);
+      const mediaFile: MediaFile = {
+        file: initialMediaFile,
+        url: objectUrl,
+        type: initialMediaFile.type.startsWith('image/') ? 'image' : 'video',
+        name: initialMediaFile.name,
+        size: initialMediaFile.size
+      };
+      
+      setMediaFiles([mediaFile]);
+      console.log('📸 PostComposer: Initial media file added successfully');
+    }
+  }, [initialMediaFile]);
+
+  // Sync selected organization when memberships load (Family Primary takes precedence)
+  useEffect(() => {
+    // Only update if no organization is currently selected and we have memberships
+    if (!selectedOrganizationId && (familyPrimary || primaryMembership)) {
+      const defaultOrgId = familyPrimary?.organizationId || primaryMembership?.organizationId;
+      if (defaultOrgId) {
+        setSelectedOrganizationId(defaultOrgId);
+      }
+    }
+  }, [familyPrimary, primaryMembership, selectedOrganizationId]);
 
   const postTypes = [
     { type: PostType.GENERAL, label: 'General Post', icon: '💬', description: 'Share thoughts with your community' },
@@ -124,6 +172,88 @@ const PostComposer: React.FC<PostComposerProps> = ({
     }
   };
 
+  // The actual camera capture handler - wrapped in useCallback for stability
+  const handleCameraCapture = useCallback((file: File) => {
+    console.log('📸 PostComposer: handleCameraCapture called');
+    console.log('📸 PostComposer: File received:', file.name, file.type, file.size);
+    
+    // Validate the file object
+    if (!file || !(file instanceof File)) {
+      console.error('📸 PostComposer: Invalid file object received!');
+      setError('Failed to capture media. Please try again.');
+      return;
+    }
+    
+    // Validate file has data
+    if (file.size === 0) {
+      console.error('📸 PostComposer: File is empty!');
+      setError('Captured media is empty. Please try again.');
+      return;
+    }
+    
+    // Validate file count using functional check to avoid stale closure
+    setMediaFiles(prev => {
+      if (prev.length >= maxMediaFiles) {
+        console.warn('📸 PostComposer: Max files reached');
+        setError(`Maximum ${maxMediaFiles} media files allowed`);
+        return prev; // Return unchanged
+      }
+
+      // Create object URL for preview
+      const objectUrl = URL.createObjectURL(file);
+      console.log('📸 PostComposer: Created object URL:', objectUrl);
+
+      // Create media file object
+      const mediaFile: MediaFile = {
+        file,
+        url: objectUrl,
+        type: file.type.startsWith('image/') ? 'image' : 'video',
+        name: file.name,
+        size: file.size
+      };
+
+      console.log('📸 PostComposer: Adding media file to state:', {
+        name: mediaFile.name,
+        type: mediaFile.type,
+        size: mediaFile.size,
+        url: mediaFile.url
+      });
+      
+      const newFiles = [...prev, mediaFile];
+      console.log('📸 PostComposer: Media files count after update:', newFiles.length);
+      return newFiles;
+    });
+    
+    // Close camera modal
+    setShowCamera(false);
+    
+    console.log('📸 PostComposer: handleCameraCapture completed successfully');
+  }, [maxMediaFiles]);
+  
+  // Keep the ref updated with the latest handler
+  useEffect(() => {
+    cameraCallbackRef.current = handleCameraCapture;
+  }, [handleCameraCapture]);
+  
+  // Stable wrapper that always calls through the ref - survives Portal remounts
+  const stableCameraCapture = useCallback((file: File) => {
+    console.log('📸 PostComposer: stableCameraCapture called - routing through ref');
+    if (cameraCallbackRef.current) {
+      cameraCallbackRef.current(file);
+    } else {
+      console.error('📸 PostComposer: cameraCallbackRef.current is null!');
+    }
+  }, []);
+  
+  // DEBUG: Expose the capture function globally for testing
+  useEffect(() => {
+    console.log('📸 PostComposer: Registering global camera capture function');
+    (window as any).__cameraCaptureCallback = handleCameraCapture;
+    return () => {
+      delete (window as any).__cameraCaptureCallback;
+    };
+  }, [handleCameraCapture]);
+
   const removeMediaFile = (index: number) => {
     setMediaFiles(prev => {
       const newFiles = [...prev];
@@ -147,35 +277,59 @@ const PostComposer: React.FC<PostComposerProps> = ({
       return;
     }
 
-    setIsSubmitting(true);
     setError('');
 
-    try {
-      let mediaUrls: string[] = [];
-      let mediaTypes: string[] = [];
+    // 🚀 BACKGROUND UPLOAD: If there are media files, use the upload queue
+    // This allows users to navigate freely while uploads happen in the background
+    if (mediaFiles.length > 0) {
+      // Queue the upload job - this returns immediately!
+      addUploadJob({
+        content: content,
+        mediaFiles: mediaFiles.map(mf => mf.file),
+        mediaTypes: mediaFiles.map(mf => mf.type),
+        postType: selectedPostType,
+        category: category.trim() || undefined,
+        location: location.trim() || undefined,
+        isAnonymous: isAnonymous,
+        organizationId: selectedOrganizationId,
+        groupId: selectedGroupId
+      });
 
-      // Upload media files if any
-      if (mediaFiles.length > 0) {
-        const files = mediaFiles.map(mf => mf.file);
-        mediaUrls = await uploadMedia(files);
-        mediaTypes = mediaFiles.map(mf => mf.type);
+      // Clean up object URLs immediately
+      mediaFiles.forEach(mf => URL.revokeObjectURL(mf.url));
+      
+      // Clear form immediately - user is free to navigate!
+      setContent('');
+      setMediaFiles([]);
+      setCategory('');
+      setLocation('');
+      setIsAnonymous(false);
+      setSelectedPostType(PostType.GENERAL);
+
+      // Close composer immediately - upload continues in background
+      if (onCancel) {
+        onCancel();
       }
 
-      // Create the post request
+      return; // Done! Upload continues in background with progress indicator
+    }
+
+    // 🔄 NO MEDIA: Use original synchronous flow (fast, no upload needed)
+    setIsSubmitting(true);
+
+    try {
       const postRequest: CreatePostRequest = {
         content: content.trim(),
-        mediaUrls,
-        mediaTypes,
+        mediaUrls: [],
+        mediaTypes: [],
         postType: selectedPostType,
         category: category.trim() || undefined,
         location: location.trim() || undefined,
         anonymous: isAnonymous,
-        // Multi-tenant fields
         organizationId: selectedOrganizationId,
         groupId: selectedGroupId
       };
 
-      // Create the post
       const newPost = await createPost(postRequest);
 
       // Clear form
@@ -326,143 +480,124 @@ const PostComposer: React.FC<PostComposerProps> = ({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="toolbar-button"
+              className="toolbar-button media-button"
               disabled={mediaFiles.length >= maxMediaFiles}
               title="Add media"
             >
-              📎 Media
+              📎
             </button>
 
             <button
               type="button"
-              onClick={() => insertEmoji('🙏')}
-              className="toolbar-button"
-              title="Add prayer emoji"
+              onClick={() => setShowCamera(true)}
+              className="toolbar-button camera-button"
+              disabled={mediaFiles.length >= maxMediaFiles}
+              title="Take photo/video"
             >
-              🙏
+              📷
             </button>
 
-            <button
-              type="button"
-              onClick={() => insertEmoji('❤️')}
-              className="toolbar-button"
-              title="Add heart emoji"
+            {/* Organization selector - immediately visible so users know where post is going */}
+            <select
+              value={selectedOrganizationId || ''}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSelectedOrganizationId(
+                  value === '' ? '00000000-0000-0000-0000-000000000001' : (value || undefined)
+                );
+                setSelectedGroupId(undefined);
+              }}
+              className="toolbar-organization-select"
+              title="Post to organization"
             >
-              ❤️
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="toolbar-button"
-              title="Advanced options"
-            >
-              ⚙️ Advanced
-            </button>
+              <option value="">🌐 Global Feed</option>
+              {allMemberships.map(membership => (
+                <option key={membership.id} value={membership.organizationId}>
+                  {membership.organizationName}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="toolbar-right">
-            <span className="media-count">
-              {mediaFiles.length}/{maxMediaFiles} media
-            </span>
+            <button
+              type="button"
+              onClick={() => setShowMoreOptions(true)}
+              className="toolbar-button more-options-button"
+              title="More options"
+            >
+              More Options
+            </button>
           </div>
         </div>
 
-        {/* Advanced Options */}
-        {showAdvanced && (
-          <div className="advanced-options">
-            {/* Multi-tenant: Organization selector */}
-            <div className="option-group">
-              <label htmlFor="organization">Post to Organization:</label>
-              <select
-                id="organization"
-                value={selectedOrganizationId || ''}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  // If empty string (Global Feed), use the actual Global Organization UUID
-                  setSelectedOrganizationId(
-                    value === '' ? '00000000-0000-0000-0000-000000000001' : (value || undefined)
-                  );
-                  setSelectedGroupId(undefined); // Reset group when org changes
-                }}
-                className="organization-select"
-              >
-                <option value="">🌐 Global Feed (All Organizations)</option>
-                {allMemberships.map(membership => (
-                  <option key={membership.id} value={membership.organizationId}>
-                    {membership.organizationName}
-                    {membership.organizationId === primaryMembership?.organizationId ? ' (Primary)' : ' (Secondary)'}
-                  </option>
-                ))}
-              </select>
-            </div>
+        {/* More Options Modal */}
+        {showMoreOptions && ReactDOM.createPortal(
+          <div className="more-options-modal-overlay" onClick={() => setShowMoreOptions(false)}>
+            <div className="more-options-modal" onClick={(e) => e.stopPropagation()}>
+              <h3>⚙️ More Options</h3>
+              
+              {/* Multi-tenant: Group selector */}
+              {unmutedGroups.length > 0 && (
+                <div className="option-group">
+                  <label htmlFor="group">Post to Group (optional):</label>
+                  <select
+                    id="group"
+                    value={selectedGroupId || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setSelectedGroupId(value || undefined);
+                      // Clear organization when group is selected (group takes priority)
+                      if (value) {
+                        setSelectedOrganizationId(undefined);
+                      }
+                    }}
+                    className="group-select"
+                  >
+                    <option value="">No specific group</option>
+                    {unmutedGroups.map(membership => (
+                      <option key={membership.id} value={membership.groupId}>
+                        {membership.groupName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
-            {/* Multi-tenant: Group selector */}
-            {unmutedGroups.length > 0 && (
               <div className="option-group">
-                <label htmlFor="group">Post to Group (optional):</label>
-                <select
-                  id="group"
-                  value={selectedGroupId || ''}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setSelectedGroupId(value || undefined);
-                    // Clear organization when group is selected (group takes priority)
-                    if (value) {
-                      setSelectedOrganizationId(undefined);
-                    }
-                  }}
-                  className="group-select"
-                >
-                  <option value="">No specific group</option>
-                  {unmutedGroups.map(membership => (
-                    <option key={membership.id} value={membership.groupId}>
-                      {membership.groupName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <div className="option-group">
-              <label htmlFor="category">Category:</label>
-              <select
-                id="category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="category-select"
-              >
-                <option value="">Select category (optional)</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="option-group">
-              <label htmlFor="location">Location:</label>
-              <input
-                id="location"
-                type="text"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Church location or event venue"
-                className="location-input"
-                maxLength={100}
-              />
-            </div>
-
-            <div className="option-group">
-              <label className="checkbox-label">
+                <label htmlFor="location">Location:</label>
                 <input
-                  type="checkbox"
-                  checked={isAnonymous}
-                  onChange={(e) => setIsAnonymous(e.target.checked)}
+                  id="location"
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="where was this?"
+                  className="location-input"
+                  maxLength={100}
                 />
-                Post anonymously
-              </label>
+              </div>
+
+              <div className="option-group">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={isAnonymous}
+                    onChange={(e) => setIsAnonymous(e.target.checked)}
+                  />
+                  Post anonymously
+                </label>
+              </div>
+
+              <button
+                type="button"
+                className="close-modal-button"
+                onClick={() => setShowMoreOptions(false)}
+              >
+                Close
+              </button>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* Hidden file input */}
@@ -502,6 +637,15 @@ const PostComposer: React.FC<PostComposerProps> = ({
           </button>
         </div>
       </form>
+
+      {/* Camera Modal - Rendered via Portal to escape parent container */}
+      {showCamera && ReactDOM.createPortal(
+        <CameraCapture
+          onCapture={stableCameraCapture}
+          onClose={() => setShowCamera(false)}
+        />,
+        document.body
+      )}
     </div>
   );
 };

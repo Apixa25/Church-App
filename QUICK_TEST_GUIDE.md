@@ -1,158 +1,161 @@
-# Quick Test Guide 🚀
+# Quick Testing Guide - Image & Video Optimization 🚀
 
-The fastest way to test the data management implementation!
+## ✅ Pre-Flight Check
 
----
-
-## Prerequisites Checklist
-
-- [ ] Backend is running on `http://localhost:8083`
-- [ ] Database is connected
-- [ ] AWS S3 credentials are configured
-- [ ] You have a test image (2-5MB recommended)
-- [ ] You have a test video (under 30 seconds, any resolution)
+Your setup is ready:
+- ✅ `AWS_ACCOUNT_ID=060163370478` is set
+- ✅ CloudFront URL is configured
+- ✅ WebP library is installed
+- ✅ MediaConvert IAM role should be created
 
 ---
 
-## Method 1: Using Test Scripts (Easiest)
+## 🖼️ Test 1: Image Optimization (WebP)
 
-### On Mac/Linux:
+### What to Do:
+1. **Start Backend** (in a terminal):
+   ```powershell
+   cd backend
+   . .\load-env.ps1
+   .\mvnw.cmd spring-boot:run
+   ```
 
-```bash
-./test-media-upload.sh
-```
+2. **Upload a WebP Image** through your app
 
-### On Windows (PowerShell):
-
-```powershell
-.\test-media-upload.ps1
-```
-
-The script will:
-1. ✅ Authenticate you (register if needed)
-2. ✅ Upload your image
-3. ✅ Upload your video
-4. ✅ Show you the results
-
----
-
-## Method 2: Manual Testing with cURL
-
-### Step 1: Get Authentication Token
-
-```bash
-# Login (or register first)
-curl -X POST http://localhost:8083/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "test@example.com", "password": "password123"}'
-```
-
-**Save the token from the response!**
-
-### Step 2: Upload Image
-
-```bash
-# Replace YOUR_TOKEN with the token from Step 1
-curl -X POST http://localhost:8083/api/posts/upload-media \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -F "files=@/path/to/your/image.jpg"
-```
-
-### Step 3: Upload Video
-
-```bash
-curl -X POST http://localhost:8083/api/posts/upload-media \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -F "files=@/path/to/your/video.mp4"
-```
-
----
-
-## Method 3: Using Postman
-
-1. **Create Collection:**
-   - POST `http://localhost:8083/api/auth/login`
-   - Body: `{"email": "test@example.com", "password": "password123"}`
-   - Save token from response
-
-2. **Upload Image:**
-   - POST `http://localhost:8083/api/posts/upload-media`
-   - Headers: `Authorization: Bearer YOUR_TOKEN`
-   - Body → form-data → Key: `files` (File type) → Select image
-
-3. **Upload Video:**
-   - Same as image, but select video file
-
----
-
-## What to Look For
+3. **Watch Backend Logs** - You should see:
+   ```
+   INFO - Processing image: [filename].webp ([size] bytes)
+   INFO - Image processed: [original] bytes -> [optimized] bytes ([X]% reduction, ratio: [X])
+   INFO - Image processing completed: [original-url] -> [optimized-url] ([X]% reduction)
+   ```
 
 ### ✅ Success Indicators:
+- No `IOException: Could not read image file` errors
+- Log shows "Image processed" with size reduction
+- Log shows "Image processing completed" with CloudFront URL
 
-1. **Immediate Response:**
-   - Upload completes in 2-3 seconds (not 5-10 seconds)
-   - Returns URL immediately
+### ❌ If It Fails:
+- Check for `IOException` in logs
+- Verify WebP library is loaded (check startup logs)
+- Check S3 permissions
 
-2. **Backend Logs:**
+---
+
+## 🎬 Test 2: Video Optimization (MediaConvert)
+
+### What to Do:
+1. **Upload a Video** through your app (MP4, MOV, etc.)
+
+2. **Watch Backend Logs** - You should see:
    ```
-   INFO - Original file uploaded: https://...
-   INFO - Starting async image processing for: ...
-   INFO - Image processed: 5000000 bytes -> 800000 bytes (84% reduction)
+   INFO - Starting MediaConvert job for video: [s3-key]
+   INFO - MediaConvert job created: [job-id] for video: [s3-key]
    ```
 
-3. **S3 Bucket:**
-   - `posts/originals/` - Contains original file
-   - `posts/optimized/` - Contains compressed file (appears after processing)
+3. **Check AWS MediaConvert Console**:
+   - Go to: https://console.aws.amazon.com/mediaconvert/
+   - Click "Jobs" in left sidebar
+   - Find your job ID
+   - Status should be "PROGRESSING" or "COMPLETE"
 
-4. **File Size Reduction:**
-   - Images: 80-90% smaller
-   - Videos: 85-95% smaller
+### ✅ Success Indicators:
+- Log shows "MediaConvert job created" with job ID
+- No errors about IAM permissions
+- Job appears in MediaConvert console
+- Job status progresses to "COMPLETE"
 
-### ❌ Common Issues:
+### ❌ If It Fails:
 
-**"Processing not happening"**
-- Check `media.processing.async.enabled=true` in application.properties
-- Check backend logs for errors
+**Error: "AWS_ACCOUNT_ID not configured"**
+- ✅ Already set in your .env - restart backend
 
-**"JavaCV errors"**
-- Run `mvn clean install` to ensure dependencies are downloaded
-- Check that JavaCV platform dependency is installed
+**Error: "AccessDenied: User is not authorized to perform: iam:PassRole"**
+- Go to IAM → Users → `church-app-dev`
+- Verify `MediaConvertAccess` inline policy exists
+- Check policy includes `iam:PassRole` with Account ID `060163370478`
 
-**"Upload fails"**
-- Check file size limits (20MB images, 100MB videos)
-- Check file type is supported
-- Check authentication token is valid
-
----
-
-## Quick Verification Checklist
-
-After testing, verify:
-
-- [ ] Image uploads successfully
-- [ ] Image appears in S3 `originals/` folder
-- [ ] Optimized image appears in S3 `optimized/` folder (after processing)
-- [ ] Optimized image is much smaller (80-90% reduction)
-- [ ] Video uploads successfully
-- [ ] Video appears in S3 `originals/` folder
-- [ ] Optimized video appears in S3 `optimized/` folder (after processing)
-- [ ] Optimized video is 480p and much smaller (85-95% reduction)
-- [ ] Backend logs show async processing messages
-- [ ] Upload completes quickly (no waiting for compression)
+**Error: "The role defined for the function cannot be assumed by MediaConvert"**
+- Go to IAM → Roles → `MediaConvert_Default_Role`
+- Verify role exists
+- Check "Trust relationships" tab shows `mediaconvert.amazonaws.com`
 
 ---
 
-## Next Steps
+## 📊 What to Check After Testing
 
-Once testing is successful:
+### Image Optimization:
+1. **S3 Bucket**:
+   - Original: `posts/originals/[uuid].webp`
+   - Optimized: `posts/optimized/[uuid].jpg` ← Should exist!
 
-1. ✅ **Phase 1 Complete** - Foundation is working!
-2. ⏭️ **Phase 2** - Create MediaFile entity for tracking
-3. ⏭️ **Phase 3** - Database integration
-4. ⏭️ **Phase 4** - Cleanup service
-5. ⏭️ **Phase 5** - Frontend updates
+2. **File Sizes**:
+   - Optimized should be 30-70% smaller
+   - Check in S3 console or use: `aws s3 ls s3://church-app-uploads-stevensills2/posts/optimized/`
+
+3. **CloudFront URL**:
+   - Response should include: `https://d3loytcgioxpml.cloudfront.net/posts/optimized/[uuid].jpg`
+   - Not direct S3 URL
+
+### Video Optimization:
+1. **MediaConvert Job**:
+   - Job ID logged in backend
+   - Job appears in MediaConvert console
+   - Status eventually becomes "COMPLETE"
+
+2. **S3 Bucket** (after job completes):
+   - Original: `posts/originals/[uuid].mp4`
+   - Optimized: `posts/optimized/[uuid].mp4` ← Should exist after processing!
+
+3. **Video Properties** (check in S3):
+   - Resolution: Should be 854x480 (or scaled)
+   - File size: Should be 60-80% smaller
 
 ---
 
-**Need Help?** See `TESTING_DATA_MANAGEMENT.md` for detailed testing guide.
+## 🔍 Quick Verification Commands
+
+### Check S3 Files:
+```powershell
+# List optimized images
+aws s3 ls s3://church-app-uploads-stevensills2/posts/optimized/ --recursive
+
+# List optimized videos
+aws s3 ls s3://church-app-uploads-stevensills2/posts/optimized/ --recursive | Select-String "\.mp4"
+```
+
+### Check MediaConvert Jobs:
+```powershell
+aws mediaconvert list-jobs --max-results 5
+```
+
+### Check IAM Permissions:
+```powershell
+aws iam list-user-policies --user-name church-app-dev
+```
+
+---
+
+## 📝 Testing Checklist
+
+- [ ] Backend started successfully
+- [ ] WebP image uploaded
+- [ ] Image processing logs show success
+- [ ] Optimized image exists in S3
+- [ ] CloudFront URL generated for image
+- [ ] Video uploaded
+- [ ] MediaConvert job created (job ID in logs)
+- [ ] Job appears in MediaConvert console
+- [ ] Job completes successfully
+- [ ] Optimized video exists in S3
+- [ ] CloudFront URL generated for video
+
+---
+
+## 🎯 Ready to Test!
+
+Start with **Test 1 (Image Optimization)** - it's faster and will verify WebP support is working.
+
+Then move to **Test 2 (Video Optimization)** - this requires MediaConvert IAM setup to be complete.
+
+Let me know what you see in the logs! 🚀
 

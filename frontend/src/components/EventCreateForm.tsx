@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import DatePicker from 'react-datepicker';
 import { eventAPI, EVENT_CATEGORY_OPTIONS } from '../services/eventApi';
-import { Event, EventRequest, EventCategory, EventBringItemInput } from '../types/Event';
+import { Event, EventRequest, EventCategory, EventBringItemInput, RecurrenceType } from '../types/Event';
 import { parseEventDate } from '../utils/dateUtils';
 import { useActiveContext } from '../contexts/ActiveContextContext';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -57,6 +57,16 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
     return null;
   });
 
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date | null>(() => {
+    if (editEvent?.recurrenceEndDate) {
+      const parsedDate = parseEventDate(editEvent.recurrenceEndDate);
+      if (parsedDate) {
+        return parsedDate;
+      }
+    }
+    return null;
+  });
+
   const {
     register,
     handleSubmit,
@@ -71,6 +81,7 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
       category: editEvent?.category || EventCategory.GENERAL,
       maxAttendees: editEvent?.maxAttendees || undefined,
       isRecurring: editEvent?.isRecurring || false,
+      recurrenceType: editEvent?.recurrenceType || undefined,
       requiresApproval: editEvent?.requiresApproval || false,
       bringListEnabled: editEvent?.bringListEnabled || false,
       bringItems: []
@@ -79,12 +90,12 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
 
   const bringListEnabled = watch('bringListEnabled') || false;
   const bringItems = (watch('bringItems') as EventBringItemInput[] | undefined) || [];
+  const isRecurring = watch('isRecurring') || false;
+  const recurrenceType = watch('recurrenceType');
 
   const handleBringItemsChange = (items: EventBringItemInput[]) => {
     setValue('bringItems', items, { shouldDirty: true, shouldValidate: false });
   };
-
-  // const isRecurring = watch('isRecurring'); // TODO: Use for recurring event fields
 
   const onSubmit = async (data: EventRequest) => {
     try {
@@ -116,6 +127,10 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
           : undefined,
         bringListEnabled: data.bringListEnabled || false,
         organizationId: activeOrganizationId || undefined, // Pass active organization from context
+        // Handle recurring event fields
+        isRecurring: data.isRecurring || false,
+        recurrenceType: data.isRecurring && data.recurrenceType ? data.recurrenceType : undefined,
+        recurrenceEndDate: data.isRecurring && recurrenceEndDate ? formatDateForBackend(recurrenceEndDate) : undefined,
         bringItems: (data.bringItems || [])
           .map(item => ({
             name: item.name?.trim() || '',
@@ -335,6 +350,47 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
             Recurring event
           </label>
         </div>
+
+        {/* Recurring Event Fields */}
+        {isRecurring && (
+          <div className="form-group recurring-fields">
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="recurrenceType">Recurrence Pattern *</label>
+                <select
+                  id="recurrenceType"
+                  {...register('recurrenceType', {
+                    required: isRecurring ? 'Recurrence pattern is required for recurring events' : false
+                  })}
+                  className={errors.recurrenceType ? 'error' : 'select-input'}
+                >
+                  <option value="">Select pattern...</option>
+                  <option value={RecurrenceType.DAILY}>Daily</option>
+                  <option value={RecurrenceType.WEEKLY}>Weekly</option>
+                  <option value={RecurrenceType.MONTHLY}>Monthly</option>
+                  <option value={RecurrenceType.YEARLY}>Yearly</option>
+                </select>
+                {errors.recurrenceType && <span className="error-text">{errors.recurrenceType.message}</span>}
+              </div>
+
+              <div className="form-group">
+                <label>Recurrence End Date (Optional)</label>
+                <DatePicker
+                  selected={recurrenceEndDate}
+                  onChange={(date: Date | null) => setRecurrenceEndDate(date)}
+                  dateFormat="MMM d, yyyy"
+                  className="date-input"
+                  minDate={startTime}
+                  placeholderText="No end date (repeats indefinitely)"
+                  isClearable
+                />
+                <p className="helper-text">
+                  Leave empty to repeat indefinitely, or set an end date
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Bring List Toggle */}
         <div className="form-group bring-list-toggle">

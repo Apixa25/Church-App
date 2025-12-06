@@ -120,6 +120,23 @@
   object-fit: contain;
   display: block;
   border-radius: 8px;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+/* Clickable media - click anywhere on image to close */
+.media-viewer-clickable {
+  cursor: pointer;
+  transition: opacity 0.3s ease, transform 0.2s ease;
+}
+
+.media-viewer-clickable:hover {
+  opacity: 0.95;
+  transform: scale(0.995);
+}
+
+.media-viewer-clickable:active {
+  transform: scale(0.99);
 }
 
 /* Loading Spinner */
@@ -376,14 +393,8 @@
   outline-offset: 2px;
 }
 
-/* Loading states */
-.media-viewer-image[style*="display: none"],
-.media-viewer-video[style*="display: none"] {
-  opacity: 0;
-}
-
+/* Loading states - opacity transitions handled inline, but ensure smooth transitions */
 .media-viewer-image,
 .media-viewer-video {
-  opacity: 1;
-  transition: opacity 0.3s ease;
+  will-change: opacity;
 }

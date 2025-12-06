@@ -23,6 +23,11 @@ const SwitcherContainer = styled.div`
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
+
+  @media (max-width: 480px) {
+    display: block;
+    width: 100%; /* Will be overridden by parent .feed-view-toggle > * rule to 90% */
+  }
 `;
 
 const SwitcherButton = styled.button`
@@ -51,9 +56,27 @@ const SwitcherButton = styled.button`
   }
 
   @media (max-width: 480px) {
-    padding: 10px 12px;
-    font-size: 13px;
-    gap: 6px;
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 14px;
+    gap: 8px;
+    justify-content: center;
+    background: var(--bg-elevated, #2a2a3e);
+    border: 1px solid var(--border-primary, #3a3a4e);
+    border-radius: 25px; /* Pill shape */
+    color: var(--text-primary, #fff);
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+    &:hover {
+      background: var(--bg-tertiary, #1e1e2e);
+      border-color: var(--border-glow, #5b7fff);
+      box-shadow: 0 0 8px var(--button-primary-glow, rgba(91, 127, 255, 0.3));
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
   }
 `;
 
@@ -76,9 +99,9 @@ const OrgName = styled.span`
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100px;
-  
+
   @media (max-width: 480px) {
-    max-width: 70px;
+    max-width: 150px;
   }
 `;
 
@@ -106,11 +129,14 @@ const Dropdown = styled.div<{ $isOpen: boolean }>`
 
   @media (max-width: 480px) {
     position: fixed;
-    top: auto;
-    bottom: 80px;
-    left: 16px;
-    right: 16px;
+    top: 50%;
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    transform: ${props => props.$isOpen ? 'translate(-50%, -50%) scale(1)' : 'translate(-50%, -50%) scale(0.95)'};
     min-width: auto;
+    width: calc(100% - 32px);
+    max-width: 400px;
   }
 `;
 
@@ -226,6 +252,24 @@ const ContextSwitcher: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // 🛡️ Image error states - gracefully fall back to emoji icons when images fail to load
+  const [activeLogoError, setActiveLogoError] = useState(false);
+  const [churchLogoError, setChurchLogoError] = useState(false);
+  const [familyLogoError, setFamilyLogoError] = useState(false);
+
+  // Reset error states when logo URLs change (e.g., user re-uploads logo)
+  useEffect(() => {
+    setActiveLogoError(false);
+  }, [activeOrganizationLogo]);
+
+  useEffect(() => {
+    setChurchLogoError(false);
+  }, [churchPrimary?.organizationLogoUrl]);
+
+  useEffect(() => {
+    setFamilyLogoError(false);
+  }, [familyPrimary?.organizationLogoUrl]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -259,12 +303,20 @@ const ContextSwitcher: React.FC = () => {
   return (
     <SwitcherContainer ref={dropdownRef}>
       <SwitcherButton onClick={() => setIsOpen(!isOpen)}>
-        {activeOrganizationLogo ? (
-          <OrgLogo src={activeOrganizationLogo} alt="" />
+        {activeOrganizationLogo && !activeLogoError ? (
+          <OrgLogo 
+            src={activeOrganizationLogo} 
+            alt="" 
+            crossOrigin="anonymous"
+            onError={() => {
+              console.warn('⚠️ Active org logo failed to load, falling back to icon:', activeOrganizationLogo);
+              setActiveLogoError(true);
+            }}
+          />
         ) : (
           <OrgIcon>{getContextIcon()}</OrgIcon>
         )}
-        <OrgName>{activeOrganizationName}</OrgName>
+        <OrgName>{activeOrganizationName?.substring(0, 25) || activeOrganizationName}</OrgName>
         <DropdownArrow $isOpen={isOpen}>▼</DropdownArrow>
       </SwitcherButton>
 
@@ -280,8 +332,16 @@ const ContextSwitcher: React.FC = () => {
               $isActive={activeContext === 'church'}
               onClick={() => handleSelect('church')}
             >
-              {churchPrimary.organizationLogoUrl ? (
-                <OptionLogo src={churchPrimary.organizationLogoUrl} alt="" />
+              {churchPrimary.organizationLogoUrl && !churchLogoError ? (
+                <OptionLogo 
+                  src={churchPrimary.organizationLogoUrl} 
+                  alt="" 
+                  crossOrigin="anonymous"
+                  onError={() => {
+                    console.warn('⚠️ Church org logo failed to load, falling back to icon:', churchPrimary.organizationLogoUrl);
+                    setChurchLogoError(true);
+                  }}
+                />
               ) : (
                 <OptionIcon>⛪</OptionIcon>
               )}
@@ -298,8 +358,16 @@ const ContextSwitcher: React.FC = () => {
               $isActive={activeContext === 'family'}
               onClick={() => handleSelect('family')}
             >
-              {familyPrimary.organizationLogoUrl ? (
-                <OptionLogo src={familyPrimary.organizationLogoUrl} alt="" />
+              {familyPrimary.organizationLogoUrl && !familyLogoError ? (
+                <OptionLogo 
+                  src={familyPrimary.organizationLogoUrl} 
+                  alt="" 
+                  crossOrigin="anonymous"
+                  onError={() => {
+                    console.warn('⚠️ Family org logo failed to load, falling back to icon:', familyPrimary.organizationLogoUrl);
+                    setFamilyLogoError(true);
+                  }}
+                />
               ) : (
                 <OptionIcon>🏠</OptionIcon>
               )}

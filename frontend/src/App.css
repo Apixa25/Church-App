@@ -269,22 +269,46 @@
 /* Dashboard Styles */
 .dashboard-container {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: transparent !important; /* Allow aurora gradient to show through */
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+}
+
+/* 🔴 FIX: Remove gap between header and content that creates black box */
+.dashboard-container > header + main {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.dashboard-container > header {
+  margin-bottom: 0 !important;
+}
+
+.dashboard-container > main {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  background: transparent !important; /* Allow aurora gradient to show through */
+  margin-top: -1px !important; /* Negative margin to eliminate any gap */
 }
 
 .dashboard-header {
   position: relative;
   background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-primary);
+  border-bottom: none !important; /* 🔴 FIX: Remove border that might create black box */
   color: var(--text-primary);
   padding: 20px;
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow-sm);
-  overflow: visible;
+  overflow: hidden;
   min-height: 180px;
   display: flex;
   align-items: center;
   z-index: 100;
+  width: 100%;
+  max-width: 100vw;
+  margin-bottom: 0 !important; /* 🔴 FIX: Remove margin-bottom that creates black box */
+  padding-bottom: 20px; /* Keep padding for content, but no margin */
 }
 
 /* Dashboard Banner Background */
@@ -313,12 +337,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(0, 0, 0, 0.6) 0%,
-    rgba(0, 0, 0, 0.4) 50%,
-    rgba(0, 0, 0, 0.6) 100%
-  );
+  background: none; /* Removed dark overlay - show image as-is */
   z-index: 1;
 }
 
@@ -348,6 +367,8 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 20px;
+  padding: 0 clamp(10px, 2vw, 20px);
+  box-sizing: border-box;
 }
 
 .header-content > * {
@@ -421,15 +442,15 @@
 /* Dashboard Heart Button and Count - matches ProfileView styling */
 .dashboard-heart-button {
   position: absolute;
-  bottom: -17px;
-  left: -32px;
-  width: 63px;
-  height: 63px;
+  bottom: -27px;
+  left: -42px;
+  width: 95px;
+  height: 95px;
   border-radius: 50%;
   border: none;
   background: transparent;
   color: white;
-  font-size: 32px;
+  font-size: 48px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -458,16 +479,16 @@
 
 .dashboard-hearts-count {
   position: absolute;
-  bottom: -17px;
-  left: -32px;
-  width: 63px;
-  height: 63px;
+  bottom: -27px;
+  left: -42px;
+  width: 95px;
+  height: 95px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: 700;
-  font-size: 21px;
+  font-size: 32px;
   z-index: 9;
   pointer-events: none;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
@@ -560,6 +581,10 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 40px 20px;
+  width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  background: transparent !important; /* 🔴 FIX: Ensure no background color creates black box */
 }
 
 .dashboard-grid {
@@ -1203,6 +1228,9 @@
   grid-template-columns: 2fr 1fr;
   gap: 30px;
   margin-bottom: 40px;
+  width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .dashboard-left,
@@ -1212,10 +1240,29 @@
   gap: 30px;
 }
 
+/* 🔴 MOBILE FIX: Zero out all gaps on mobile to eliminate dead space */
+@media (max-width: 768px) {
+  .dashboard-layout {
+    gap: 0 !important;
+  }
+  
+  .dashboard-left,
+  .dashboard-right {
+    gap: 0 !important;
+  }
+}
+
 /* Activity Feed Styles */
 .activity-feed {
-  max-height: 600px;
-  overflow-y: auto;
+  /* Removed max-height and overflow-y to allow natural page scrolling like Social Feed */
+  /* No scrollbar - scrolls naturally with the page */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Hide scrollbar for activity-feed (if any appears) */
+.activity-feed::-webkit-scrollbar {
+  display: none;
 }
 
 .activity-list {
@@ -1350,8 +1397,8 @@
 }
 
 .action-card .action-icon {
-  font-size: 18px;
-  min-width: 40px;
+  font-size: 24px;
+  min-width: 48px;
   text-align: center;
 }
 
@@ -1406,6 +1453,78 @@
   background: var(--bg-secondary) !important;
   transform: none !important;
   box-shadow: none !important;
+}
+
+/* Emoji Shortcuts Bar Styles */
+.emoji-shortcuts-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px;
+  margin: 16px 0;
+  background: var(--bg-secondary, rgba(255, 255, 255, 0.05));
+  border-radius: var(--border-radius-lg, 12px);
+  border: 1px solid var(--border-primary, rgba(255, 255, 255, 0.1));
+  justify-content: center;
+}
+
+.emoji-shortcut {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  font-size: 24px;
+  background: var(--bg-tertiary, rgba(255, 255, 255, 0.1));
+  border: 2px solid var(--border-primary, rgba(255, 255, 255, 0.2));
+  border-radius: var(--border-radius-full, 50%);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.emoji-shortcut:hover {
+  transform: scale(1.1);
+  border-color: var(--border-glow, #3b82f6);
+  background: var(--bg-secondary, rgba(59, 130, 246, 0.1));
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
+}
+
+.emoji-shortcut:active {
+  transform: scale(0.95);
+}
+
+.action-card.highlight {
+  animation: highlightPulse 1s ease;
+  border-color: var(--border-glow, #3b82f6);
+}
+
+@keyframes highlightPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px 8px rgba(59, 130, 246, 0.6);
+  }
+}
+
+@media (max-width: 480px) {
+  .emoji-shortcuts-bar {
+    padding: 12px;
+    gap: 10px;
+  }
+  
+  .emoji-shortcut {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+  }
+  
+  .action-card .action-icon {
+    font-size: 22px;
+    min-width: 44px;
+  }
 }
 
 /* Dashboard Stats Styles */
@@ -1761,20 +1880,211 @@
 
 /* Responsive Updates for Enhanced Dashboard */
 @media (max-width: 768px) {
+  .dashboard-container {
+    background: var(--bg-secondary) !important; /* Match header background */
+  }
+
+  .dashboard-container,
+  .dashboard-header,
+  .dashboard-content,
+  .dashboard-layout {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
   .dashboard-layout {
     grid-template-columns: 1fr;
+    gap: 20px;
   }
+
+  /* ========================================
+     📱 MOBILE DASHBOARD HEADER REDESIGN
+     Matching the user's vision mockup
+     ======================================== */
   
+  .dashboard-header {
+    margin-bottom: 0 !important;
+    padding: 12px 16px 16px !important;
+    border-bottom: none !important;
+    min-height: 255px !important; /* Reduced by 25% (was 340px) */
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  /* Header content - stack vertically, push content to bottom */
   .header-content {
-    flex-direction: column;
-    gap: 15px;
+    flex-direction: column !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+    height: 100% !important;
+    flex: 1 !important;
   }
-  
+
+  /* Header left (Church name) - stays at top */
+  .header-left {
+    order: 1 !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    margin-bottom: 0 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .dashboard-header h1 {
+    font-size: 16px !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .dashboard-header h1 .wheat-emoji {
+    font-size: 28px !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* User info section - positioned lower-left, moved down 3x more */
   .user-info {
-    width: 100%;
-    justify-content: space-between;
+    order: 2 !important;
+    width: 100% !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 2px !important;
+    justify-content: flex-end !important;
+    margin-top: auto !important;
+    padding-top: 120px !important; /* 3x the previous amount */
   }
-  
+
+  /* User details - left-aligned profile pic and welcome message */
+  .user-details {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+    width: 100% !important;
+  }
+
+  /* Dashboard avatar wrapper - left-aligned */
+  .dashboard-avatar-wrapper {
+    display: flex !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* Make profile picture on mobile - 75px */
+  .dashboard-avatar-wrapper .profile-pic,
+  .dashboard-avatar-wrapper .profile-pic-placeholder,
+  .dashboard-avatar-wrapper .clickable-avatar,
+  .dashboard-avatar-wrapper .profile-pic-container,
+  .dashboard-avatar-wrapper .profile-pic-container .profile-pic-placeholder,
+  .dashboard-avatar-wrapper .profile-pic-container img {
+    width: 75px !important;
+    height: 75px !important;
+    font-size: 30px !important;
+    border-width: 3px !important;
+  }
+
+  /* Heart button positioning for 75px avatar */
+  .dashboard-heart-button {
+    bottom: -16px !important;
+    left: -20px !important;
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 27px !important;
+  }
+
+  /* Hearts count badge styling */
+  .dashboard-hearts-count {
+    bottom: -16px !important;
+    left: -20px !important;
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 18px !important;
+  }
+
+  /* Welcome message - left-aligned below avatar, closer to icons */
+  .dashboard-header .user-name {
+    font-size: 16px !important;
+    text-align: left !important;
+    width: 100% !important;
+    margin-top: 2px !important;
+    margin-bottom: 0 !important;
+    padding-left: 4px !important;
+  }
+
+  /* Header actions - horizontal icon row at bottom, evenly spaced */
+  .header-actions {
+    order: 3 !important;
+    width: 100% !important;
+    display: flex !important;
+    justify-content: space-evenly !important;
+    gap: 0 !important;
+    margin-top: 15px !important; /* ~15px spacing from welcome text */
+    padding: 0 !important;
+    flex-wrap: nowrap !important;
+  }
+
+  /* All header action buttons - fixed sizing, evenly distributed */
+  .header-actions > *,
+  .header-actions button,
+  .header-actions .prayer-notifications,
+  .header-actions .event-notifications {
+    flex: 0 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .search-button,
+  .settings-button,
+  .logout-button,
+  .header-actions .prayer-notifications .notification-bell,
+  .header-actions .event-notifications .notification-toggle {
+    width: 50px !important;
+    height: 50px !important;
+    min-width: 50px !important;
+    min-height: 50px !important;
+    padding: 0 !important;
+    font-size: 28px !important;
+    background: transparent !important;
+    border-radius: 50% !important;
+    border: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+  }
+
+  .search-button:hover,
+  .settings-button:hover,
+  .logout-button:hover,
+  .header-actions .prayer-notifications .notification-bell:hover,
+  .header-actions .event-notifications .notification-toggle:hover {
+    background: transparent !important;
+    transform: scale(1.1) !important;
+  }
+
+  /* END MOBILE DASHBOARD HEADER REDESIGN */
+
+  .dashboard-content {
+    max-width: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  .dashboard-card {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
   .refresh-info {
     font-size: 12px;
   }
@@ -1840,23 +2150,105 @@
 
 /* Additional responsive breakpoints for stats */
 @media (max-width: 480px) {
+  /* ========================================
+     📱 SMALL MOBILE DASHBOARD HEADER
+     ======================================== */
+  
+  .dashboard-header {
+    padding: 10px 12px 14px !important;
+  }
+
+  .header-left {
+    margin-bottom: 12px !important;
+  }
+
+  .dashboard-header h1 {
+    font-size: 14px !important;
+  }
+
+  .dashboard-header h1 .wheat-emoji {
+    font-size: 24px !important;
+  }
+
+  /* Profile pic on small screens - 75px */
+  .dashboard-avatar-wrapper .profile-pic,
+  .dashboard-avatar-wrapper .profile-pic-placeholder,
+  .dashboard-avatar-wrapper .clickable-avatar,
+  .dashboard-avatar-wrapper .profile-pic-container,
+  .dashboard-avatar-wrapper .profile-pic-container .profile-pic-placeholder,
+  .dashboard-avatar-wrapper .profile-pic-container img {
+    width: 75px !important;
+    height: 75px !important;
+    font-size: 30px !important;
+    border-width: 3px !important;
+  }
+
+  .dashboard-heart-button {
+    bottom: -16px !important;
+    left: -20px !important;
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 27px !important;
+  }
+
+  .dashboard-hearts-count {
+    bottom: -16px !important;
+    left: -20px !important;
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 18px !important;
+  }
+
+  .dashboard-header .user-name {
+    font-size: 14px !important;
+    margin-top: 6px !important;
+  }
+
+  .header-actions {
+    margin-top: 12px !important;
+  }
+
+  .search-button,
+  .settings-button,
+  .logout-button,
+  .header-actions .prayer-notifications .notification-bell,
+  .header-actions .event-notifications .notification-toggle {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    font-size: 24px !important;
+  }
+
+  /* END SMALL MOBILE HEADER */
+
+  .header-content {
+    padding: 0 5px;
+  }
+
+  .dashboard-content {
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
   .stats-grid {
     gap: 2px;
     padding: 0;
     margin-left: -2px;
   }
-  
+
   .stat-card {
     padding: 4px;
     min-height: 40px;
     gap: 6px;
   }
-  
+
   .stat-card .stat-icon {
     font-size: 14px;
     min-width: 18px;
   }
-  
+
   .stat-card .stat-content h4 {
     font-size: 12px;
   }
@@ -1892,32 +2284,13 @@
 
 /* Chat System Styles - Updated for Dark Theme */
 .chat-list {
-  max-width: 900px;
+  max-width: 600px;
   margin: 0 auto;
-  padding: 24px;
-  background: var(--bg-primary);
+  padding: 16px;
   min-height: 100vh;
 }
 
-.chat-list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 2px solid var(--border-primary);
-}
-
-.chat-list-header h2 {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: 28px;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
+/* Moved to Chat List Header Layout section below */
 
 .groups-list {
   display: flex;
@@ -2268,6 +2641,13 @@
   background: var(--bg-primary);
 }
 
+/* 📱 Mobile: Account for bottom navigation bar */
+@media (max-width: 768px) {
+  .chat-room {
+    height: calc(100vh - 60px - env(safe-area-inset-bottom, 0px));
+  }
+}
+
 .chat-header {
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-primary);
@@ -2362,6 +2742,26 @@
 .leave-button:hover {
   background: rgba(239, 68, 68, 0.2);
   box-shadow: 0 0 8px var(--error-glow);
+}
+
+/* 📱 Small screens: Stack chat header buttons */
+@media (max-width: 400px) {
+  .chat-header {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 15px;
+  }
+  
+  .header-right {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+  
+  .members-button, .settings-button, .leave-button, .back-home-button {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
 }
 
 .chat-content {
@@ -3143,21 +3543,44 @@
 /* Chat List Header Layout */
 .chat-list-header {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-primary);
 }
 
 .chat-list-header .header-left {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 15px;
+  gap: 8px;
+  text-align: center;
 }
 
 .chat-list-header .header-left h2 {
   margin: 0;
   color: var(--text-primary);
+  font-size: 1.75rem;
+}
+
+.chat-list-header .header-actions {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 8px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 8px !important;
+  box-sizing: border-box !important;
+}
+
+.chat-list-header .header-actions .nav-btn {
+  padding: 8px 12px !important;
+  font-size: 12px !important;
+  text-align: center !important;
+  display: flex !important;
+  justify-content: center !important;
 }
 
 /* Chat Room Header Back Home Button */
@@ -3170,8 +3593,8 @@
   background: var(--bg-tertiary);
   color: var(--text-primary);
   border: 1px solid var(--border-primary);
-  padding: 8px 12px;
-  border-radius: var(--border-radius-md);
+  padding: 8px 14px;
+  border-radius: var(--border-radius-pill);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -3548,7 +3971,8 @@
   }
 
   .chat-room {
-    height: 100vh;
+    /* 📱 Account for bottom navigation (60px + safe area) */
+    height: calc(100vh - 60px - env(safe-area-inset-bottom, 0px));
   }
   
   .chat-content {

@@ -1,5 +1,6 @@
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { getApiUrl } from '../config/runtimeConfig';
 
 export interface WebSocketMessage {
   type: string;
@@ -121,9 +122,9 @@ class WebSocketService {
   constructor() {
     this.token = localStorage.getItem('authToken');
     
-    // Build WebSocket URL from environment variable or default
+    // Build WebSocket URL from runtime configuration
     // SockJS requires HTTP/HTTPS URL, not WS/WSS - it handles the protocol upgrade internally
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
+    const apiUrl = getApiUrl();
     // Remove trailing slash and append /ws endpoint
     this.wsUrl = apiUrl.replace(/\/$/, '') + '/ws';
     

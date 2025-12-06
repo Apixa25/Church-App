@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { User } from '../types/Post';
 import { UserProfile } from '../types/Profile';
 import { updateUserProfile, uploadProfilePicture, uploadBannerImage } from '../services/postApi';
+import LoadingSpinner from './LoadingSpinner';
 import './ProfileEdit.css';
 
 const SPIRITUAL_GIFTS = [
@@ -34,6 +35,7 @@ const EQUIPPING_GIFTS = [
 
 interface ProfileFormData {
   name: string;
+  email: string;
   bio: string;
   location: string;
   website: string;
@@ -69,6 +71,7 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
 
   const [formData, setFormData] = useState<ProfileFormData>({
     name: '',
+    email: '',
     bio: '',
     location: '',
     website: '',
@@ -107,6 +110,7 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
     if (profileToUse) {
       setFormData({
         name: profileToUse.name || '',
+        email: profileToUse.email || '',
         bio: profileToUse.bio || '',
         location: (profileToUse as User).location || profileToUse.location || '',
         website: (profileToUse as User).website || profileToUse.website || '',
@@ -171,42 +175,112 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
   const handleProfilePicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        setError('Please select a valid image file');
+      // Validate file type - more permissive for mobile browsers (especially iOS)
+      // iOS devices may report empty type or application/octet-stream for camera photos
+      const fileType = file.type.toLowerCase();
+      const fileName = file.name.toLowerCase();
+      const validImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'];
+      const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
+      
+      // Check by MIME type first, then by extension as fallback for mobile
+      const hasValidType = fileType.startsWith('image/') || validImageTypes.includes(fileType);
+      const hasValidExtension = validImageExtensions.some(ext => fileName.endsWith(ext));
+      
+      // Accept if either type or extension is valid (mobile browsers may not report correct MIME type)
+      // Also accept empty/generic types if extension looks like an image (common on mobile)
+      const isLikelyImage = hasValidType || hasValidExtension || 
+        (fileType === '' && hasValidExtension) ||
+        (fileType === 'application/octet-stream' && hasValidExtension);
+      
+      if (!isLikelyImage) {
+        setError('Please select a valid image file (JPG, PNG, GIF, WebP, or HEIC)');
+        console.log('File rejected - type:', fileType, 'name:', fileName);
+        // Reset input value so user can try again
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
         return;
       }
 
-      // Validate file size (5MB max)
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Image file size must be less than 5MB');
+      // Validate file size (15MB max)
+      if (file.size > 15 * 1024 * 1024) {
+        setError('Image file size must be less than 15MB');
+        // Reset input value so user can try again
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
         return;
+      }
+
+      // Clean up previous preview URL if it exists
+      if (profilePicPreview && profilePicPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(profilePicPreview);
       }
 
       setProfilePicFile(file);
       setProfilePicPreview(URL.createObjectURL(file));
       setError('');
+      
+      // Reset input value to allow selecting the same file again if needed
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
   const handleBannerImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        setError('Please select a valid image file');
+      // Validate file type - more permissive for mobile browsers (especially iOS)
+      // iOS devices may report empty type or application/octet-stream for camera photos
+      const fileType = file.type.toLowerCase();
+      const fileName = file.name.toLowerCase();
+      const validImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'];
+      const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
+      
+      // Check by MIME type first, then by extension as fallback for mobile
+      const hasValidType = fileType.startsWith('image/') || validImageTypes.includes(fileType);
+      const hasValidExtension = validImageExtensions.some(ext => fileName.endsWith(ext));
+      
+      // Accept if either type or extension is valid (mobile browsers may not report correct MIME type)
+      // Also accept empty/generic types if extension looks like an image (common on mobile)
+      const isLikelyImage = hasValidType || hasValidExtension || 
+        (fileType === '' && hasValidExtension) ||
+        (fileType === 'application/octet-stream' && hasValidExtension);
+      
+      if (!isLikelyImage) {
+        setError('Please select a valid image file (JPG, PNG, GIF, WebP, or HEIC)');
+        console.log('File rejected - type:', fileType, 'name:', fileName);
+        // Reset input value so user can try again
+        if (bannerInputRef.current) {
+          bannerInputRef.current.value = '';
+        }
         return;
       }
 
-      // Validate file size (5MB max)
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Banner image file size must be less than 5MB');
+      // Validate file size (15MB max)
+      if (file.size > 15 * 1024 * 1024) {
+        setError('Banner image file size must be less than 15MB');
+        // Reset input value so user can try again
+        if (bannerInputRef.current) {
+          bannerInputRef.current.value = '';
+        }
         return;
+      }
+
+      // Clean up previous preview URL if it exists
+      if (bannerImagePreview && bannerImagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(bannerImagePreview);
       }
 
       setBannerImageFile(file);
       setBannerImagePreview(URL.createObjectURL(file));
       setError('');
+      
+      // Reset input value to allow selecting the same file again if needed
+      if (bannerInputRef.current) {
+        bannerInputRef.current.value = '';
+      }
     }
   };
 
@@ -283,8 +357,13 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
       return false;
     }
 
-    if (formData.bio && formData.bio.length > 200) {
-      setError('Bio must be less than 200 characters');
+    if (formData.bio && formData.bio.length > 2000) {
+      setError('Bio must be less than 2,000 characters');
+      return false;
+    }
+
+    if (formData.email && !isValidEmail(formData.email.trim())) {
+      setError('Please enter a valid email address');
       return false;
     }
 
@@ -317,6 +396,11 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
     }
   };
 
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSave = async () => {
     if (!validateForm() || !user) return;
 
@@ -336,13 +420,22 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
       let bannerImageUrl = (user as any).bannerImageUrl || (externalProfile as any)?.bannerImageUrl;
       if (bannerImageFile) {
         try {
+          console.log('🖼️ Uploading banner image...');
           const uploadResult = await uploadBannerImage(bannerImageFile);
           bannerImageUrl = uploadResult;
+          console.log('✅ Banner image uploaded successfully:', uploadResult);
         } catch (bannerErr: any) {
+          console.error('❌ Banner upload error:', bannerErr);
           // If banner upload endpoint doesn't exist yet, use profile picture endpoint as fallback
-          console.warn('Banner upload endpoint not available, using profile picture endpoint:', bannerErr);
-          const uploadResult = await uploadProfilePicture(bannerImageFile);
-          bannerImageUrl = uploadResult;
+          try {
+            console.warn('⚠️ Banner upload endpoint not available, using profile picture endpoint as fallback');
+            const uploadResult = await uploadProfilePicture(bannerImageFile);
+            bannerImageUrl = uploadResult;
+            console.log('✅ Banner image uploaded via fallback endpoint:', uploadResult);
+          } catch (fallbackErr: any) {
+            console.error('❌ Fallback upload also failed:', fallbackErr);
+            throw new Error(`Failed to upload banner image: ${bannerErr.message || 'Unknown error'}`);
+          }
         }
       }
 
@@ -360,9 +453,10 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
       const latitudeValue = latitude.trim() ? Number(latitude.trim()) : null;
       const longitudeValue = longitude.trim() ? Number(longitude.trim()) : null;
 
-      const updatedProfile = {
+      const updatedProfile: any = {
         ...restFormData,
         name: restFormData.name.trim(),
+        email: restFormData.email.trim() || undefined,
         bio: restFormData.bio.trim(),
         location: restFormData.location.trim(),
         website: restFormData.website.trim(),
@@ -375,13 +469,21 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
         country: restFormData.country.trim() || 'United States',
         spiritualGift: spiritualGifts.join(', '),
         equippingGifts: equippingGifts.join(', '),
-        profilePicUrl,
-        bannerImageUrl,
         interests: JSON.stringify(interests), // Convert array to JSON string for backend
         latitude: latitudeValue,
         longitude: longitudeValue,
         geocodeStatus: geocodeStatus.trim()
       };
+
+      // Only include profilePicUrl if it has a value (prevents clearing Google OAuth images)
+      if (profilePicUrl) {
+        updatedProfile.profilePicUrl = profilePicUrl;
+      }
+
+      // Only include bannerImageUrl if it has a value
+      if (bannerImageUrl) {
+        updatedProfile.bannerImageUrl = bannerImageUrl;
+      }
 
       const result = await updateUserProfile(user!.userId, updatedProfile);
 
@@ -427,10 +529,24 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
 
       setSuccess('Profile updated successfully!');
 
-      // Navigate back to profile after a short delay
+      // Navigate back to profile and scroll to top after a short delay
       setTimeout(() => {
-        navigate(`/profile/${user.id}`);
-      }, 2000);
+        navigate('/profile', { 
+          replace: false,
+          state: { scrollToTop: true } // Pass flag to indicate we want to scroll to top
+        });
+        // Scroll to top after navigation - use requestAnimationFrame for reliable timing
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          // Additional scroll attempts to ensure it works after React renders
+          setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }, 200);
+          setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }, 500);
+        });
+      }, 1500);
 
     } catch (err: any) {
       console.error('Error updating profile:', err);
@@ -444,26 +560,41 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
     if (onCancel) {
       onCancel();
     } else {
-      navigate(`/profile/${user?.id}`);
+      navigate('/profile');
     }
   };
 
   const removeProfilePicture = () => {
+    // Clean up preview URL if it's a blob URL
+    if (profilePicPreview && profilePicPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(profilePicPreview);
+    }
     setProfilePicFile(null);
     setProfilePicPreview('');
+    // Reset input value
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const removeBannerImage = () => {
+    // Clean up preview URL if it's a blob URL
+    if (bannerImagePreview && bannerImagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(bannerImagePreview);
+    }
     setBannerImageFile(null);
     setBannerImagePreview('');
+    // Reset input value
+    if (bannerInputRef.current) {
+      bannerInputRef.current.value = '';
+    }
   };
 
   if (isLoading) {
     return (
       <div className="profile-edit loading">
         <div className="loading-content">
-          <div className="loading-spinner"></div>
-          <span>Loading your profile...</span>
+          <LoadingSpinner type="multi-ring" size="medium" text="Loading your profile..." />
         </div>
       </div>
     );
@@ -530,7 +661,7 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
           </div>
 
           <div className="banner-help">
-            <small>Upload a wide image (JPG, PNG) up to 5MB. Recommended size: 1500x500px</small>
+            <small>Upload a wide image (JPG, PNG) up to 15MB. Recommended size: 1500x500px</small>
           </div>
         </div>
 
@@ -582,7 +713,7 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
           </div>
 
           <div className="pic-help">
-            <small>Upload a square image (JPG, PNG) up to 5MB for best results</small>
+            <small>Upload a square image (JPG, PNG) up to 15MB for best results</small>
           </div>
         </div>
 
@@ -611,11 +742,24 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
               value={formData.bio}
               onChange={(e) => handleInputChange('bio', e.target.value)}
               placeholder="Tell the community about yourself, your faith journey, or your interests..."
-              maxLength={200}
+              maxLength={2000}
               rows={4}
               className="form-textarea"
             />
-            <small className="char-count">{formData.bio.length}/200</small>
+            <small className="char-count">{formData.bio.length}/2,000</small>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              placeholder="your.email@example.com"
+              className="form-input"
+            />
+            <small className="field-help">Optional: Share your email with others who view your profile</small>
           </div>
 
           <div className="form-row">

@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatEventDate, formatEventTime, formatEventDuration } from '../utils/dateUtils';
 import EventRsvpManager from './EventRsvpManager';
 import EventBringListSection from './EventBringListSection';
+import LoadingSpinner from './LoadingSpinner';
 import './EventDetailsPage.css';
 
 const EventDetailsPage: React.FC = () => {
@@ -67,8 +68,7 @@ const EventDetailsPage: React.FC = () => {
     return (
       <div className="event-details-page">
         <div className="event-details-card loading">
-          <div className="loading-spinner"></div>
-          <p>Loading event details...</p>
+          <LoadingSpinner type="multi-ring" size="medium" text="Loading event details..." />
         </div>
       </div>
     );

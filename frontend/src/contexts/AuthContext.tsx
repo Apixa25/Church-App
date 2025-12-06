@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authAPI } from '../services/api';
 import webSocketService from '../services/websocketService';
+import { tokenService } from '../services/tokenService';
 
 export interface User {
   userId: string;
@@ -63,7 +64,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const updateUser = (userData: Partial<User>) => {
     setUser(prevUser => {
       if (prevUser) {
+        // Preserve profilePicUrl and bannerImageUrl if not explicitly provided or if empty
+        // This prevents clearing Google OAuth profile pictures when updating other fields
         const updatedUser = { ...prevUser, ...userData };
+        
+        // Only update profilePicUrl if it's explicitly provided and not empty
+        if (userData.profilePicUrl === null || userData.profilePicUrl === undefined || 
+            (typeof userData.profilePicUrl === 'string' && userData.profilePicUrl.trim() === '')) {
+          // Preserve existing profilePicUrl
+          updatedUser.profilePicUrl = prevUser.profilePicUrl;
+        }
+        
+        // Only update bannerImageUrl if it's explicitly provided and not empty
+        if (userData.bannerImageUrl === null || userData.bannerImageUrl === undefined || 
+            (typeof userData.bannerImageUrl === 'string' && userData.bannerImageUrl.trim() === '')) {
+          // Preserve existing bannerImageUrl
+          updatedUser.bannerImageUrl = prevUser.bannerImageUrl;
+        }
+        
         // Update localStorage with the new user data
         localStorage.setItem('user', JSON.stringify(updatedUser));
         return updatedUser;
@@ -86,6 +104,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Update WebSocket service with existing token
       webSocketService.updateToken(savedToken);
       
+      // Schedule automatic token refresh (silent refresh)
+      tokenService.scheduleTokenRefresh();
+      
       // Fetch fresh user data from backend to ensure profilePicUrl is current
       fetchFreshUserData(savedToken);
     }
@@ -101,12 +122,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await profileAPI.getMyProfile();
       const freshUserData = response.data;
       
+      // 🖼️ DEBUG: Log profilePicUrl to identify OAuth image loading issue
+      console.log('🔍 AuthContext.fetchFreshUserData - Backend profilePicUrl:', freshUserData.profilePicUrl);
+      console.log('🔍 AuthContext.fetchFreshUserData - Previous profilePicUrl:', localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).profilePicUrl : 'none');
+      
       // Update user state with fresh data
       setUser(prevUser => {
         if (prevUser) {
           const updatedUser = { ...prevUser, ...freshUserData };
+          
+          // 🖼️ FIX: Always use backend profilePicUrl if it exists (Google OAuth images come from backend)
+          // Only preserve prevUser.profilePicUrl if backend returns null/empty AND prevUser has a valid URL
+          if (freshUserData.profilePicUrl && 
+              typeof freshUserData.profilePicUrl === 'string' && 
+              freshUserData.profilePicUrl.trim() !== '') {
+            // Backend has a valid profilePicUrl - use it (this is the Google OAuth image)
+            updatedUser.profilePicUrl = freshUserData.profilePicUrl;
+            console.log('✅ AuthContext - Using backend profilePicUrl:', freshUserData.profilePicUrl);
+          } else if (prevUser.profilePicUrl && 
+                     typeof prevUser.profilePicUrl === 'string' && 
+                     prevUser.profilePicUrl.trim() !== '') {
+            // Backend doesn't have one, but prevUser does - preserve it
+            updatedUser.profilePicUrl = prevUser.profilePicUrl;
+            console.log('⚠️ AuthContext - Preserving prevUser profilePicUrl:', prevUser.profilePicUrl);
+          }
+          
+          if (!freshUserData.bannerImageUrl || 
+              (typeof freshUserData.bannerImageUrl === 'string' && freshUserData.bannerImageUrl.trim() === '')) {
+            updatedUser.bannerImageUrl = prevUser.bannerImageUrl;
+          }
+          
           // Update localStorage with fresh user data
           localStorage.setItem('user', JSON.stringify(updatedUser));
+          console.log('💾 AuthContext - Saved user profilePicUrl to localStorage:', updatedUser.profilePicUrl);
           return updatedUser;
         }
         return null;
@@ -144,6 +192,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Update WebSocket service with new token
       webSocketService.updateToken(authData.token);
 
+      // Schedule automatic token refresh (silent refresh)
+      tokenService.scheduleTokenRefresh();
+
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 'Login failed';
       throw new Error(errorMessage);
@@ -179,6 +230,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Update WebSocket service with new token
       webSocketService.updateToken(authData.token);
 
+      // Schedule automatic token refresh (silent refresh)
+      tokenService.scheduleTokenRefresh();
+
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || 'Registration failed';
       throw new Error(errorMessage);
@@ -195,6 +249,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
+
+    // Clear token refresh timer
+    tokenService.clearRefreshTimer();
 
     // Update WebSocket service to disconnect
     webSocketService.updateToken(null);

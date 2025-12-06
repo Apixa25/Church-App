@@ -243,6 +243,125 @@ export const getUserShareStats = async (
 
 // ========== MEDIA UPLOAD ==========
 
+/**
+ * Generate presigned URL for direct S3 upload (new approach - bypasses Nginx)
+ */
+export interface PresignedUploadRequest {
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  folder: string;
+}
+
+export interface PresignedUploadResponse {
+  presignedUrl: string;
+  s3Key: string;
+  fileUrl: string;
+  expiresInSeconds: number;
+}
+
+export interface UploadCompletionRequest {
+  s3Key: string;
+  fileName: string;
+  contentType: string;
+  fileSize?: number;
+}
+
+/**
+ * Generate presigned URL for a single file upload
+ */
+export const generatePresignedUploadUrl = async (
+  file: File,
+  folder: string = 'posts'
+): Promise<PresignedUploadResponse> => {
+  const request: PresignedUploadRequest = {
+    fileName: file.name,
+    contentType: file.type,
+    fileSize: file.size,
+    folder: folder
+  };
+
+  const response = await api.post<PresignedUploadResponse>(
+    '/posts/generate-upload-url',
+    request
+  );
+
+  return response.data;
+};
+
+/**
+ * Upload file directly to S3 using presigned URL
+ */
+export const uploadFileToS3 = async (
+  file: File,
+  presignedUrl: string
+): Promise<void> => {
+  const response = await fetch(presignedUrl, {
+    method: 'PUT',
+    body: file,
+    headers: {
+      'Content-Type': file.type
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to upload file to S3: ${response.statusText}`);
+  }
+};
+
+/**
+ * Confirm upload completion to backend
+ */
+export const confirmUpload = async (
+  request: UploadCompletionRequest
+): Promise<{ fileUrl: string; success: boolean }> => {
+  const response = await api.post<{ fileUrl: string; success: boolean }>(
+    '/posts/confirm-upload',
+    request
+  );
+
+  return response.data;
+};
+
+/**
+ * Upload multiple files using presigned URLs (new approach)
+ */
+export const uploadMediaDirect = async (
+  files: File[],
+  folder: string = 'posts'
+): Promise<string[]> => {
+  const uploadedUrls: string[] = [];
+
+  for (const file of files) {
+    try {
+      // Step 1: Get presigned URL
+      const presignedResponse = await generatePresignedUploadUrl(file, folder);
+
+      // Step 2: Upload directly to S3
+      await uploadFileToS3(file, presignedResponse.presignedUrl);
+
+      // Step 3: Confirm upload completion
+      const completionResponse = await confirmUpload({
+        s3Key: presignedResponse.s3Key,
+        fileName: file.name,
+        contentType: file.type,
+        fileSize: file.size
+      });
+
+      uploadedUrls.push(completionResponse.fileUrl);
+    } catch (error) {
+      console.error(`Failed to upload file ${file.name}:`, error);
+      throw error;
+    }
+  }
+
+  return uploadedUrls;
+};
+
+/**
+ * Legacy endpoint - upload media through backend (kept for backward compatibility)
+ * @deprecated Use uploadMediaDirect instead
+ */
 export const uploadMedia = async (files: File[]): Promise<string[]> => {
   const formData = new FormData();
 
