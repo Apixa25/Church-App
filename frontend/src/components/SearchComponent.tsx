@@ -288,24 +288,23 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
     }
   };
 
-  const handleQuickFilter = (filterValue: PostType | 'users' | 'organizations' | 'families' | 'groups') => {
+  const handleQuickFilter = (filterValue: PostType | 'users' | 'organizations' | 'families' | 'groups', fromDropdown: boolean = false) => {
     console.log('🔘 handleQuickFilter called with:', filterValue, 'current selectedContentType:', selectedContentType);
-    // Toggle filter - if same type is clicked, clear filter
-    if (selectedContentType === filterValue) {
+    // Toggle filter only for button clicks (not dropdown) - if same type is clicked, clear filter
+    if (!fromDropdown && selectedContentType === filterValue) {
       console.log('🔄 Toggling off filter');
       setSelectedContentType(null);
     } else {
       console.log('✅ Setting filter to:', filterValue);
       setSelectedContentType(filterValue);
     }
-    setShowFilters(true);
     setActiveTab('search');
   };
 
-  const handleAllFilter = () => {
+  const handleAllFilter = (fromDropdownOrEvent?: boolean | React.MouseEvent<HTMLButtonElement>) => {
+    const fromDropdown = typeof fromDropdownOrEvent === 'boolean' ? fromDropdownOrEvent : false;
     console.log('🔘 handleAllFilter called - clearing filter');
     setSelectedContentType(null);
-    setShowFilters(true);
     setActiveTab('search');
   };
 
@@ -332,7 +331,6 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
     setHasSearched(false);
     setSelectedContentType(null);
     setSearchFilters({});
-    setShowFilters(false);
     setShowEmojiPicker(false);
   };
 
@@ -366,7 +364,13 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
         {/* Header */}
         <div className="search-header">
           <div className="search-input-container">
-            <div className="search-icon">🔍</div>
+            <button
+              className="close-search-btn-inline"
+              onClick={onClose}
+              aria-label="Close search"
+            >
+              ✕
+            </button>
             <input
               ref={searchInputRef}
               type="text"
@@ -435,74 +439,54 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
               </div>
             )}
           </div>
-
-          <div className="search-actions">
-            <button
-              className="filter-toggle-btn"
-              onClick={() => setShowFilters(!showFilters)}
-              aria-label="Toggle filters"
-            >
-              ⚙️
-            </button>
-
-            <button
-              className="close-search-btn"
-              onClick={onClose}
-              aria-label="Close search"
-            >
-              ✕
-            </button>
-          </div>
         </div>
 
-        {/* Filters Panel */}
-        {showFilters && (
-          <div className="search-filters">
-            <div className="filter-group">
-              <label>Content Type:</label>
-              <div className="filter-options">
-                <button
-                  className={`filter-option ${selectedContentType === null ? 'active' : ''}`}
-                  onClick={handleAllFilter}
-                >
-                  <span className="filter-icon">🌐</span>
-                  All
-                </button>
-                {quickFilters.map(filter => (
-                  <button
-                    key={filter.value}
-                    className={`filter-option ${selectedContentType === filter.value ? 'active' : ''}`}
-                    onClick={() => handleQuickFilter(filter.value)}
-                  >
-                    <span className="filter-icon">{filter.icon}</span>
-                    {filter.label}
-                  </button>
-                ))}
-                <button
-                  className={`filter-option ${selectedContentType === 'users' ? 'active' : ''}`}
-                  onClick={() => handleQuickFilter('users')}
-                >
-                  <span className="filter-icon">👤</span>
-                  Users
-                </button>
-              </div>
-            </div>
-
-            <div className="filter-group">
-              <label>Time Range:</label>
-              <select
-                value={searchFilters.dateFrom || ''}
-                onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-                className="filter-select"
-              >
-                <option value="">Any time</option>
-                <option value={new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]}>Last 24 hours</option>
-                <option value={new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}>Last week</option>
-                <option value={new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}>Last month</option>
-              </select>
-            </div>
-          </div>
-        )}
+        {/* Quick Filters and Time Range - Mobile: Dropdowns (always visible) */}
+        <div className="quick-filters-mobile-container">
+          <select
+            className="quick-filters-dropdown"
+            value={selectedContentType === null ? 'all' : (typeof selectedContentType === 'string' ? selectedContentType : PostType[selectedContentType as keyof typeof PostType])}
+            onChange={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const value = e.target.value;
+              console.log('📋 Dropdown changed to:', value);
+              if (value === 'all') {
+                handleAllFilter(true); // Pass true to indicate it's from dropdown
+              } else {
+                // Convert string back to PostType enum or FilterValue
+                let filterValue: FilterValue;
+                if (value === 'GENERAL' || value === 'PRAYER' || value === 'TESTIMONY' || value === 'ANNOUNCEMENT') {
+                  filterValue = PostType[value as keyof typeof PostType];
+                } else {
+                  filterValue = value as FilterValue;
+                }
+                console.log('📋 Setting filterValue to:', filterValue);
+                handleQuickFilter(filterValue, true); // Pass true to indicate it's from dropdown
+              }
+            }}
+          >
+            <option value="all">🌐 All</option>
+            {quickFilters.map(filter => (
+              <option key={filter.value} value={typeof filter.value === 'string' ? filter.value : PostType[filter.value as keyof typeof PostType]}>
+                {filter.icon} {filter.label}
+              </option>
+            ))}
+            <option value="users">👤 Users</option>
+          </select>
+          
+          {/* Time Range Filter - Always visible */}
+          <select
+            value={searchFilters.dateFrom || ''}
+            onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+            className="time-range-dropdown"
+          >
+            <option value="">Any time</option>
+            <option value={new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]}>Last 24 hours</option>
+            <option value={new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}>Last week</option>
+            <option value={new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}>Last month</option>
+          </select>
+        </div>
 
         {/* Tabs */}
         <div className="search-tabs">
@@ -524,10 +508,10 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
         <div className="search-content">
           {activeTab === 'search' ? (
             <>
-              {/* Search Suggestions (when no query) */}
+              {/* Search Suggestions (when no query) - Desktop only */}
               {!query && !hasSearched && (
                 <div className="search-suggestions">
-                  <h3>Quick Filters</h3>
+                  {/* Desktop: Pill buttons */}
                   <div className="quick-filters">
                     <button
                       className={`quick-filter-btn ${selectedContentType === null ? 'active' : ''}`}
