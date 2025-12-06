@@ -1,3 +1,5 @@
+import { Event } from '../types/Event';
+
 /**
  * Utility functions for handling date parsing and formatting
  * Handles various date formats that might come from the backend
@@ -352,4 +354,140 @@ export const formatBirthdayDate = (dateString: string | undefined): string => {
   ];
   
   return `${monthNames[parsed.month - 1]} ${parsed.day}, ${parsed.year}`;
+};
+
+/**
+ * Expand a recurring event into multiple virtual instances for calendar display.
+ * This function generates all occurrences of a recurring event based on its recurrence pattern.
+ * 
+ * @param event - The recurring event to expand
+ * @param viewStartDate - The start date of the calendar view (to limit expansion)
+ * @param viewEndDate - The end date of the calendar view (to limit expansion)
+ * @returns Array of virtual event instances with adjusted startTime and endTime
+ */
+export const expandRecurringEvent = (
+  event: Event,
+  viewStartDate?: Date,
+  viewEndDate?: Date
+): Event[] => {
+  // If not a recurring event, return as-is
+  if (!event.isRecurring || !event.recurrenceType) {
+    return [event];
+  }
+
+  const startDate = parseEventDate(event.startTime);
+  if (!startDate) {
+    return [event];
+  }
+
+  // Determine the end date for recurrence
+  let recurrenceEnd: Date | null = null;
+  if (event.recurrenceEndDate) {
+    recurrenceEnd = parseEventDate(event.recurrenceEndDate);
+  }
+
+  // Set view boundaries - expand up to 1 year ahead if no view dates provided
+  const viewStart = viewStartDate || new Date();
+  const viewEnd = viewEndDate || new Date();
+  viewEnd.setFullYear(viewEnd.getFullYear() + 1); // Default to 1 year ahead
+
+  // Calculate duration of the original event (for endTime adjustment)
+  let eventDuration = 0; // in milliseconds
+  if (event.endTime) {
+    const endDate = parseEventDate(event.endTime);
+    if (endDate) {
+      eventDuration = endDate.getTime() - startDate.getTime();
+    }
+  }
+
+  const instances: Event[] = [];
+  let currentDate = new Date(startDate);
+
+  // Generate instances until we hit the recurrence end date or view end date
+  while (currentDate <= viewEnd) {
+    // Stop if we've hit the recurrence end date
+    if (recurrenceEnd && currentDate > recurrenceEnd) {
+      break;
+    }
+
+    // Only include instances that are within or after the view start date
+    if (currentDate >= viewStart || currentDate >= new Date()) {
+      // Format date in the same format the backend uses (LocalDateTime format)
+      const formatDateForBackend = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}`;
+      };
+
+      const instanceStartTime = formatDateForBackend(currentDate);
+      let instanceEndTime: string | undefined;
+      
+      if (event.endTime && eventDuration > 0) {
+        const instanceEnd = new Date(currentDate.getTime() + eventDuration);
+        instanceEndTime = formatDateForBackend(instanceEnd);
+      }
+
+      // Create a new instance with updated times, preserving all original properties
+      // We spread the event to preserve all properties, then override startTime and endTime
+      // TypeScript needs explicit casting because we're adding a custom property for React keys
+      const instance: Event = {
+        ...event,
+        startTime: instanceStartTime,
+        endTime: instanceEndTime
+      };
+      // Add custom property for React key (not part of Event interface, but needed for rendering)
+      (instance as any)._recurrenceInstance = `${event.id}-${currentDate.getTime()}`;
+      instances.push(instance);
+    }
+
+    // Calculate next occurrence based on recurrence type
+    const nextDate = new Date(currentDate);
+    switch (event.recurrenceType) {
+      case 'DAILY':
+        nextDate.setDate(nextDate.getDate() + 1);
+        break;
+      case 'WEEKLY':
+        nextDate.setDate(nextDate.getDate() + 7);
+        break;
+      case 'MONTHLY':
+        // For monthly, preserve the day of month (handle edge cases like Feb 31 -> Feb 28/29)
+        const currentDay = nextDate.getDate();
+        nextDate.setMonth(nextDate.getMonth() + 1);
+        // If the day doesn't exist in the new month (e.g., Jan 31 -> Feb), use last day of month
+        if (nextDate.getDate() !== currentDay) {
+          nextDate.setDate(0); // Go to last day of previous month
+        }
+        break;
+      case 'YEARLY':
+        // For yearly, preserve month and day
+        const currentMonth = nextDate.getMonth();
+        const currentDayOfMonth = nextDate.getDate();
+        nextDate.setFullYear(nextDate.getFullYear() + 1);
+        // Handle leap year edge case (Feb 29)
+        if (nextDate.getMonth() !== currentMonth || nextDate.getDate() !== currentDayOfMonth) {
+          nextDate.setMonth(currentMonth, 0); // Go to last day of previous month
+          nextDate.setDate(Math.min(currentDayOfMonth, nextDate.getDate()));
+        }
+        break;
+      default:
+        // Unknown recurrence type, stop expanding
+        return instances.length > 0 ? instances : [event];
+    }
+
+    currentDate = nextDate;
+
+    // Safety limit: prevent infinite loops (max 1000 instances)
+    if (instances.length >= 1000) {
+      console.warn(`Recurring event ${event.id} exceeded expansion limit of 1000 instances`);
+      break;
+    }
+  }
+
+  // If no instances were generated (e.g., all in the past), return at least the original
+  return instances.length > 0 ? instances : [event];
 };
