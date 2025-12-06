@@ -253,35 +253,7 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
         </div>
       )}
 
-      {/* 3. The Actual Calendar */}
-      <div className="calendar-content">
-        {view === 'calendar' ? (
-          <CalendarView
-            events={events}
-            selectedDate={selectedDate}
-            onDateSelect={setSelectedDate}
-            onEventSelect={(event) => navigate(`/events/${event.id}`)}
-            onEventUpdate={handleEditEvent}
-            onEventDelete={handleEventDeleted}
-            onRsvpUpdate={handleRsvpUpdate}
-            onCreateEvent={(date) => {
-              setSelectedDate(date);
-              setShowCreateForm(true);
-            }}
-          />
-        ) : (
-          <EventList
-            events={events}
-            onEventSelect={(event) => navigate(`/events/${event.id}`)}
-            onEventUpdate={handleEditEvent}
-            onEventDelete={handleEventDeleted}
-            onRsvpUpdate={handleRsvpUpdate}
-            loading={loading}
-          />
-        )}
-      </div>
-
-      {/* Filters Section (below calendar) */}
+      {/* Filters Section - Above Month/Week/Day toggles */}
       <div className="calendar-controls">
         <div className="filters">
           <input
@@ -318,6 +290,34 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
             ))}
           </select>
         </div>
+      </div>
+
+      {/* 3. The Actual Calendar */}
+      <div className="calendar-content">
+        {view === 'calendar' ? (
+          <CalendarView
+            events={events}
+            selectedDate={selectedDate}
+            onDateSelect={setSelectedDate}
+            onEventSelect={(event) => navigate(`/events/${event.id}`)}
+            onEventUpdate={handleEditEvent}
+            onEventDelete={handleEventDeleted}
+            onRsvpUpdate={handleRsvpUpdate}
+            onCreateEvent={(date) => {
+              setSelectedDate(date);
+              setShowCreateForm(true);
+            }}
+          />
+        ) : (
+          <EventList
+            events={events}
+            onEventSelect={(event) => navigate(`/events/${event.id}`)}
+            onEventUpdate={handleEditEvent}
+            onEventDelete={handleEventDeleted}
+            onRsvpUpdate={handleRsvpUpdate}
+            loading={loading}
+          />
+        )}
       </div>
 
       {/* Create/Edit Event Modal */}
