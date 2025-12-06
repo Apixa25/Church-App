@@ -218,6 +218,41 @@
   transform: translateY(0);
 }
 
+/* Create Event Button - Web/Desktop only */
+.create-event-btn-web {
+  display: none; /* Hidden by default (mobile) */
+  padding: 8px 12px;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px var(--button-primary-glow);
+  flex: 1;
+  min-width: 100px;
+}
+
+.create-event-btn-web:hover {
+  background: linear-gradient(135deg, var(--accent-primary-dark), var(--accent-secondary-dark));
+  transform: translateY(-1px);
+  box-shadow: var(--glow-blue);
+}
+
+.create-event-btn-web:active {
+  transform: translateY(0);
+}
+
+/* Show web button on desktop */
+@media (min-width: 769px) {
+  .create-event-btn-web {
+    display: block;
+  }
+}
+
 /* View Toggle in header - large pills */
 .view-toggle {
   display: flex;
