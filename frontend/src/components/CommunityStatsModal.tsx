@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useActiveContext } from '../contexts/ActiveContextContext';
 import dashboardApi, { DashboardStats } from '../services/dashboardApi';
+import LoadingSpinner from './LoadingSpinner';
 import './CommunityStatsModal.css';
 
 interface CommunityStatsModalProps {
@@ -74,8 +75,7 @@ const CommunityStatsModal: React.FC<CommunityStatsModalProps> = ({ isOpen, onClo
           
           {isLoading ? (
             <div className="community-stats-loading">
-              <div className="loading-spinner"></div>
-              <p>Loading stats...</p>
+              <LoadingSpinner type="multi-ring" size="medium" text="Loading stats..." />
             </div>
           ) : stats ? (
             <div className="community-stats-grid">

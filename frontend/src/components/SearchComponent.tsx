@@ -9,6 +9,7 @@ import { PrayerRequest } from '../types/Prayer';
 import PostCard from './PostCard';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useGroup } from '../contexts/GroupContext';
+import LoadingSpinner from './LoadingSpinner';
 import './SearchComponent.css';
 
 interface SearchComponentProps {
@@ -544,8 +545,7 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
               {/* Search Results */}
               {isSearching && (
                 <div className="search-loading">
-                  <div className="loading-spinner"></div>
-                  <span>Searching...</span>
+                  <LoadingSpinner type="multi-ring" size="medium" text="Searching..." />
                 </div>
               )}
 

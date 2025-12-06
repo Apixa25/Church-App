@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { tokenService } from '../services/tokenService';
+import LoadingSpinner from './LoadingSpinner';
 // import { useAuth } from '../contexts/AuthContext'; // Not currently used
 
 const AuthCallback: React.FC = () => {
@@ -82,7 +83,7 @@ const AuthCallback: React.FC = () => {
   return (
     <div className="auth-callback-container">
       <div className="auth-callback">
-        <div className="loading-spinner">⏳</div>
+        <LoadingSpinner type="multi-ring" size="large" />
         <h2>🔐 Completing Authentication...</h2>
         <p>Please wait while we finish setting up your account.</p>
       </div>

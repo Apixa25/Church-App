@@ -433,6 +433,7 @@ textarea::placeholder {
    LOADING STATES
    ======================================== */
 
+/* Classic Single Ring Spinner (backward compatible) */
 .loading-spinner {
   width: 32px;
   height: 32px;
@@ -446,6 +447,417 @@ textarea::placeholder {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* ========================================
+   MULTI-RING LOADER (New Vibrant Option)
+   ======================================== */
+
+.mainLoaderContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* Size Variants */
+.mainLoaderContainer.loader-fullscreen {
+  height: 100vh;
+  background-color: var(--bg-primary);
+}
+
+.mainLoaderContainer.loader-large {
+  min-height: 200px;
+  padding: var(--spacing-xl);
+}
+
+.mainLoaderContainer.loader-medium {
+  min-height: 120px;
+  padding: var(--spacing-lg);
+}
+
+.mainLoaderContainer.loader-small {
+  min-height: 80px;
+  padding: var(--spacing-md);
+}
+
+.mainLoaderContainer.loader-inline {
+  min-height: auto;
+  height: auto;
+  padding: var(--spacing-md);
+}
+
+/* Individual Ring Spans */
+.loaderSpan {
+  position: absolute;
+  border-radius: 50%;
+  animation: rotate 1.4s ease-in-out infinite;
+}
+
+/* Large Size (default/fullscreen) */
+.mainLoaderContainer.loader-large .span1,
+.mainLoaderContainer.loader-fullscreen .span1 {
+  width: 50px;
+  height: 50px;
+  border: 4px solid var(--accent-secondary);
+  border-bottom: 4px solid transparent;
+  border-left: 4px solid transparent;
+  animation-delay: 50ms;
+}
+
+.mainLoaderContainer.loader-large .span2,
+.mainLoaderContainer.loader-fullscreen .span2 {
+  width: 60px;
+  height: 60px;
+  border: 4px solid var(--accent-secondary-light);
+  border-bottom: 4px solid transparent;
+  border-left: 4px solid transparent;
+  animation-delay: 100ms;
+}
+
+.mainLoaderContainer.loader-large .span3,
+.mainLoaderContainer.loader-fullscreen .span3 {
+  width: 70px;
+  height: 70px;
+  border: 4px solid var(--accent-tertiary);
+  border-bottom: 4px solid transparent;
+  border-left: 4px solid transparent;
+  animation-delay: 150ms;
+}
+
+.mainLoaderContainer.loader-large .span4,
+.mainLoaderContainer.loader-fullscreen .span4 {
+  width: 80px;
+  height: 80px;
+  border: 4px solid var(--accent-tertiary-light);
+  border-bottom: 4px solid transparent;
+  border-left: 4px solid transparent;
+  animation-delay: 200ms;
+}
+
+.mainLoaderContainer.loader-large .span5,
+.mainLoaderContainer.loader-fullscreen .span5 {
+  width: 90px;
+  height: 90px;
+  border: 4px solid var(--accent-primary);
+  border-bottom: 4px solid transparent;
+  border-left: 4px solid transparent;
+  animation-delay: 250ms;
+}
+
+.mainLoaderContainer.loader-large .span6,
+.mainLoaderContainer.loader-fullscreen .span6 {
+  width: 100px;
+  height: 100px;
+  border: 4px solid var(--accent-primary-light);
+  border-bottom: 4px solid transparent;
+  border-left: 4px solid transparent;
+  animation-delay: 300ms;
+}
+
+.mainLoaderContainer.loader-large .span7,
+.mainLoaderContainer.loader-fullscreen .span7 {
+  width: 110px;
+  height: 110px;
+  border: 4px solid var(--accent-secondary-dark);
+  border-bottom: 4px solid transparent;
+  border-left: 4px solid transparent;
+  animation-delay: 350ms;
+}
+
+.mainLoaderContainer.loader-large .span8,
+.mainLoaderContainer.loader-fullscreen .span8 {
+  width: 120px;
+  height: 120px;
+  border: 4px solid var(--accent-primary-dark);
+  border-bottom: 4px solid transparent;
+  border-left: 4px solid transparent;
+  animation-delay: 400ms;
+}
+
+.mainLoaderContainer.loader-large .span9,
+.mainLoaderContainer.loader-fullscreen .span9 {
+  width: 130px;
+  height: 130px;
+  border: 4px solid var(--accent-tertiary-dark);
+  border-bottom: 4px solid transparent;
+  border-left: 4px solid transparent;
+  animation-delay: 450ms;
+}
+
+/* Medium Size */
+.mainLoaderContainer.loader-medium .span1 {
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--accent-secondary);
+  border-bottom: 3px solid transparent;
+  border-left: 3px solid transparent;
+  animation-delay: 50ms;
+}
+
+.mainLoaderContainer.loader-medium .span2 {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--accent-secondary-light);
+  border-bottom: 3px solid transparent;
+  border-left: 3px solid transparent;
+  animation-delay: 100ms;
+}
+
+.mainLoaderContainer.loader-medium .span3 {
+  width: 42px;
+  height: 42px;
+  border: 3px solid var(--accent-tertiary);
+  border-bottom: 3px solid transparent;
+  border-left: 3px solid transparent;
+  animation-delay: 150ms;
+}
+
+.mainLoaderContainer.loader-medium .span4 {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--accent-tertiary-light);
+  border-bottom: 3px solid transparent;
+  border-left: 3px solid transparent;
+  animation-delay: 200ms;
+}
+
+.mainLoaderContainer.loader-medium .span5 {
+  width: 54px;
+  height: 54px;
+  border: 3px solid var(--accent-primary);
+  border-bottom: 3px solid transparent;
+  border-left: 3px solid transparent;
+  animation-delay: 250ms;
+}
+
+.mainLoaderContainer.loader-medium .span6 {
+  width: 60px;
+  height: 60px;
+  border: 3px solid var(--accent-primary-light);
+  border-bottom: 3px solid transparent;
+  border-left: 3px solid transparent;
+  animation-delay: 300ms;
+}
+
+.mainLoaderContainer.loader-medium .span7 {
+  width: 66px;
+  height: 66px;
+  border: 3px solid var(--accent-secondary-dark);
+  border-bottom: 3px solid transparent;
+  border-left: 3px solid transparent;
+  animation-delay: 350ms;
+}
+
+.mainLoaderContainer.loader-medium .span8 {
+  width: 72px;
+  height: 72px;
+  border: 3px solid var(--accent-primary-dark);
+  border-bottom: 3px solid transparent;
+  border-left: 3px solid transparent;
+  animation-delay: 400ms;
+}
+
+.mainLoaderContainer.loader-medium .span9 {
+  width: 78px;
+  height: 78px;
+  border: 3px solid var(--accent-tertiary-dark);
+  border-bottom: 3px solid transparent;
+  border-left: 3px solid transparent;
+  animation-delay: 450ms;
+}
+
+/* Small Size */
+.mainLoaderContainer.loader-small .span1 {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--accent-secondary);
+  border-bottom: 2px solid transparent;
+  border-left: 2px solid transparent;
+  animation-delay: 50ms;
+}
+
+.mainLoaderContainer.loader-small .span2 {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--accent-secondary-light);
+  border-bottom: 2px solid transparent;
+  border-left: 2px solid transparent;
+  animation-delay: 100ms;
+}
+
+.mainLoaderContainer.loader-small .span3 {
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--accent-tertiary);
+  border-bottom: 2px solid transparent;
+  border-left: 2px solid transparent;
+  animation-delay: 150ms;
+}
+
+.mainLoaderContainer.loader-small .span4 {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--accent-tertiary-light);
+  border-bottom: 2px solid transparent;
+  border-left: 2px solid transparent;
+  animation-delay: 200ms;
+}
+
+.mainLoaderContainer.loader-small .span5 {
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--accent-primary);
+  border-bottom: 2px solid transparent;
+  border-left: 2px solid transparent;
+  animation-delay: 250ms;
+}
+
+.mainLoaderContainer.loader-small .span6 {
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--accent-primary-light);
+  border-bottom: 2px solid transparent;
+  border-left: 2px solid transparent;
+  animation-delay: 300ms;
+}
+
+.mainLoaderContainer.loader-small .span7 {
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--accent-secondary-dark);
+  border-bottom: 2px solid transparent;
+  border-left: 2px solid transparent;
+  animation-delay: 350ms;
+}
+
+.mainLoaderContainer.loader-small .span8 {
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--accent-primary-dark);
+  border-bottom: 2px solid transparent;
+  border-left: 2px solid transparent;
+  animation-delay: 400ms;
+}
+
+.mainLoaderContainer.loader-small .span9 {
+  width: 52px;
+  height: 52px;
+  border: 2px solid var(--accent-tertiary-dark);
+  border-bottom: 2px solid transparent;
+  border-left: 2px solid transparent;
+  animation-delay: 450ms;
+}
+
+/* Inline Size (for buttons/small spaces) */
+.mainLoaderContainer.loader-inline .span1 {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--accent-secondary);
+  border-bottom: 1.5px solid transparent;
+  border-left: 1.5px solid transparent;
+  animation-delay: 50ms;
+}
+
+.mainLoaderContainer.loader-inline .span2 {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--accent-secondary-light);
+  border-bottom: 1.5px solid transparent;
+  border-left: 1.5px solid transparent;
+  animation-delay: 100ms;
+}
+
+.mainLoaderContainer.loader-inline .span3 {
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--accent-tertiary);
+  border-bottom: 1.5px solid transparent;
+  border-left: 1.5px solid transparent;
+  animation-delay: 150ms;
+}
+
+.mainLoaderContainer.loader-inline .span4 {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--accent-tertiary-light);
+  border-bottom: 1.5px solid transparent;
+  border-left: 1.5px solid transparent;
+  animation-delay: 200ms;
+}
+
+.mainLoaderContainer.loader-inline .span5 {
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--accent-primary);
+  border-bottom: 1.5px solid transparent;
+  border-left: 1.5px solid transparent;
+  animation-delay: 250ms;
+}
+
+.mainLoaderContainer.loader-inline .span6 {
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--accent-primary-light);
+  border-bottom: 1.5px solid transparent;
+  border-left: 1.5px solid transparent;
+  animation-delay: 300ms;
+}
+
+.mainLoaderContainer.loader-inline .span7 {
+  width: 24px;
+  height: 24px;
+  border: 1.5px solid var(--accent-secondary-dark);
+  border-bottom: 1.5px solid transparent;
+  border-left: 1.5px solid transparent;
+  animation-delay: 350ms;
+}
+
+.mainLoaderContainer.loader-inline .span8 {
+  width: 26px;
+  height: 26px;
+  border: 1.5px solid var(--accent-primary-dark);
+  border-bottom: 1.5px solid transparent;
+  border-left: 1.5px solid transparent;
+  animation-delay: 400ms;
+}
+
+.mainLoaderContainer.loader-inline .span9 {
+  width: 28px;
+  height: 28px;
+  border: 1.5px solid var(--accent-tertiary-dark);
+  border-bottom: 1.5px solid transparent;
+  border-left: 1.5px solid transparent;
+  animation-delay: 450ms;
+}
+
+/* Animation */
+@keyframes rotate {
+  0% {
+    transform: rotate(-45deg);
+  }
+  90%, 100% {
+    transform: rotate(315deg);
+  }
+}
+
+/* Spinner Container Utilities */
+.spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner-centered {
+  margin: 0 auto;
+}
+
+/* Ensure multi-ring spinner is centered properly */
+.mainLoaderContainer:not(.loader-fullscreen) {
+  margin: 0 auto;
 }
 
 /* ========================================

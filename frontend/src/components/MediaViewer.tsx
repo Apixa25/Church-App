@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import LoadingSpinner from './LoadingSpinner';
 import './MediaViewer.css';
 
 interface MediaViewerProps {
@@ -81,7 +82,7 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
         <div className="media-viewer-content">
           {isLoading && (
             <div className="media-viewer-loading">
-              <div className="loading-spinner"></div>
+              <LoadingSpinner type="multi-ring" size="medium" />
             </div>
           )}
 

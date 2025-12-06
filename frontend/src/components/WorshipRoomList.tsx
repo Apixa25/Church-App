@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { worshipAPI } from '../services/worshipApi';
 import { WorshipRoom, PlaybackStatus } from '../types/Worship';
 import websocketService from '../services/websocketService';
+import LoadingSpinner from './LoadingSpinner';
 import './WorshipRoomList.css';
 
 interface WorshipRoomListProps {
@@ -421,10 +422,7 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
   if (loading) {
     return (
       <div className="worship-room-list loading">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading worship rooms...</p>
-        </div>
+        <LoadingSpinner type="multi-ring" size="medium" text="Loading worship rooms..." />
       </div>
     );
   }

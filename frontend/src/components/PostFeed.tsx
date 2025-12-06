@@ -7,6 +7,7 @@ import FeedFilters from './FeedFilters';
 import EmptyFeedState from './EmptyFeedState';
 import { useFeedFilter } from '../contexts/FeedFilterContext';
 import { useWebSocket } from '../contexts/WebSocketContext';
+import LoadingSpinner from './LoadingSpinner';
 import './PostFeed.css';
 
 interface PostFeedProps {
@@ -371,8 +372,7 @@ const PostFeed: React.FC<PostFeedProps> = ({
       {/* Loading State */}
       {loading && (
         <div className="feed-loading">
-          <div className="loading-spinner"></div>
-          <span>Loading posts...</span>
+          <LoadingSpinner type="multi-ring" size="medium" text="Loading posts..." />
         </div>
       )}
 
@@ -401,8 +401,7 @@ const PostFeed: React.FC<PostFeedProps> = ({
           {/* Load More Indicator */}
           {loadingMore && (
             <div ref={loadingRef} className="load-more-indicator">
-              <div className="loading-spinner"></div>
-              <span>Loading more posts...</span>
+              <LoadingSpinner type="multi-ring" size="small" text="Loading more posts..." />
             </div>
           )}
 
