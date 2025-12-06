@@ -185,9 +185,23 @@ public class EventController {
             }
             
             // Convert to response DTOs with RSVP summaries
+            // Ensure creator is loaded before converting to DTO
             List<EventResponse> eventResponses = eventsPage.getContent().stream()
                 .map(event -> {
+                    // Force initialization of lazy-loaded creator relationship
+                    if (event.getCreator() != null) {
+                        // Access creator properties to trigger lazy loading if needed
+                        UUID eventCreatorId = event.getCreator().getId();
+                        String eventCreatorName = event.getCreator().getName();
+                        String eventCreatorProfilePicUrl = event.getCreator().getProfilePicUrl();
+                        log.debug("Event {} - Creator: {} ({}), ProfilePicUrl: {}", 
+                            event.getId(), eventCreatorName, eventCreatorId, eventCreatorProfilePicUrl);
+                    } else {
+                        log.warn("Event {} has null creator!", event.getId());
+                    }
                     EventResponse response = EventResponse.fromEvent(event);
+                    log.debug("EventResponse for {} - creatorProfilePicUrl: {}", 
+                        event.getId(), response.getCreatorProfilePicUrl());
                     EventRsvpSummary rsvpSummary = eventRsvpService.getEventRsvpSummary(
                         event.getId(), currentProfile.getUserId());
                     response.setRsvpSummary(rsvpSummary);

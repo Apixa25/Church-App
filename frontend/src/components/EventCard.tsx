@@ -182,12 +182,20 @@ const EventCard: React.FC<EventCardProps> = ({
       {!compact && (
         <div className="event-creator">
           <div className="creator-info">
-            {event.creatorProfilePicUrl && (
+            {event.creatorProfilePicUrl ? (
               <img 
                 src={event.creatorProfilePicUrl} 
                 alt={event.creatorName}
                 className="creator-avatar"
+                onError={(e) => {
+                  console.warn('Failed to load creator profile picture:', event.creatorProfilePicUrl, 'for event:', event.id);
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
               />
+            ) : (
+              <div className="creator-avatar creator-avatar-placeholder">
+                {event.creatorName ? event.creatorName.charAt(0).toUpperCase() : '?'}
+              </div>
             )}
             <span className="creator-name">By {event.creatorName}</span>
           </div>

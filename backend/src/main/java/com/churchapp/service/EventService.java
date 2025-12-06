@@ -267,7 +267,19 @@ public class EventService {
         }
 
         Pageable pageable = PageRequest.of(page, size);
-        return eventRepository.findByOrganizationId(targetOrganizationId, pageable);
+        Page<Event> eventsPage = eventRepository.findByOrganizationId(targetOrganizationId, pageable);
+        
+        // Ensure creator is loaded for all events (force lazy loading within transaction)
+        eventsPage.getContent().forEach(event -> {
+            if (event.getCreator() != null) {
+                // Access creator properties to trigger lazy loading
+                event.getCreator().getId();
+                event.getCreator().getName();
+                event.getCreator().getProfilePicUrl();
+            }
+        });
+        
+        return eventsPage;
     }
 
     /**
