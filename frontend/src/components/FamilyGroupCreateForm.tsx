@@ -79,9 +79,9 @@ const FamilyGroupCreateForm: React.FC<FamilyGroupCreateFormProps> = ({ onSuccess
         return;
       }
       
-      // Validate file size (5MB max)
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Image size must be less than 5MB');
+      // Validate file size (100MB max)
+      if (file.size > 100 * 1024 * 1024) {
+        setError('Image size must be less than 100MB');
         return;
       }
 

@@ -55,9 +55,9 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({ onSucce
         return;
       }
       
-      // Validate file size (15MB max)
-      if (file.size > 15 * 1024 * 1024) {
-        setError('Image size must be less than 15MB');
+      // Validate file size (100MB max)
+      if (file.size > 100 * 1024 * 1024) {
+        setError('Image size must be less than 100MB');
         return;
       }
 

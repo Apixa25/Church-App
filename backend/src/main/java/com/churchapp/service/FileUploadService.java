@@ -63,13 +63,13 @@ public class FileUploadService {
     private boolean asyncProcessingEnabled;
     
     // File size limits (configurable)
-    @Value("${media.upload.video.max-size:78643200}") // 75MB default
+    @Value("${media.upload.video.max-size:524288000}") // 500MB default
     private long maxVideoSize;
     
-    @Value("${media.upload.image.max-size:20971520}") // 20MB default
+    @Value("${media.upload.image.max-size:104857600}") // 100MB default
     private long maxImageSize;
     
-    @Value("${media.upload.audio.max-size:10485760}") // 10MB default
+    @Value("${media.upload.audio.max-size:209715200}") // 200MB default
     private long maxAudioSize;
     
     @Value("${media.upload.document.max-size:157286400}") // 150MB default

@@ -202,9 +202,9 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
         return;
       }
 
-      // Validate file size (15MB max)
-      if (file.size > 15 * 1024 * 1024) {
-        setError('Image file size must be less than 15MB');
+      // Validate file size (100MB max)
+      if (file.size > 100 * 1024 * 1024) {
+        setError('Image file size must be less than 100MB');
         // Reset input value so user can try again
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
@@ -258,9 +258,9 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
         return;
       }
 
-      // Validate file size (15MB max)
-      if (file.size > 15 * 1024 * 1024) {
-        setError('Banner image file size must be less than 15MB');
+      // Validate file size (100MB max)
+      if (file.size > 100 * 1024 * 1024) {
+        setError('Banner image file size must be less than 100MB');
         // Reset input value so user can try again
         if (bannerInputRef.current) {
           bannerInputRef.current.value = '';
