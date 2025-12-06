@@ -703,6 +703,15 @@
   .post-meta {
     font-size: 13px;
   }
+
+  /* Reduce padding/spacing by 50% in the two areas marked by user */
+  .author-info {
+    gap: 0.5px !important; /* Reduced from 1px - spacing between user name and church name */
+  }
+
+  .post-content {
+    margin-top: 2px !important; /* Reduced from 4px - spacing between church name and post text */
+  }
 }
 
 /* Loading states */
