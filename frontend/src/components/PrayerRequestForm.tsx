@@ -100,9 +100,9 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
         return;
       }
       
-      // Validate file size (10MB limit)
-      if (file.size > 10 * 1024 * 1024) {
-        setError('Image size must be less than 10MB');
+      // Validate file size (100MB limit)
+      if (file.size > 100 * 1024 * 1024) {
+        setError('Image size must be less than 100MB');
         return;
       }
       

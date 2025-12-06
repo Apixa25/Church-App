@@ -49,7 +49,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     // If maxFileSize is provided as prop, use it; otherwise use type-specific defaults
     const isVideo = file.type.startsWith('video/');
     const isImage = file.type.startsWith('image/');
-    const defaultMaxSize = isVideo ? 75 : (isImage ? 20 : maxFileSize); // 75MB for videos, 20MB for images, or prop value
+    const defaultMaxSize = isVideo ? 500 : (isImage ? 100 : maxFileSize); // 500MB for videos, 100MB for images, or prop value
     const effectiveMaxSize = maxFileSize !== 10 ? maxFileSize : defaultMaxSize; // Use prop if explicitly set, otherwise use defaults
     
     if (file.size > effectiveMaxSize * 1024 * 1024) {

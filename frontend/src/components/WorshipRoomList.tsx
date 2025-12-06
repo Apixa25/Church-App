@@ -135,9 +135,9 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
         return;
       }
 
-      // Validate file size (10MB max)
-      if (file.size > 10 * 1024 * 1024) {
-        alert('Image size must be less than 10MB');
+      // Validate file size (100MB max)
+      if (file.size > 100 * 1024 * 1024) {
+        alert('Image size must be less than 100MB');
         return;
       }
 

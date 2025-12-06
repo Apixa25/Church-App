@@ -146,8 +146,8 @@ const PostComposer: React.FC<PostComposerProps> = ({
 
       // Validate file size (different limits for images vs videos)
       const isVideo = file.type.startsWith('video/');
-      const maxSize = isVideo ? 75 * 1024 * 1024 : 20 * 1024 * 1024; // 75MB for videos, 20MB for images
-      const maxSizeMB = isVideo ? 75 : 20;
+      const maxSize = isVideo ? 500 * 1024 * 1024 : 100 * 1024 * 1024; // 500MB for videos, 100MB for images
+      const maxSizeMB = isVideo ? 500 : 100;
       
       if (file.size > maxSize) {
         setError(`File size must be less than ${maxSizeMB}MB${isVideo ? ' for videos' : ' for images'}`);
