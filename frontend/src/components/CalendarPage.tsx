@@ -210,6 +210,17 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
 
   return (
     <div className="calendar-page">
+      {/* Back Home Button - Desktop Only */}
+      <div className="page-top-nav">
+        <button
+          className="back-home-btn"
+          onClick={() => navigate('/dashboard')}
+          title="Back to Dashboard"
+        >
+          🏠 Back Home
+        </button>
+      </div>
+
       {/* Calendar & Events Header with View Toggle */}
       <div className="calendar-header">
         <div className="header-title">
