@@ -973,11 +973,15 @@
 
   .search-input-container {
     gap: 8px;
+    width: 100% !important; /* Ensure full width on mobile */
+    min-width: 0; /* Allow flex shrinking */
   }
 
   .search-input {
     padding: 10px 16px;
     font-size: 16px; /* Prevent zoom on iOS */
+    width: 100% !important; /* Expand to full width of container */
+    min-width: 0; /* Allow flex shrinking */
   }
 
   .emoji-picker-dropdown {
@@ -1059,6 +1063,11 @@
 
   .search-input {
     font-size: 16px;
+    width: 100% !important; /* Ensure full width on small mobile */
+  }
+
+  .search-input-container {
+    width: 100% !important; /* Ensure full width on small mobile */
   }
 
   .filter-toggle-btn,

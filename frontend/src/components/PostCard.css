@@ -704,13 +704,20 @@
     font-size: 13px;
   }
 
-  /* Reduce padding/spacing by 50% in the two areas marked by user */
+  /* Reduce padding/spacing only between church name and post text (where red pen is marked) */
   .author-info {
-    gap: 0.5px !important; /* Reduced from 1px - spacing between user name and church name */
+    gap: 1px !important; /* Restored to original - spacing between user name and church name stays normal */
   }
 
+  .post-card .post-meta,
+  .post-header .post-meta,
+  .author-info .post-meta {
+    margin-bottom: -14px !important; /* Negative margin to reduce space between church name and post text (7x the original -2px) */
+  }
+
+  .post-card .post-content,
   .post-content {
-    margin-top: 2px !important; /* Reduced from 4px - spacing between church name and post text */
+    margin-top: 0.68px !important; /* Reduced spacing between church name and post text (where red pen mark is) */
   }
 }
 
