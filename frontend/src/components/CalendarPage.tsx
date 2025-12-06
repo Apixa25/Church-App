@@ -277,10 +277,11 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
             ))}
           </select>
 
+          {/* All Status selector - Hidden on mobile, visible on desktop */}
           <select
             value={filters.status}
             onChange={(e) => handleFilterChange('status', e.target.value)}
-            className="filter-select"
+            className="filter-select filter-select-status"
           >
             <option value="">All Status</option>
             {Object.values(EventStatus).map(status => (
@@ -289,6 +290,17 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
               </option>
             ))}
           </select>
+
+          {/* Create Event button - Mobile only */}
+          <button
+            className="create-event-btn-mobile"
+            onClick={() => {
+              setSelectedDate(new Date());
+              setShowCreateForm(true);
+            }}
+          >
+            Create Event
+          </button>
         </div>
       </div>
 

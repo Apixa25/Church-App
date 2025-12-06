@@ -22,6 +22,15 @@
   margin: 0 !important;
 }
 
+/* Desktop: Add spacing after search/filter bar */
+@media (min-width: 769px) {
+  .calendar-view .calendar-controls {
+    margin-top: 0;
+    margin-bottom: 2rem;
+    padding: 0;
+  }
+}
+
 .view-mode-toggle {
   display: flex;
   background: transparent;
@@ -70,12 +79,16 @@
   width: 100%;
 }
 
-/* Desktop: Side by side layout */
+/* Desktop: Side by side layout with even spacing */
 @media (min-width: 769px) {
   .calendar-month-layout {
     flex-direction: row;
     align-items: flex-start;
-    gap: 24px;
+    justify-content: center;
+    gap: 32px; /* Increased gap for better spacing */
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0;
   }
 }
 
@@ -107,6 +120,7 @@
     margin: 0 !important;
     padding: 24px;
     flex: 0 0 600px;
+    width: 600px; /* Fixed width for consistent spacing */
   }
 }
 
@@ -367,8 +381,9 @@
     padding: 1.5rem;
     margin-top: 0;
     box-shadow: var(--shadow-md);
-    flex: 1;
-    min-width: 300px;
+    flex: 0 0 400px; /* Fixed width for even spacing */
+    width: 400px;
+    min-width: 400px;
     max-width: 400px;
     border-top: 1px solid var(--border-primary);
   }

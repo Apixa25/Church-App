@@ -137,7 +137,7 @@
     border-radius: var(--border-radius-md);
     padding: 1rem;
     margin-top: 0;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem; /* Increased spacing before Month/Week/Day toggles */
     box-shadow: var(--shadow-md);
     border-top: 1px solid var(--border-primary);
   }
@@ -190,6 +190,34 @@
   background: var(--bg-tertiary);
 }
 
+/* Create Event Button - Mobile only */
+.create-event-btn-mobile {
+  display: none; /* Hidden by default (desktop) */
+  padding: 8px 12px;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px var(--button-primary-glow);
+  flex: 1;
+  min-width: 100px;
+}
+
+.create-event-btn-mobile:hover {
+  background: linear-gradient(135deg, var(--accent-primary-dark), var(--accent-secondary-dark));
+  transform: translateY(-1px);
+  box-shadow: var(--glow-blue);
+}
+
+.create-event-btn-mobile:active {
+  transform: translateY(0);
+}
+
 /* View Toggle in header - large pills */
 .view-toggle {
   display: flex;
@@ -232,6 +260,13 @@
   overflow: visible;
   margin: 0 !important;
   padding: 0 !important;
+}
+
+/* Desktop: Add spacing for better layout */
+@media (min-width: 769px) {
+  .calendar-content {
+    margin-bottom: 2rem;
+  }
 }
 
 /* Loading */
@@ -383,9 +418,29 @@
   .filters {
     flex-direction: column;
     gap: 10px;
+    width: 100%;
   }
   
-  .search-input {
+  /* Mobile: Search input full width - spans entire width */
+  .calendar-controls .filters .search-input {
+    width: 100% !important;
+    flex: none !important;
+    flex-grow: 0 !important;
+    flex-shrink: 0 !important;
+    flex-basis: auto !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Mobile: Hide All Status selector */
+  .filter-select-status {
+    display: none !important;
+  }
+  
+  /* Mobile: Show Create Event button */
+  .create-event-btn-mobile {
+    display: block;
     width: 100%;
   }
   
