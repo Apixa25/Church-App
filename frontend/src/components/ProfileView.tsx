@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { profileAPI } from '../services/api';
 import { UserProfile, ProfileCompletionStatus } from '../types/Profile';
 import { useAuth } from '../contexts/AuthContext';
@@ -29,6 +29,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const { user } = useAuth();
   const { userId: paramUserId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const userId = propUserId || paramUserId;
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [completionStatus, setCompletionStatus] = useState<ProfileCompletionStatus | null>(null);
@@ -250,6 +251,24 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
       loadBookmarkedPosts(true);
     }
   }, [activeTab, isOwnProfile, bookmarkedPosts.length, loadBookmarkedPosts]);
+
+  // Scroll to top when navigating from profile edit
+  useEffect(() => {
+    if (location.state && (location.state as any).scrollToTop) {
+      // Use multiple scroll attempts to ensure it works after React renders
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 200);
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 500);
+      // Clear the state to prevent scrolling on subsequent renders
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, location.pathname]);
 
   const fetchCompletionStatus = async () => {
     try {
