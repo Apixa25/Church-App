@@ -387,7 +387,14 @@ const FeedFilterSelector: React.FC = () => {
     }
   }, [isOpen]);
 
-  const handleFilterChange = (filter: 'EVERYTHING' | 'ALL' | 'PRIMARY_ONLY' | 'SELECTED_GROUPS') => {
+  const handleFilterChange = (filter: 'EVERYTHING' | 'ALL' | 'PRIMARY_ONLY' | 'SELECTED_GROUPS', event?: React.MouseEvent) => {
+    // Prevent default button behavior and stop event propagation
+    // This prevents the dropdown from closing when clicking filter options
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    
     setTempFilter(filter);
     setError(null);
 
@@ -395,6 +402,11 @@ const FeedFilterSelector: React.FC = () => {
     if (filter !== 'SELECTED_GROUPS') {
       setTempSelectedGroups([]);
     }
+  };
+
+  const handleFilterMouseDown = (event: React.MouseEvent) => {
+    // Stop mousedown event propagation to prevent click-outside handler from firing
+    event.stopPropagation();
   };
 
   const handleGroupToggle = (groupId: string) => {
@@ -480,8 +492,10 @@ const FeedFilterSelector: React.FC = () => {
 
       <DropdownSection>
         <FilterOption
+          type="button"
           $isActive={tempFilter === 'EVERYTHING'}
-          onClick={() => handleFilterChange('EVERYTHING')}
+          onClick={(e) => handleFilterChange('EVERYTHING', e)}
+          onMouseDown={handleFilterMouseDown}
         >
           <RadioCircle $isActive={tempFilter === 'EVERYTHING'} />
           <OptionContent>
@@ -493,8 +507,10 @@ const FeedFilterSelector: React.FC = () => {
         </FilterOption>
 
         <FilterOption
+          type="button"
           $isActive={tempFilter === 'ALL'}
-          onClick={() => handleFilterChange('ALL')}
+          onClick={(e) => handleFilterChange('ALL', e)}
+          onMouseDown={handleFilterMouseDown}
         >
           <RadioCircle $isActive={tempFilter === 'ALL'} />
           <OptionContent>
@@ -508,8 +524,10 @@ const FeedFilterSelector: React.FC = () => {
         </FilterOption>
 
         <FilterOption
+          type="button"
           $isActive={tempFilter === 'PRIMARY_ONLY'}
-          onClick={() => handleFilterChange('PRIMARY_ONLY')}
+          onClick={(e) => handleFilterChange('PRIMARY_ONLY', e)}
+          onMouseDown={handleFilterMouseDown}
           disabled={!hasChurchPrimary && !hasFamilyPrimary}
         >
           <RadioCircle $isActive={tempFilter === 'PRIMARY_ONLY'} />
@@ -528,8 +546,10 @@ const FeedFilterSelector: React.FC = () => {
         </FilterOption>
 
         <FilterOption
+          type="button"
           $isActive={tempFilter === 'SELECTED_GROUPS'}
-          onClick={() => handleFilterChange('SELECTED_GROUPS')}
+          onClick={(e) => handleFilterChange('SELECTED_GROUPS', e)}
+          onMouseDown={handleFilterMouseDown}
           disabled={unmutedGroups.length === 0}
         >
           <RadioCircle $isActive={tempFilter === 'SELECTED_GROUPS'} />
@@ -576,7 +596,17 @@ const FeedFilterSelector: React.FC = () => {
 
       <DropdownSection>
         <ApplyButton
-          onClick={hasChanges ? handleApply : () => setIsOpen(false)}
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (hasChanges) {
+              handleApply();
+            } else {
+              setIsOpen(false);
+            }
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
           disabled={applying}
         >
           {applying ? 'Applying...' : hasChanges ? 'Apply Filter' : 'No Changes'}
