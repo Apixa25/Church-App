@@ -556,6 +556,19 @@ const Dashboard: React.FC = () => {
               {showContextSwitcher && <ContextSwitcher />}
             </div>
 
+            {/* Make Post Button - Desktop Only, between feed filter and feed navigation buttons */}
+            {feedView === 'social' && (
+              <div className="make-post-section">
+                <button
+                  className="make-post-btn"
+                  onClick={() => setShowComposer(true)}
+                  disabled={isLoading}
+                >
+                  Make Post
+                </button>
+              </div>
+            )}
+
             {/* Create Post Button */}
             {feedView === 'social' && (
               <div className="create-post-section">

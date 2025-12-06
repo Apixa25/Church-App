@@ -91,6 +91,54 @@
   box-shadow: none;
 }
 
+/* Make Post Button - Desktop Only */
+.make-post-section {
+  display: block;
+  margin: 12px 0;
+  width: 100%;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.make-post-btn {
+  width: 100%;
+  padding: 12px 20px;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all var(--transition-base);
+  box-shadow: 0 2px 8px var(--button-primary-glow);
+}
+
+.make-post-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--accent-primary-dark), var(--accent-secondary-dark));
+  transform: translateY(-1px);
+  box-shadow: var(--glow-blue);
+}
+
+.make-post-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Hide Make Post button on mobile */
+@media (max-width: 768px) {
+  .make-post-section {
+    display: none !important;
+  }
+}
+
 /* Composer Modal */
 .composer-modal-overlay {
   position: fixed;
