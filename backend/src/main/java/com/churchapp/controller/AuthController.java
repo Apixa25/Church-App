@@ -3,6 +3,7 @@ package com.churchapp.controller;
 import com.churchapp.dto.AuthRequest;
 import com.churchapp.dto.AuthResponse;
 import com.churchapp.dto.LoginRequest;
+import com.churchapp.dto.RefreshTokenRequest;
 import com.churchapp.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -145,5 +146,17 @@ public class AuthController {
         response.put("valid", true);
         response.put("message", "Token is valid");
         return ResponseEntity.ok(response);
+    }
+    
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        try {
+            AuthResponse response = authService.refreshToken(request.getRefreshToken());
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        }
     }
 }

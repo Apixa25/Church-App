@@ -9,7 +9,6 @@ import com.churchapp.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -64,7 +63,7 @@ public class AuthService {
     public AuthResponse login(LoginRequest request) {
         try {
             // Authenticate user
-            Authentication authentication = authenticationManager.authenticate(
+            authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
             );
             
@@ -144,6 +143,40 @@ public class AuthService {
             savedUser.getRole().name(),
             savedUser.getProfilePicUrl(),
             isNewUser
+        );
+    }
+    
+    public AuthResponse refreshToken(String refreshToken) {
+        // Validate refresh token
+        if (!jwtUtil.validateRefreshToken(refreshToken)) {
+            throw new RuntimeException("Invalid or expired refresh token");
+        }
+        
+        // Extract email from refresh token
+        String email = jwtUtil.getEmailFromToken(refreshToken);
+        
+        // Find user
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        // Verify user is still active
+        if (!user.getIsActive()) {
+            throw new RuntimeException("User account is inactive");
+        }
+        
+        // Generate new tokens (token rotation - new refresh token for security)
+        String newAccessToken = jwtUtil.generateToken(user.getEmail(), user.getId(), user.getRole().name());
+        String newRefreshToken = jwtUtil.generateRefreshToken(user.getEmail());
+        
+        return new AuthResponse(
+            newAccessToken,
+            newRefreshToken,
+            user.getEmail(),
+            user.getId(),
+            user.getName(),
+            user.getRole().name(),
+            user.getProfilePicUrl(),
+            false
         );
     }
 }

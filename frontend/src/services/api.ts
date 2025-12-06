@@ -13,8 +13,11 @@ const api = axios.create({
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken');
+  async (config) => {
+    // Get valid access token (will refresh if needed)
+    const { tokenService } = await import('./tokenService');
+    const token = await tokenService.getValidAccessToken();
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -25,17 +28,45 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle auth errors
+// Response interceptor to handle auth errors with automatic token refresh
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Clear token and redirect to login
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Handle 401 errors with automatic token refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true; // Prevent infinite retry loop
+
+      try {
+        // Attempt to refresh token
+        const { tokenService } = await import('./tokenService');
+        const refreshed = await tokenService.refreshTokenSilently();
+        
+        if (refreshed?.token) {
+          // Update authorization header with new token
+          originalRequest.headers.Authorization = `Bearer ${refreshed.token}`;
+          
+          // Retry the original request
+          return api(originalRequest);
+        } else {
+          // Refresh failed - redirect to login
+          throw error;
+        }
+      } catch (refreshError) {
+        // Refresh failed - clear tokens and redirect to login
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        
+        // Only redirect if we're not already on the login page
+        if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+          window.location.href = '/login';
+        }
+        return Promise.reject(refreshError);
+      }
     }
+
     return Promise.reject(error);
   }
 );
@@ -47,6 +78,9 @@ export const authAPI = {
   
   login: (data: { email: string; password: string }) =>
     api.post('/auth/login', data),
+  
+  refreshToken: (refreshToken: string) =>
+    api.post('/auth/refresh', { refreshToken }),
   
   validateToken: () =>
     api.get('/auth/validate'),

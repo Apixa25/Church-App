@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { tokenService } from '../services/tokenService';
 // import { useAuth } from '../contexts/AuthContext'; // Not currently used
 
 const AuthCallback: React.FC = () => {
@@ -61,6 +62,9 @@ const AuthCallback: React.FC = () => {
       localStorage.setItem('authToken', token);
       localStorage.setItem('refreshToken', refreshToken || '');
       localStorage.setItem('user', JSON.stringify(userData));
+
+      // Schedule automatic token refresh (silent refresh)
+      tokenService.scheduleTokenRefresh();
 
       // Force a page reload to refresh the auth context
       console.log('OAuth2 login successful, redirecting to dashboard');
