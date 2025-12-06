@@ -689,8 +689,15 @@
     height: 40px;
   }
 
-  .author-name {
-    font-size: 14px;
+  .post-card .author-name,
+  .post-header .author-name,
+  .author-info .author-name {
+    font-size: 15px !important; /* Swapped: now matches post-text size */
+  }
+
+  .post-card .post-text,
+  .post-content .post-text {
+    font-size: 15.68px !important; /* Increased by 12% from 14px for better mobile readability */
   }
 
   .post-meta {
