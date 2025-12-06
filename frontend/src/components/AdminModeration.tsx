@@ -14,6 +14,7 @@ import {
   AuditLog,
   User
 } from '../services/adminApi';
+import LoadingSpinner from './LoadingSpinner';
 import './AdminModeration.css';
 
 const AdminModeration: React.FC = () => {
@@ -187,8 +188,7 @@ const AdminModeration: React.FC = () => {
     return (
       <div className="admin-moderation loading">
         <div className="loading-content">
-          <div className="loading-spinner"></div>
-          <span>Loading moderation tools...</span>
+          <LoadingSpinner type="multi-ring" size="medium" text="Loading moderation tools..." />
         </div>
       </div>
     );

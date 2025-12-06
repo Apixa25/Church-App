@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { User } from '../types/Post';
 import { UserProfile } from '../types/Profile';
 import { updateUserProfile, uploadProfilePicture, uploadBannerImage } from '../services/postApi';
+import LoadingSpinner from './LoadingSpinner';
 import './ProfileEdit.css';
 
 const SPIRITUAL_GIFTS = [
@@ -593,8 +594,7 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
     return (
       <div className="profile-edit loading">
         <div className="loading-content">
-          <div className="loading-spinner"></div>
-          <span>Loading your profile...</span>
+          <LoadingSpinner type="multi-ring" size="medium" text="Loading your profile..." />
         </div>
       </div>
     );

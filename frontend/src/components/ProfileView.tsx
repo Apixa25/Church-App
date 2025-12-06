@@ -18,6 +18,7 @@ import OrganizationSelector from './OrganizationSelector';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { Membership } from '../contexts/OrganizationContext';
 import FamilyGroupCreateForm from './FamilyGroupCreateForm';
+import LoadingSpinner from './LoadingSpinner';
 import { getImageUrlWithFallback } from '../utils/imageUrlUtils';
 import './ProfileView.css';
 
@@ -538,8 +539,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   if (loading) {
     return (
       <div className="profile-loading">
-        <div className="loading-spinner">⏳</div>
-        <p>Loading profile...</p>
+        <LoadingSpinner type="multi-ring" size="large" text="Loading profile..." />
       </div>
     );
   }
@@ -1039,8 +1039,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
           <div className="profile-posts-feed">
             {postsLoading && posts.length === 0 ? (
               <div className="posts-loading">
-                <div className="loading-spinner"></div>
-                <span>Loading posts...</span>
+                <LoadingSpinner type="multi-ring" size="medium" text="Loading posts..." />
               </div>
             ) : postsError ? (
               <div className="posts-error">
@@ -1103,8 +1102,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
               </div>
             ) : bookmarksLoading && bookmarkedPosts.length === 0 ? (
               <div className="posts-loading">
-                <div className="loading-spinner"></div>
-                <span>Loading bookmarks...</span>
+                <LoadingSpinner type="multi-ring" size="medium" text="Loading bookmarks..." />
               </div>
             ) : bookmarksError ? (
               <div className="posts-error">

@@ -12,6 +12,7 @@ import {
 } from '../types/Prayer';
 import { prayerAPI, handleApiError } from '../services/prayerApi';
 import { useActiveContext } from '../contexts/ActiveContextContext';
+import LoadingSpinner from './LoadingSpinner';
 
 interface PrayerRequestFormProps {
   existingPrayer?: PrayerRequest;
@@ -395,7 +396,9 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
           >
             {loading ? (
               <>
-                <span className="loading-spinner"></span>
+                <div style={{ display: 'inline-block', marginRight: '8px' }}>
+                  <LoadingSpinner type="multi-ring" size="inline" />
+                </div>
                 {mode === 'edit' ? 'Updating...' : 'Submitting...'}
               </>
             ) : (

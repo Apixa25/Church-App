@@ -7,6 +7,7 @@ import CalendarView from './CalendarView';
 import EventList from './EventList';
 import EventCreateForm from './EventCreateForm';
 import webSocketService, { EventUpdate, EventRsvpUpdate } from '../services/websocketService';
+import LoadingSpinner from './LoadingSpinner';
 import './CalendarPage.css';
 
 interface CalendarPageProps {}
@@ -201,8 +202,7 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
     return (
       <div className="calendar-page">
         <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>Loading events...</p>
+          <LoadingSpinner type="multi-ring" size="medium" text="Loading events..." />
         </div>
       </div>
     );

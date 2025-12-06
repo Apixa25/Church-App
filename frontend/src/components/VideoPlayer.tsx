@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MediaFile } from '../types/Post';
+import LoadingSpinner from './LoadingSpinner';
 import './VideoPlayer.css';
 
 interface VideoPlayerProps {
@@ -233,8 +234,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         {/* Loading Overlay */}
         {(isLoading || isBuffering) && (
           <div className="video-loading-overlay">
-            <div className="loading-spinner"></div>
-            <span>{isBuffering ? 'Buffering...' : 'Loading video...'}</span>
+            <LoadingSpinner type="multi-ring" size="medium" text={isBuffering ? 'Buffering...' : 'Loading video...'} />
           </div>
         )}
 

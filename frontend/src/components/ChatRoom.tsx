@@ -6,6 +6,7 @@ import webSocketService from '../services/websocketService';
 import MessageInput from './MessageInput';
 import ChatMessageComponent from './ChatMessage';
 import ChatMembers from './ChatMembers';
+import LoadingSpinner from './LoadingSpinner';
 
 const ChatRoom: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
@@ -279,10 +280,7 @@ const ChatRoom: React.FC = () => {
   if (loading) {
     return (
       <div className="chat-room loading">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading chat room...</p>
-        </div>
+        <LoadingSpinner type="multi-ring" size="medium" text="Loading chat room..." />
       </div>
     );
   }

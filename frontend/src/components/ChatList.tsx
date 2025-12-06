@@ -5,6 +5,7 @@ import UserList from './UserList';
 import CreateGroup from './CreateGroup';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useAuth } from '../contexts/AuthContext';
+import LoadingSpinner from './LoadingSpinner';
 
 interface ChatListProps {
   onGroupSelect?: (group: ChatGroup) => void;
@@ -149,10 +150,7 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
   if (loading) {
     return (
       <div className="chat-list loading">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading chats...</p>
-        </div>
+        <LoadingSpinner type="multi-ring" size="medium" text="Loading chats..." />
       </div>
     );
   }

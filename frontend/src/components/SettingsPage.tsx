@@ -23,6 +23,7 @@ import {
 } from '../services/settingsApi';
 import AccountDeletionModal from './AccountDeletionModal';
 import ConfirmationModal from './ConfirmationModal';
+import LoadingSpinner from './LoadingSpinner';
 import './SettingsPage.css';
 
 interface SettingsPageProps {
@@ -377,8 +378,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
     return (
       <div className="settings-page loading">
         <div className="loading-content">
-          <div className="loading-spinner"></div>
-          <span>Loading settings...</span>
+          <LoadingSpinner type="multi-ring" size="medium" text="Loading settings..." />
         </div>
       </div>
     );
@@ -1520,8 +1520,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
       {isSaving && (
         <div className="loading-overlay">
           <div className="loading-content">
-            <div className="loading-spinner"></div>
-            <span>Saving settings...</span>
+            <LoadingSpinner type="multi-ring" size="medium" text="Saving settings..." />
           </div>
         </div>
       )}

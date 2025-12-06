@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QuickAction } from '../services/dashboardApi';
+import LoadingSpinner from './LoadingSpinner';
 
 interface QuickActionsProps {
   actions: QuickAction[];
@@ -59,10 +60,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions, isLoading }) => {
     return (
       <div className="quick-actions loading">
         <h3>⚡ Quick Actions</h3>
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading actions...</p>
-        </div>
+        <LoadingSpinner type="multi-ring" size="small" text="Loading actions..." />
       </div>
     );
   }

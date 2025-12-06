@@ -11,6 +11,7 @@ import ReportModal from './ReportModal';
 import PostStatsModal from './PostStatsModal';
 import ClickableAvatar from './ClickableAvatar';
 import MediaViewer from './MediaViewer';
+import LoadingSpinner from './LoadingSpinner';
 import './PostCard.css';
 
 interface PostCardProps {
@@ -591,7 +592,9 @@ const PostCard: React.FC<PostCardProps> = ({
                       disabled={blockLoading}
                     >
                       {blockLoading ? (
-                        <span className="loading-spinner">...</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px' }}>
+                          <LoadingSpinner type="multi-ring" size="inline" />
+                        </span>
                       ) : isBlocked ? (
                         '🚫 Unblock'
                       ) : (
