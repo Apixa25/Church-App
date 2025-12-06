@@ -33,14 +33,37 @@ export const parseEventDate = (dateInput: string | number[]): Date | null => {
         // Has timezone offset (e.g., +05:00 or -05:00 after T) - parse directly
         date = new Date(cleanDateString);
       } else {
-        // No timezone info - ASSUME UTC (server sends UTC times without 'Z' suffix)
-        // This fixes the "Just now" bug where posts appear to be in the future
+        // No timezone info - Parse as local time (not UTC)
+        // Backend sends LocalDateTime which doesn't include timezone info
+        // We should parse it as local time to avoid timezone offset issues
         if (cleanDateString.includes('T')) {
-          // ISO format without timezone - treat as UTC by appending 'Z'
-          date = new Date(cleanDateString + 'Z');
+          // ISO format without timezone - parse as local time
+          // Extract date components and create Date in local timezone
+          const isoMatch = cleanDateString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?/);
+          if (isoMatch) {
+            const [, year, month, day, hour, minute, second, millis] = isoMatch;
+            date = new Date(
+              parseInt(year, 10),
+              parseInt(month, 10) - 1, // Month is 0-indexed
+              parseInt(day, 10),
+              parseInt(hour, 10),
+              parseInt(minute, 10),
+              parseInt(second, 10),
+              millis ? parseInt(millis.substring(0, 3), 10) : 0
+            );
+          } else {
+            // Fallback to standard parsing (will use local timezone)
+            date = new Date(cleanDateString);
+          }
         } else {
-          // Fallback - append time and treat as UTC
-          date = new Date(cleanDateString + 'T00:00:00Z');
+          // Date only - parse as local date
+          const dateMatch = cleanDateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          if (dateMatch) {
+            const [, year, month, day] = dateMatch;
+            date = new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10));
+          } else {
+            date = new Date(cleanDateString);
+          }
         }
       }
     }

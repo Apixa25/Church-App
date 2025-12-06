@@ -301,6 +301,17 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
           >
             Create Event
           </button>
+
+          {/* Create Event button - Web/Desktop only */}
+          <button
+            className="create-event-btn-web"
+            onClick={() => {
+              setSelectedDate(new Date());
+              setShowCreateForm(true);
+            }}
+          >
+            Create Event
+          </button>
         </div>
       </div>
 
