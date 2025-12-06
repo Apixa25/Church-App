@@ -54,6 +54,39 @@
   align-items: center;
   gap: 16px;
   background: var(--bg-secondary);
+  position: relative;
+}
+
+/* Quick Filters Mobile Container - positioned right after search header */
+.quick-filters-mobile-container {
+  display: none; /* Hidden on desktop */
+  padding: 0 16px 8px 16px;
+  border-bottom: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 !important;
+}
+
+.time-range-dropdown {
+  width: 100%;
+  padding: 10px 16px;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  font-size: 16px;
+  color: var(--text-primary);
+  cursor: pointer;
+  outline: none;
+  transition: all var(--transition-base);
+  font-weight: 500;
+}
+
+.time-range-dropdown:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.2),
+              0 0 20px var(--button-primary-glow);
+  background: var(--bg-secondary);
 }
 
 .search-input-container {
@@ -68,6 +101,30 @@
   font-size: 20px;
   color: var(--text-secondary);
   flex-shrink: 0;
+}
+
+.close-search-btn-inline {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: all var(--transition-base);
+  flex-shrink: 0;
+  font-size: 18px;
+}
+
+.close-search-btn-inline:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-glow);
+  color: var(--text-primary);
+  box-shadow: 0 0 8px var(--button-primary-glow);
 }
 
 .search-input {
@@ -150,6 +207,11 @@
   padding: 16px 24px;
   border-bottom: 1px solid var(--border-primary);
   background: var(--bg-secondary);
+}
+
+/* Time Range Only - Always visible */
+.search-filters.time-range-only {
+  padding: 12px 24px;
 }
 
 .filter-group {
@@ -282,6 +344,13 @@
   padding: 24px;
 }
 
+/* Hide Quick Filters heading on mobile */
+@media (max-width: 768px) {
+  .search-suggestions {
+    padding: 12px 24px;
+  }
+}
+
 .search-suggestions h3 {
   margin: 0 0 12px 0;
   font-size: 16px;
@@ -339,6 +408,29 @@
   white-space: nowrap;
   min-width: fit-content;
   flex-shrink: 0;
+}
+
+/* Mobile dropdown for quick filters */
+.quick-filters-dropdown {
+  display: none; /* Hidden on desktop */
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  font-size: 16px;
+  color: var(--text-primary);
+  cursor: pointer;
+  outline: none;
+  transition: all var(--transition-base);
+  font-weight: 500;
+}
+
+.quick-filters-dropdown:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.2),
+              0 0 20px var(--button-primary-glow);
+  background: var(--bg-secondary);
 }
 
 .quick-filter-btn:hover {
@@ -965,10 +1057,30 @@
   }
 
   .search-header {
-    padding: 16px 20px;
-    flex-direction: column;
-    align-items: stretch;
+    padding: 12px 16px 0 16px;
+    flex-direction: row;
+    align-items: center;
     gap: 12px;
+    border-bottom: none !important; /* Remove border to eliminate gap */
+    margin-bottom: 0 !important;
+  }
+
+  /* Hide search-actions on mobile since we moved X to inline */
+  .search-actions {
+    display: none;
+  }
+
+  /* Show Quick Filters mobile container */
+  .quick-filters-mobile-container {
+    display: flex !important;
+    padding: 0 16px 8px 16px !important; /* Remove top padding, minimal bottom */
+    margin-top: 0 !important;
+    border-top: none !important;
+  }
+
+  /* Hide Content Type filter group on mobile since we use dropdown */
+  .search-filters .filter-group:first-child {
+    display: none;
   }
 
   .search-input-container {
@@ -982,6 +1094,20 @@
     font-size: 16px; /* Prevent zoom on iOS */
     width: 100% !important; /* Expand to full width of container */
     min-width: 0; /* Allow flex shrinking */
+  }
+
+  /* Reduce padding on dropdowns */
+  .quick-filters-dropdown {
+    padding: 8px 16px !important;
+  }
+
+  .time-range-dropdown {
+    padding: 8px 16px !important;
+  }
+
+  /* Remove spacing from search-suggestions heading */
+  .search-suggestions h3 {
+    display: none !important;
   }
 
   .emoji-picker-dropdown {
@@ -1037,6 +1163,7 @@
   }
 
   .quick-filters {
+    display: none !important; /* Hide pill buttons on mobile */
     gap: 8px;
   }
 
@@ -1044,6 +1171,11 @@
     padding: 10px 16px;
     font-size: 13px;
     white-space: nowrap;
+  }
+
+  /* Show dropdown on mobile */
+  .quick-filters-dropdown {
+    display: block !important;
   }
 }
 
