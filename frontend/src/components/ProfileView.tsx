@@ -308,6 +308,26 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const handleProfileUpdate = (updatedProfile: UserProfile) => {
     setProfile(updatedProfile);
     setImageError(false); // Reset image error when profile updates
+    
+    // Set up image URLs with fallback (same logic as fetchProfile)
+    if (updatedProfile.profilePicUrl) {
+      const { primary, fallback } = getImageUrlWithFallback(updatedProfile.profilePicUrl);
+      setProfilePicUrl(primary);
+      setProfilePicFallback(fallback);
+    } else {
+      setProfilePicUrl('');
+      setProfilePicFallback('');
+    }
+    
+    if ((updatedProfile as any).bannerImageUrl) {
+      const { primary, fallback } = getImageUrlWithFallback((updatedProfile as any).bannerImageUrl);
+      setBannerImageUrl(primary);
+      setBannerImageFallback(fallback);
+    } else {
+      setBannerImageUrl('');
+      setBannerImageFallback('');
+    }
+    
     setIsEditing(false);
     if (isOwnProfile) {
       fetchCompletionStatus();
