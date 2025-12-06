@@ -18,6 +18,7 @@ import OrganizationSelector from './OrganizationSelector';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { Membership } from '../contexts/OrganizationContext';
 import FamilyGroupCreateForm from './FamilyGroupCreateForm';
+import { getImageUrlWithFallback } from '../utils/imageUrlUtils';
 import './ProfileView.css';
 
 interface ProfileViewProps {
@@ -46,6 +47,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [postsCount, setPostsCount] = useState(0);
   const [imageError, setImageError] = useState(false);
+  const [profilePicUrl, setProfilePicUrl] = useState<string>('');
+  const [profilePicFallback, setProfilePicFallback] = useState<string>('');
+  const [bannerImageUrl, setBannerImageUrl] = useState<string>('');
+  const [bannerImageFallback, setBannerImageFallback] = useState<string>('');
   const [sharesReceived, setSharesReceived] = useState(0);
 
   // Bookmarks state
@@ -110,6 +115,26 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
       
       setProfile(response.data);
       setImageError(false); // Reset image error when profile loads
+      
+      // Set up image URLs with fallback
+      if (response.data.profilePicUrl) {
+        const { primary, fallback } = getImageUrlWithFallback(response.data.profilePicUrl);
+        setProfilePicUrl(primary);
+        setProfilePicFallback(fallback);
+      } else {
+        setProfilePicUrl('');
+        setProfilePicFallback('');
+      }
+      
+      if (response.data.bannerImageUrl) {
+        const { primary, fallback } = getImageUrlWithFallback(response.data.bannerImageUrl);
+        setBannerImageUrl(primary);
+        setBannerImageFallback(fallback);
+      } else {
+        setBannerImageUrl('');
+        setBannerImageFallback('');
+      }
+      
       // Set hearts data
       setHeartsCount(response.data.heartsCount || 0);
       setIsLikedByCurrentUser(response.data.isLikedByCurrentUser || false);
@@ -583,11 +608,19 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
 
         {/* Profile Banner */}
         <div className="profile-banner">
-          {profile.bannerImageUrl ? (
+          {bannerImageUrl ? (
             <img 
-              src={profile.bannerImageUrl} 
+              src={bannerImageUrl} 
               alt="Profile banner"
               className="banner-image"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                // Try S3 fallback if CloudFront fails
+                if (target.src === bannerImageUrl && bannerImageFallback && bannerImageFallback !== bannerImageUrl) {
+                  console.warn('⚠️ Banner CloudFront URL failed, trying S3 fallback:', bannerImageUrl);
+                  target.src = bannerImageFallback;
+                }
+              }}
             />
           ) : (
             <div className="banner-placeholder"></div>
@@ -598,14 +631,22 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
         <div className="profile-header-content">
           <div className="profile-avatar-section">
             <div className="profile-avatar">
-              {profile.profilePicUrl && !imageError ? (
+              {profilePicUrl && !imageError ? (
                 <img 
-                  src={profile.profilePicUrl} 
+                  src={profilePicUrl} 
                   alt={profile.name}
                   className="profile-picture-display"
-                  key={profile.profilePicUrl}
-                  onError={() => {
-                    console.error('Failed to load profile image:', profile.profilePicUrl);
+                  key={profilePicUrl}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    // Try S3 fallback if CloudFront fails
+                    if (target.src === profilePicUrl && profilePicFallback && profilePicFallback !== profilePicUrl) {
+                      console.warn('⚠️ Profile CloudFront URL failed, trying S3 fallback:', profilePicUrl);
+                      target.src = profilePicFallback;
+                      return; // Don't set error yet, try fallback first
+                    }
+                    // Both URLs failed
+                    console.error('Failed to load profile image (both CloudFront and S3):', profilePicUrl);
                     setImageError(true);
                   }}
                   onLoad={() => setImageError(false)}
