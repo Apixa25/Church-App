@@ -6,6 +6,13 @@ import { useOrganization } from '../contexts/OrganizationContext';
 import { useGroup } from '../contexts/GroupContext';
 import { useUploadQueue } from '../contexts/UploadQueueContext';
 import CameraCapture from './CameraCapture';
+import SocialMediaEmbedCard from './SocialMediaEmbedCard';
+import { 
+  isSupportedSocialMediaUrl, 
+  normalizeForStorage, 
+  detectPlatform,
+  SocialMediaPlatform 
+} from '../utils/socialMediaUtils';
 import './PostComposer.css';
 
 // ============================================================================
@@ -56,6 +63,10 @@ const PostComposer: React.FC<PostComposerProps> = ({
   const [error, setError] = useState<string>('');
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
+  
+  // Social media embed state
+  const [externalUrl, setExternalUrl] = useState<string>('');
+  const [detectedPlatform, setDetectedPlatform] = useState<SocialMediaPlatform | null>(null);
 
   // Multi-tenant post targeting - Default to Family Primary if available, otherwise Church Primary
   const [selectedOrganizationId, setSelectedOrganizationId] = useState<string | undefined>(
@@ -264,11 +275,39 @@ const PostComposer: React.FC<PostComposerProps> = ({
     });
   };
 
+  // Handle external URL input and detection
+  const handleExternalUrlChange = (url: string) => {
+    setExternalUrl(url);
+    
+    if (url.trim()) {
+      const normalized = normalizeForStorage(url.trim());
+      if (isSupportedSocialMediaUrl(normalized)) {
+        const platform = detectPlatform(normalized);
+        setDetectedPlatform(platform);
+        setError(''); // Clear any previous errors
+      } else {
+        setDetectedPlatform(null);
+        if (url.trim().length > 0) {
+          setError('Unsupported URL. Supported platforms: X (Twitter), Facebook Reels, Instagram Reels, YouTube');
+        }
+      }
+    } else {
+      setDetectedPlatform(null);
+      setError('');
+    }
+  };
+
+  const handleRemoveExternalUrl = () => {
+    setExternalUrl('');
+    setDetectedPlatform(null);
+    setError('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!content.trim() && mediaFiles.length === 0) {
-      setError('Please add some content or media to your post');
+    if (!content.trim() && mediaFiles.length === 0 && !externalUrl.trim()) {
+      setError('Please add some content, media, or a social media link to your post');
       return;
     }
 
@@ -327,7 +366,8 @@ const PostComposer: React.FC<PostComposerProps> = ({
         location: location.trim() || undefined,
         anonymous: isAnonymous,
         organizationId: selectedOrganizationId,
-        groupId: selectedGroupId
+        groupId: selectedGroupId,
+        externalUrl: externalUrl.trim() ? normalizeForStorage(externalUrl.trim()) : undefined
       };
 
       const newPost = await createPost(postRequest);
@@ -339,6 +379,8 @@ const PostComposer: React.FC<PostComposerProps> = ({
       setLocation('');
       setIsAnonymous(false);
       setSelectedPostType(PostType.GENERAL);
+      setExternalUrl('');
+      setDetectedPlatform(null);
 
       // Notify parent component
       if (onPostCreated) {
@@ -359,6 +401,8 @@ const PostComposer: React.FC<PostComposerProps> = ({
     setContent('');
     setMediaFiles([]);
     setError('');
+    setExternalUrl('');
+    setDetectedPlatform(null);
 
     if (onCancel) {
       onCancel();
@@ -474,6 +518,21 @@ const PostComposer: React.FC<PostComposerProps> = ({
           </div>
         )}
 
+        {/* Social Media Embed Preview */}
+        {externalUrl.trim() && detectedPlatform && (
+          <div className="social-media-preview">
+            <SocialMediaEmbedCard
+              embedHtml="" // Will be populated by backend after post creation
+              externalUrl={normalizeForStorage(externalUrl.trim())}
+              platform={detectedPlatform}
+              onRemove={handleRemoveExternalUrl}
+            />
+            <div className="embed-preview-note">
+              💡 Preview will appear after posting. The embed will be fetched automatically.
+            </div>
+          </div>
+        )}
+
         {/* Toolbar */}
         <div className="composer-toolbar">
           <div className="toolbar-left">
@@ -586,6 +645,31 @@ const PostComposer: React.FC<PostComposerProps> = ({
                   />
                   Post anonymously
                 </label>
+              </div>
+
+              {/* Social Media Embed Section */}
+              <div className="option-group">
+                <label htmlFor="externalUrl">
+                  🔗 Share Social Media Content (X, Facebook, Instagram, YouTube):
+                </label>
+                <input
+                  id="externalUrl"
+                  type="text"
+                  value={externalUrl}
+                  onChange={(e) => handleExternalUrlChange(e.target.value)}
+                  placeholder="Paste a link from X, Facebook, Instagram, or YouTube..."
+                  className="external-url-input"
+                />
+                {detectedPlatform && (
+                  <div className="url-detected-badge">
+                    ✓ {detectedPlatform === SocialMediaPlatform.X_POST ? 'X' : detectedPlatform} link detected
+                  </div>
+                )}
+                {externalUrl.trim() && !detectedPlatform && (
+                  <div className="url-error-badge">
+                    ⚠️ Unsupported URL format
+                  </div>
+                )}
               </div>
 
               <button
