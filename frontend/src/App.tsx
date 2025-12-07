@@ -46,6 +46,8 @@ import './components/Dashboard.css'; // Import for composer modal styles
 import { GlobalSearchProvider } from './components/global-search/GlobalSearchProvider';
 import { UploadQueueProvider } from './contexts/UploadQueueContext';
 import UploadProgressIndicator from './components/UploadProgressIndicator';
+import UpdateNotification from './components/UpdateNotification';
+import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 
 // 🚀 React Query Configuration - Smart Caching
 const queryClient = new QueryClient({
@@ -64,10 +66,18 @@ const App: React.FC = () => {
   const [showComposer, setShowComposer] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [capturedMediaFile, setCapturedMediaFile] = useState<File | undefined>(undefined);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [waitingWorker, setWaitingWorker] = useState<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
     // Initialize native status bar styling
     statusBarService.initialize();
+
+    // Set up service worker update handler
+    serviceWorkerRegistration.setUpdateHandler((registration: ServiceWorkerRegistration) => {
+      setUpdateAvailable(true);
+      setWaitingWorker(registration);
+    });
   }, []);
 
   const handleCameraCapture = (file: File) => {
@@ -84,6 +94,32 @@ const App: React.FC = () => {
     setCapturedMediaFile(undefined);
   };
 
+  const handleUpdate = () => {
+    if (waitingWorker && waitingWorker.waiting) {
+      // Tell the service worker to skip waiting and activate
+      waitingWorker.waiting.postMessage({ type: 'SKIP_WAITING' });
+      
+      // Listen for the service worker to take control
+      waitingWorker.addEventListener('controllerchange', () => {
+        // Reload the page to get the new version
+        window.location.reload();
+      });
+      
+      // Fallback: reload after a short delay if controllerchange doesn't fire
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } else {
+      // Fallback: just reload if no waiting worker
+      window.location.reload();
+    }
+  };
+
+  const handleDismissUpdate = () => {
+    setUpdateAvailable(false);
+    setWaitingWorker(null);
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
@@ -97,6 +133,14 @@ const App: React.FC = () => {
                   <GlobalSearchProvider>
                   {/* 🚀 Global Upload Progress Indicator - shows at top during background uploads */}
                   <UploadProgressIndicator />
+                  {/* 🔄 Update Notification - shows when new version is available */}
+                  {updateAvailable && (
+                    <UpdateNotification
+                      onUpdate={handleUpdate}
+                      onDismiss={handleDismissUpdate}
+                      autoRefreshDelay={10} // Auto-refresh after 10 seconds
+                    />
+                  )}
                   <div className="App">
                     {/* WebSocket status is now shown on the profile picture in Dashboard */}
                     {/* <WebSocketStatusIndicator /> */}
