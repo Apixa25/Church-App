@@ -50,14 +50,25 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
-        initializeDefaultUsers();
-        ensureAdminPassword();
-        ensureUsersAreActive();
-        promoteStevenSillsToAdmin();
-        ensureStevenSillsSystemAdmin();
-        initializeOrganizations();
-        initializeDefaultChatGroups();
-        initializeSampleAnnouncements();
+        try {
+            log.info("Starting data initialization...");
+            initializeDefaultUsers();
+            ensureAdminPassword();
+            ensureUsersAreActive();
+            promoteStevenSillsToAdmin();
+            ensureStevenSillsSystemAdmin();
+            initializeOrganizations();
+            initializeDefaultChatGroups();
+            initializeSampleAnnouncements();
+            log.info("Data initialization completed successfully");
+        } catch (Exception e) {
+            // Log the error but don't crash the application
+            // This allows the app to start even if database initialization fails
+            // (e.g., local dev with wrong password, or temporary DB connection issues)
+            log.error("Data initialization failed. Application will continue to run, but initial data may not be set up.", e);
+            log.warn("To fix: Ensure database is accessible and credentials are correct. " +
+                    "You can disable the initializer by setting 'app.data-initializer.enabled=false' in application.properties");
+        }
     }
     
     private void initializeDefaultUsers() {
