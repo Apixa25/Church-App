@@ -67,27 +67,36 @@ public class PostService {
         String externalEmbedHtml = null;
 
         if (hasExternalUrl) {
+            log.info("🔗 Processing external URL: {}", externalUrl);
+            
             // Validate and normalize the external URL
             if (!SocialMediaUrlUtil.isSupportedSocialMediaUrl(externalUrl)) {
+                log.warn("❌ Unsupported social media URL: {}", externalUrl);
                 throw new IllegalArgumentException("Unsupported social media URL. Supported platforms: X (Twitter), Facebook Reels, Instagram Reels, YouTube");
             }
 
             normalizedExternalUrl = SocialMediaUrlUtil.normalizeForStorage(externalUrl);
             SocialMediaUrlUtil.Platform platform = SocialMediaUrlUtil.detectPlatform(normalizedExternalUrl);
             externalPlatform = platform.name();
+            
+            log.info("✅ Detected platform: {} for URL: {}", platform, normalizedExternalUrl);
 
             // Fetch oEmbed HTML for supported platforms (currently X only)
             if (platform == SocialMediaUrlUtil.Platform.X_POST) {
+                log.info("🎬 Fetching oEmbed for X post: {}", normalizedExternalUrl);
                 OEmbedService.OEmbedResponse oEmbedResponse = oEmbedService.fetchOEmbed(normalizedExternalUrl);
                 if (oEmbedResponse != null && oEmbedResponse.getHtml() != null) {
                     externalEmbedHtml = oEmbedResponse.getHtml();
-                    log.info("Successfully fetched oEmbed HTML for X post: {}", normalizedExternalUrl);
+                    log.info("✅ Successfully fetched oEmbed HTML for X post: {} (HTML length: {} chars)", 
+                        normalizedExternalUrl, externalEmbedHtml.length());
                 } else {
-                    log.warn("Failed to fetch oEmbed HTML for URL: {}, will store URL only", normalizedExternalUrl);
+                    log.warn("⚠️ Failed to fetch oEmbed HTML for URL: {}, will store URL only", normalizedExternalUrl);
                 }
             } else {
-                log.info("oEmbed not yet implemented for platform: {}, storing URL only", platform);
+                log.info("ℹ️ oEmbed not yet implemented for platform: {}, storing URL only", platform);
             }
+        } else {
+            log.debug("No external URL provided for post");
         }
 
         // Validate content length if content is provided
@@ -149,9 +158,12 @@ public class PostService {
         String postOrgId = post.getOrganization() != null ? post.getOrganization().getId().toString() : "null";
         String postOrgName = post.getOrganization() != null ? post.getOrganization().getName() : "null";
         String postGroupId = post.getGroup() != null ? post.getGroup().getId().toString() : "null";
+        String externalUrlLog = savedPost.getExternalUrl() != null ? savedPost.getExternalUrl() : "none";
+        String externalPlatformLog = savedPost.getExternalPlatform() != null ? savedPost.getExternalPlatform() : "none";
+        boolean hasEmbedHtml = savedPost.getExternalEmbedHtml() != null && !savedPost.getExternalEmbedHtml().trim().isEmpty();
         
-        log.info("Created new post with ID: {} by user: {} in org: {} ({}) group: {}",
-            savedPost.getId(), userEmail, postOrgId, postOrgName, postGroupId);
+        log.info("Created new post with ID: {} by user: {} in org: {} ({}) group: {} externalUrl: {} platform: {} hasEmbed: {}",
+            savedPost.getId(), userEmail, postOrgId, postOrgName, postGroupId, externalUrlLog, externalPlatformLog, hasEmbedHtml);
         
         System.out.println("===== POST CREATED =====");
         System.out.println("Post ID: " + savedPost.getId());
@@ -159,6 +171,9 @@ public class PostService {
         System.out.println("Organization ID: " + postOrgId);
         System.out.println("Organization Name: " + postOrgName);
         System.out.println("Group ID: " + postGroupId);
+        System.out.println("External URL: " + externalUrlLog);
+        System.out.println("External Platform: " + externalPlatformLog);
+        System.out.println("Has Embed HTML: " + hasEmbedHtml);
         System.out.println("========================");
 
         // Process hashtags in content

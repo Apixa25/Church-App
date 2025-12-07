@@ -20,6 +20,7 @@ export interface UploadJob {
   isAnonymous: boolean;
   organizationId?: string;
   groupId?: string;
+  externalUrl?: string;  // Social media embed URL
   error?: string;
   createdAt: Date;
   completedAt?: Date;
@@ -117,7 +118,8 @@ export const UploadQueueProvider: React.FC<UploadQueueProviderProps> = ({
         location: job.location?.trim() || undefined,
         anonymous: job.isAnonymous,
         organizationId: job.organizationId,
-        groupId: job.groupId
+        groupId: job.groupId,
+        externalUrl: job.externalUrl?.trim() || undefined  // Include external URL if provided
       };
 
       const newPost = await createPost(postRequest);

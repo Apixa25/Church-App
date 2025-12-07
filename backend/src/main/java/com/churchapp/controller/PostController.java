@@ -56,6 +56,11 @@ public class PostController {
             @AuthenticationPrincipal User user) {
 
         try {
+            log.info("📝 Creating post - externalUrl: {}, content length: {}, mediaUrls count: {}", 
+                request.getExternalUrl() != null ? request.getExternalUrl() : "null",
+                request.getContent() != null ? request.getContent().length() : 0,
+                request.getMediaUrls() != null ? request.getMediaUrls().size() : 0);
+            
             // Use new multi-tenant createPost method with optional org/group context
             Post post = postService.createPost(
                 user.getUsername(),

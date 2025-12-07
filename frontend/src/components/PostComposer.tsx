@@ -331,7 +331,8 @@ const PostComposer: React.FC<PostComposerProps> = ({
         location: location.trim() || undefined,
         isAnonymous: isAnonymous,
         organizationId: selectedOrganizationId,
-        groupId: selectedGroupId
+        groupId: selectedGroupId,
+        externalUrl: externalUrl.trim() ? normalizeForStorage(externalUrl.trim()) : undefined
       });
 
       // Clean up object URLs immediately
@@ -344,6 +345,8 @@ const PostComposer: React.FC<PostComposerProps> = ({
       setLocation('');
       setIsAnonymous(false);
       setSelectedPostType(PostType.GENERAL);
+      setExternalUrl('');
+      setDetectedPlatform(null);
 
       // Close composer immediately - upload continues in background
       if (onCancel) {
@@ -357,6 +360,9 @@ const PostComposer: React.FC<PostComposerProps> = ({
     setIsSubmitting(true);
 
     try {
+      const normalizedExternalUrl = externalUrl.trim() ? normalizeForStorage(externalUrl.trim()) : undefined;
+      console.log('📤 Creating post with externalUrl:', normalizedExternalUrl);
+      
       const postRequest: CreatePostRequest = {
         content: content.trim(),
         mediaUrls: [],
@@ -367,10 +373,23 @@ const PostComposer: React.FC<PostComposerProps> = ({
         anonymous: isAnonymous,
         organizationId: selectedOrganizationId,
         groupId: selectedGroupId,
-        externalUrl: externalUrl.trim() ? normalizeForStorage(externalUrl.trim()) : undefined
+        externalUrl: normalizedExternalUrl
       };
 
+      console.log('📤 Post request:', { 
+        hasContent: !!content.trim(), 
+        externalUrl: normalizedExternalUrl,
+        platform: detectedPlatform 
+      });
+
       const newPost = await createPost(postRequest);
+      
+      console.log('✅ Post created:', {
+        id: newPost.id,
+        externalUrl: newPost.externalUrl,
+        externalPlatform: newPost.externalPlatform,
+        hasEmbedHtml: !!newPost.externalEmbedHtml
+      });
 
       // Clear form
       setContent('');
