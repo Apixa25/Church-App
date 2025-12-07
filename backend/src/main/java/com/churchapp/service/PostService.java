@@ -2,6 +2,7 @@ package com.churchapp.service;
 
 import com.churchapp.entity.*;
 import com.churchapp.repository.*;
+import com.churchapp.util.SocialMediaUrlUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -33,29 +34,60 @@ public class PostService {
     private final OrganizationRepository organizationRepository;
     private final UserFollowService userFollowService;
     private final UserBlockService userBlockService;
+    private final OEmbedService oEmbedService;
 
     @Transactional
     public Post createPost(String userEmail, String content, List<String> mediaUrls,
                           List<String> mediaTypes, Post.PostType postType,
                           String category, String location, boolean isAnonymous) {
-        return createPost(userEmail, content, mediaUrls, mediaTypes, postType, category, location, isAnonymous, null, null);
+        return createPost(userEmail, content, mediaUrls, mediaTypes, postType, category, location, isAnonymous, null, null, null);
     }
 
     @Transactional
     public Post createPost(String userEmail, String content, List<String> mediaUrls,
                           List<String> mediaTypes, Post.PostType postType,
                           String category, String location, boolean isAnonymous,
-                          UUID organizationId, UUID groupId) {
+                          UUID organizationId, UUID groupId, String externalUrl) {
 
         User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Validate that post has either content or media
+        // Validate that post has either content, media, or external URL
         boolean hasContent = content != null && !content.trim().isEmpty();
         boolean hasMedia = mediaUrls != null && !mediaUrls.isEmpty();
+        boolean hasExternalUrl = externalUrl != null && !externalUrl.trim().isEmpty();
         
-        if (!hasContent && !hasMedia) {
-            throw new IllegalArgumentException("Post must have either content or media");
+        if (!hasContent && !hasMedia && !hasExternalUrl) {
+            throw new IllegalArgumentException("Post must have either content, media, or external URL");
+        }
+
+        // Handle external social media URL
+        String normalizedExternalUrl = null;
+        String externalPlatform = null;
+        String externalEmbedHtml = null;
+
+        if (hasExternalUrl) {
+            // Validate and normalize the external URL
+            if (!SocialMediaUrlUtil.isSupportedSocialMediaUrl(externalUrl)) {
+                throw new IllegalArgumentException("Unsupported social media URL. Supported platforms: X (Twitter), Facebook Reels, Instagram Reels, YouTube");
+            }
+
+            normalizedExternalUrl = SocialMediaUrlUtil.normalizeForStorage(externalUrl);
+            SocialMediaUrlUtil.Platform platform = SocialMediaUrlUtil.detectPlatform(normalizedExternalUrl);
+            externalPlatform = platform.name();
+
+            // Fetch oEmbed HTML for supported platforms (currently X only)
+            if (platform == SocialMediaUrlUtil.Platform.X_POST) {
+                OEmbedService.OEmbedResponse oEmbedResponse = oEmbedService.fetchOEmbed(normalizedExternalUrl);
+                if (oEmbedResponse != null && oEmbedResponse.getHtml() != null) {
+                    externalEmbedHtml = oEmbedResponse.getHtml();
+                    log.info("Successfully fetched oEmbed HTML for X post: {}", normalizedExternalUrl);
+                } else {
+                    log.warn("Failed to fetch oEmbed HTML for URL: {}, will store URL only", normalizedExternalUrl);
+                }
+            } else {
+                log.info("oEmbed not yet implemented for platform: {}, storing URL only", platform);
+            }
         }
 
         // Validate content length if content is provided
@@ -102,6 +134,13 @@ public class PostService {
         // Snapshot user's primary org at post time for analytics
         if (user.getPrimaryOrganization() != null) {
             post.setUserPrimaryOrgIdSnapshot(user.getPrimaryOrganization().getId());
+        }
+
+        // Set external URL fields if provided
+        if (normalizedExternalUrl != null) {
+            post.setExternalUrl(normalizedExternalUrl);
+            post.setExternalPlatform(externalPlatform);
+            post.setExternalEmbedHtml(externalEmbedHtml);
         }
 
         Post savedPost = postRepository.save(post);

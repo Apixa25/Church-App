@@ -34,6 +34,9 @@ public class CreatePostRequest {
 
     private UUID groupId;          // Optional: post to specific group
 
+    // Social media embed fields
+    private String externalUrl;    // Optional: URL of social media content to embed (X, Facebook, Instagram, YouTube)
+
     public boolean isAnonymous() {
         return anonymous;
     }
