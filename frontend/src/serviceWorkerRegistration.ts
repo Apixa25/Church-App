@@ -12,6 +12,13 @@ type Config = {
   onUpdate?: (registration: ServiceWorkerRegistration) => void;
 };
 
+// Global update handler - can be set from App component
+let globalUpdateHandler: ((registration: ServiceWorkerRegistration) => void) | null = null;
+
+export function setUpdateHandler(handler: (registration: ServiceWorkerRegistration) => void) {
+  globalUpdateHandler = handler;
+}
+
 export function register(config?: Config) {
   if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
     const publicUrl = new URL(process.env.PUBLIC_URL, window.location.href);
@@ -47,8 +54,12 @@ function registerValidSW(swUrl: string, config?: Config) {
           if (installingWorker.state === 'installed') {
             if (navigator.serviceWorker.controller) {
               console.log('New content available; please refresh.');
+              // Call both config callback and global handler
               if (config && config.onUpdate) {
                 config.onUpdate(registration);
+              }
+              if (globalUpdateHandler) {
+                globalUpdateHandler(registration);
               }
             } else {
               console.log('Content cached for offline use.');
