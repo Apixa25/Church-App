@@ -11,22 +11,19 @@
 -- ============================================================================
 
 -- Add external URL column for storing social media links
-ALTER TABLE posts 
-ADD COLUMN external_url VARCHAR(500);
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS external_url VARCHAR(500);
 
 -- Add platform identifier column
-ALTER TABLE posts 
-ADD COLUMN external_platform VARCHAR(50);
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS external_platform VARCHAR(50);
 
 -- Add oEmbed HTML storage (TEXT for potentially long HTML)
-ALTER TABLE posts 
-ADD COLUMN external_embed_html TEXT;
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS external_embed_html TEXT;
 
 -- Create index for querying posts by external platform
-CREATE INDEX idx_posts_external_platform ON posts(external_platform) 
+CREATE INDEX IF NOT EXISTS idx_posts_external_platform ON posts(external_platform) 
 WHERE external_platform IS NOT NULL;
 
--- Add comment explaining the columns
+-- Add comments for documentation
 COMMENT ON COLUMN posts.external_url IS 'Original URL of the shared social media content (X, Facebook, Instagram, YouTube)';
 COMMENT ON COLUMN posts.external_platform IS 'Platform type: X_POST, FACEBOOK_REEL, INSTAGRAM_REEL, YOUTUBE';
 COMMENT ON COLUMN posts.external_embed_html IS 'oEmbed HTML response for rendering embedded content';
