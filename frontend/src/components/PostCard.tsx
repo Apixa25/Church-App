@@ -12,6 +12,7 @@ import PostStatsModal from './PostStatsModal';
 import ClickableAvatar from './ClickableAvatar';
 import MediaViewer from './MediaViewer';
 import LoadingSpinner from './LoadingSpinner';
+import SocialMediaEmbedCard from './SocialMediaEmbedCard';
 import './PostCard.css';
 
 interface PostCardProps {
@@ -656,6 +657,31 @@ const PostCard: React.FC<PostCardProps> = ({
 
       {/* Post Media */}
       {renderMedia()}
+      
+      {/* Social Media Embed */}
+      {post.externalUrl && post.externalEmbedHtml && (
+        <div className="post-external-embed">
+          <SocialMediaEmbedCard
+            embedHtml={post.externalEmbedHtml}
+            externalUrl={post.externalUrl}
+            platform={post.externalPlatform || 'UNKNOWN'}
+          />
+        </div>
+      )}
+      
+      {/* Fallback: Show link if embed HTML is not available */}
+      {post.externalUrl && !post.externalEmbedHtml && (
+        <div className="post-external-link-fallback">
+          <a
+            href={post.externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="external-link-button"
+          >
+            🔗 View on {post.externalPlatform || 'External Site'} →
+          </a>
+        </div>
+      )}
 
       {/* Post Actions */}
       <div className="post-actions">
