@@ -70,6 +70,11 @@ export interface Post {
   sharesCount: number;
   bookmarksCount: number;
 
+  // Social media embed fields
+  externalUrl?: string;         // Original URL of the shared social media content
+  externalPlatform?: string;    // Platform type: X_POST, FACEBOOK_REEL, INSTAGRAM_REEL, YOUTUBE
+  externalEmbedHtml?: string;   // oEmbed HTML response for rendering embedded content
+
   // Computed fields (populated by frontend)
   isLikedByCurrentUser?: boolean;
   isBookmarkedByCurrentUser?: boolean;
@@ -156,6 +161,8 @@ export interface CreatePostRequest {
   // Multi-tenant fields
   organizationId?: string;
   groupId?: string;
+  // Social media embed field
+  externalUrl?: string;    // Optional: URL of social media content to embed (X, Facebook, Instagram, YouTube)
 }
 
 export interface CreateReplyRequest {
