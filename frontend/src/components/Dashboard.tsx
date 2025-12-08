@@ -397,13 +397,23 @@ const Dashboard: React.FC = () => {
     activeMembershipType: activeMembership?.organizationType,
     activeMembershipLogoUrl: activeMembership?.organizationLogoUrl,
     isGatheringGlobal,
-    willUseOrgLogo: activeOrganizationLogo && !isGatheringGlobal
+    willUseOrgLogo: activeOrganizationLogo && !isGatheringGlobal,
+    userBannerImage: user?.bannerImageUrl,
+    willUseUserBanner: activeContext === 'family' && user?.bannerImageUrl
   });
   
-  // Use active context's organization logo as background if available and not The Gathering
-  const bannerImageUrl = activeOrganizationLogo && !isGatheringGlobal 
-    ? activeOrganizationLogo 
-    : '/dashboard-banner.jpg';
+  // Determine banner image with priority:
+  // 1. If family context is active and user has banner image → use user's banner image
+  // 2. If family context is active but no user banner → use family organization logo
+  // 3. Otherwise use organization logo if available (and not The Gathering)
+  // 4. Fallback to default banner
+  const bannerImageUrl = (activeContext === 'family' && user?.bannerImageUrl)
+    ? user.bannerImageUrl
+    : (activeContext === 'family' && activeOrganizationLogo && !isGatheringGlobal)
+      ? activeOrganizationLogo  // Family context fallback to org logo
+      : (activeOrganizationLogo && !isGatheringGlobal)
+        ? activeOrganizationLogo  // Other contexts use org logo
+        : '/dashboard-banner.jpg';
   
   console.log('🖼️ Final bannerImageUrl:', bannerImageUrl);
     
