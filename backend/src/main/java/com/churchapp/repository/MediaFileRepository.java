@@ -71,5 +71,11 @@ public interface MediaFileRepository extends JpaRepository<MediaFile, UUID> {
      * Count media files by processing status
      */
     long countByProcessingStatus(ProcessingStatus status);
+    
+    /**
+     * Find media file by MediaConvert job ID
+     * Used for webhook processing to update MediaFile when job completes
+     */
+    java.util.Optional<MediaFile> findByJobId(String jobId);
 }
 

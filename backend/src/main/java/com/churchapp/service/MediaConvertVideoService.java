@@ -83,6 +83,9 @@ public class MediaConvertVideoService {
             JobSettings jobSettings = createJobSettings(inputUri, outputUri, thumbnailUri, mediaFile.getId().toString());
 
             // Create the job
+            // Note: SNS topic for job completion notifications is configured at the MediaConvert queue level,
+            // not at the individual job level. This is the industry-standard approach.
+            // The SNS topic must be configured in AWS MediaConvert console for the queue being used.
             CreateJobRequest createJobRequest = CreateJobRequest.builder()
                     .role(roleArn)
                     .settings(jobSettings)
