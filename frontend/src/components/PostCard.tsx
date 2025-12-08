@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Post, PostType, Comment, SharePostRequest } from '../types/Post';
 import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost, deletePost, recordPostView, blockUser, unblockUser, getBlockStatus, followUser, unfollowUser, getFollowStatus, reportContent } from '../services/postApi';
@@ -48,6 +48,11 @@ const PostCard: React.FC<PostCardProps> = ({
   const [comments, setComments] = useState<Comment[]>([]);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  
+  // Video loading state - track which videos should be loaded
+  const [loadedVideos, setLoadedVideos] = useState<Set<number>>(new Set());
+  const [visibleVideos, setVisibleVideos] = useState<Set<number>>(new Set());
+  const videoRefs = useRef<Map<number, HTMLVideoElement>>(new Map());
   const [isBlocked, setIsBlocked] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
@@ -387,6 +392,76 @@ const PostCard: React.FC<PostCardProps> = ({
     setShowMediaViewer(true);
   };
 
+  // Handle video click - load video if not already loaded
+  const handleVideoClick = useCallback((index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // Mark video as loaded (will trigger preload="auto")
+    setLoadedVideos(prev => {
+      const newSet = new Set(prev);
+      newSet.add(index);
+      return newSet;
+    });
+    
+    // Try to play video
+    const video = videoRefs.current.get(index);
+    if (video) {
+      video.play().catch(err => {
+        console.log('Video autoplay prevented:', err);
+      });
+    }
+    
+    // Also open media viewer
+    handleMediaClick(index, e);
+  }, []);
+
+  // Lazy loading with Intersection Observer for videos
+  // Note: We track visibility but don't auto-load - videos only load on user click
+  useEffect(() => {
+    if (!post.mediaUrls || post.mediaUrls.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const index = parseInt(entry.target.getAttribute('data-video-index') || '0');
+            setVisibleVideos(prev => {
+              const newSet = new Set(prev);
+              newSet.add(index);
+              return newSet;
+            });
+            // Unobserve once visible (we don't need to track it anymore)
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      {
+        rootMargin: '100px', // Start tracking 100px before video enters viewport
+        threshold: 0.01
+      }
+    );
+
+    // Observe all video elements that exist
+    const observeVideos = () => {
+      videoRefs.current.forEach((video, index) => {
+        if (video && !visibleVideos.has(index)) {
+          observer.observe(video);
+        }
+      });
+    };
+
+    // Initial observation
+    observeVideos();
+
+    // Re-observe after a short delay to catch videos that render later
+    const timeoutId = setTimeout(observeVideos, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      observer.disconnect();
+    };
+  }, [post.mediaUrls, visibleVideos]);
+
   const renderMedia = () => {
     if (!post.mediaUrls || post.mediaUrls.length === 0) return null;
 
@@ -420,21 +495,54 @@ const PostCard: React.FC<PostCardProps> = ({
                 loading="lazy"
               />
             ) : (
-              <video
-                src={post.mediaUrls[0]}
-                controls
-                className="media-video"
-                preload="metadata"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const rect = (e.currentTarget as HTMLVideoElement).getBoundingClientRect();
-                  const clickY = e.clientY - rect.top;
-                  const videoHeight = rect.height;
-                  if (clickY < videoHeight * 0.75) {
-                    handleMediaClick(0, e);
-                  }
-                }}
-              />
+              <div className="video-container-wrapper">
+                <video
+                  ref={(el) => {
+                    if (el) videoRefs.current.set(0, el);
+                  }}
+                  src={loadedVideos.has(0) ? post.mediaUrls[0] : undefined}
+                  controls={loadedVideos.has(0)}
+                  className="media-video"
+                  preload={loadedVideos.has(0) ? "auto" : "none"}
+                  data-video-index="0"
+                  onClick={(e) => {
+                    if (!loadedVideos.has(0)) {
+                      handleVideoClick(0, e);
+                    } else {
+                      e.stopPropagation();
+                      const rect = (e.currentTarget as HTMLVideoElement).getBoundingClientRect();
+                      const clickY = e.clientY - rect.top;
+                      const videoHeight = rect.height;
+                      if (clickY < videoHeight * 0.75) {
+                        handleMediaClick(0, e);
+                      }
+                    }
+                  }}
+                  playsInline
+                />
+                {!loadedVideos.has(0) && (
+                  <div 
+                    className="video-play-overlay"
+                    onClick={(e) => handleVideoClick(0, e)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleVideoClick(0, e as any);
+                      }
+                    }}
+                    aria-label="Play video"
+                  >
+                    <div className="video-play-button">
+                      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="32" cy="32" r="32" fill="rgba(0, 0, 0, 0.6)"/>
+                        <path d="M24 20L44 32L24 44V20Z" fill="white"/>
+                      </svg>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -474,16 +582,49 @@ const PostCard: React.FC<PostCardProps> = ({
                     loading="lazy"
                   />
                 ) : (
-                  <video
-                    src={url}
-                    controls={false}
-                    className="media-video"
-                    preload="metadata"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleMediaClick(index, e);
-                    }}
-                  />
+                  <div className="video-container-wrapper video-grid-wrapper">
+                    <video
+                      ref={(el) => {
+                        if (el) videoRefs.current.set(index, el);
+                      }}
+                      src={loadedVideos.has(index) ? url : undefined}
+                      controls={false}
+                      className="media-video"
+                      preload={loadedVideos.has(index) ? "auto" : "none"}
+                      data-video-index={index.toString()}
+                      onClick={(e) => {
+                        if (!loadedVideos.has(index)) {
+                          handleVideoClick(index, e);
+                        } else {
+                          e.stopPropagation();
+                          handleMediaClick(index, e);
+                        }
+                      }}
+                      playsInline
+                    />
+                    {!loadedVideos.has(index) && (
+                      <div 
+                        className="video-play-overlay video-grid-overlay"
+                        onClick={(e) => handleVideoClick(index, e)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleVideoClick(index, e as any);
+                          }
+                        }}
+                        aria-label="Play video"
+                      >
+                        <div className="video-play-button video-grid-play-button">
+                          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="24" cy="24" r="24" fill="rgba(0, 0, 0, 0.6)"/>
+                            <path d="M18 15L30 24L18 33V15Z" fill="white"/>
+                          </svg>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
                 {isLastVisible && (
                   <div className="media-overlay-count">

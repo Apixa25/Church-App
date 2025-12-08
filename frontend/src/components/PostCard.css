@@ -299,6 +299,78 @@
   object-fit: cover;
   object-position: center;
   display: block;
+  background: var(--bg-secondary);
+}
+
+/* Video container wrapper for play button overlay */
+.video-container-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.video-grid-wrapper {
+  position: relative;
+}
+
+/* Video play button overlay - X/Twitter style */
+.video-play-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: background 0.2s ease;
+  z-index: 10;
+}
+
+.video-play-overlay:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.video-play-overlay:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.video-play-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  opacity: 0.9;
+}
+
+.video-play-overlay:hover .video-play-button {
+  transform: scale(1.1);
+  opacity: 1;
+}
+
+.video-play-button svg {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Grid video overlay - smaller play button */
+.video-grid-overlay {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.video-grid-play-button {
+  opacity: 0.8;
+}
+
+.video-grid-overlay:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.video-grid-overlay:hover .video-grid-play-button {
+  transform: scale(1.05);
 }
 
 /* Post Media - Grid Layouts */
