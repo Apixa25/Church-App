@@ -121,7 +121,14 @@ public class MediaFile {
      */
     @Column(name = "original_filename", length = 255)
     private String originalFilename;
-    
+
+    /**
+     * MediaConvert job ID (for video processing)
+     * Used to poll job status and extract thumbnail URLs
+     */
+    @Column(name = "job_id", length = 100)
+    private String jobId;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

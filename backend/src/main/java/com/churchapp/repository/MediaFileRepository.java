@@ -32,6 +32,13 @@ public interface MediaFileRepository extends JpaRepository<MediaFile, UUID> {
     List<MediaFile> findByProcessingStatus(ProcessingStatus status);
     
     /**
+     * Find all media files with a specific processing status that have a job ID
+     * Used for polling MediaConvert jobs
+     */
+    @Query("SELECT m FROM MediaFile m WHERE m.processingStatus = :status AND m.jobId IS NOT NULL")
+    List<MediaFile> findByProcessingStatusAndJobIdIsNotNull(@Param("status") ProcessingStatus status);
+    
+    /**
      * Find all media files that are ready for cleanup
      * (completed processing, created more than retention hours ago)
      */
