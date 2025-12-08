@@ -79,12 +79,12 @@
 }
 
 .profile-top-nav-actions .edit-profile-button-x {
-  padding: 8px 16px;
+  padding: 10.4px 20.8px;
   background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-primary);
+  color: #ff3333;
+  border: 1px solid #ff3333;
   border-radius: 20px;
-  font-size: 14px;
+  font-size: 18.2px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
@@ -93,8 +93,9 @@
 }
 
 .profile-top-nav-actions .edit-profile-button-x:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--border-secondary);
+  background: #ff3333;
+  color: white;
+  border-color: #ff3333;
 }
 
 /* Profile Banner */
@@ -252,12 +253,12 @@
 }
 
 .edit-profile-button-x {
-  padding: 8px 16px;
+  padding: 10.4px 20.8px;
   background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--border-primary);
+  color: #ff3333;
+  border: 1px solid #ff3333;
   border-radius: 20px;
-  font-size: 15px;
+  font-size: 19.5px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
@@ -265,8 +266,9 @@
 }
 
 .edit-profile-button-x:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--border-secondary);
+  background: #ff3333;
+  color: white;
+  border-color: #ff3333;
 }
 
 /* Profile Info X Style */
@@ -895,8 +897,8 @@
   }
 
   .profile-top-nav-actions .edit-profile-button-x {
-    padding: 6px 12px;
-    font-size: 13px;
+    padding: 7.8px 15.6px;
+    font-size: 16.9px;
   }
 
   .profile-banner {
@@ -1007,8 +1009,8 @@
   }
 
   .profile-top-nav-actions .edit-profile-button-x {
-    padding: 5px 10px;
-    font-size: 12px;
+    padding: 6.5px 13px;
+    font-size: 15.6px;
   }
 
   .profile-banner {
