@@ -397,13 +397,13 @@ const Dashboard: React.FC = () => {
   // Get user banner with S3 fallback (like profile pictures)
   const userBannerUrls = userBannerImage ? getImageUrlWithFallback(userBannerImage) : null;
   
-  // Determine banner image with priority (UPDATED):
-  // 1. Organization logo takes priority (represents the community/family)
-  // 2. If no org logo, use user's banner image (personal customization)
+  // Determine banner image with priority (CORRECTED):
+  // 1. User banner image takes priority when logged in (personal customization)
+  // 2. Organization logo (if no user banner)
   // 3. Fallback to default banner
   const hasOrgLogo = activeOrganizationLogo && !isGatheringGlobal;
-  const shouldUseOrgLogo = hasOrgLogo;
-  const shouldUseUserBanner = !shouldUseOrgLogo && hasUserBanner && userBannerUrls;
+  const shouldUseUserBanner = hasUserBanner && userBannerUrls;
+  const shouldUseOrgLogo = !shouldUseUserBanner && hasOrgLogo;
   
   console.log('🖼️ Banner Image Debug:', {
     activeContext,
@@ -419,13 +419,13 @@ const Dashboard: React.FC = () => {
   });
   
   // Determine banner image with priority:
-  // 1. Organization logo (if available and not The Gathering)
-  // 2. User banner image (if no org logo)
+  // 1. User banner image (if logged in and has banner)
+  // 2. Organization logo (if no user banner)
   // 3. Default banner
-  const bannerImageUrl = shouldUseOrgLogo
-    ? activeOrganizationLogo
-    : shouldUseUserBanner && userBannerUrls
-      ? userBannerUrls.primary
+  const bannerImageUrl = shouldUseUserBanner && userBannerUrls
+    ? userBannerUrls.primary
+    : shouldUseOrgLogo
+      ? activeOrganizationLogo
       : '/dashboard-banner.jpg';
   
   // Determine fallback order for error handling
@@ -437,7 +437,7 @@ const Dashboard: React.FC = () => {
     ? activeOrganizationLogo 
     : null;
   
-  const decision = shouldUseOrgLogo ? 'ORG_LOGO' : (shouldUseUserBanner ? 'USER_BANNER' : 'DEFAULT');
+  const decision = shouldUseUserBanner ? 'USER_BANNER' : (shouldUseOrgLogo ? 'ORG_LOGO' : 'DEFAULT');
   console.log('🖼️ Final bannerImageUrl:', bannerImageUrl, '| Decision:', decision, '| Org logo available:', hasOrgLogo, '| User banner available:', hasUserBanner);
     
   // Get display name for header - uses active context

@@ -253,18 +253,38 @@ public class MediaConvertWebhookService {
 
     /**
      * Fallback: Construct thumbnail URL from known pattern
-     * Since we control the thumbnail key generation, we can try to construct it
-     * This is a fallback if the event doesn't contain the outputFileUri
+     * Since MediaConvert creates files with predictable patterns, we can try to construct the URL
+     * Based on the folder and the fact that MediaConvert uses nameModifier
      */
     private String constructThumbnailUrlFromPattern(MediaFile mediaFile) {
         try {
-            // The thumbnail key pattern is: {folder}/thumbnails/{uuid}.jpg
-            // But MediaConvert adds _thumbnail modifier, so it becomes: {folder}/thumbnails/{uuid}_thumbnail.jpg
-            // However, we don't have the exact UUID that was used, so we can't construct it perfectly
-            // This is a limitation - we should store the expected thumbnail key when starting the job
+            String folder = mediaFile.getFolder();
+            if (folder == null || folder.isEmpty()) {
+                log.warn("⚠️ Cannot construct thumbnail URL: MediaFile folder is null or empty");
+                return null;
+            }
             
-            log.warn("⚠️ Cannot reliably construct thumbnail URL without stored key. Consider storing thumbnail key when starting job.");
-            return null;
+            // MediaConvert creates thumbnails at: {baseFolder}/thumbnails_thumbnail.0000000.jpg
+            // The folder is like "posts/originals/{uuid}", but MediaConvert uses just the base folder "posts"
+            // Extract the base folder (first part before the first slash after the base)
+            String baseFolder = folder;
+            if (folder.contains("/")) {
+                // Extract just the base folder (e.g., "posts" from "posts/originals/{uuid}")
+                baseFolder = folder.substring(0, folder.indexOf("/"));
+            }
+            
+            String bucketName = "church-app-uploads-stevensills2";
+            String region = "us-west-2";
+            
+            // MediaConvert creates: {baseFolder}/thumbnails_thumbnail.0000000.jpg
+            String thumbnailKey = String.format("%s/thumbnails_thumbnail.0000000.jpg", baseFolder);
+            String thumbnailUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, thumbnailKey);
+            
+            log.info("🖼️ Constructed thumbnail URL from pattern: {} (extracted base folder: {} from full folder: {})", 
+                    thumbnailUrl, baseFolder, folder);
+            log.warn("⚠️ This is a fallback - webhook should provide the actual URL. Consider fixing EventBridge/SNS webhook delivery.");
+            
+            return thumbnailUrl;
         } catch (Exception e) {
             log.error("Error constructing thumbnail URL from pattern: {}", e.getMessage());
             return null;
