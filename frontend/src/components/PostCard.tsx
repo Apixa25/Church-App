@@ -503,7 +503,8 @@ const PostCard: React.FC<PostCardProps> = ({
                   src={loadedVideos.has(0) ? post.mediaUrls[0] : undefined}
                   controls={loadedVideos.has(0)}
                   className="media-video"
-                  preload={loadedVideos.has(0) ? "auto" : "none"}
+                  preload={loadedVideos.has(0) ? "auto" : (post.thumbnailUrls && post.thumbnailUrls[0] ? "none" : "metadata")}
+                  poster={post.thumbnailUrls && post.thumbnailUrls[0] ? post.thumbnailUrls[0] : undefined}
                   data-video-index="0"
                   onClick={(e) => {
                     if (!loadedVideos.has(0)) {
@@ -590,7 +591,8 @@ const PostCard: React.FC<PostCardProps> = ({
                       src={loadedVideos.has(index) ? url : undefined}
                       controls={false}
                       className="media-video"
-                      preload={loadedVideos.has(index) ? "auto" : "none"}
+                      preload={loadedVideos.has(index) ? "auto" : (post.thumbnailUrls && post.thumbnailUrls[index] ? "none" : "metadata")}
+                      poster={post.thumbnailUrls && post.thumbnailUrls[index] ? post.thumbnailUrls[index] : undefined}
                       data-video-index={index.toString()}
                       onClick={(e) => {
                         if (!loadedVideos.has(index)) {

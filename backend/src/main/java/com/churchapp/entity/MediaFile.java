@@ -45,6 +45,14 @@ public class MediaFile {
      */
     @Column(name = "optimized_url", length = 500)
     private String optimizedUrl;
+
+    /**
+     * Thumbnail URL (stored in S3 /thumbnails/ folder)
+     * This is a JPEG image extracted from the first frame of videos
+     * Null until thumbnail generation completes (only for videos)
+     */
+    @Column(name = "thumbnail_url", length = 500)
+    private String thumbnailUrl;
     
     /**
      * Type of media file: 'image' or 'video'

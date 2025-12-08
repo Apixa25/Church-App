@@ -55,6 +55,11 @@ public class Post {
     @Column(name = "media_type")
     private List<String> mediaTypes = new ArrayList<>();
 
+    @ElementCollection
+    @CollectionTable(name = "post_media_thumbnail_urls", joinColumns = @JoinColumn(name = "post_id"))
+    @Column(name = "thumbnail_url")
+    private List<String> thumbnailUrls = new ArrayList<>();
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_post_id")
     private Post parentPost; // For replies/threads

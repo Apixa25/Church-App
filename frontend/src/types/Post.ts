@@ -55,6 +55,7 @@ export interface Post {
   content: string;
   mediaUrls: string[];
   mediaTypes: string[];
+  thumbnailUrls?: string[]; // Optional thumbnail URLs for videos
   parentPostId?: string;
   quotedPostId?: string;
   isReply: boolean;
