@@ -300,13 +300,18 @@ const PostFeed: React.FC<PostFeedProps> = ({
     
     const cachedData = queryClient.getQueryData<Post[]>(queryKey);
     if (cachedData && cachedData.length > 0) {
-      console.log('📦 PostFeed: Loading from cache', cachedData.length, 'posts');
+      // Only log if not already initialized to reduce console spam
+      if (!initializedRef.current) {
+        console.log('📦 PostFeed: Loading from cache', cachedData.length, 'posts');
+      }
       setPosts(cachedData);
       setLoading(false);
       initializedRef.current = true;
     } else {
       // No cache, fetch fresh data
-      console.log('📥 PostFeed: No cache, fetching fresh data');
+      if (!initializedRef.current) {
+        console.log('📥 PostFeed: No cache, fetching fresh data');
+      }
       // Use ref to avoid dependency on loadPosts function reference
       if (loadPostsRef.current) {
         loadPostsRef.current(true);
