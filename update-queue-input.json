@@ -1,0 +1,7 @@
+{
+  "Name": "Default",
+  "Notification": {
+    "SnsTopic": "arn:aws:sns:us-west-2:060163370478:mediaconvert-job-completion"
+  }
+}
+
