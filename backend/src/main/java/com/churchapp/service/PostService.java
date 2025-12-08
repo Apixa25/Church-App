@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,6 +36,7 @@ public class PostService {
     private final UserFollowService userFollowService;
     private final UserBlockService userBlockService;
     private final OEmbedService oEmbedService;
+    private final MediaFileRepository mediaFileRepository;
 
     @Transactional
     public Post createPost(String userEmail, String content, List<String> mediaUrls,
@@ -104,11 +106,36 @@ public class PostService {
             throw new IllegalArgumentException("Post content cannot exceed 2000 characters");
         }
 
+        // Look up thumbnail URLs for videos from MediaFile records
+        List<String> thumbnailUrls = new ArrayList<>();
+        if (mediaUrls != null && mediaTypes != null) {
+            for (int i = 0; i < mediaUrls.size(); i++) {
+                String mediaUrl = mediaUrls.get(i);
+                String mediaType = i < mediaTypes.size() ? mediaTypes.get(i) : "";
+                
+                // Only videos need thumbnails
+                if (mediaType != null && mediaType.startsWith("video/")) {
+                    // Try to find MediaFile and get thumbnail URL
+                    Optional<MediaFile> mediaFileOpt = mediaFileRepository.findByOriginalUrl(mediaUrl);
+                    if (mediaFileOpt.isPresent() && mediaFileOpt.get().getThumbnailUrl() != null) {
+                        thumbnailUrls.add(mediaFileOpt.get().getThumbnailUrl());
+                    } else {
+                        // No thumbnail yet - will be generated asynchronously
+                        thumbnailUrls.add(null);
+                    }
+                } else {
+                    // Not a video - no thumbnail
+                    thumbnailUrls.add(null);
+                }
+            }
+        }
+
         Post post = new Post();
         post.setUser(user);
         post.setContent(hasContent && content != null ? content.trim() : "");
         post.setMediaUrls(mediaUrls != null ? mediaUrls : List.of());
         post.setMediaTypes(mediaTypes != null ? mediaTypes : List.of());
+        post.setThumbnailUrls(thumbnailUrls);
         post.setPostType(postType != null ? postType : Post.PostType.GENERAL);
         post.setCategory(category);
         post.setLocation(location);

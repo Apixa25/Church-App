@@ -76,7 +76,7 @@ public class MediaConvertVideoService {
             String inputUri = String.format("s3://%s/%s", bucketName, inputKey);
             String outputUri = String.format("s3://%s/%s", bucketName, outputKey);
 
-            // Create job settings
+            // Create job settings (thumbnail generation will be added separately)
             JobSettings jobSettings = createJobSettings(inputUri, outputUri, mediaFile.getId().toString());
 
             // Create the job
@@ -124,7 +124,18 @@ public class MediaConvertVideoService {
     }
 
     /**
+     * Generate S3 output key for video thumbnail
+     * Note: This will be used when thumbnail generation is implemented
+     */
+    private String generateThumbnailKey(MediaFile mediaFile) {
+        String folder = mediaFile.getFolder();
+        String filename = UUID.randomUUID().toString() + ".jpg";
+        return String.format("%s/thumbnails/%s", folder, filename);
+    }
+
+    /**
      * Create MediaConvert job settings for video processing
+     * Note: Thumbnail generation will be added in a future enhancement
      */
     private JobSettings createJobSettings(String inputUri, String outputUri, String mediaFileId) {
         // Audio selector - selects the first audio track from input
@@ -214,12 +225,17 @@ public class MediaConvertVideoService {
                         .build())
                 .build();
 
+        // TODO: Add thumbnail generation to MediaConvert job
+        // For now, thumbnails will be generated separately using a simpler approach
+        // MediaConvert can generate thumbnails, but requires additional configuration
+        // This will be implemented in a future enhancement
+        
         OutputGroup outputGroup = OutputGroup.builder()
                 .outputGroupSettings(outputGroupSettings)
                 .outputs(output)
                 .build();
 
-        // Job settings
+        // Job settings - thumbnail generation will be added separately
         return JobSettings.builder()
                 .inputs(input)
                 .outputGroups(outputGroup)

@@ -21,6 +21,7 @@ public class PostResponse {
     private String content;
     private List<String> mediaUrls;
     private List<String> mediaTypes;
+    private List<String> thumbnailUrls;
     private UUID parentPostId;
     private UUID quotedPostId;
     private boolean isReply;
@@ -75,6 +76,7 @@ public class PostResponse {
         response.setContent(post.getContent());
         response.setMediaUrls(post.getMediaUrls());
         response.setMediaTypes(post.getMediaTypes());
+        response.setThumbnailUrls(post.getThumbnailUrls());
 
         if (post.getParentPost() != null) {
             response.setParentPostId(post.getParentPost().getId());
