@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
  * Following the same pattern as DonationController's Stripe webhook
  */
 @RestController
-@RequestMapping("/api/media")
+@RequestMapping("/media")  // With context-path=/api, full path is /api/media/webhook/mediaconvert
 @RequiredArgsConstructor
 @Slf4j
 public class MediaController {

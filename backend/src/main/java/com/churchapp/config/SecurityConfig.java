@@ -77,8 +77,8 @@ public class SecurityConfig {
                 .requestMatchers("/test/**").permitAll()  // Keep test endpoint public for now
                 .requestMatchers("/ws/**").permitAll()    // Allow WebSocket handshake - auth handled in WebSocketConfig
                 .requestMatchers("/announcements/**").permitAll()  // Allow public access to announcements for now
-                .requestMatchers("/api/media/webhook/mediaconvert").permitAll()  // MediaConvert SNS webhook (signature verified in service)
-                .requestMatchers("/api/donations/webhook/stripe").permitAll()  // Stripe webhook (signature verified in service)
+                .requestMatchers("/media/webhook/mediaconvert").permitAll()  // MediaConvert SNS webhook (context-path=/api, so full URL is /api/media/...)
+                .requestMatchers("/donations/webhook/stripe").permitAll()  // Stripe webhook (context-path=/api, so full URL is /api/donations/...)
                 .requestMatchers("/chat/**").authenticated()  // JWT authentication for chat APIs
                 .requestMatchers("/profile/**").authenticated()
                 .requestMatchers("/dashboard/**").authenticated()  // Explicitly protect dashboard

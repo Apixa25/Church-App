@@ -10,6 +10,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+
 /**
  * Service to handle MediaConvert job completion webhooks via SNS
  * 
@@ -74,18 +79,35 @@ public class MediaConvertWebhookService {
     /**
      * Handle SNS subscription confirmation
      * When AWS SNS first subscribes your endpoint, it sends a confirmation message
-     * You need to confirm the subscription by visiting the SubscribeURL
+     * We automatically confirm by making a GET request to the SubscribeURL
      */
     private void handleSubscriptionConfirmation(JsonNode message) {
         String subscribeUrl = message.get("SubscribeURL").asText();
         String topicArn = message.get("TopicArn").asText();
         
-        log.info("SNS Subscription Confirmation received for topic: {}", topicArn);
-        log.info("To confirm subscription, visit: {}", subscribeUrl);
-        log.warn("IMPORTANT: You must manually confirm the SNS subscription by visiting the URL above");
+        log.info("🔔 SNS Subscription Confirmation received for topic: {}", topicArn);
+        log.info("📡 Auto-confirming subscription by visiting SubscribeURL...");
         
-        // In production, you might want to automatically confirm using AWS SDK
-        // For now, we log it and require manual confirmation
+        try {
+            // Automatically confirm the subscription by making a GET request to the SubscribeURL
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(subscribeUrl))
+                    .GET()
+                    .build();
+            
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                log.info("✅ SNS Subscription confirmed successfully! Topic: {}", topicArn);
+            } else {
+                log.error("❌ Failed to confirm SNS subscription. Status: {}, Body: {}", 
+                        response.statusCode(), response.body());
+            }
+        } catch (Exception e) {
+            log.error("❌ Error confirming SNS subscription: {}", e.getMessage(), e);
+            log.warn("📋 Manual confirmation URL (if needed): {}", subscribeUrl);
+        }
     }
 
     /**
