@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 /**
  * Service for resolving media URLs
@@ -44,6 +46,9 @@ public class MediaUrlService {
      * This is critical because direct S3 URLs don't work (bucket is not public).
      * All media must be served through CloudFront.
      * 
+     * This method detects ANY S3 URL pattern, not just the configured bucket,
+     * to handle URLs from different buckets (e.g., old dev bucket URLs).
+     * 
      * @param url The URL (might be S3 or CloudFront)
      * @return CloudFront URL
      */
@@ -54,6 +59,7 @@ public class MediaUrlService {
         
         // If CloudFront is not configured, return original URL
         if (cloudFrontDistributionUrl == null || cloudFrontDistributionUrl.trim().isEmpty()) {
+            log.warn("⚠️ CloudFront URL not configured, cannot convert S3 URL: {}", url);
             return url;
         }
         
@@ -63,30 +69,47 @@ public class MediaUrlService {
         }
         
         // Check if it's an S3 URL that needs conversion
-        // Pattern: https://bucket-name.s3.region.amazonaws.com/key
-        // or: https://bucket-name.s3-region.amazonaws.com/key
+        // Pattern 1: https://bucket-name.s3.region.amazonaws.com/key
+        // Pattern 2: https://bucket-name.s3-region.amazonaws.com/key
+        // Pattern 3: https://s3.region.amazonaws.com/bucket-name/key (path-style)
+        
+        String key = null;
+        
+        // Try configured bucket patterns first (most common)
         String s3Pattern1 = String.format("https://%s.s3.%s.amazonaws.com/", bucketName, region);
         String s3Pattern2 = String.format("https://%s.s3-%s.amazonaws.com/", bucketName, region);
         
-        String key = null;
         if (url.startsWith(s3Pattern1)) {
             key = url.substring(s3Pattern1.length());
         } else if (url.startsWith(s3Pattern2)) {
             key = url.substring(s3Pattern2.length());
+        } else {
+            // Try to match ANY S3 URL pattern using regex
+            // Pattern: https://[bucket].s3.[region].amazonaws.com/[key]
+            // or: https://[bucket].s3-[region].amazonaws.com/[key]
+            Pattern s3Pattern = Pattern.compile(
+                "https://([^.]+)\\.s3[.-]([^.]+)\\.amazonaws\\.com/(.+)"
+            );
+            Matcher matcher = s3Pattern.matcher(url);
+            if (matcher.matches()) {
+                key = matcher.group(3); // Extract the key (everything after the bucket/region)
+                log.info("🔄 Detected S3 URL from different bucket: {} -> extracting key: {}", url, key);
+            }
         }
         
-        if (key != null) {
+        if (key != null && !key.isEmpty()) {
             // Convert to CloudFront URL
             String baseUrl = cloudFrontDistributionUrl.trim();
             if (baseUrl.endsWith("/")) {
                 baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
             }
             String cloudFrontUrl = baseUrl + "/" + key;
-            log.debug("🔄 Converted S3 URL to CloudFront: {} -> {}", url, cloudFrontUrl);
+            log.info("🔄 Converted S3 URL to CloudFront: {} -> {}", url, cloudFrontUrl);
             return cloudFrontUrl;
         }
         
         // Not an S3 URL we recognize, return as-is
+        log.warn("⚠️ Could not convert URL to CloudFront (not an S3 URL): {}", url);
         return url;
     }
     
@@ -160,13 +183,21 @@ public class MediaUrlService {
         List<String> bestUrls = new ArrayList<>();
         for (String originalUrl : originalUrls) {
             try {
-                bestUrls.add(getBestUrl(originalUrl));
+                String bestUrl = getBestUrl(originalUrl);
+                // Log conversion for debugging
+                if (!originalUrl.equals(bestUrl)) {
+                    log.info("🔄 MediaUrlService converted URL: {} -> {}", originalUrl, bestUrl);
+                }
+                bestUrls.add(bestUrl);
             } catch (Exception e) {
                 // If any URL fails, still convert to CloudFront
-                log.warn("Error resolving URL: {}, using CloudFront fallback. Error: {}", originalUrl, e.getMessage());
-                bestUrls.add(ensureCloudFrontUrl(originalUrl));
+                log.warn("⚠️ Error resolving URL: {}, using CloudFront fallback. Error: {}", originalUrl, e.getMessage());
+                String fallbackUrl = ensureCloudFrontUrl(originalUrl);
+                log.info("🔄 MediaUrlService fallback conversion: {} -> {}", originalUrl, fallbackUrl);
+                bestUrls.add(fallbackUrl);
             }
         }
+        log.debug("✅ MediaUrlService.getBestUrls: converted {} URLs", bestUrls.size());
         return bestUrls;
     }
     
