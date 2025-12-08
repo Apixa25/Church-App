@@ -22,6 +22,7 @@ import { FeedType } from '../types/Post';
 import { profileAPI } from '../services/api';
 import WarningBanner from './WarningBanner';
 import WarningsSection from './WarningsSection';
+import { getImageUrlWithFallback } from '../utils/imageUrlUtils';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -390,6 +391,10 @@ const Dashboard: React.FC = () => {
                             activeOrganizationName?.includes('Gathering Community');
   
   // 🖼️ DEBUG: Log banner image decision
+  const userBannerImage = user?.bannerImageUrl;
+  const hasUserBanner = userBannerImage && typeof userBannerImage === 'string' && userBannerImage.trim() !== '';
+  const shouldUseUserBanner = activeContext === 'family' && hasUserBanner;
+  
   console.log('🖼️ Banner Image Debug:', {
     activeContext,
     activeOrganizationLogo,
@@ -398,24 +403,38 @@ const Dashboard: React.FC = () => {
     activeMembershipLogoUrl: activeMembership?.organizationLogoUrl,
     isGatheringGlobal,
     willUseOrgLogo: activeOrganizationLogo && !isGatheringGlobal,
-    userBannerImage: user?.bannerImageUrl,
-    willUseUserBanner: activeContext === 'family' && user?.bannerImageUrl
+    user: user ? 'exists' : 'null/undefined',
+    userBannerImage: userBannerImage || 'undefined/null',
+    hasUserBanner,
+    shouldUseUserBanner
   });
+  
+  // Get user banner with S3 fallback (like profile pictures)
+  const userBannerUrls = userBannerImage ? getImageUrlWithFallback(userBannerImage) : null;
   
   // Determine banner image with priority:
   // 1. If family context is active and user has banner image → use user's banner image
   // 2. If family context is active but no user banner → use family organization logo
   // 3. Otherwise use organization logo if available (and not The Gathering)
   // 4. Fallback to default banner
-  const bannerImageUrl = (activeContext === 'family' && user?.bannerImageUrl)
-    ? user.bannerImageUrl
+  const bannerImageUrl = shouldUseUserBanner && userBannerUrls
+    ? userBannerUrls.primary
     : (activeContext === 'family' && activeOrganizationLogo && !isGatheringGlobal)
       ? activeOrganizationLogo  // Family context fallback to org logo
       : (activeOrganizationLogo && !isGatheringGlobal)
         ? activeOrganizationLogo  // Other contexts use org logo
         : '/dashboard-banner.jpg';
   
-  console.log('🖼️ Final bannerImageUrl:', bannerImageUrl);
+  // Determine fallback order for error handling
+  // In family context: user banner (CloudFront) → user banner (S3) → family org logo → default Gathering image
+  const userBannerS3Fallback = userBannerUrls?.fallback && userBannerUrls.fallback !== userBannerUrls.primary
+    ? userBannerUrls.fallback
+    : null;
+  const familyOrgFallback = activeContext === 'family' && activeOrganizationLogo && !isGatheringGlobal 
+    ? activeOrganizationLogo 
+    : null;
+  
+  console.log('🖼️ Final bannerImageUrl:', bannerImageUrl, '| Decision:', shouldUseUserBanner ? 'USER_BANNER' : (activeContext === 'family' && activeOrganizationLogo) ? 'ORG_LOGO' : 'DEFAULT', '| Family org fallback available:', !!familyOrgFallback);
     
   // Get display name for header - uses active context
   const displayOrgName = activeOrganizationName || 'The Gathering';
@@ -434,12 +453,66 @@ const Dashboard: React.FC = () => {
               ? {} 
               : { crossOrigin: 'anonymous' })}
             onError={(e) => {
-              // Fallback to default banner if organization logo fails to load
-              console.warn('⚠️ Banner image failed to load, falling back to default:', bannerImageUrl);
               const target = e.target as HTMLImageElement;
-              if (target.src !== '/dashboard-banner.jpg') {
+              const currentSrc = target.src;
+              
+              // Extract just the filename/unique ID from URLs for comparison (more reliable than full URL match)
+              const getUrlId = (url: string) => {
+                try {
+                  const parts = url.split('/');
+                  return parts[parts.length - 1] || url;
+                } catch {
+                  return url;
+                }
+              };
+              
+              const currentId = getUrlId(currentSrc);
+              const userBannerPrimaryId = userBannerUrls?.primary ? getUrlId(userBannerUrls.primary) : '';
+              const userBannerS3Id = userBannerS3Fallback ? getUrlId(userBannerS3Fallback) : '';
+              const familyOrgId = familyOrgFallback ? getUrlId(familyOrgFallback) : '';
+              
+              const isUserBannerCloudFront = userBannerUrls?.primary && (currentSrc === userBannerUrls.primary || currentId === userBannerPrimaryId);
+              const isUserBannerS3 = userBannerS3Fallback && (currentSrc === userBannerS3Fallback || currentId === userBannerS3Id);
+              const isFamilyOrgLogo = familyOrgFallback && (currentSrc === familyOrgFallback || currentId === familyOrgId);
+              const isDefault = currentSrc.includes('/dashboard-banner.jpg');
+              
+              console.warn('⚠️ Banner image failed to load:', {
+                currentSrc,
+                currentId,
+                activeContext,
+                isUserBannerCloudFront,
+                isUserBannerS3,
+                isFamilyOrgLogo,
+                isDefault,
+                userBannerPrimaryId,
+                userBannerS3Id,
+                familyOrgId,
+                shouldUseUserBanner
+              });
+              
+              // Priority fallback order for family context:
+              // 1. User banner CloudFront fails → try user banner S3
+              // 2. User banner S3 fails → try family org logo
+              // 3. Family org logo fails → use default Gathering image
+              if (activeContext === 'family' && isUserBannerCloudFront && userBannerS3Fallback) {
+                // User banner CloudFront failed, try S3 fallback
+                console.warn('⚠️ User banner CloudFront URL failed, trying S3 fallback');
+                target.src = userBannerS3Fallback;
+              } else if (activeContext === 'family' && isUserBannerS3 && familyOrgFallback) {
+                // User banner S3 also failed, try family org logo
+                console.warn('⚠️ User banner S3 URL failed, trying family organization logo');
+                target.src = familyOrgFallback;
+              } else if (activeContext === 'family' && isFamilyOrgLogo) {
+                // Family org logo also failed, use default
+                console.warn('⚠️ Family organization logo failed, falling back to default Gathering image');
+                target.src = '/dashboard-banner.jpg';
+              } else if (!isDefault) {
+                // For other contexts or unexpected errors, use default
+                console.warn('⚠️ Banner image failed, falling back to default');
                 target.src = '/dashboard-banner.jpg';
               } else {
+                // Default also failed, hide the image
+                console.error('⚠️ All banner image fallbacks failed, hiding image');
                 target.style.display = 'none';
               }
             }}
