@@ -39,20 +39,22 @@ public class MediaController {
             @RequestBody String payload) {
 
         try {
-            log.debug("Received MediaConvert webhook - Type: {}", messageType);
+            log.info("🔔 Received MediaConvert webhook - Type: {}, Payload length: {}", messageType, payload != null ? payload.length() : 0);
 
             // If message type is not in header, try to parse from payload
             if (messageType == null || messageType.isEmpty()) {
                 // SNS sometimes sends message type in the payload
                 // We'll let the service handle it
                 messageType = "Notification"; // Default to notification
+                log.info("🔔 Message type not in header, defaulting to: {}", messageType);
             }
 
             mediaConvertWebhookService.processWebhook(messageType, payload);
+            log.info("✅ MediaConvert webhook processed successfully");
             return ResponseEntity.ok("Webhook processed successfully");
 
         } catch (Exception e) {
-            log.error("Error processing MediaConvert webhook: {}", e.getMessage(), e);
+            log.error("❌ Error processing MediaConvert webhook: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body("Webhook processing failed: " + e.getMessage());
         }
     }

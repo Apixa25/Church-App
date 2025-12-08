@@ -1,0 +1,43 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "SNSDebugPermissions",
+      "Effect": "Allow",
+      "Action": [
+        "sns:ListSubscriptionsByTopic",
+        "sns:GetSubscriptionAttributes",
+        "sns:ListSubscriptions",
+        "sns:GetTopicAttributes",
+        "sns:ListTopics"
+      ],
+      "Resource": [
+        "arn:aws:sns:us-west-2:060163370478:mediaconvert-job-completion",
+        "arn:aws:sns:us-west-2:060163370478:*"
+      ]
+    },
+    {
+      "Sid": "EventBridgeDebugPermissions",
+      "Effect": "Allow",
+      "Action": [
+        "events:ListTargetsByRule",
+        "events:DescribeRule",
+        "events:ListRules"
+      ],
+      "Resource": [
+        "arn:aws:events:us-west-2:060163370478:rule/mediaconvert-job-completion",
+        "arn:aws:events:us-west-2:060163370478:rule/*"
+      ]
+    },
+    {
+      "Sid": "MediaConvertDebugPermissions",
+      "Effect": "Allow",
+      "Action": [
+        "mediaconvert:GetJob",
+        "mediaconvert:ListJobs"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+

@@ -393,7 +393,17 @@ const Dashboard: React.FC = () => {
   // 🖼️ DEBUG: Log banner image decision
   const userBannerImage = user?.bannerImageUrl;
   const hasUserBanner = userBannerImage && typeof userBannerImage === 'string' && userBannerImage.trim() !== '';
-  const shouldUseUserBanner = activeContext === 'family' && hasUserBanner;
+  
+  // Get user banner with S3 fallback (like profile pictures)
+  const userBannerUrls = userBannerImage ? getImageUrlWithFallback(userBannerImage) : null;
+  
+  // Determine banner image with priority (UPDATED):
+  // 1. Organization logo takes priority (represents the community/family)
+  // 2. If no org logo, use user's banner image (personal customization)
+  // 3. Fallback to default banner
+  const hasOrgLogo = activeOrganizationLogo && !isGatheringGlobal;
+  const shouldUseOrgLogo = hasOrgLogo;
+  const shouldUseUserBanner = !shouldUseOrgLogo && hasUserBanner && userBannerUrls;
   
   console.log('🖼️ Banner Image Debug:', {
     activeContext,
@@ -402,28 +412,21 @@ const Dashboard: React.FC = () => {
     activeMembershipType: activeMembership?.organizationType,
     activeMembershipLogoUrl: activeMembership?.organizationLogoUrl,
     isGatheringGlobal,
-    willUseOrgLogo: activeOrganizationLogo && !isGatheringGlobal,
-    user: user ? 'exists' : 'null/undefined',
-    userBannerImage: userBannerImage || 'undefined/null',
+    hasOrgLogo,
     hasUserBanner,
+    shouldUseOrgLogo,
     shouldUseUserBanner
   });
   
-  // Get user banner with S3 fallback (like profile pictures)
-  const userBannerUrls = userBannerImage ? getImageUrlWithFallback(userBannerImage) : null;
-  
   // Determine banner image with priority:
-  // 1. If family context is active and user has banner image → use user's banner image
-  // 2. If family context is active but no user banner → use family organization logo
-  // 3. Otherwise use organization logo if available (and not The Gathering)
-  // 4. Fallback to default banner
-  const bannerImageUrl = shouldUseUserBanner && userBannerUrls
-    ? userBannerUrls.primary
-    : (activeContext === 'family' && activeOrganizationLogo && !isGatheringGlobal)
-      ? activeOrganizationLogo  // Family context fallback to org logo
-      : (activeOrganizationLogo && !isGatheringGlobal)
-        ? activeOrganizationLogo  // Other contexts use org logo
-        : '/dashboard-banner.jpg';
+  // 1. Organization logo (if available and not The Gathering)
+  // 2. User banner image (if no org logo)
+  // 3. Default banner
+  const bannerImageUrl = shouldUseOrgLogo
+    ? activeOrganizationLogo
+    : shouldUseUserBanner && userBannerUrls
+      ? userBannerUrls.primary
+      : '/dashboard-banner.jpg';
   
   // Determine fallback order for error handling
   // In family context: user banner (CloudFront) → user banner (S3) → family org logo → default Gathering image
@@ -434,7 +437,8 @@ const Dashboard: React.FC = () => {
     ? activeOrganizationLogo 
     : null;
   
-  console.log('🖼️ Final bannerImageUrl:', bannerImageUrl, '| Decision:', shouldUseUserBanner ? 'USER_BANNER' : (activeContext === 'family' && activeOrganizationLogo) ? 'ORG_LOGO' : 'DEFAULT', '| Family org fallback available:', !!familyOrgFallback);
+  const decision = shouldUseOrgLogo ? 'ORG_LOGO' : (shouldUseUserBanner ? 'USER_BANNER' : 'DEFAULT');
+  console.log('🖼️ Final bannerImageUrl:', bannerImageUrl, '| Decision:', decision, '| Org logo available:', hasOrgLogo, '| User banner available:', hasUserBanner);
     
   // Get display name for header - uses active context
   const displayOrgName = activeOrganizationName || 'The Gathering';

@@ -52,7 +52,7 @@ public class MediaConvertWebhookService {
     @Transactional
     public void processWebhook(String messageType, String messageBody) {
         try {
-            log.debug("Processing SNS webhook - Type: {}", messageType);
+            log.info("🔔 Processing SNS webhook - Type: {}", messageType);
 
             JsonNode message = objectMapper.readTree(messageBody);
 
@@ -162,14 +162,18 @@ public class MediaConvertWebhookService {
     @Transactional
     private void handleJobCompleted(JsonNode mediaconvertEvent, MediaFile mediaFile) {
         try {
-            log.info("Processing completed MediaConvert job for MediaFile: {}", mediaFile.getId());
+            log.info("🎬 Processing completed MediaConvert job for MediaFile: {}", mediaFile.getId());
 
             // Get job output details
             JsonNode detail = mediaconvertEvent.get("detail");
             JsonNode outputGroupDetails = detail.get("outputGroupDetails");
 
+            // Log full event structure for debugging
+            log.debug("📋 Full MediaConvert event structure: {}", objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(mediaconvertEvent));
+
             if (outputGroupDetails == null || !outputGroupDetails.isArray()) {
-                log.warn("No output group details found in job completion event for MediaFile: {}", mediaFile.getId());
+                log.warn("⚠️ No output group details found in job completion event for MediaFile: {}", mediaFile.getId());
+                log.warn("📋 Event detail keys: {}", detail.fieldNames());
                 return;
             }
 
@@ -177,28 +181,56 @@ public class MediaConvertWebhookService {
             String thumbnailUrl = null;
 
             // Parse output groups to find optimized video and thumbnail
+            log.debug("🔍 Parsing {} output groups", outputGroupDetails.size());
             for (JsonNode outputGroup : outputGroupDetails) {
+                log.debug("📦 Output group type: {}", outputGroup.has("type") ? outputGroup.get("type").asText() : "unknown");
+                
                 JsonNode outputDetails = outputGroup.get("outputDetails");
-                if (outputDetails == null || !outputDetails.isArray()) continue;
+                if (outputDetails == null || !outputDetails.isArray()) {
+                    log.debug("⚠️ No outputDetails array in this output group");
+                    continue;
+                }
 
+                log.debug("🔍 Found {} output details in this group", outputDetails.size());
                 for (JsonNode output : outputDetails) {
-                    String outputFileUri = output.has("outputFileUri") 
-                            ? output.get("outputFileUri").asText() 
-                            : null;
+                    // Try multiple possible field names for the output file URI
+                    String outputFileUri = null;
+                    if (output.has("outputFileUri")) {
+                        outputFileUri = output.get("outputFileUri").asText();
+                    } else if (output.has("outputFileURIs") && output.get("outputFileURIs").isArray() && output.get("outputFileURIs").size() > 0) {
+                        outputFileUri = output.get("outputFileURIs").get(0).asText();
+                    } else if (output.has("uri")) {
+                        outputFileUri = output.get("uri").asText();
+                    }
 
-                    if (outputFileUri == null) continue;
+                    if (outputFileUri == null) {
+                        log.debug("⚠️ No outputFileUri found in output. Available fields: {}", output.fieldNames());
+                        continue;
+                    }
+
+                    log.debug("📄 Found output file URI: {}", outputFileUri);
 
                     // Check if this is the optimized video (contains "_optimized")
                     if (outputFileUri.contains("_optimized")) {
                         optimizedUrl = convertS3UriToUrl(outputFileUri);
-                        log.debug("Found optimized video URL: {}", optimizedUrl);
+                        log.info("✅ Found optimized video URL: {}", optimizedUrl);
                     }
 
                     // Check if this is the thumbnail (contains "_thumbnail")
                     if (outputFileUri.contains("_thumbnail")) {
                         thumbnailUrl = convertS3UriToUrl(outputFileUri);
-                        log.debug("Found thumbnail URL: {}", thumbnailUrl);
+                        log.info("🖼️ Found thumbnail URL: {}", thumbnailUrl);
                     }
+                }
+            }
+
+            // Fallback: If thumbnail not found in event, try to construct from known pattern
+            // MediaConvert creates thumbnails at: {folder}/thumbnails/{uuid}_thumbnail.jpg
+            if (thumbnailUrl == null) {
+                log.warn("⚠️ Thumbnail URL not found in event output. Attempting fallback construction...");
+                thumbnailUrl = constructThumbnailUrlFromPattern(mediaFile);
+                if (thumbnailUrl != null) {
+                    log.info("🖼️ Constructed thumbnail URL from pattern: {}", thumbnailUrl);
                 }
             }
 
@@ -207,15 +239,35 @@ public class MediaConvertWebhookService {
             mediaFile.markProcessingCompleted(finalOptimizedUrl, 0L, thumbnailUrl);
             mediaFileRepository.save(mediaFile);
 
-            log.info("MediaConvert job completed successfully for MediaFile: {}. Optimized: {}, Thumbnail: {}",
+            log.info("✅ MediaConvert job completed successfully for MediaFile: {}. Optimized: {}, Thumbnail: {}",
                     mediaFile.getId(), 
                     optimizedUrl != null ? "yes" : "no",
                     thumbnailUrl != null ? "yes" : "no");
 
         } catch (Exception e) {
-            log.error("Error processing completed job for MediaFile: {}", mediaFile.getId(), e);
+            log.error("❌ Error processing completed job for MediaFile: {}", mediaFile.getId(), e);
             mediaFile.markProcessingFailed("Error extracting job output: " + e.getMessage());
             mediaFileRepository.save(mediaFile);
+        }
+    }
+
+    /**
+     * Fallback: Construct thumbnail URL from known pattern
+     * Since we control the thumbnail key generation, we can try to construct it
+     * This is a fallback if the event doesn't contain the outputFileUri
+     */
+    private String constructThumbnailUrlFromPattern(MediaFile mediaFile) {
+        try {
+            // The thumbnail key pattern is: {folder}/thumbnails/{uuid}.jpg
+            // But MediaConvert adds _thumbnail modifier, so it becomes: {folder}/thumbnails/{uuid}_thumbnail.jpg
+            // However, we don't have the exact UUID that was used, so we can't construct it perfectly
+            // This is a limitation - we should store the expected thumbnail key when starting the job
+            
+            log.warn("⚠️ Cannot reliably construct thumbnail URL without stored key. Consider storing thumbnail key when starting job.");
+            return null;
+        } catch (Exception e) {
+            log.error("Error constructing thumbnail URL from pattern: {}", e.getMessage());
+            return null;
         }
     }
 
