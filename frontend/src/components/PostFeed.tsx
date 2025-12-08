@@ -307,10 +307,13 @@ const PostFeed: React.FC<PostFeedProps> = ({
     } else {
       // No cache, fetch fresh data
       console.log('📥 PostFeed: No cache, fetching fresh data');
-      loadPosts(true);
+      // Use ref to avoid dependency on loadPosts function reference
+      if (loadPostsRef.current) {
+        loadPostsRef.current(true);
+      }
       initializedRef.current = true;
     }
-  }, [queryKey, queryClient, loadPosts]); // Only run when query key changes
+  }, [queryKey, queryClient]); // Only run when query key changes, not loadPosts
   
   // Reset initialization flag when query key changes
   useEffect(() => {
