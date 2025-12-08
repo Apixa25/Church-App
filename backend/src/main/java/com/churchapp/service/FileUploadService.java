@@ -790,7 +790,14 @@ public class FileUploadService {
                     return;
                 }
                 
-                log.info("MediaConvert job started: {} for video: {}", jobId, mediaFile.getOriginalUrl());
+                // Store job ID in MediaFile for polling
+                mediaFileRepository.findById(mediaFile.getId()).ifPresent(mf -> {
+                    mf.setJobId(jobId);
+                    mediaFileRepository.save(mf);
+                });
+                
+                log.info("MediaConvert job started: {} for video: {} (MediaFile ID: {})", 
+                        jobId, mediaFile.getOriginalUrl(), mediaFile.getId());
                 
             } catch (Exception e) {
                 log.error("Error processing video from S3: {}", s3Key, e);
