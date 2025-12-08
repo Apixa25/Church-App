@@ -463,7 +463,13 @@ const PostCard: React.FC<PostCardProps> = ({
   }, [post.mediaUrls, visibleVideos]);
 
   const renderMedia = () => {
-    if (!post.mediaUrls || post.mediaUrls.length === 0) return null;
+    // 🐛 DEBUG: Log media URLs for troubleshooting
+    console.log('🖼️ PostCard renderMedia - postId:', post.id, 'mediaUrls:', post.mediaUrls, 'mediaTypes:', post.mediaTypes);
+    
+    if (!post.mediaUrls || post.mediaUrls.length === 0) {
+      console.log('🖼️ PostCard: No media URLs for post', post.id);
+      return null;
+    }
 
     const mediaCount = post.mediaUrls.length;
 
@@ -493,6 +499,12 @@ const PostCard: React.FC<PostCardProps> = ({
                 alt="Post media"
                 className="media-image"
                 loading="lazy"
+                onError={(e) => {
+                  console.error('🖼️ PostCard: Image failed to load:', post.mediaUrls[0], 'for post:', post.id);
+                }}
+                onLoad={() => {
+                  console.log('🖼️ PostCard: Image loaded successfully:', post.mediaUrls[0].substring(0, 80) + '...');
+                }}
               />
             ) : (
               <div className="video-container-wrapper">

@@ -136,7 +136,10 @@ export const UploadQueueProvider: React.FC<UploadQueueProviderProps> = ({
         onPostCreated(newPost);
       }
 
-      console.log('✅ Background upload completed:', job.id);
+      // 🚀 Dispatch feed refresh event so Dashboard can update
+      // This ensures the feed shows the new post even when navigating
+      console.log('✅ Background upload completed:', job.id, '- dispatching feedRefresh event');
+      window.dispatchEvent(new CustomEvent('feedRefresh'));
 
       // Auto-remove completed job after 5 seconds
       setTimeout(() => {

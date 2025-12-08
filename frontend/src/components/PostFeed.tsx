@@ -109,6 +109,17 @@ const PostFeed: React.FC<PostFeedProps> = ({
       );
 
       if (reset) {
+        // 🐛 DEBUG: Log posts with media for troubleshooting
+        const postsWithMedia = response.content.filter((p: Post) => p.mediaUrls && p.mediaUrls.length > 0);
+        console.log('🖼️ PostFeed: Loaded', response.content.length, 'posts,', postsWithMedia.length, 'with media');
+        if (postsWithMedia.length > 0) {
+          console.log('🖼️ PostFeed: First post with media:', {
+            id: postsWithMedia[0].id,
+            mediaUrls: postsWithMedia[0].mediaUrls,
+            mediaTypes: postsWithMedia[0].mediaTypes
+          });
+        }
+        
         setPosts(response.content);
         // Update React Query cache
         queryClient.setQueryData(queryKey, response.content);
