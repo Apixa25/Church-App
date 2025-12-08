@@ -326,9 +326,12 @@ const PostFeed: React.FC<PostFeedProps> = ({
   }, [queryKey]);
 
   // Load posts when refreshKey changes (explicit refresh)
+  // Track last processed refreshKey to prevent infinite loops
+  const lastProcessedRefreshKeyRef = useRef<number>(0);
   useEffect(() => {
-    if (refreshKey !== undefined && refreshKey > 0) {
-      console.log('🔄 PostFeed: refreshKey changed, fetching fresh data');
+    if (refreshKey !== undefined && refreshKey > 0 && refreshKey !== lastProcessedRefreshKeyRef.current) {
+      console.log('🔄 PostFeed: refreshKey changed, fetching fresh data', refreshKey);
+      lastProcessedRefreshKeyRef.current = refreshKey;
       // Use ref to avoid dependency on loadPosts function reference
       if (loadPostsRef.current) {
         loadPostsRef.current(true);
@@ -337,7 +340,14 @@ const PostFeed: React.FC<PostFeedProps> = ({
   }, [refreshKey]); // Only depend on refreshKey, not loadPosts
 
   // Refresh feed when filter changes
+  // Track last filter state to prevent duplicate refreshes
+  const lastFilterRef = useRef<string>('');
   useEffect(() => {
+    const filterKey = `${activeFilter}-${JSON.stringify(selectedGroupIds)}`;
+    if (filterKey === lastFilterRef.current) {
+      return; // Filter hasn't actually changed
+    }
+    lastFilterRef.current = filterKey;
     console.log('🔄 PostFeed: Filter changed - activeFilter:', activeFilter, 'selectedGroupIds:', selectedGroupIds);
     if (loadPostsRef.current) {
       console.log('📥 PostFeed: Triggering feed refresh due to filter change');
