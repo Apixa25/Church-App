@@ -542,19 +542,21 @@ public class FileUploadService {
                     baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
                 }
                 String cloudFrontUrl = baseUrl + "/" + key;
-                log.debug("Using CloudFront URL: {}", cloudFrontUrl);
+                log.info("✅ Using CloudFront URL for key {}: {}", key, cloudFrontUrl);
                 return cloudFrontUrl;
             }
             
             // Fallback to direct S3 URL if CloudFront not configured
             String s3Url = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
-            log.debug("Using direct S3 URL (CloudFront not configured): {}", s3Url);
+            log.warn("⚠️ CloudFront not configured! Using direct S3 URL for key {}: {}", key, s3Url);
             return s3Url;
             
         } catch (Exception e) {
-            log.error("Error generating accessible URL for key: {}", key, e);
+            log.error("❌ Error generating accessible URL for key: {}", key, e);
             // Fallback to direct S3 URL format
-            return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
+            String s3Url = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
+            log.warn("⚠️ Fallback to S3 URL: {}", s3Url);
+            return s3Url;
         }
     }
     
@@ -579,8 +581,9 @@ public class FileUploadService {
         String uniqueFilename = UUID.randomUUID().toString() + fileExtension;
         String s3Key = folder + "/originals/" + uniqueFilename;
         
-        // Generate final URL (for after upload)
-        String finalUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, s3Key);
+        // Generate final URL (for after upload) - use generateAccessibleUrl to ensure CloudFront if configured
+        // This ensures consistency - the URL returned here should match what handleUploadCompletion returns
+        String finalUrl = generateAccessibleUrl(s3Key);
         
         // Create PutObjectRequest
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -682,7 +685,8 @@ public class FileUploadService {
             // In production, you might want to verify the file actually exists
             
             String fileUrl = generateAccessibleUrl(s3Key);
-            log.info("Handling upload completion: key={}, url={}", s3Key, fileUrl);
+            log.info("✅ Handling upload completion: key={}, url={} (CloudFront configured: {})", 
+                    s3Key, fileUrl, cloudFrontDistributionUrl != null && !cloudFrontDistributionUrl.trim().isEmpty());
             
             boolean isImage = contentType != null && contentType.startsWith("image/");
             boolean isVideo = contentType != null && contentType.startsWith("video/");
