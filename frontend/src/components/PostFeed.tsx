@@ -321,9 +321,12 @@ const PostFeed: React.FC<PostFeedProps> = ({
   useEffect(() => {
     if (refreshKey !== undefined && refreshKey > 0) {
       console.log('🔄 PostFeed: refreshKey changed, fetching fresh data');
-      loadPosts(true);
+      // Use ref to avoid dependency on loadPosts function reference
+      if (loadPostsRef.current) {
+        loadPostsRef.current(true);
+      }
     }
-  }, [refreshKey, loadPosts]);
+  }, [refreshKey]); // Only depend on refreshKey, not loadPosts
 
   // Refresh feed when filter changes
   useEffect(() => {
