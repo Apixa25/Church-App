@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Post, FeedType, FeedResponse } from '../types/Post';
 import { getFeed } from '../services/postApi';
 import webSocketService, { PostUpdate, PostInteractionUpdate, CommentUpdate } from '../services/websocketService';
@@ -31,6 +32,11 @@ const PostFeed: React.FC<PostFeedProps> = ({
   const { activeFilter, selectedGroupIds } = useFeedFilter();
   // WebSocket context - for shared connection management
   const { isConnected, ensureConnection } = useWebSocket();
+  const queryClient = useQueryClient();
+
+  // Build query key for React Query caching
+  const feedTypeString = feedType === FeedType.FOLLOWING ? 'following' : feedType === FeedType.TRENDING ? 'trending' : 'community';
+  const queryKey = ['posts', feedTypeString, activeFilter, selectedGroupIds?.join(',') || ''];
 
   // State
   const [posts, setPosts] = useState<Post[]>([]);
@@ -39,6 +45,9 @@ const PostFeed: React.FC<PostFeedProps> = ({
   const [error, setError] = useState<string>('');
   const [hasMore, setHasMore] = useState(true);
   const [, setPage] = useState(0); // Page state kept for compatibility but tracked via ref
+  const [hasNewContent, setHasNewContent] = useState(false);
+  const [isPulling, setIsPulling] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
 
   // Refs
   const lastPostRef = useRef<HTMLDivElement>(null);
@@ -47,31 +56,50 @@ const PostFeed: React.FC<PostFeedProps> = ({
   const wsSubscriptionsRef = useRef<(() => void)[]>([]);
   const pageRef = useRef(0); // Use ref to track page without causing re-renders
   const loadPostsRef = useRef<((reset: boolean) => Promise<void>) | undefined>(undefined);
+  const pullStartY = useRef<number>(0);
+  const isAtTopRef = useRef<boolean>(true);
+  const lastFetchTimeRef = useRef<number>(0);
 
   const POSTS_PER_PAGE = 20;
+  const PULL_THRESHOLD = 80; // pixels to pull before triggering refresh
+
+  // 🚀 React Query for caching posts - only fetch when explicitly requested
+  const { 
+    data: cachedPosts, 
+    isLoading: queryLoading,
+    refetch: refetchPosts 
+  } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const response: FeedResponse = await getFeed(
+        feedTypeString,
+        0, // Always start from page 0 for refresh
+        POSTS_PER_PAGE
+      );
+      lastFetchTimeRef.current = Date.now();
+      return response.content;
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes - data is fresh
+    gcTime: 30 * 60 * 1000, // 30 minutes - keep in cache
+    enabled: false, // Don't auto-fetch - only fetch when explicitly requested
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
 
   // Function declarations (moved before useEffect hooks)
   const loadPosts = useCallback(async (reset: boolean = false) => {
     try {
+      const currentPage = reset ? 0 : pageRef.current;
+      
       if (reset) {
         setLoading(true);
-        setPosts([]);
         setPage(0);
         pageRef.current = 0;
         setHasMore(true);
         setError('');
+        setHasNewContent(false);
       } else {
         setLoadingMore(true);
-      }
-
-      const currentPage = reset ? 0 : pageRef.current;
-      let feedTypeString = 'community';
-      if (feedType === FeedType.FOLLOWING) {
-        feedTypeString = 'following';
-      } else if (feedType === FeedType.TRENDING) {
-        feedTypeString = 'trending';
-      } else if (feedType === FeedType.CHRONOLOGICAL) {
-        feedTypeString = 'community';
       }
       
       const response: FeedResponse = await getFeed(
@@ -82,6 +110,9 @@ const PostFeed: React.FC<PostFeedProps> = ({
 
       if (reset) {
         setPosts(response.content);
+        // Update React Query cache
+        queryClient.setQueryData(queryKey, response.content);
+        lastFetchTimeRef.current = Date.now();
       } else {
         setPosts(prev => [...prev, ...response.content]);
       }
@@ -99,7 +130,7 @@ const PostFeed: React.FC<PostFeedProps> = ({
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [feedType, maxPosts]); // Stable dependencies
+  }, [feedType, maxPosts, feedTypeString, queryKey, queryClient]); // Stable dependencies
 
   // Update the ref whenever loadPosts changes
   loadPostsRef.current = loadPosts;
@@ -235,10 +266,64 @@ const PostFeed: React.FC<PostFeedProps> = ({
     setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
   };
 
-  // Load initial posts and when refreshKey changes
+  // Check for new content periodically (only when at top of page)
+  const checkForNewContent = useCallback(async () => {
+    if (window.scrollY > 100 || posts.length === 0) return; // Only check when near top and have posts
+    
+    try {
+      const response: FeedResponse = await getFeed(
+        feedTypeString,
+        0,
+        1 // Just check first post
+      );
+      
+      // Compare with cached posts
+      if (response.content.length > 0 && posts.length > 0) {
+        const newestPost = response.content[0];
+        const cachedNewestPost = posts[0];
+        
+        if (newestPost.id !== cachedNewestPost.id) {
+          console.log('🆕 New content detected!');
+          setHasNewContent(true);
+        }
+      }
+    } catch (err) {
+      console.error('Error checking for new content:', err);
+    }
+  }, [feedTypeString, posts]);
+
+  // Initialize from cache on mount if available, otherwise fetch
+  const initializedRef = useRef(false);
   useEffect(() => {
-    loadPosts(true);
-  }, [feedType, refreshKey, loadPosts]);
+    // Only initialize once per query key change
+    if (initializedRef.current) return;
+    
+    const cachedData = queryClient.getQueryData<Post[]>(queryKey);
+    if (cachedData && cachedData.length > 0) {
+      console.log('📦 PostFeed: Loading from cache', cachedData.length, 'posts');
+      setPosts(cachedData);
+      setLoading(false);
+      initializedRef.current = true;
+    } else {
+      // No cache, fetch fresh data
+      console.log('📥 PostFeed: No cache, fetching fresh data');
+      loadPosts(true);
+      initializedRef.current = true;
+    }
+  }, [queryKey, queryClient, loadPosts]); // Only run when query key changes
+  
+  // Reset initialization flag when query key changes
+  useEffect(() => {
+    initializedRef.current = false;
+  }, [queryKey]);
+
+  // Load posts when refreshKey changes (explicit refresh)
+  useEffect(() => {
+    if (refreshKey !== undefined && refreshKey > 0) {
+      console.log('🔄 PostFeed: refreshKey changed, fetching fresh data');
+      loadPosts(true);
+    }
+  }, [refreshKey, loadPosts]);
 
   // Refresh feed when filter changes
   useEffect(() => {
@@ -307,6 +392,95 @@ const PostFeed: React.FC<PostFeedProps> = ({
     };
   }, [isConnected, ensureConnection, handleRealTimePostUpdate, handleRealTimeInteractionUpdate, handleRealTimeCommentUpdate]);
 
+  // Monitor scroll position to track when at top
+  useEffect(() => {
+    const handleScroll = () => {
+      isAtTopRef.current = window.scrollY === 0;
+      // If user scrolls down, hide new content notification
+      if (window.scrollY > 50) {
+        setHasNewContent(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Check for new content periodically when at top
+  useEffect(() => {
+    if (posts.length === 0) return;
+
+    const interval = setInterval(() => {
+      if (window.scrollY < 100) {
+        checkForNewContent();
+      }
+    }, 30000); // Check every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [posts, checkForNewContent]);
+
+  // 🎯 Pull-to-refresh handler - ONLY works when scrollY === 0
+  useEffect(() => {
+    const handleTouchStart = (e: TouchEvent) => {
+      // CRITICAL: Only activate if user is EXACTLY at the top
+      if (window.scrollY === 0) {
+        pullStartY.current = e.touches[0].clientY;
+        isAtTopRef.current = true;
+      } else {
+        pullStartY.current = 0;
+        isAtTopRef.current = false;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      // Only allow pull if we started at the top
+      if (window.scrollY === 0 && pullStartY.current > 0 && isAtTopRef.current) {
+        const currentY = e.touches[0].clientY;
+        const distance = Math.max(0, currentY - pullStartY.current);
+        
+        if (distance > 0) {
+          setIsPulling(true);
+          setPullDistance(Math.min(distance, PULL_THRESHOLD * 1.5));
+          // Prevent default scrolling when pulling
+          if (distance > 10) {
+            e.preventDefault();
+          }
+        }
+      } else {
+        // Reset if user scrolled away from top
+        if (window.scrollY > 0) {
+          setIsPulling(false);
+          setPullDistance(0);
+          pullStartY.current = 0;
+          isAtTopRef.current = false;
+        }
+      }
+    };
+
+    const handleTouchEnd = async () => {
+      if (isPulling && pullDistance >= PULL_THRESHOLD && isAtTopRef.current && window.scrollY === 0) {
+        console.log('🔄 Pull-to-refresh triggered!');
+        // Trigger refresh
+        await loadPosts(true);
+      }
+      
+      setIsPulling(false);
+      setPullDistance(0);
+      pullStartY.current = 0;
+      isAtTopRef.current = true; // Reset for next time
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: false });
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isPulling, pullDistance, loadPosts]);
+
   // Set up intersection observer for infinite scroll
   useEffect(() => {
     if (loading || loadingMore) return;
@@ -346,6 +520,32 @@ const PostFeed: React.FC<PostFeedProps> = ({
 
   return (
     <div className="post-feed">
+      {/* Pull-to-refresh indicator */}
+      {isPulling && (
+        <div 
+          className="pull-to-refresh-indicator"
+          style={{ 
+            transform: `translateY(${Math.min(pullDistance, PULL_THRESHOLD)}px)`,
+            opacity: Math.min(pullDistance / PULL_THRESHOLD, 1)
+          }}
+        >
+          {pullDistance >= PULL_THRESHOLD ? '🔄 Release to refresh' : '⬇️ Pull to refresh'}
+        </div>
+      )}
+
+      {/* New content notification */}
+      {hasNewContent && !loading && (
+        <div 
+          className="new-content-notification" 
+          onClick={async () => {
+            await loadPosts(true);
+            setHasNewContent(false);
+          }}
+        >
+          🔄 New posts available - Click to refresh
+        </div>
+      )}
+
       {/* Feed Header */}
       {showFilters && (
         <div className="feed-header">

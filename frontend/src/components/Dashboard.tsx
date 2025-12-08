@@ -257,12 +257,13 @@ const Dashboard: React.FC = () => {
       
       setFilter('PRIMARY_ONLY', [], activeOrganizationId)
         .then(() => {
-          // Force feed refresh after filter is updated
-          setFeedRefreshKey(prev => prev + 1);
+          // Filter change will trigger PostFeed refresh automatically via filter change effect
+          // No need to manually refresh here - PostFeed listens to filter changes
+          console.log('✅ Filter updated, PostFeed will refresh automatically');
         })
         .catch((error) => {
           console.error('Failed to update filter on context change:', error);
-          // Still refresh the feed even if filter update fails
+          // Only refresh if filter update fails (fallback)
           setFeedRefreshKey(prev => prev + 1);
         });
     }
@@ -338,10 +339,8 @@ const Dashboard: React.FC = () => {
       // React Query automatically refetches when query key changes (activeOrganizationId)
       // Force a manual refetch to ensure fresh data
       refetchDashboard();
-      // CRITICAL FIX: Also refresh the feed when context changes
-      // This ensures the feed updates with the new organization's data
-      // This matches the behavior when navigating to Announcements and back
-      setFeedRefreshKey(prev => prev + 1);
+      // Note: Feed will refresh automatically when filter changes (handled in filter change effect above)
+      // No need to manually refresh feed here - PostFeed uses React Query cache and will update when filter changes
     } else {
       console.log('🔄 Dashboard - No change detected');
       // Still update refs even if no fetch
@@ -352,10 +351,11 @@ const Dashboard: React.FC = () => {
   }, [activeContext, activeOrganizationId]);
 
   // Handle reset flag from Home button click - reset dashboard to initial state
+  // NOTE: This is now only triggered by explicit double-tap, not regular navigation
   useEffect(() => {
     const resetState = (location.state as any)?.reset === true;
     if (resetState) {
-      console.log('🔄 Dashboard reset triggered - restoring initial state');
+      console.log('🔄 Dashboard reset triggered - restoring initial state (explicit refresh)');
       
       // Reset all dashboard state to initial values (like fresh login)
       setFeedView('social');
@@ -373,10 +373,10 @@ const Dashboard: React.FC = () => {
         // Continue with reset even if filter reset fails
       });
       
-      // Force refresh of dashboard data
+      // Force refresh of dashboard data (React Query will check if stale)
       refetchDashboard();
       
-      // Force refresh of feed by incrementing refresh key
+      // Force refresh of feed by incrementing refresh key (explicit user action)
       setFeedRefreshKey(prev => prev + 1);
       
       // Clear the reset flag from location state

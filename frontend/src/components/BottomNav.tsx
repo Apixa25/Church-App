@@ -30,10 +30,10 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick, onCameraClick, showC
     return location.pathname === path || location.pathname.startsWith(path);
   };
 
-  // Helper function to navigate to Home
+  // Helper function to navigate to Home (without forcing refresh)
   const goToHome = () => {
     navigate('/dashboard', { 
-      state: { reset: true },
+      // Removed reset: true - let PostFeed use cached data if available
       replace: true 
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
