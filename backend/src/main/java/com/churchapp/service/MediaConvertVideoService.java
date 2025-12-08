@@ -71,13 +71,15 @@ public class MediaConvertVideoService {
             // Extract S3 key from original URL if full URL provided
             String inputKey = extractS3KeyFromUrl(s3InputKey);
             String outputKey = generateOutputKey(mediaFile);
+            String thumbnailKey = generateThumbnailKey(mediaFile);
 
             // Build S3 URIs
             String inputUri = String.format("s3://%s/%s", bucketName, inputKey);
             String outputUri = String.format("s3://%s/%s", bucketName, outputKey);
+            String thumbnailUri = String.format("s3://%s/%s", bucketName, thumbnailKey);
 
-            // Create job settings (thumbnail generation will be added separately)
-            JobSettings jobSettings = createJobSettings(inputUri, outputUri, mediaFile.getId().toString());
+            // Create job settings with thumbnail generation
+            JobSettings jobSettings = createJobSettings(inputUri, outputUri, thumbnailUri, mediaFile.getId().toString());
 
             // Create the job
             CreateJobRequest createJobRequest = CreateJobRequest.builder()
@@ -134,10 +136,9 @@ public class MediaConvertVideoService {
     }
 
     /**
-     * Create MediaConvert job settings for video processing
-     * Note: Thumbnail generation will be added in a future enhancement
+     * Create MediaConvert job settings for video processing with thumbnail generation
      */
-    private JobSettings createJobSettings(String inputUri, String outputUri, String mediaFileId) {
+    private JobSettings createJobSettings(String inputUri, String outputUri, String thumbnailUri, String mediaFileId) {
         // Audio selector - selects the first audio track from input
         AudioSelector audioSelector = AudioSelector.builder()
                 .selectorType(AudioSelectorType.TRACK)
@@ -217,28 +218,63 @@ public class MediaConvertVideoService {
                 .nameModifier("_optimized")
                 .build();
 
-        // Output group settings
-        OutputGroupSettings outputGroupSettings = OutputGroupSettings.builder()
+        // Output group settings for video
+        OutputGroupSettings videoOutputGroupSettings = OutputGroupSettings.builder()
                 .type(OutputGroupType.FILE_GROUP_SETTINGS)
                 .fileGroupSettings(FileGroupSettings.builder()
                         .destination(outputUri.substring(0, outputUri.lastIndexOf("/")))
                         .build())
                 .build();
-
-        // TODO: Add thumbnail generation to MediaConvert job
-        // For now, thumbnails will be generated separately using a simpler approach
-        // MediaConvert can generate thumbnails, but requires additional configuration
-        // This will be implemented in a future enhancement
         
-        OutputGroup outputGroup = OutputGroup.builder()
-                .outputGroupSettings(outputGroupSettings)
+        OutputGroup videoOutputGroup = OutputGroup.builder()
+                .outputGroupSettings(videoOutputGroupSettings)
                 .outputs(output)
                 .build();
 
-        // Job settings - thumbnail generation will be added separately
+        // Thumbnail generation - Frame capture at 1 second mark
+        VideoCodecSettings thumbnailCodecSettings = VideoCodecSettings.builder()
+                .codec(VideoCodec.FRAME_CAPTURE)
+                .frameCaptureSettings(FrameCaptureSettings.builder()
+                        .framerateNumerator(1)
+                        .framerateDenominator(1)
+                        .maxCaptures(1)
+                        .quality(80) // JPEG quality 0-100
+                        .build())
+                .build();
+
+        VideoDescription thumbnailVideoDescription = VideoDescription.builder()
+                .codecSettings(thumbnailCodecSettings)
+                .width(854) // Match video width
+                .height(480) // Match video height
+                .build();
+
+        ContainerSettings thumbnailContainerSettings = ContainerSettings.builder()
+                .container(ContainerType.RAW) // RAW container for JPEG
+                .build();
+
+        Output thumbnailOutput = Output.builder()
+                .videoDescription(thumbnailVideoDescription)
+                .containerSettings(thumbnailContainerSettings)
+                .nameModifier("_thumbnail")
+                .build();
+
+        // Output group settings for thumbnail
+        OutputGroupSettings thumbnailOutputGroupSettings = OutputGroupSettings.builder()
+                .type(OutputGroupType.FILE_GROUP_SETTINGS)
+                .fileGroupSettings(FileGroupSettings.builder()
+                        .destination(thumbnailUri.substring(0, thumbnailUri.lastIndexOf("/")))
+                        .build())
+                .build();
+
+        OutputGroup thumbnailOutputGroup = OutputGroup.builder()
+                .outputGroupSettings(thumbnailOutputGroupSettings)
+                .outputs(thumbnailOutput)
+                .build();
+
+        // Job settings with both video and thumbnail output groups
         return JobSettings.builder()
                 .inputs(input)
-                .outputGroups(outputGroup)
+                .outputGroups(videoOutputGroup, thumbnailOutputGroup)
                 .timecodeConfig(TimecodeConfig.builder()
                         .source(TimecodeSource.EMBEDDED)
                         .build())
@@ -291,6 +327,28 @@ public class MediaConvertVideoService {
             log.error("Error getting MediaConvert job status: {}", jobId, e);
             throw new RuntimeException("Failed to get job status: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Extract thumbnail URL from completed MediaConvert job
+     * 
+     * TODO: This method needs to be implemented when job completion detection is set up.
+     * It should:
+     * 1. Parse the job's output group details
+     * 2. Find the output group with thumbnail files (contains "thumbnails" in destination)
+     * 3. List S3 files in that folder to find the actual thumbnail file
+     * 4. Return the accessible URL for the thumbnail
+     * 
+     * @param job The completed MediaConvert job
+     * @return Thumbnail URL or null if not found
+     */
+    public String extractThumbnailUrl(Job job) {
+        // TODO: Implement when job completion detection is set up
+        // For now, thumbnail generation is configured in the job,
+        // but we need job completion detection to extract the URL
+        log.debug("extractThumbnailUrl called for job: {} - implementation pending job completion detection", 
+                  job != null ? job.id() : "null");
+        return null;
     }
 
     /**

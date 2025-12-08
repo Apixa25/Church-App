@@ -172,9 +172,17 @@ public class MediaFile {
      * Mark processing as completed successfully
      */
     public void markProcessingCompleted(String optimizedUrl, Long optimizedSize) {
+        markProcessingCompleted(optimizedUrl, optimizedSize, null);
+    }
+
+    /**
+     * Mark processing as completed successfully with thumbnail URL
+     */
+    public void markProcessingCompleted(String optimizedUrl, Long optimizedSize, String thumbnailUrl) {
         this.processingStatus = ProcessingStatus.COMPLETED;
         this.optimizedUrl = optimizedUrl;
         this.optimizedSize = optimizedSize;
+        this.thumbnailUrl = thumbnailUrl;
         this.processingCompletedAt = LocalDateTime.now();
         this.errorMessage = null;
     }

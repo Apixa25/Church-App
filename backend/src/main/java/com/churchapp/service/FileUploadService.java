@@ -289,8 +289,13 @@ public class FileUploadService {
      */
     @Transactional
     private void markMediaFileCompleted(UUID mediaFileId, String optimizedUrl, long optimizedSize) {
+        markMediaFileCompleted(mediaFileId, optimizedUrl, optimizedSize, null);
+    }
+
+    @Transactional
+    private void markMediaFileCompleted(UUID mediaFileId, String optimizedUrl, long optimizedSize, String thumbnailUrl) {
         mediaFileRepository.findById(mediaFileId).ifPresent(mediaFile -> {
-            mediaFile.markProcessingCompleted(optimizedUrl, optimizedSize);
+            mediaFile.markProcessingCompleted(optimizedUrl, optimizedSize, thumbnailUrl);
             mediaFileRepository.save(mediaFile);
         });
     }
