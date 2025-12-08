@@ -301,7 +301,7 @@
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
-  min-height: 180px;
+  min-height: 126px; /* Reduced by 30% from 180px */
   display: flex;
   align-items: center;
   z-index: 100;
@@ -1906,7 +1906,7 @@
     margin-bottom: 0 !important;
     padding: 12px 16px 16px !important;
     border-bottom: none !important;
-    min-height: 255px !important; /* Reduced by 25% (was 340px) */
+    min-height: 150px !important; /* Match profile banner height in mobile mode */
     display: flex !important;
     flex-direction: column !important;
     align-items: stretch !important;
@@ -1958,7 +1958,7 @@
     gap: 2px !important;
     justify-content: flex-end !important;
     margin-top: auto !important;
-    padding-top: 120px !important; /* 3x the previous amount */
+    padding-top: 40px !important; /* Adjusted to fit banner height */
   }
 
   /* User details - left-aligned profile pic and welcome message */
@@ -2156,6 +2156,7 @@
   
   .dashboard-header {
     padding: 10px 12px 14px !important;
+    min-height: 120px !important; /* Match profile banner height in small mobile mode */
   }
 
   .header-left {
