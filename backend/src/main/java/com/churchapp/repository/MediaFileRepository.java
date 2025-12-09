@@ -77,5 +77,23 @@ public interface MediaFileRepository extends JpaRepository<MediaFile, UUID> {
      * Used for webhook processing to update MediaFile when job completes
      */
     java.util.Optional<MediaFile> findByJobId(String jobId);
+    
+    /**
+     * Find all video files with optimized URLs (completed processing)
+     */
+    @Query("SELECT m FROM MediaFile m WHERE m.fileType = 'video' AND m.optimizedUrl IS NOT NULL")
+    List<MediaFile> findVideosWithOptimizedUrls();
+    
+    /**
+     * Count videos by processing status
+     */
+    @Query("SELECT COUNT(m) FROM MediaFile m WHERE m.fileType = 'video' AND m.processingStatus = :status")
+    long countVideosByStatus(@Param("status") ProcessingStatus status);
+    
+    /**
+     * Find videos without optimized URLs (for debugging)
+     */
+    @Query("SELECT m FROM MediaFile m WHERE m.fileType = 'video' AND (m.optimizedUrl IS NULL OR m.optimizedUrl = '')")
+    List<MediaFile> findVideosWithoutOptimizedUrls();
 }
 

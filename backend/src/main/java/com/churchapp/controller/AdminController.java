@@ -9,6 +9,9 @@ import com.churchapp.service.AdminAuthorizationService;
 import com.churchapp.service.AuditLogService;
 import com.churchapp.service.UserManagementService;
 import com.churchapp.repository.UserRepository;
+import com.churchapp.repository.MediaFileRepository;
+import com.churchapp.entity.MediaFile;
+import com.churchapp.dto.ProcessingStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -39,6 +42,7 @@ public class AdminController {
     private final AuditLogService auditLogService;
     private final AdminAuthorizationService adminAuthService;
     private final UserRepository userRepository;
+    private final MediaFileRepository mediaFileRepository;
 
     // =============== USER MANAGEMENT ===============
 
@@ -502,5 +506,75 @@ public class AdminController {
             default:
                 return now.minusDays(30);
         }
+    }
+    
+    /**
+     * Diagnostic endpoint to check MediaFile processing status
+     * Shows how many videos have optimized URLs vs. how many don't
+     */
+    @GetMapping("/media/diagnostics")
+    public ResponseEntity<Map<String, Object>> getMediaFileDiagnostics() {
+        Map<String, Object> diagnostics = new HashMap<>();
+        
+        // Count videos by status
+        long pendingVideos = mediaFileRepository.countVideosByStatus(ProcessingStatus.PENDING);
+        long processingVideos = mediaFileRepository.countVideosByStatus(ProcessingStatus.PROCESSING);
+        long completedVideos = mediaFileRepository.countVideosByStatus(ProcessingStatus.COMPLETED);
+        long failedVideos = mediaFileRepository.countVideosByStatus(ProcessingStatus.FAILED);
+        
+        // Get videos with optimized URLs
+        List<MediaFile> videosWithOptimized = mediaFileRepository.findVideosWithOptimizedUrls();
+        
+        // Get videos without optimized URLs
+        List<MediaFile> videosWithoutOptimized = mediaFileRepository.findVideosWithoutOptimizedUrls();
+        
+        // Sample some records for inspection
+        List<Map<String, Object>> sampleWithOptimized = videosWithOptimized.stream()
+                .limit(5)
+                .map(mf -> {
+                    Map<String, Object> sample = new HashMap<>();
+                    sample.put("id", mf.getId());
+                    sample.put("originalUrl", mf.getOriginalUrl());
+                    sample.put("optimizedUrl", mf.getOptimizedUrl());
+                    sample.put("status", mf.getProcessingStatus());
+                    sample.put("createdAt", mf.getCreatedAt());
+                    sample.put("completedAt", mf.getProcessingCompletedAt());
+                    return sample;
+                })
+                .toList();
+        
+        List<Map<String, Object>> sampleWithoutOptimized = videosWithoutOptimized.stream()
+                .limit(5)
+                .map(mf -> {
+                    Map<String, Object> sample = new HashMap<>();
+                    sample.put("id", mf.getId());
+                    sample.put("originalUrl", mf.getOriginalUrl());
+                    sample.put("optimizedUrl", mf.getOptimizedUrl());
+                    sample.put("status", mf.getProcessingStatus());
+                    sample.put("jobId", mf.getJobId());
+                    sample.put("errorMessage", mf.getErrorMessage());
+                    sample.put("createdAt", mf.getCreatedAt());
+                    sample.put("completedAt", mf.getProcessingCompletedAt());
+                    return sample;
+                })
+                .toList();
+        
+        diagnostics.put("videoCounts", Map.of(
+            "pending", pendingVideos,
+            "processing", processingVideos,
+            "completed", completedVideos,
+            "failed", failedVideos,
+            "total", pendingVideos + processingVideos + completedVideos + failedVideos
+        ));
+        
+        diagnostics.put("optimizedUrlStatus", Map.of(
+            "videosWithOptimizedUrl", videosWithOptimized.size(),
+            "videosWithoutOptimizedUrl", videosWithoutOptimized.size()
+        ));
+        
+        diagnostics.put("sampleWithOptimized", sampleWithOptimized);
+        diagnostics.put("sampleWithoutOptimized", sampleWithoutOptimized);
+        
+        return ResponseEntity.ok(diagnostics);
     }
 }

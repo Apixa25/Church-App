@@ -93,7 +93,7 @@ public class MediaUrlService {
             Matcher matcher = s3Pattern.matcher(url);
             if (matcher.matches()) {
                 key = matcher.group(3); // Extract the key (everything after the bucket/region)
-                log.info("🔄 Detected S3 URL from different bucket: {} -> extracting key: {}", url, key);
+                log.debug("🔄 Detected S3 URL from different bucket: {} -> extracting key: {}", url, key);
             }
         }
         
@@ -104,7 +104,7 @@ public class MediaUrlService {
                 baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
             }
             String cloudFrontUrl = baseUrl + "/" + key;
-            log.info("🔄 Converted S3 URL to CloudFront: {} -> {}", url, cloudFrontUrl);
+            log.debug("🔄 Converted S3 URL to CloudFront: {} -> {}", url, cloudFrontUrl);
             return cloudFrontUrl;
         }
         
@@ -121,6 +121,54 @@ public class MediaUrlService {
      * @param originalUrl The original URL (may be from MediaFile or direct URL)
      * @return The best URL to use (optimized if available, original otherwise) - always CloudFront
      */
+    /**
+     * Extract S3 key from URL (handles both CloudFront and S3 URLs)
+     */
+    private String extractS3KeyFromUrl(String url) {
+        if (url == null || url.isEmpty()) {
+            return null;
+        }
+        
+        // Handle CloudFront URLs
+        if (url.contains("cloudfront.net")) {
+            int domainEnd = url.indexOf(".net/");
+            if (domainEnd > 0) {
+                String key = url.substring(domainEnd + 5); // +5 to skip ".net/"
+                // Remove query parameters
+                int queryIndex = key.indexOf('?');
+                if (queryIndex > 0) {
+                    key = key.substring(0, queryIndex);
+                }
+                return key;
+            }
+        }
+        
+        // Handle S3 URLs
+        String s3Pattern1 = String.format("https://%s.s3.%s.amazonaws.com/", bucketName, region);
+        String s3Pattern2 = String.format("https://%s.s3-%s.amazonaws.com/", bucketName, region);
+        
+        if (url.startsWith(s3Pattern1)) {
+            String key = url.substring(s3Pattern1.length());
+            int queryIndex = key.indexOf('?');
+            return queryIndex > 0 ? key.substring(0, queryIndex) : key;
+        } else if (url.startsWith(s3Pattern2)) {
+            String key = url.substring(s3Pattern2.length());
+            int queryIndex = key.indexOf('?');
+            return queryIndex > 0 ? key.substring(0, queryIndex) : key;
+        }
+        
+        // Try regex for any S3 URL
+        Pattern s3Pattern = Pattern.compile("https://([^.]+)\\.s3[.-]([^.]+)\\.amazonaws\\.com/(.+)");
+        Matcher matcher = s3Pattern.matcher(url);
+        if (matcher.matches()) {
+            String key = matcher.group(3);
+            int queryIndex = key.indexOf('?');
+            return queryIndex > 0 ? key.substring(0, queryIndex) : key;
+        }
+        
+        return null;
+    }
+    
     public String getBestUrl(String originalUrl) {
         if (originalUrl == null || originalUrl.isEmpty()) {
             return originalUrl;
@@ -139,6 +187,24 @@ public class MediaUrlService {
                 mediaFileOpt = mediaFileRepository.findByOriginalUrl(lookupUrl);
             }
             
+            // Fallback: Try to find by S3 key if URL lookup fails
+            // This handles cases where URL format might differ slightly
+            if (mediaFileOpt.isEmpty()) {
+                String s3Key = extractS3KeyFromUrl(originalUrl);
+                if (s3Key != null) {
+                    // Try to find MediaFile by reconstructing possible URLs
+                    // MediaFile might be stored with CloudFront URL
+                    String possibleCloudFrontUrl = ensureCloudFrontUrl(originalUrl);
+                    mediaFileOpt = mediaFileRepository.findByOriginalUrl(possibleCloudFrontUrl);
+                    
+                    // Also try S3 URL format
+                    if (mediaFileOpt.isEmpty()) {
+                        String possibleS3Url = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, s3Key);
+                        mediaFileOpt = mediaFileRepository.findByOriginalUrl(possibleS3Url);
+                    }
+                }
+            }
+            
             if (mediaFileOpt.isPresent()) {
                 MediaFile mediaFile = mediaFileOpt.get();
                 
@@ -150,14 +216,22 @@ public class MediaUrlService {
                     log.info("✅ Using optimized URL for: {} -> {}", originalUrl, resultUrl);
                 } else {
                     // Use original URL (processing pending, failed, or no optimized version)
-                    log.warn("⚠️ Using original URL (status: {}, optimizedUrl: {}): {}", 
-                            mediaFile.getProcessingStatus(), 
-                            mediaFile.getOptimizedUrl() != null ? "exists" : "null",
-                            originalUrl);
+                    // Log at appropriate level based on status
+                    if (mediaFile.getProcessingStatus() == ProcessingStatus.FAILED) {
+                        log.warn("⚠️ Using original URL - processing FAILED: {}", originalUrl);
+                    } else if (mediaFile.getProcessingStatus() == ProcessingStatus.PROCESSING) {
+                        log.debug("Using original URL - processing in progress: {}", originalUrl);
+                    } else {
+                        log.debug("Using original URL (status: {}, optimizedUrl: {}): {}", 
+                                mediaFile.getProcessingStatus(), 
+                                mediaFile.getOptimizedUrl() != null ? "exists" : "null",
+                                originalUrl);
+                    }
                 }
             } else {
                 // No MediaFile found - this is likely an old URL or non-processed file
-                log.warn("⚠️ No MediaFile found for URL, returning original: {}", originalUrl);
+                // Only log at debug level to avoid spam (this is common for old posts)
+                log.debug("No MediaFile found for URL, returning original: {}", originalUrl);
             }
         } catch (Exception e) {
             // If MediaFile table doesn't exist yet or any other error, fall back to original URL
@@ -167,7 +241,11 @@ public class MediaUrlService {
         
         // CRITICAL: Always ensure the final URL is a CloudFront URL
         // Direct S3 URLs don't work (bucket access policy)
-        return ensureCloudFrontUrl(resultUrl);
+        // Only convert if needed (avoid unnecessary logging)
+        if (resultUrl != null && !resultUrl.contains("cloudfront.net") && resultUrl.contains("amazonaws.com")) {
+            return ensureCloudFrontUrl(resultUrl);
+        }
+        return resultUrl;
     }
     
     /**
@@ -187,8 +265,8 @@ public class MediaUrlService {
         for (String originalUrl : originalUrls) {
             try {
                 String bestUrl = getBestUrl(originalUrl);
-                // Log conversion for debugging
-                if (!originalUrl.equals(bestUrl)) {
+                // Only log when URL actually changed (original -> optimized)
+                if (!originalUrl.equals(bestUrl) && !bestUrl.equals(ensureCloudFrontUrl(originalUrl))) {
                     log.info("🔄 MediaUrlService converted URL: {} -> {}", originalUrl, bestUrl);
                 }
                 bestUrls.add(bestUrl);
@@ -196,7 +274,7 @@ public class MediaUrlService {
                 // If any URL fails, still convert to CloudFront
                 log.warn("⚠️ Error resolving URL: {}, using CloudFront fallback. Error: {}", originalUrl, e.getMessage());
                 String fallbackUrl = ensureCloudFrontUrl(originalUrl);
-                log.info("🔄 MediaUrlService fallback conversion: {} -> {}", originalUrl, fallbackUrl);
+                log.debug("🔄 MediaUrlService fallback conversion: {} -> {}", originalUrl, fallbackUrl);
                 bestUrls.add(fallbackUrl);
             }
         }
