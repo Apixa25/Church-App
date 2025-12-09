@@ -139,16 +139,35 @@ public class FileCleanupService {
     }
     
     /**
-     * Extract S3 key from full URL
+     * Extract S3 key from full URL (handles both S3 and CloudFront URLs)
      */
     private String extractKeyFromUrl(String fileUrl) {
-        if (fileUrl == null || !fileUrl.contains(bucketName)) {
+        if (fileUrl == null || fileUrl.isEmpty()) {
             throw new IllegalArgumentException("Invalid file URL: " + fileUrl);
         }
-        String urlPattern = String.format("https://%s.s3.%s.amazonaws.com/", bucketName, region);
-        if (fileUrl.startsWith(urlPattern)) {
-            return fileUrl.substring(urlPattern.length());
+        
+        // Handle CloudFront URLs: https://d3loytcgioxpml.cloudfront.net/posts/originals/file.webm
+        if (fileUrl.contains("cloudfront.net")) {
+            // Extract everything after the domain
+            int domainEnd = fileUrl.indexOf(".net/");
+            if (domainEnd > 0) {
+                return fileUrl.substring(domainEnd + 5); // +5 to skip ".net/"
+            }
         }
+        
+        // Handle S3 URLs: https://bucket.s3.region.amazonaws.com/key
+        if (fileUrl.contains(bucketName)) {
+            String urlPattern = String.format("https://%s.s3.%s.amazonaws.com/", bucketName, region);
+            if (fileUrl.startsWith(urlPattern)) {
+                return fileUrl.substring(urlPattern.length());
+            }
+            // Try alternative S3 URL format
+            String altPattern = String.format("https://%s.s3-%s.amazonaws.com/", bucketName, region);
+            if (fileUrl.startsWith(altPattern)) {
+                return fileUrl.substring(altPattern.length());
+            }
+        }
+        
         throw new IllegalArgumentException("URL format not recognized: " + fileUrl);
     }
 }

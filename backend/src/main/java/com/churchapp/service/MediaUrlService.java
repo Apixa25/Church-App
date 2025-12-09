@@ -147,19 +147,22 @@ public class MediaUrlService {
                     && mediaFile.getOptimizedUrl() != null 
                     && !mediaFile.getOptimizedUrl().isEmpty()) {
                     resultUrl = mediaFile.getOptimizedUrl();
-                    log.debug("Using optimized URL for: {} -> {}", originalUrl, resultUrl);
+                    log.info("✅ Using optimized URL for: {} -> {}", originalUrl, resultUrl);
                 } else {
                     // Use original URL (processing pending, failed, or no optimized version)
-                    log.debug("Using original URL (status: {}): {}", mediaFile.getProcessingStatus(), originalUrl);
+                    log.warn("⚠️ Using original URL (status: {}, optimizedUrl: {}): {}", 
+                            mediaFile.getProcessingStatus(), 
+                            mediaFile.getOptimizedUrl() != null ? "exists" : "null",
+                            originalUrl);
                 }
             } else {
                 // No MediaFile found - this is likely an old URL or non-processed file
-                log.debug("No MediaFile found for URL, returning as-is: {}", originalUrl);
+                log.warn("⚠️ No MediaFile found for URL, returning original: {}", originalUrl);
             }
         } catch (Exception e) {
             // If MediaFile table doesn't exist yet or any other error, fall back to original URL
             // This ensures backward compatibility during migration
-            log.warn("Error looking up MediaFile for URL: {}, using original URL. Error: {}", originalUrl, e.getMessage());
+            log.error("❌ Error looking up MediaFile for URL: {}, using original URL. Error: {}", originalUrl, e.getMessage(), e);
         }
         
         // CRITICAL: Always ensure the final URL is a CloudFront URL
