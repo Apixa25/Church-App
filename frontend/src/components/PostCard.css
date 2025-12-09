@@ -302,6 +302,34 @@
   background: var(--bg-secondary);
 }
 
+/* Video error message - shown when video can't play (e.g., WebM on iOS) */
+.video-error-message {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  min-height: 200px;
+}
+
+.video-error-message p {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.video-error-message small {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  opacity: 0.8;
+}
+
 /* Video container wrapper for play button overlay */
 .video-container-wrapper {
   position: relative;

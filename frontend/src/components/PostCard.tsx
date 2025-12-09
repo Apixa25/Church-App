@@ -13,6 +13,7 @@ import ClickableAvatar from './ClickableAvatar';
 import MediaViewer from './MediaViewer';
 import LoadingSpinner from './LoadingSpinner';
 import SocialMediaEmbedCard from './SocialMediaEmbedCard';
+import { isVideoIncompatibleWithIOS, getVideoErrorMessage } from '../utils/videoUtils';
 import './PostCard.css';
 
 interface PostCardProps {
@@ -53,6 +54,7 @@ const PostCard: React.FC<PostCardProps> = ({
   const [loadedVideos, setLoadedVideos] = useState<Set<number>>(new Set());
   const [visibleVideos, setVisibleVideos] = useState<Set<number>>(new Set());
   const videoRefs = useRef<Map<number, HTMLVideoElement>>(new Map());
+  const [videoErrors, setVideoErrors] = useState<Map<number, string>>(new Map());
   const [isBlocked, setIsBlocked] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
@@ -579,17 +581,23 @@ const PostCard: React.FC<PostCardProps> = ({
               />
             ) : (
               <div className="video-container-wrapper">
-                <video
-                  ref={(el) => {
-                    if (el) videoRefs.current.set(0, el);
-                  }}
-                  src={loadedVideos.has(0) ? post.mediaUrls[0] : undefined}
-                  controls={loadedVideos.has(0)}
-                  className="media-video"
-                  preload={loadedVideos.has(0) ? "auto" : (post.thumbnailUrls && post.thumbnailUrls[0] ? "none" : "metadata")}
-                  poster={post.thumbnailUrls && post.thumbnailUrls[0] ? post.thumbnailUrls[0] : undefined}
-                  data-video-index="0"
-                  onClick={(e) => {
+                {videoErrors.has(0) ? (
+                  <div className="video-error-message">
+                    <p>{videoErrors.get(0)}</p>
+                    <small>Video is being processed for iPhone compatibility</small>
+                  </div>
+                ) : (
+                  <video
+                    ref={(el) => {
+                      if (el) videoRefs.current.set(0, el);
+                    }}
+                    src={loadedVideos.has(0) ? post.mediaUrls[0] : undefined}
+                    controls={loadedVideos.has(0)}
+                    className="media-video"
+                    preload={loadedVideos.has(0) ? "auto" : (post.thumbnailUrls && post.thumbnailUrls[0] ? "none" : "metadata")}
+                    poster={post.thumbnailUrls && post.thumbnailUrls[0] ? post.thumbnailUrls[0] : undefined}
+                    data-video-index="0"
+                    onClick={(e) => {
                     if (!loadedVideos.has(0)) {
                       handleVideoClick(0, e);
                     } else {
@@ -602,9 +610,37 @@ const PostCard: React.FC<PostCardProps> = ({
                       }
                     }
                   }}
+                  onError={(e) => {
+                    const video = e.currentTarget as HTMLVideoElement;
+                    const error = video.error;
+                    const mediaType = post.mediaTypes?.[0];
+                    const url = post.mediaUrls[0];
+                    
+                    console.error('Video playback error:', {
+                      index: 0,
+                      url,
+                      mediaType,
+                      errorCode: error?.code,
+                      errorMessage: error?.message
+                    });
+                    
+                    // Check if it's a WebM format on iOS
+                    if (isVideoIncompatibleWithIOS(mediaType, url)) {
+                      const errorMsg = getVideoErrorMessage(mediaType, url);
+                      setVideoErrors(prev => new Map(prev).set(0, errorMsg));
+                    } else if (error) {
+                      // Other video errors
+                      if (error.code === 4) {
+                        setVideoErrors(prev => new Map(prev).set(0, 'Video format not supported on this device'));
+                      } else {
+                        setVideoErrors(prev => new Map(prev).set(0, 'Unable to play video. Please try again later.'));
+                      }
+                    }
+                  }}
                   playsInline
                   crossOrigin="anonymous"
                 />
+                )}
                 {!loadedVideos.has(0) && (
                   <div 
                     className="video-play-overlay"
@@ -668,27 +704,60 @@ const PostCard: React.FC<PostCardProps> = ({
                   />
                 ) : (
                   <div className="video-container-wrapper video-grid-wrapper">
-                    <video
-                      ref={(el) => {
-                        if (el) videoRefs.current.set(index, el);
-                      }}
-                      src={loadedVideos.has(index) ? url : undefined}
-                      controls={false}
-                      className="media-video"
-                      preload={loadedVideos.has(index) ? "auto" : (post.thumbnailUrls && post.thumbnailUrls[index] ? "none" : "metadata")}
-                      poster={post.thumbnailUrls && post.thumbnailUrls[index] ? post.thumbnailUrls[index] : undefined}
-                      data-video-index={index.toString()}
-                      onClick={(e) => {
-                        if (!loadedVideos.has(index)) {
-                          handleVideoClick(index, e);
-                        } else {
-                          e.stopPropagation();
-                          handleMediaClick(index, e);
-                        }
-                      }}
-                      playsInline
-                      crossOrigin="anonymous"
-                    />
+                    {videoErrors.has(index) ? (
+                      <div className="video-error-message">
+                        <p>{videoErrors.get(index)}</p>
+                        <small>Video is being processed for iPhone compatibility</small>
+                      </div>
+                    ) : (
+                      <video
+                        ref={(el) => {
+                          if (el) videoRefs.current.set(index, el);
+                        }}
+                        src={loadedVideos.has(index) ? url : undefined}
+                        controls={false}
+                        className="media-video"
+                        preload={loadedVideos.has(index) ? "auto" : (post.thumbnailUrls && post.thumbnailUrls[index] ? "none" : "metadata")}
+                        poster={post.thumbnailUrls && post.thumbnailUrls[index] ? post.thumbnailUrls[index] : undefined}
+                        data-video-index={index.toString()}
+                        onClick={(e) => {
+                          if (!loadedVideos.has(index)) {
+                            handleVideoClick(index, e);
+                          } else {
+                            e.stopPropagation();
+                            handleMediaClick(index, e);
+                          }
+                        }}
+                        onError={(e) => {
+                          const video = e.currentTarget as HTMLVideoElement;
+                          const error = video.error;
+                          const mediaType = post.mediaTypes?.[index];
+                          
+                          console.error('Video playback error:', {
+                            index,
+                            url,
+                            mediaType,
+                            errorCode: error?.code,
+                            errorMessage: error?.message
+                          });
+                          
+                          // Check if it's a WebM format on iOS
+                          if (isVideoIncompatibleWithIOS(mediaType, url)) {
+                            const errorMsg = getVideoErrorMessage(mediaType, url);
+                            setVideoErrors(prev => new Map(prev).set(index, errorMsg));
+                          } else if (error) {
+                            // Other video errors
+                            if (error.code === 4) {
+                              setVideoErrors(prev => new Map(prev).set(index, 'Video format not supported on this device'));
+                            } else {
+                              setVideoErrors(prev => new Map(prev).set(index, 'Unable to play video. Please try again later.'));
+                            }
+                          }
+                        }}
+                        playsInline
+                        crossOrigin="anonymous"
+                      />
+                    )}
                     {!loadedVideos.has(index) && (
                       <div 
                         className="video-play-overlay video-grid-overlay"

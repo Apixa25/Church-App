@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import LoadingSpinner from './LoadingSpinner';
+import { isVideoIncompatibleWithIOS, getVideoErrorMessage } from '../utils/videoUtils';
 import './MediaViewer.css';
 
 interface MediaViewerProps {
@@ -20,11 +21,13 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setIsLoading(true);
       setImageLoaded(false);
+      setVideoError(null);
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -106,26 +109,54 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
           )}
 
           {isVideo && (
-            <video
-              src={currentUrl}
-              controls
-              autoPlay
-              playsInline
-              crossOrigin="anonymous"
-              className="media-viewer-video media-viewer-clickable"
-              onClick={onClose}
-              onLoadedData={handleVideoLoad}
-              onError={(e) => {
-                console.error('Video playback error:', e);
-                setIsLoading(false);
-                setImageLoaded(true);
-              }}
-              style={{ 
-                opacity: imageLoaded ? 1 : 0,
-                transition: 'opacity 0.3s ease',
-                cursor: 'pointer'
-              }}
-            />
+            videoError ? (
+              <div className="media-viewer-error">
+                <p>{videoError}</p>
+                <small>Video is being processed for iPhone compatibility</small>
+                <button onClick={onClose} className="media-viewer-close-button">Close</button>
+              </div>
+            ) : (
+              <video
+                src={currentUrl}
+                controls
+                autoPlay
+                playsInline
+                crossOrigin="anonymous"
+                className="media-viewer-video media-viewer-clickable"
+                onClick={onClose}
+                onLoadedData={handleVideoLoad}
+                onError={(e) => {
+                  const video = e.currentTarget as HTMLVideoElement;
+                  const error = video.error;
+                  
+                  console.error('Video playback error:', {
+                    url: currentUrl,
+                    mediaType: currentType,
+                    errorCode: error?.code,
+                    errorMessage: error?.message
+                  });
+                  
+                  setIsLoading(false);
+                  setImageLoaded(true);
+                  
+                  // Check if it's a WebM format on iOS
+                  if (isVideoIncompatibleWithIOS(currentType, currentUrl)) {
+                    setVideoError(getVideoErrorMessage(currentType, currentUrl));
+                  } else if (error) {
+                    if (error.code === 4) {
+                      setVideoError('Video format not supported on this device');
+                    } else {
+                      setVideoError('Unable to play video. Please try again later.');
+                    }
+                  }
+                }}
+                style={{ 
+                  opacity: imageLoaded ? 1 : 0,
+                  transition: 'opacity 0.3s ease',
+                  cursor: 'pointer'
+                }}
+              />
+            )
           )}
         </div>
       </div>
