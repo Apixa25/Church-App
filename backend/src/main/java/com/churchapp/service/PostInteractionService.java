@@ -35,8 +35,10 @@ public class PostInteractionService {
 
         validatePostAccess(post);
 
+        // Make operation idempotent: if already liked, just return success
         if (postLikeRepository.existsById_PostIdAndId_UserId(postId, user.getId())) {
-            throw new IllegalStateException("Post already liked by user");
+            log.debug("User {} already liked post {} - idempotent operation", userEmail, postId);
+            return;
         }
 
         PostLike.PostLikeId likeId = new PostLike.PostLikeId(postId, user.getId());
@@ -56,8 +58,11 @@ public class PostInteractionService {
         Post post = getPostById(postId);
 
         Optional<PostLike> like = postLikeRepository.findById_PostIdAndId_UserId(postId, user.getId());
+        
+        // Make operation idempotent: if not liked, just return success
         if (like.isEmpty()) {
-            throw new IllegalStateException("Post not liked by user");
+            log.debug("User {} hasn't liked post {} - idempotent operation", userEmail, postId);
+            return;
         }
 
         postLikeRepository.delete(like.get());
@@ -244,10 +249,9 @@ public class PostInteractionService {
 
         validatePostAccess(post);
 
-        if (postShareRepository.existsByPostIdAndUserId(postId, user.getId())) {
-            throw new IllegalStateException("Post already shared by user");
-        }
-
+        // For shares, we allow multiple shares (user can share multiple times with different content)
+        // So we don't make this idempotent like likes/bookmarks
+        
         PostShare share = new PostShare();
         share.setPost(post);
         share.setUser(user);
@@ -269,8 +273,11 @@ public class PostInteractionService {
         Post post = getPostById(postId);
 
         Optional<PostShare> share = postShareRepository.findByPostIdAndUserId(postId, user.getId());
+        
+        // Make operation idempotent: if not shared, just return success
         if (share.isEmpty()) {
-            throw new IllegalStateException("Post not shared by user");
+            log.debug("User {} hasn't shared post {} - idempotent operation", userEmail, postId);
+            return;
         }
 
         postShareRepository.delete(share.get());
@@ -301,8 +308,10 @@ public class PostInteractionService {
 
         validatePostAccess(post);
 
+        // Make operation idempotent: if already bookmarked, just return success
         if (postBookmarkRepository.existsById_PostIdAndId_UserId(postId, user.getId())) {
-            throw new IllegalStateException("Post already bookmarked by user");
+            log.debug("User {} already bookmarked post {} - idempotent operation", userEmail, postId);
+            return;
         }
 
         PostBookmark.PostBookmarkId bookmarkId = new PostBookmark.PostBookmarkId(postId, user.getId());
@@ -322,8 +331,11 @@ public class PostInteractionService {
         Post post = getPostById(postId);
 
         Optional<PostBookmark> bookmark = postBookmarkRepository.findById_PostIdAndId_UserId(postId, user.getId());
+        
+        // Make operation idempotent: if not bookmarked, just return success
         if (bookmark.isEmpty()) {
-            throw new IllegalStateException("Post not bookmarked by user");
+            log.debug("User {} hasn't bookmarked post {} - idempotent operation", userEmail, postId);
+            return;
         }
 
         postBookmarkRepository.delete(bookmark.get());
