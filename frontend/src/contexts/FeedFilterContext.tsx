@@ -300,6 +300,33 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
     fetchPreference();
   }, [isAuthenticated, token]);
 
+  // 🎯 When activeOrganizationId changes and filter is PRIMARY_ONLY, update preference
+  useEffect(() => {
+    // Only update if filter is PRIMARY_ONLY and we have a preference
+    if (
+      preference &&
+      preference.activeFilter === 'PRIMARY_ONLY' &&
+      activeOrganizationId &&
+      preference.selectedOrganizationId !== activeOrganizationId
+    ) {
+      console.log('🔄 FeedFilterContext: Syncing selectedOrganizationId with active context', {
+        from: preference.selectedOrganizationId,
+        to: activeOrganizationId
+      });
+      
+      // Update preference optimistically
+      setPreference(prev => prev ? {
+        ...prev,
+        selectedOrganizationId: activeOrganizationId
+      } : null);
+      
+      // Note: We don't persist this to backend automatically because:
+      // 1. The backend uses activeOrganizationId from context when PRIMARY_ONLY is active
+      // 2. This is just for UI consistency - the actual filtering happens server-side
+      // 3. If user wants to persist, they can manually change the filter
+    }
+  }, [activeOrganizationId, preference]);
+
   // Ensure selectedGroupIds is always a new array reference for proper React dependency tracking
   const selectedGroupIdsArray = preference?.selectedGroupIds 
     ? [...preference.selectedGroupIds] 

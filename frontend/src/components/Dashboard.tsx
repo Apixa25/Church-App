@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
-import { useActiveContext } from '../contexts/ActiveContextContext';
+import { useActiveContext, ActiveContextType } from '../contexts/ActiveContextContext';
 import { useFeedFilter } from '../contexts/FeedFilterContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import dashboardApi, { DashboardResponse } from '../services/dashboardApi';
@@ -73,6 +73,31 @@ const Dashboard: React.FC = () => {
     window.addEventListener('feedRefresh', handleFeedRefresh);
     return () => window.removeEventListener('feedRefresh', handleFeedRefresh);
   }, []);
+
+  // 🎯 Track last activeContext to detect changes
+  const lastActiveContextRef = useRef<ActiveContextType>(activeContext);
+  const lastActiveOrgIdRef = useRef<string | null>(activeOrganizationId);
+
+  // 🎯 When context changes, trigger feed refresh
+  useEffect(() => {
+    // Only trigger if context actually changed (not initial mount)
+    if (
+      lastActiveContextRef.current !== activeContext ||
+      lastActiveOrgIdRef.current !== activeOrganizationId
+    ) {
+      console.log('🔄 Dashboard: Context changed! Triggering feed refresh...', {
+        from: { context: lastActiveContextRef.current, orgId: lastActiveOrgIdRef.current },
+        to: { context: activeContext, orgId: activeOrganizationId }
+      });
+      
+      // Increment refreshKey to trigger PostFeed refresh
+      setFeedRefreshKey(prev => prev + 1);
+      
+      // Update refs
+      lastActiveContextRef.current = activeContext;
+      lastActiveOrgIdRef.current = activeOrganizationId;
+    }
+  }, [activeContext, activeOrganizationId]);
 
   // Debug: Log render conditions
   useEffect(() => {

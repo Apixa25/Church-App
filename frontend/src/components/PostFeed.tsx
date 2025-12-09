@@ -8,6 +8,7 @@ import FeedFilters from './FeedFilters';
 import EmptyFeedState from './EmptyFeedState';
 import { useFeedFilter } from '../contexts/FeedFilterContext';
 import { useWebSocket } from '../contexts/WebSocketContext';
+import { useActiveContext } from '../contexts/ActiveContextContext';
 import LoadingSpinner from './LoadingSpinner';
 import './PostFeed.css';
 
@@ -32,11 +33,14 @@ const PostFeed: React.FC<PostFeedProps> = ({
   const { activeFilter, selectedGroupIds } = useFeedFilter();
   // WebSocket context - for shared connection management
   const { isConnected, ensureConnection } = useWebSocket();
+  // 🎯 Get active context to include in cache key
+  const { activeOrganizationId } = useActiveContext();
   const queryClient = useQueryClient();
 
-  // Build query key for React Query caching
+  // Build query key for React Query caching - NOW INCLUDES activeOrganizationId
   const feedTypeString = feedType === FeedType.FOLLOWING ? 'following' : feedType === FeedType.TRENDING ? 'trending' : 'community';
-  const queryKey = ['posts', feedTypeString, activeFilter, selectedGroupIds?.join(',') || ''];
+  // 🎯 Include activeOrganizationId in cache key so posts are cached per context
+  const queryKey = ['posts', feedTypeString, activeFilter, selectedGroupIds?.join(',') || '', activeOrganizationId || 'none'];
 
   // State
   const [posts, setPosts] = useState<Post[]>([]);
@@ -59,6 +63,8 @@ const PostFeed: React.FC<PostFeedProps> = ({
   const pullStartY = useRef<number>(0);
   const isAtTopRef = useRef<boolean>(true);
   const lastFetchTimeRef = useRef<number>(0);
+  // 🎯 Track last activeOrganizationId to detect context changes
+  const lastActiveOrgIdRef = useRef<string | null>(activeOrganizationId);
 
   const POSTS_PER_PAGE = 20;
   const INITIAL_BATCH_SIZE = 5; // 🚀 Load 5 posts first for instant display (progressive loading)
@@ -398,14 +404,46 @@ const PostFeed: React.FC<PostFeedProps> = ({
   const lastProcessedRefreshKeyRef = useRef<number>(0);
   useEffect(() => {
     if (refreshKey !== undefined && refreshKey > 0 && refreshKey !== lastProcessedRefreshKeyRef.current) {
-      console.log('🔄 PostFeed: refreshKey changed, fetching fresh data', refreshKey);
+      console.log('🔄 PostFeed: refreshKey changed, checking cache first...', refreshKey);
       lastProcessedRefreshKeyRef.current = refreshKey;
-      // Use ref to avoid dependency on loadPosts function reference
-      if (loadPostsRef.current) {
-        loadPostsRef.current(true);
+      
+      // Check if we have cached data first
+      const cachedData = queryClient.getQueryData<Post[]>(queryKey);
+      const queryState = queryClient.getQueryState(queryKey);
+      
+      // Check if cache is fresh (within staleTime of 10 minutes)
+      const cacheAge = queryState?.dataUpdatedAt ? Date.now() - queryState.dataUpdatedAt : Infinity;
+      const isCacheFresh = cacheAge < 10 * 60 * 1000; // 10 minutes
+      
+      if (cachedData && Array.isArray(cachedData) && cachedData.length > 0) {
+        console.log('✅ PostFeed: Found cached posts', {
+          count: cachedData.length,
+          cacheAge: Math.round(cacheAge / 1000) + 's',
+          isFresh: isCacheFresh
+        });
+        
+        // Show cached posts immediately
+        setPosts(cachedData);
+        setLoading(false);
+        
+        // Only refresh in background if cache is stale (older than 10 minutes)
+        if (!isCacheFresh) {
+          console.log('🔄 PostFeed: Cache is stale, refreshing in background...');
+          if (loadPostsRef.current) {
+            loadPostsRef.current(true);
+          }
+        } else {
+          console.log('✅ PostFeed: Cache is fresh, skipping refresh - using cached data');
+        }
+      } else {
+        console.log('🔄 PostFeed: No cached posts, refreshing immediately');
+        // No cache, refresh immediately
+        if (loadPostsRef.current) {
+          loadPostsRef.current(true);
+        }
       }
     }
-  }, [refreshKey]); // Only depend on refreshKey, not loadPosts
+  }, [refreshKey, queryKey, queryClient]); // Include queryKey to check correct cache
 
   // Refresh feed when filter changes
   // Track last filter state to prevent duplicate refreshes
@@ -424,6 +462,40 @@ const PostFeed: React.FC<PostFeedProps> = ({
       console.warn('⚠️ PostFeed: loadPostsRef.current is not set, cannot refresh feed');
     }
   }, [activeFilter, selectedGroupIds]);
+
+  // 🎯 When activeOrganizationId changes, check cache and show immediately
+  // NOTE: We DON'T trigger refresh here - let refreshKey mechanism handle it
+  // This prevents duplicate refreshes when Dashboard increments refreshKey
+  useEffect(() => {
+    // Only trigger if organization actually changed (not initial mount)
+    if (lastActiveOrgIdRef.current !== null && lastActiveOrgIdRef.current !== activeOrganizationId) {
+      console.log('🔄 PostFeed: Active context changed!', {
+        from: lastActiveOrgIdRef.current,
+        to: activeOrganizationId
+      });
+      
+      // Check if we have cached posts for the new context
+      const cachedData = queryClient.getQueryData<Post[]>(queryKey);
+      
+      if (cachedData && Array.isArray(cachedData) && cachedData.length > 0) {
+        console.log('✅ PostFeed: Found cached posts for new context, showing immediately (refreshKey will handle background refresh)');
+        // Show cached posts immediately - no background refresh needed
+        // The refreshKey from Dashboard will trigger a refresh if needed
+        setPosts(cachedData);
+        setLoading(false);
+        // DON'T call loadPosts here - let refreshKey handle it to avoid duplicate refreshes
+      } else {
+        console.log('🔄 PostFeed: No cached posts for new context - will wait for refreshKey to trigger refresh');
+        // No cache - clear posts and show loading
+        // The refreshKey from Dashboard will trigger the refresh
+        setPosts([]);
+        setLoading(true);
+      }
+    }
+    
+    // Update ref
+    lastActiveOrgIdRef.current = activeOrganizationId;
+  }, [activeOrganizationId, queryKey, queryClient]);
 
   // Set up WebSocket subscriptions for real-time updates
   useEffect(() => {
