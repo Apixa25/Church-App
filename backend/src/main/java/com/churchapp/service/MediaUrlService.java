@@ -52,7 +52,7 @@ public class MediaUrlService {
      * @param url The URL (might be S3 or CloudFront)
      * @return CloudFront URL
      */
-    private String ensureCloudFrontUrl(String url) {
+    public String ensureCloudFrontUrl(String url) {
         if (url == null || url.isEmpty()) {
             return url;
         }
