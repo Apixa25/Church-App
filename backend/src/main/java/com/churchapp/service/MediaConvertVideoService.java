@@ -98,7 +98,11 @@ public class MediaConvertVideoService {
             return jobId;
 
         } catch (SdkException e) {
-            log.error("Error creating MediaConvert job for video: {}", s3InputKey, e);
+            String errorDetails = String.format("MediaConvert job creation failed: %s", e.getMessage());
+            log.error("Error creating MediaConvert job for video: {}. Details: {}", s3InputKey, errorDetails, e);
+            throw new RuntimeException(errorDetails, e);
+        } catch (Exception e) {
+            log.error("Unexpected error creating MediaConvert job for video: {}", s3InputKey, e);
             throw new RuntimeException("Failed to start video processing job: " + e.getMessage(), e);
         }
     }
@@ -141,13 +145,26 @@ public class MediaConvertVideoService {
 
     /**
      * Create MediaConvert job settings for video processing with thumbnail generation
+     * 
+     * IMPORTANT: Uses DEFAULT audio selection to handle videos with or without audio.
+     * This is the industry-standard approach that works for:
+     * - Android WebM recordings (may or may not have audio)
+     * - iPhone MOV recordings (typically have audio)
+     * - Web browser recordings (may or may not have audio)
      */
     private JobSettings createJobSettings(String inputUri, String outputUri, String thumbnailUri, String mediaFileId) {
-        // Input settings - omit audioSelectors to let MediaConvert auto-detect and include available audio
-        // This works for videos with audio (any track) or without audio
+        // Audio selector - use DEFAULT selection to automatically detect and use available audio
+        // This is the industry-standard approach that handles videos with or without audio tracks
+        // DO NOT use .tracks(0) as some recordings (especially WebM) may not have a track 0
+        AudioSelector audioSelector = AudioSelector.builder()
+                .defaultSelection(AudioDefaultSelection.DEFAULT)
+                .selectorType(AudioSelectorType.TRACK)
+                .build();
+        
+        // Input settings with audio selector that auto-detects audio
         Input input = Input.builder()
                 .fileInput(inputUri)
-                // Don't specify audioSelectors - MediaConvert will automatically detect and include audio if present
+                .audioSelectors(java.util.Map.of("Audio Selector 1", audioSelector))
                 .build();
 
         // Video codec settings (H.264)
@@ -190,14 +207,13 @@ public class MediaConvertVideoService {
                         .build())
                 .build();
 
-        // Audio description - let MediaConvert auto-detect and use available audio
-        // Don't specify audioSourceName - MediaConvert will automatically find and use audio if present
-        // If no audio exists, MediaConvert will create output without audio track
+        // Audio description - reference the audio selector we created in Input
+        // We MUST specify audioSourceName to reference "Audio Selector 1" that we created above
         AudioDescription audioDescription = AudioDescription.builder()
                 .codecSettings(audioCodecSettings)
                 .audioTypeControl(AudioTypeControl.FOLLOW_INPUT)
                 .languageCodeControl(AudioLanguageCodeControl.FOLLOW_INPUT)
-                // Omit audioSourceName - MediaConvert will auto-select available audio
+                .audioSourceName("Audio Selector 1") // Reference the audio selector created in Input
                 .build();
 
         // Container settings (MP4)
@@ -211,6 +227,7 @@ public class MediaConvertVideoService {
                 .build();
 
         // Output settings
+        // Include audioDescription - MediaConvert will automatically use available audio or omit if none exists
         Output output = Output.builder()
                 .videoDescription(videoDescription)
                 .audioDescriptions(audioDescription)
