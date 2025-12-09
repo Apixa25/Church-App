@@ -463,9 +463,8 @@ public class PostController {
             notificationService.notifyPostLike(postId, UUID.randomUUID()); // Placeholder user ID
             return ResponseEntity.ok().build();
 
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
         } catch (Exception e) {
+            log.error("Error liking post {}: {}", postId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -479,9 +478,8 @@ public class PostController {
             postInteractionService.unlikePost(user.getUsername(), postId);
             return ResponseEntity.ok().build();
 
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
         } catch (Exception e) {
+            log.error("Error unliking post {}: {}", postId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

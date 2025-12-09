@@ -500,9 +500,10 @@ public class PostService {
         Post post = postRepository.findById(postId)
             .orElseThrow(() -> new RuntimeException("Post not found"));
 
-        // Check if already liked
+        // Make operation idempotent: if already liked, just return success
         if (postLikeRepository.existsById_PostIdAndId_UserId(postId, user.getId())) {
-            throw new RuntimeException("Post already liked");
+            log.debug("User {} already liked post {} - idempotent operation", userEmail, postId);
+            return;
         }
 
         // Create like
@@ -529,15 +530,20 @@ public class PostService {
 
         // Find and delete like
         Optional<PostLike> like = postLikeRepository.findById_PostIdAndId_UserId(postId, user.getId());
-        if (like.isPresent()) {
-            postLikeRepository.delete(like.get());
-
-            // Update post like count
-            post.decrementLikesCount();
-            postRepository.save(post);
-
-            log.info("User {} unliked post {}", userEmail, postId);
+        
+        // Make operation idempotent: if not liked, just return success
+        if (like.isEmpty()) {
+            log.debug("User {} hasn't liked post {} - idempotent operation", userEmail, postId);
+            return;
         }
+        
+        postLikeRepository.delete(like.get());
+
+        // Update post like count
+        post.decrementLikesCount();
+        postRepository.save(post);
+
+        log.info("User {} unliked post {}", userEmail, postId);
     }
 
     public boolean isPostLikedByUser(UUID postId, UUID userId) {
