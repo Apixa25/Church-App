@@ -61,6 +61,7 @@ const PostFeed: React.FC<PostFeedProps> = ({
   const lastFetchTimeRef = useRef<number>(0);
 
   const POSTS_PER_PAGE = 20;
+  const INITIAL_BATCH_SIZE = 5; // 🚀 Load 5 posts first for instant display (progressive loading)
   const PULL_THRESHOLD = 80; // pixels to pull before triggering refresh
 
   // 🚀 React Query for caching posts - only fetch when explicitly requested
@@ -92,65 +93,89 @@ const PostFeed: React.FC<PostFeedProps> = ({
       const currentPage = reset ? 0 : pageRef.current;
       
       if (reset) {
+        // 🚀 PROGRESSIVE LOADING: Load small batch first for instant display
         setLoading(true);
         setPage(0);
         pageRef.current = 0;
         setHasMore(true);
         setError('');
         setHasNewContent(false);
-      } else {
-        setLoadingMore(true);
-      }
-      
-      const response: FeedResponse = await getFeed(
-        feedTypeString,
-        currentPage,
-        POSTS_PER_PAGE
-      );
-
-      if (reset) {
-        // 🐛 DEBUG: Log posts with media for troubleshooting
-        const postsWithMedia = response.content.filter((p: Post) => p.mediaUrls && p.mediaUrls.length > 0);
-        const postsWithVideos = response.content.filter((p: Post) => 
-          p.mediaTypes && p.mediaTypes.some((type: string) => type.startsWith('video/'))
-        );
-        console.log('🖼️ PostFeed: Loaded', response.content.length, 'posts,', postsWithMedia.length, 'with media,', postsWithVideos.length, 'with videos');
-        if (postsWithVideos.length > 0) {
-          const firstVideoPost = postsWithVideos[0];
-          console.log('🎬 PostFeed: First video post:', {
-            id: firstVideoPost.id,
-            mediaUrls: firstVideoPost.mediaUrls,
-            mediaTypes: firstVideoPost.mediaTypes,
-            thumbnailUrls: firstVideoPost.thumbnailUrls
-          });
-        }
-        if (postsWithMedia.length > 0) {
-          console.log('🖼️ PostFeed: First post with media:', {
-            id: postsWithMedia[0].id,
-            mediaUrls: postsWithMedia[0].mediaUrls,
-            mediaTypes: postsWithMedia[0].mediaTypes,
-            thumbnailUrls: postsWithMedia[0].thumbnailUrls
-          });
-        }
         
-        setPosts(response.content);
-        // Update React Query cache
-        queryClient.setQueryData(queryKey, response.content);
-        lastFetchTimeRef.current = Date.now();
+        // Step 1: Load initial small batch (5 posts) for immediate display
+        const initialResponse: FeedResponse = await getFeed(
+          feedTypeString,
+          0,
+          INITIAL_BATCH_SIZE
+        );
+        
+        // 🎯 Show first batch immediately - don't wait for all 20!
+        if (initialResponse.content.length > 0) {
+          // 🐛 DEBUG: Log posts with media for troubleshooting
+          const postsWithMedia = initialResponse.content.filter((p: Post) => p.mediaUrls && p.mediaUrls.length > 0);
+          const postsWithVideos = initialResponse.content.filter((p: Post) => 
+            p.mediaTypes && p.mediaTypes.some((type: string) => type.startsWith('video/'))
+          );
+          console.log('🖼️ PostFeed: Loaded', initialResponse.content.length, 'initial posts,', postsWithMedia.length, 'with media,', postsWithVideos.length, 'with videos');
+          
+          setPosts(initialResponse.content);
+          queryClient.setQueryData(queryKey, initialResponse.content);
+          setLoading(false); // ✅ Stop showing spinner - user can see posts now!
+          lastFetchTimeRef.current = Date.now();
+          
+          // Step 2: Load remaining posts in background (non-blocking)
+          // Continue loading the rest of the page (15 more posts)
+          if (initialResponse.content.length === INITIAL_BATCH_SIZE) {
+            // Load remaining posts asynchronously - don't block UI
+            getFeed(
+              feedTypeString,
+              0,
+              POSTS_PER_PAGE
+            ).then((fullResponse: FeedResponse) => {
+              // Only update if we got more posts than the initial batch
+              if (fullResponse.content.length > initialResponse.content.length) {
+                console.log('🚀 PostFeed: Loaded remaining', fullResponse.content.length - initialResponse.content.length, 'posts in background');
+                setPosts(fullResponse.content);
+                queryClient.setQueryData(queryKey, fullResponse.content);
+                lastFetchTimeRef.current = Date.now();
+              }
+              setHasMore(fullResponse.content.length === POSTS_PER_PAGE && !maxPosts);
+            }).catch((err) => {
+              console.error('Error loading remaining posts:', err);
+              // Don't show error to user - they already have posts visible
+              // Just set hasMore to false to prevent further loading attempts
+              setHasMore(false);
+            });
+          } else {
+            // Got fewer than expected, so no more to load
+            setHasMore(false);
+          }
+        } else {
+          // No posts at all
+          setPosts([]);
+          setLoading(false);
+          setHasMore(false);
+        }
       } else {
-        setPosts(prev => [...prev, ...response.content]);
-      }
+        // Loading more (pagination) - keep existing behavior
+        setLoadingMore(true);
+        
+        const response: FeedResponse = await getFeed(
+          feedTypeString,
+          currentPage,
+          POSTS_PER_PAGE
+        );
 
-      // Total posts tracking removed for simplicity
-      setHasMore(response.content.length === POSTS_PER_PAGE && !maxPosts);
-      const nextPage = currentPage + 1;
-      setPage(nextPage);
-      pageRef.current = nextPage;
+        setPosts(prev => [...prev, ...response.content]);
+        setHasMore(response.content.length === POSTS_PER_PAGE && !maxPosts);
+        const nextPage = currentPage + 1;
+        setPage(nextPage);
+        pageRef.current = nextPage;
+        setLoadingMore(false);
+      }
 
     } catch (err: any) {
       console.error('Error loading posts:', err);
       setError('Failed to load posts. Please try again.');
-    } finally {
       setLoading(false);
       setLoadingMore(false);
     }
