@@ -297,6 +297,8 @@ const CommentThread: React.FC<CommentThreadProps> = ({
                         <video
                           src={url}
                           controls
+                          playsInline
+                          crossOrigin="anonymous"
                           className="comment-media-video"
                         />
                       )}

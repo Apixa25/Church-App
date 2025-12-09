@@ -522,6 +522,8 @@ const PostComposer: React.FC<PostComposerProps> = ({
                     src={mediaFile.url}
                     className="media-preview-video"
                     controls
+                    playsInline
+                    crossOrigin="anonymous"
                   />
                 )}
                 <button

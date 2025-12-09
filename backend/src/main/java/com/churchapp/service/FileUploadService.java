@@ -170,12 +170,26 @@ public class FileUploadService {
         log.info("Uploading original file to S3: bucket={}, key={}, size={}", 
                 bucketName, key, fileBytes.length);
         
-        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+        // Build metadata for video files to support iOS Safari playback
+        // iOS Safari requires proper Cache-Control headers for Range request support
+        boolean isVideo = contentType != null && contentType.startsWith("video/");
+        
+        PutObjectRequest.Builder requestBuilder = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(key)
                 .contentType(contentType)
-                .contentLength((long) fileBytes.length)
-                .build();
+                .contentLength((long) fileBytes.length);
+        
+        // Add Cache-Control header for videos to support Range requests (iOS Safari requirement)
+        // public: allows CDN caching
+        // max-age=31536000: 1 year cache (videos don't change)
+        // must-revalidate: ensures fresh content when needed
+        if (isVideo) {
+            requestBuilder.cacheControl("public, max-age=31536000, must-revalidate");
+            log.info("Added Cache-Control header for video file: {}", key);
+        }
+        
+        PutObjectRequest putObjectRequest = requestBuilder.build();
         
         s3Client.putObject(putObjectRequest, 
                 RequestBody.fromInputStream(new ByteArrayInputStream(fileBytes), fileBytes.length));
@@ -585,13 +599,22 @@ public class FileUploadService {
         // This ensures consistency - the URL returned here should match what handleUploadCompletion returns
         String finalUrl = generateAccessibleUrl(s3Key);
         
-        // Create PutObjectRequest
-        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+        // Build PutObjectRequest with Cache-Control for videos (iOS Safari requirement)
+        boolean isVideo = contentType != null && contentType.startsWith("video/");
+        
+        PutObjectRequest.Builder requestBuilder = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(s3Key)
                 .contentType(contentType)
-                .contentLength(fileSize)
-                .build();
+                .contentLength(fileSize);
+        
+        // Add Cache-Control header for videos to support Range requests
+        if (isVideo) {
+            requestBuilder.cacheControl("public, max-age=31536000, must-revalidate");
+            log.info("Added Cache-Control header for presigned video upload: {}", s3Key);
+        }
+        
+        PutObjectRequest putObjectRequest = requestBuilder.build();
         
         // Generate presigned PUT URL (valid for 1 hour)
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()

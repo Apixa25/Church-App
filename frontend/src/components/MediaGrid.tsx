@@ -196,6 +196,8 @@ const MediaGrid: React.FC<MediaGridProps> = ({ userId, isOwnProfile = false }) =
                 src={selectedMedia.post.mediaUrls[selectedMedia.mediaIndex]}
                 controls
                 autoPlay
+                playsInline
+                crossOrigin="anonymous"
                 className="media-viewer-media"
               />
             ) : (

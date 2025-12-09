@@ -156,7 +156,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
               
               {message.messageType === 'VIDEO' && message.mediaUrl && (
                 <div className="media-content">
-                  <video controls className="message-video">
+                  <video controls playsInline crossOrigin="anonymous" className="message-video">
                     <source src={message.mediaUrl} type={message.mediaType} />
                   </video>
                   {message.content && <p className="media-caption">{message.content}</p>}
