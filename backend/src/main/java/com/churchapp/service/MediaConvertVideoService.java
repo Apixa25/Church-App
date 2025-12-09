@@ -170,8 +170,10 @@ public class MediaConvertVideoService {
                 .build();
 
         // SIMPLE H.264 video settings
+        // VBR mode requires bitrate - using 1 Mbps (1000 kbps) for good quality
         H264Settings h264Settings = H264Settings.builder()
                 .rateControlMode(H264RateControlMode.VBR)
+                .bitrate(1000000)           // 1 Mbps - required for VBR mode
                 .codecProfile(H264CodecProfile.MAIN)
                 .codecLevel(H264CodecLevel.AUTO)
                 .build();
@@ -188,6 +190,7 @@ public class MediaConvertVideoService {
 
         // SIMPLE AAC audio settings
         AacSettings aacSettings = AacSettings.builder()
+                .bitrate(128000)            // 128 kbps - good quality audio
                 .codecProfile(AacCodecProfile.LC)
                 .codingMode(AacCodingMode.CODING_MODE_2_0)
                 .sampleRate(48000)
