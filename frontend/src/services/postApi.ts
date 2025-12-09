@@ -291,21 +291,42 @@ export const generatePresignedUploadUrl = async (
 
 /**
  * Upload file directly to S3 using presigned URL
+ * 
+ * CRITICAL: Only send headers that are included in the presigned URL signature.
+ * S3 will reject the request with "forbidden" if headers don't match exactly.
  */
 export const uploadFileToS3 = async (
   file: File,
   presignedUrl: string
 ): Promise<void> => {
+  // CRITICAL: Only send Content-Type header (must match presigned URL signature)
+  // Do NOT send any other headers - Safari/iOS will add headers automatically,
+  // but we must only include what's in the presigned URL signature
+  const contentType = file.type || 'application/octet-stream';
+  
   const response = await fetch(presignedUrl, {
     method: 'PUT',
     body: file,
     headers: {
-      'Content-Type': file.type
-    }
+      'Content-Type': contentType
+    },
+    // Don't include credentials - presigned URL handles authentication
+    credentials: 'omit'
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to upload file to S3: ${response.statusText}`);
+    // Get error details for debugging
+    const errorText = await response.text().catch(() => 'No error details');
+    console.error('S3 upload failed:', {
+      status: response.status,
+      statusText: response.statusText,
+      error: errorText,
+      contentType: contentType,
+      fileName: file.name,
+      fileSize: file.size
+    });
+    
+    throw new Error(`Failed to upload file to S3: ${response.statusText} (${response.status})`);
   }
 };
 

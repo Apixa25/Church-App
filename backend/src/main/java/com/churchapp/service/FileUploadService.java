@@ -599,22 +599,19 @@ public class FileUploadService {
         // This ensures consistency - the URL returned here should match what handleUploadCompletion returns
         String finalUrl = generateAccessibleUrl(s3Key);
         
-        // Build PutObjectRequest with Cache-Control for videos (iOS Safari requirement)
-        boolean isVideo = contentType != null && contentType.startsWith("video/");
-        
-        PutObjectRequest.Builder requestBuilder = PutObjectRequest.builder()
+        // Build PutObjectRequest for presigned URL
+        // CRITICAL: Only include headers that the client will send in the upload request
+        // The presigned URL signature must match EXACTLY what the client sends
+        // Do NOT include Cache-Control here - it's not sent by the client, so it would cause signature mismatch
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(s3Key)
                 .contentType(contentType)
-                .contentLength(fileSize);
+                .contentLength(fileSize)
+                .build();
         
-        // Add Cache-Control header for videos to support Range requests
-        if (isVideo) {
-            requestBuilder.cacheControl("public, max-age=31536000, must-revalidate");
-            log.info("Added Cache-Control header for presigned video upload: {}", s3Key);
-        }
-        
-        PutObjectRequest putObjectRequest = requestBuilder.build();
+        // Note: Cache-Control will be set AFTER upload via S3 metadata update if needed
+        // But for presigned URLs, we can't include it in the signature because the client doesn't send it
         
         // Generate presigned PUT URL (valid for 1 hour)
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
