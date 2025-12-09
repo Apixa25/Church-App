@@ -274,11 +274,30 @@ const PostFeed: React.FC<PostFeedProps> = ({
   };
 
   const handlePostUpdate = (updatedPost: Post) => {
-    setPosts(prevPosts =>
-      prevPosts.map(post =>
-        post.id === updatedPost.id ? updatedPost : post
-      )
-    );
+    console.log('📦 PostFeed handlePostUpdate called:', {
+      postId: updatedPost.id,
+      likesCount: updatedPost.likesCount,
+      isLikedByCurrentUser: updatedPost.isLikedByCurrentUser
+    });
+    
+    setPosts(prevPosts => {
+      const updated = prevPosts.map(post => {
+        if (post.id === updatedPost.id) {
+          console.log('📦 PostFeed updating post:', {
+            postId: post.id,
+            oldLikesCount: post.likesCount,
+            newLikesCount: updatedPost.likesCount
+          });
+          return updatedPost;
+        }
+        return post;
+      });
+      
+      // Also update React Query cache to prevent cache reloads from overwriting our update
+      queryClient.setQueryData<Post[]>(queryKey, updated);
+      
+      return updated;
+    });
 
     if (onPostUpdate) {
       onPostUpdate(updatedPost.id, updatedPost);

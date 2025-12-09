@@ -62,16 +62,54 @@ const PostCard: React.FC<PostCardProps> = ({
   const [showPostStatsModal, setShowPostStatsModal] = useState(false);
   const [showMediaViewer, setShowMediaViewer] = useState(false);
   const [mediaViewerIndex, setMediaViewerIndex] = useState(0);
+  
+  // Track if we've done an optimistic update to prevent props from overwriting it
+  const optimisticUpdateRef = useRef<{ type: 'like' | 'bookmark' | 'comment' | 'share'; timestamp: number } | null>(null);
 
   useEffect(() => {
     // Only sync from props if not currently loading (to avoid overriding optimistic updates)
     if (!isLoading) {
+      // Check if we have a recent optimistic update that shouldn't be overwritten
+      const hasRecentOptimisticUpdate = optimisticUpdateRef.current && 
+        (Date.now() - optimisticUpdateRef.current.timestamp) < 2000; // 2 second window
+      
       setIsLiked(post.isLikedByCurrentUser || false);
       setIsBookmarked(post.isBookmarkedByCurrentUser || false);
-      setLikesCount(post.likesCount);
+      
+      // Only sync likesCount if:
+      // 1. It's different from current state
+      // 2. We don't have a recent optimistic like update
+      // 3. OR the prop value is actually higher (meaning it's a real update from server, not stale data)
+      if (post.likesCount !== likesCount) {
+        const shouldSync = !hasRecentOptimisticUpdate || 
+                          optimisticUpdateRef.current?.type !== 'like' ||
+                          post.likesCount > likesCount; // Only sync if prop is higher (real update)
+        
+        if (shouldSync) {
+          console.log('❤️ useEffect syncing likesCount from props:', {
+            postId: post.id,
+            propLikesCount: post.likesCount,
+            stateLikesCount: likesCount,
+            hasRecentOptimisticUpdate: hasRecentOptimisticUpdate && optimisticUpdateRef.current?.type === 'like'
+          });
+          setLikesCount(post.likesCount);
+          // Clear optimistic update ref if we're syncing (means server caught up)
+          if (optimisticUpdateRef.current?.type === 'like') {
+            optimisticUpdateRef.current = null;
+          }
+        } else {
+          console.log('❤️ useEffect SKIPPING sync (optimistic update in progress):', {
+            postId: post.id,
+            propLikesCount: post.likesCount,
+            stateLikesCount: likesCount
+          });
+        }
+      }
+      
       setCommentsCount(post.commentsCount);
       setSharesCount(post.sharesCount);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     post.id,
     post.isLikedByCurrentUser,
@@ -141,10 +179,22 @@ const PostCard: React.FC<PostCardProps> = ({
 
     setIsLoading(true);
     const wasLiked = isLiked;
+    // Store original values for potential revert
+    const originalLikesCount = likesCount;
     // Calculate new count before state updates (to avoid stale closure)
     const newLikesCount = wasLiked ? likesCount - 1 : likesCount + 1;
 
+    console.log('❤️ handleLike called:', {
+      postId: post.id,
+      wasLiked,
+      originalLikesCount,
+      newLikesCount
+    });
+
     try {
+      // Mark optimistic update
+      optimisticUpdateRef.current = { type: 'like', timestamp: Date.now() };
+      
       // Optimistic update
       setIsLiked(!wasLiked);
       setLikesCount(newLikesCount);
@@ -158,17 +208,31 @@ const PostCard: React.FC<PostCardProps> = ({
       // Update parent component if callback provided
       // Use the calculated newLikesCount instead of stale closure value
       if (onPostUpdate) {
-        onPostUpdate({
+        const updatedPost = {
           ...post,
           likesCount: newLikesCount,
           isLikedByCurrentUser: !wasLiked
+        };
+        console.log('❤️ Calling onPostUpdate with:', {
+          postId: updatedPost.id,
+          likesCount: updatedPost.likesCount,
+          isLikedByCurrentUser: updatedPost.isLikedByCurrentUser
         });
+        onPostUpdate(updatedPost);
       }
+      
+      // Clear optimistic update ref after a delay to allow server response
+      setTimeout(() => {
+        if (optimisticUpdateRef.current?.type === 'like') {
+          optimisticUpdateRef.current = null;
+        }
+      }, 3000); // 3 second window
     } catch (error) {
       // Revert optimistic update on error
+      console.error('❤️ Error toggling like, reverting:', error);
       setIsLiked(wasLiked);
-      setLikesCount(likesCount); // Revert to original count
-      console.error('Error toggling like:', error);
+      setLikesCount(originalLikesCount); // Revert to original count
+      optimisticUpdateRef.current = null; // Clear on error
     } finally {
       setIsLoading(false);
     }
