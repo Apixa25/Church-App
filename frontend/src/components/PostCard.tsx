@@ -603,6 +603,7 @@ const PostCard: React.FC<PostCardProps> = ({
                     }
                   }}
                   playsInline
+                  crossOrigin="anonymous"
                 />
                 {!loadedVideos.has(0) && (
                   <div 
@@ -686,6 +687,7 @@ const PostCard: React.FC<PostCardProps> = ({
                         }
                       }}
                       playsInline
+                      crossOrigin="anonymous"
                     />
                     {!loadedVideos.has(index) && (
                       <div 

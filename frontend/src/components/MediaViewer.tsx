@@ -110,10 +110,13 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
               src={currentUrl}
               controls
               autoPlay
+              playsInline
+              crossOrigin="anonymous"
               className="media-viewer-video media-viewer-clickable"
               onClick={onClose}
               onLoadedData={handleVideoLoad}
-              onError={() => {
+              onError={(e) => {
+                console.error('Video playback error:', e);
                 setIsLoading(false);
                 setImageLoaded(true);
               }}
