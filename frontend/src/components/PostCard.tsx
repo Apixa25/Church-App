@@ -463,8 +463,8 @@ const PostCard: React.FC<PostCardProps> = ({
   }, [post.mediaUrls, visibleVideos]);
 
   const renderMedia = () => {
-    // 🐛 DEBUG: Log media URLs for troubleshooting
-    console.log('🖼️ PostCard renderMedia - postId:', post.id, 'mediaUrls:', post.mediaUrls, 'mediaTypes:', post.mediaTypes);
+    // 🐛 DEBUG: Log media URLs and thumbnail URLs for troubleshooting
+    console.log('🖼️ PostCard renderMedia - postId:', post.id, 'mediaUrls:', post.mediaUrls, 'mediaTypes:', post.mediaTypes, 'thumbnailUrls:', post.thumbnailUrls);
     
     if (!post.mediaUrls || post.mediaUrls.length === 0) {
       console.log('🖼️ PostCard: No media URLs for post', post.id);

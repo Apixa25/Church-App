@@ -111,12 +111,25 @@ const PostFeed: React.FC<PostFeedProps> = ({
       if (reset) {
         // 🐛 DEBUG: Log posts with media for troubleshooting
         const postsWithMedia = response.content.filter((p: Post) => p.mediaUrls && p.mediaUrls.length > 0);
-        console.log('🖼️ PostFeed: Loaded', response.content.length, 'posts,', postsWithMedia.length, 'with media');
+        const postsWithVideos = response.content.filter((p: Post) => 
+          p.mediaTypes && p.mediaTypes.some((type: string) => type.startsWith('video/'))
+        );
+        console.log('🖼️ PostFeed: Loaded', response.content.length, 'posts,', postsWithMedia.length, 'with media,', postsWithVideos.length, 'with videos');
+        if (postsWithVideos.length > 0) {
+          const firstVideoPost = postsWithVideos[0];
+          console.log('🎬 PostFeed: First video post:', {
+            id: firstVideoPost.id,
+            mediaUrls: firstVideoPost.mediaUrls,
+            mediaTypes: firstVideoPost.mediaTypes,
+            thumbnailUrls: firstVideoPost.thumbnailUrls
+          });
+        }
         if (postsWithMedia.length > 0) {
           console.log('🖼️ PostFeed: First post with media:', {
             id: postsWithMedia[0].id,
             mediaUrls: postsWithMedia[0].mediaUrls,
-            mediaTypes: postsWithMedia[0].mediaTypes
+            mediaTypes: postsWithMedia[0].mediaTypes,
+            thumbnailUrls: postsWithMedia[0].thumbnailUrls
           });
         }
         
