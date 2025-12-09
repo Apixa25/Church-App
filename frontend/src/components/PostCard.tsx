@@ -64,18 +64,22 @@ const PostCard: React.FC<PostCardProps> = ({
   const [mediaViewerIndex, setMediaViewerIndex] = useState(0);
 
   useEffect(() => {
-    setIsLiked(post.isLikedByCurrentUser || false);
-    setIsBookmarked(post.isBookmarkedByCurrentUser || false);
-    setLikesCount(post.likesCount);
-    setCommentsCount(post.commentsCount);
-    setSharesCount(post.sharesCount);
+    // Only sync from props if not currently loading (to avoid overriding optimistic updates)
+    if (!isLoading) {
+      setIsLiked(post.isLikedByCurrentUser || false);
+      setIsBookmarked(post.isBookmarkedByCurrentUser || false);
+      setLikesCount(post.likesCount);
+      setCommentsCount(post.commentsCount);
+      setSharesCount(post.sharesCount);
+    }
   }, [
     post.id,
     post.isLikedByCurrentUser,
     post.isBookmarkedByCurrentUser,
     post.likesCount,
     post.commentsCount,
-    post.sharesCount
+    post.sharesCount,
+    isLoading // Include isLoading to prevent sync during operations
   ]);
 
   // Record post view when post is displayed
@@ -137,11 +141,13 @@ const PostCard: React.FC<PostCardProps> = ({
 
     setIsLoading(true);
     const wasLiked = isLiked;
+    // Calculate new count before state updates (to avoid stale closure)
+    const newLikesCount = wasLiked ? likesCount - 1 : likesCount + 1;
 
     try {
       // Optimistic update
       setIsLiked(!wasLiked);
-      setLikesCount(prev => wasLiked ? prev - 1 : prev + 1);
+      setLikesCount(newLikesCount);
 
       if (wasLiked) {
         await unlikePost(post.id);
@@ -150,17 +156,18 @@ const PostCard: React.FC<PostCardProps> = ({
       }
 
       // Update parent component if callback provided
+      // Use the calculated newLikesCount instead of stale closure value
       if (onPostUpdate) {
         onPostUpdate({
           ...post,
-          likesCount: wasLiked ? likesCount - 1 : likesCount + 1,
+          likesCount: newLikesCount,
           isLikedByCurrentUser: !wasLiked
         });
       }
     } catch (error) {
       // Revert optimistic update on error
       setIsLiked(wasLiked);
-      setLikesCount(prev => wasLiked ? prev + 1 : prev - 1);
+      setLikesCount(likesCount); // Revert to original count
       console.error('Error toggling like:', error);
     } finally {
       setIsLoading(false);
