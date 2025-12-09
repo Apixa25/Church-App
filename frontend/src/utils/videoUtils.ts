@@ -27,11 +27,39 @@ export const isWebMUrl = (url: string | undefined): boolean => {
 };
 
 /**
+ * Check if a video URL is MP4 (compatible with iOS)
+ */
+export const isMP4Url = (url: string | undefined): boolean => {
+  if (!url) return false;
+  return url.toLowerCase().endsWith('.mp4') || url.toLowerCase().includes('.mp4?');
+};
+
+/**
  * Check if a video is incompatible with iOS (WebM format on iOS)
+ * IMPORTANT: If URL is MP4, it's compatible regardless of mediaType
+ * (mediaType might be stale if backend returned optimized URL)
  */
 export const isVideoIncompatibleWithIOS = (mediaType: string | undefined, url?: string): boolean => {
   if (!isIOS()) return false;
-  return isWebMFormat(mediaType) || isWebMUrl(url);
+  
+  // If URL is MP4, it's compatible with iOS (even if mediaType says webm)
+  // This handles the case where backend returns optimized MP4 URL but mediaType is still webm
+  if (url && isMP4Url(url)) {
+    return false; // MP4 is compatible
+  }
+  
+  // If URL is WebM, it's incompatible
+  if (url && isWebMUrl(url)) {
+    return true; // WebM is incompatible
+  }
+  
+  // If we only have mediaType, check that
+  // But only if URL doesn't exist or doesn't give us a clear answer
+  if (mediaType && isWebMFormat(mediaType)) {
+    return true; // WebM format is incompatible
+  }
+  
+  return false; // Default to compatible (unknown format)
 };
 
 /**
