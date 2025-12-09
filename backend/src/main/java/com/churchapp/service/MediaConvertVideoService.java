@@ -144,156 +144,147 @@ public class MediaConvertVideoService {
     }
 
     /**
-     * Create MediaConvert job settings for video processing with thumbnail generation
+     * Create SIMPLIFIED MediaConvert job settings for video processing WITH AUDIO AND THUMBNAILS.
      * 
-     * IMPORTANT: Uses DEFAULT audio selection to handle videos with or without audio.
-     * This is the industry-standard approach that works for:
-     * - Android WebM recordings (may or may not have audio)
-     * - iPhone MOV recordings (typically have audio)
-     * - Web browser recordings (may or may not have audio)
+     * SIMPLIFIED APPROACH:
+     * - Simple audio with DEFAULT selection (auto-detects any audio track)
+     * - Simple H.264 video settings for iPhone compatibility
+     * - Simple AAC audio for universal playback
+     * - MP4 container
+     * - Thumbnail generation (JPEG frame capture)
+     * - Fixed path bug (trailing slash on destinations)
+     * - ZEROBASED timecode (safe for user-generated content without embedded timecodes)
      */
     private JobSettings createJobSettings(String inputUri, String outputUri, String thumbnailUri, String mediaFileId) {
-        // Audio selector - use DEFAULT selection to automatically detect and use available audio
-        // This is the industry-standard approach that handles videos with or without audio tracks
-        // DO NOT use .tracks(0) as some recordings (especially WebM) may not have a track 0
+        log.info("Creating simplified MediaConvert job with audio and thumbnail");
+        
+        // SIMPLE audio selector - just use DEFAULT to auto-detect any audio
         AudioSelector audioSelector = AudioSelector.builder()
                 .defaultSelection(AudioDefaultSelection.DEFAULT)
-                .selectorType(AudioSelectorType.TRACK)
                 .build();
         
-        // Input settings with audio selector that auto-detects audio
+        // Input with simple audio selector
         Input input = Input.builder()
                 .fileInput(inputUri)
                 .audioSelectors(java.util.Map.of("Audio Selector 1", audioSelector))
                 .build();
 
-        // Video codec settings (H.264)
+        // SIMPLE H.264 video settings
+        H264Settings h264Settings = H264Settings.builder()
+                .rateControlMode(H264RateControlMode.VBR)
+                .codecProfile(H264CodecProfile.MAIN)
+                .codecLevel(H264CodecLevel.AUTO)
+                .build();
+
         VideoCodecSettings videoCodecSettings = VideoCodecSettings.builder()
                 .codec(VideoCodec.H_264)
-                .h264Settings(H264Settings.builder()
-                        .bitrate(videoBitrate * 1000) // Convert kbps to bps
-                        .maxBitrate(videoBitrate * 1000)
-                        .rateControlMode(H264RateControlMode.VBR)
-                        .qualityTuningLevel(H264QualityTuningLevel.SINGLE_PASS_HQ)
-                        .codecProfile(H264CodecProfile.MAIN)
-                        .codecLevel(H264CodecLevel.AUTO)
-                        .interlaceMode(H264InterlaceMode.PROGRESSIVE)
-                        .parControl(H264ParControl.INITIALIZE_FROM_SOURCE)
-                        .gopSize(2.0) // 2 seconds GOP
-                        .gopBReference(H264GopBReference.DISABLED)
-                        .sceneChangeDetect(H264SceneChangeDetect.ENABLED)
-                        .build())
+                .h264Settings(h264Settings)
                 .build();
 
-        // Video settings
         VideoDescription videoDescription = VideoDescription.builder()
                 .codecSettings(videoCodecSettings)
-                .width(targetWidth)
-                .height(targetHeight)
-                .respondToAfd(RespondToAfd.NONE)
-                .colorMetadata(ColorMetadata.INSERT)
-                .antiAlias(AntiAlias.ENABLED)
-                .sharpness(50)
+                .scalingBehavior(ScalingBehavior.DEFAULT)
                 .build();
 
-        // Audio codec settings (AAC)
+        // SIMPLE AAC audio settings
+        AacSettings aacSettings = AacSettings.builder()
+                .codecProfile(AacCodecProfile.LC)
+                .codingMode(AacCodingMode.CODING_MODE_2_0)
+                .sampleRate(48000)
+                .build();
+
         AudioCodecSettings audioCodecSettings = AudioCodecSettings.builder()
                 .codec(AudioCodec.AAC)
-                .aacSettings(AacSettings.builder()
-                        .bitrate(audioBitrate * 1000) // Convert kbps to bps
-                        .codecProfile(AacCodecProfile.LC)
-                        .codingMode(AacCodingMode.CODING_MODE_2_0)
-                        .sampleRate(44100)
-                        .build())
+                .aacSettings(aacSettings)
                 .build();
 
-        // Audio description - reference the audio selector we created in Input
-        // We MUST specify audioSourceName to reference "Audio Selector 1" that we created above
         AudioDescription audioDescription = AudioDescription.builder()
                 .codecSettings(audioCodecSettings)
-                .audioTypeControl(AudioTypeControl.FOLLOW_INPUT)
-                .languageCodeControl(AudioLanguageCodeControl.FOLLOW_INPUT)
-                .audioSourceName("Audio Selector 1") // Reference the audio selector created in Input
+                .audioSourceName("Audio Selector 1")
                 .build();
 
-        // Container settings (MP4)
+        // MP4 container for iPhone compatibility
         ContainerSettings containerSettings = ContainerSettings.builder()
                 .container(ContainerType.MP4)
                 .mp4Settings(Mp4Settings.builder()
-                        .cslgAtom(Mp4CslgAtom.INCLUDE)
-                        .freeSpaceBox(Mp4FreeSpaceBox.EXCLUDE)
                         .moovPlacement(Mp4MoovPlacement.PROGRESSIVE_DOWNLOAD)
                         .build())
                 .build();
 
-        // Output settings
-        // Include audioDescription - MediaConvert will automatically use available audio or omit if none exists
+        // Output with BOTH video and audio
         Output output = Output.builder()
                 .videoDescription(videoDescription)
                 .audioDescriptions(audioDescription)
                 .containerSettings(containerSettings)
-                .nameModifier("_optimized")
                 .build();
 
-        // Output group settings for video
+        // FIX: Extract folder path and ADD TRAILING SLASH
+        // outputUri = s3://bucket/posts/optimized/uuid.mp4
+        // We want: s3://bucket/posts/optimized/
+        String outputFolder = outputUri.substring(0, outputUri.lastIndexOf("/") + 1);
+        log.info("Video output destination (with trailing slash): {}", outputFolder);
+
         OutputGroupSettings videoOutputGroupSettings = OutputGroupSettings.builder()
                 .type(OutputGroupType.FILE_GROUP_SETTINGS)
                 .fileGroupSettings(FileGroupSettings.builder()
-                        .destination(outputUri.substring(0, outputUri.lastIndexOf("/")))
+                        .destination(outputFolder)
                         .build())
                 .build();
         
         OutputGroup videoOutputGroup = OutputGroup.builder()
+                .name("MP4 Output")
                 .outputGroupSettings(videoOutputGroupSettings)
                 .outputs(output)
                 .build();
 
-        // Thumbnail generation - Frame capture at 1 second mark
+        // ========== THUMBNAIL GENERATION ==========
+        // Capture a single frame as JPEG for video preview
         VideoCodecSettings thumbnailCodecSettings = VideoCodecSettings.builder()
                 .codec(VideoCodec.FRAME_CAPTURE)
                 .frameCaptureSettings(FrameCaptureSettings.builder()
                         .framerateNumerator(1)
                         .framerateDenominator(1)
-                        .maxCaptures(1)
-                        .quality(80) // JPEG quality 0-100
+                        .maxCaptures(1)  // Just one thumbnail
+                        .quality(80)     // Good quality JPEG
                         .build())
                 .build();
 
         VideoDescription thumbnailVideoDescription = VideoDescription.builder()
                 .codecSettings(thumbnailCodecSettings)
-                .width(854) // Match video width
-                .height(480) // Match video height
-                .build();
-
-        ContainerSettings thumbnailContainerSettings = ContainerSettings.builder()
-                .container(ContainerType.RAW) // RAW container for JPEG
+                .scalingBehavior(ScalingBehavior.DEFAULT)
                 .build();
 
         Output thumbnailOutput = Output.builder()
                 .videoDescription(thumbnailVideoDescription)
-                .containerSettings(thumbnailContainerSettings)
-                .nameModifier("_thumbnail")
+                .containerSettings(ContainerSettings.builder()
+                        .container(ContainerType.RAW)
+                        .build())
                 .build();
 
-        // Output group settings for thumbnail
+        // Thumbnail destination with TRAILING SLASH fix
+        String thumbnailFolder = thumbnailUri.substring(0, thumbnailUri.lastIndexOf("/") + 1);
+        log.info("Thumbnail output destination (with trailing slash): {}", thumbnailFolder);
+
         OutputGroupSettings thumbnailOutputGroupSettings = OutputGroupSettings.builder()
                 .type(OutputGroupType.FILE_GROUP_SETTINGS)
                 .fileGroupSettings(FileGroupSettings.builder()
-                        .destination(thumbnailUri.substring(0, thumbnailUri.lastIndexOf("/")))
+                        .destination(thumbnailFolder)
                         .build())
                 .build();
 
         OutputGroup thumbnailOutputGroup = OutputGroup.builder()
+                .name("Thumbnail Output")
                 .outputGroupSettings(thumbnailOutputGroupSettings)
                 .outputs(thumbnailOutput)
                 .build();
 
-        // Job settings with both video and thumbnail output groups
+        // Return job with BOTH video and thumbnail output groups
+        // Use ZEROBASED timecode - safe for user-generated content (phones, webcams)
         return JobSettings.builder()
                 .inputs(input)
                 .outputGroups(videoOutputGroup, thumbnailOutputGroup)
                 .timecodeConfig(TimecodeConfig.builder()
-                        .source(TimecodeSource.EMBEDDED)
+                        .source(TimecodeSource.ZEROBASED)
                         .build())
                 .build();
     }
