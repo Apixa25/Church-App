@@ -143,18 +143,11 @@ public class MediaConvertVideoService {
      * Create MediaConvert job settings for video processing with thumbnail generation
      */
     private JobSettings createJobSettings(String inputUri, String outputUri, String thumbnailUri, String mediaFileId) {
-        // Audio selector - use TRACK with track 0 (first audio track)
-        // Most videos have audio on track 0. If track 0 doesn't exist, MediaConvert will handle it gracefully
-        // This is more reliable than trying to auto-detect, as it explicitly targets the first track
-        AudioSelector audioSelector = AudioSelector.builder()
-                .selectorType(AudioSelectorType.TRACK)
-                .tracks(0) // Use track 0 (first audio track) instead of track 1
-                .build();
-        
-        // Input settings with audio selector
+        // Input settings - omit audioSelectors to let MediaConvert auto-detect and include available audio
+        // This works for videos with audio (any track) or without audio
         Input input = Input.builder()
                 .fileInput(inputUri)
-                .audioSelectors(java.util.Map.of("Audio Selector 1", audioSelector))
+                // Don't specify audioSelectors - MediaConvert will automatically detect and include audio if present
                 .build();
 
         // Video codec settings (H.264)
@@ -197,12 +190,14 @@ public class MediaConvertVideoService {
                         .build())
                 .build();
 
-        // Audio description - references the audio selector from input
+        // Audio description - let MediaConvert auto-detect and use available audio
+        // Don't specify audioSourceName - MediaConvert will automatically find and use audio if present
+        // If no audio exists, MediaConvert will create output without audio track
         AudioDescription audioDescription = AudioDescription.builder()
                 .codecSettings(audioCodecSettings)
                 .audioTypeControl(AudioTypeControl.FOLLOW_INPUT)
                 .languageCodeControl(AudioLanguageCodeControl.FOLLOW_INPUT)
-                .audioSourceName("Audio Selector 1") // Reference the audio selector
+                // Omit audioSourceName - MediaConvert will auto-select available audio
                 .build();
 
         // Container settings (MP4)
