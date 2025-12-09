@@ -143,11 +143,12 @@ public class MediaConvertVideoService {
      * Create MediaConvert job settings for video processing with thumbnail generation
      */
     private JobSettings createJobSettings(String inputUri, String outputUri, String thumbnailUri, String mediaFileId) {
-        // Audio selector - use DEFAULT to automatically select the first available audio track
-        // This handles videos with audio on track 0, track 1, or no audio at all
+        // Audio selector - use TRACK with track 0 (first audio track)
+        // Most videos have audio on track 0. If track 0 doesn't exist, MediaConvert will handle it gracefully
+        // This is more reliable than trying to auto-detect, as it explicitly targets the first track
         AudioSelector audioSelector = AudioSelector.builder()
                 .selectorType(AudioSelectorType.TRACK)
-                .defaultSelection(AudioDefaultSelection.DEFAULT) // Let MediaConvert find the first audio track
+                .tracks(0) // Use track 0 (first audio track) instead of track 1
                 .build();
         
         // Input settings with audio selector
