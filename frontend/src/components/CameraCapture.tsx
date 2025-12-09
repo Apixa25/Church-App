@@ -138,12 +138,49 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
 
     try {
       recordedChunksRef.current = [];
-      const options = { mimeType: 'video/webm;codecs=vp8,opus' };
+      
+      // iOS Safari only supports MP4/H.264 - detect iOS
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      
+      let mimeType: string;
+      let fileExtension: string;
+      let blobType: string;
+      
+      if (isIOS) {
+        // iOS Safari only supports MP4/H.264
+        // Try different MP4 codec options in order of preference
+        const mp4Options = [
+          'video/mp4;codecs=h264',
+          'video/mp4;codecs=avc1.42E01E',
+          'video/mp4'
+        ];
+        
+        mimeType = mp4Options.find(option => MediaRecorder.isTypeSupported(option)) || 'video/mp4';
+        fileExtension = '.mp4';
+        blobType = 'video/mp4';
+        
+        console.log('iOS detected - using MP4 format:', mimeType);
+      } else {
+        // Android and desktop browsers - prefer WebM
+        const webmOptions = [
+          'video/webm;codecs=vp8,opus',
+          'video/webm;codecs=vp9,opus',
+          'video/webm'
+        ];
+        
+        mimeType = webmOptions.find(option => MediaRecorder.isTypeSupported(option)) || 'video/webm';
+        fileExtension = '.webm';
+        blobType = 'video/webm';
+      }
 
-      // Fallback for browsers that don't support the preferred codec
-      const mimeType = MediaRecorder.isTypeSupported(options.mimeType)
-        ? options.mimeType
-        : 'video/webm';
+      // If no supported format found, show error
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        const errorMsg = `Video recording not supported on this device. Required format: ${mimeType}`;
+        console.error('MediaRecorder not supported for:', mimeType);
+        setError(errorMsg);
+        return;
+      }
 
       const mediaRecorder = new MediaRecorder(stream, { mimeType });
 
@@ -153,20 +190,39 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
         }
       };
 
+      mediaRecorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event);
+        setError('Recording error occurred. Please try again.');
+        setIsRecording(false);
+      };
+
       mediaRecorder.onstop = () => {
-        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-        const file = new File([blob], `video-${Date.now()}.webm`, { type: 'video/webm' });
+        const blob = new Blob(recordedChunksRef.current, { type: blobType });
+        const file = new File([blob], `video-${Date.now()}${fileExtension}`, { type: blobType });
         setCapturedFile(file);
         setPreviewUrl(URL.createObjectURL(blob));
         stopCamera();
       };
 
-      mediaRecorder.start();
+      // Start recording with timeslice for better iOS compatibility
+      // iOS Safari requires timeslice parameter for reliable recording
+      mediaRecorder.start(100); // Collect data every 100ms
       mediaRecorderRef.current = mediaRecorder;
       setIsRecording(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error starting recording:', err);
-      setError('Failed to start recording. Please try again.');
+      let errorMessage = 'Failed to start recording. Please try again.';
+      
+      // Provide more specific error messages
+      if (err.name === 'NotSupportedError') {
+        errorMessage = 'Video recording is not supported on this device or browser.';
+      } else if (err.name === 'InvalidStateError') {
+        errorMessage = 'Camera is not ready. Please wait a moment and try again.';
+      } else if (err.message) {
+        errorMessage = `Recording error: ${err.message}`;
+      }
+      
+      setError(errorMessage);
     }
   };
 

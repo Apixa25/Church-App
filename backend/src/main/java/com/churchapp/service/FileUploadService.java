@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -711,6 +712,12 @@ public class FileUploadService {
             boolean isImage = contentType != null && contentType.startsWith("image/");
             boolean isVideo = contentType != null && contentType.startsWith("video/");
             
+            // Update Cache-Control metadata for videos (iOS Safari requirement for Range requests)
+            // This must be done AFTER upload because presigned URLs can't include it in signature
+            if (isVideo) {
+                updateVideoCacheControl(s3Key, contentType);
+            }
+            
             // Create MediaFile record for images/videos (for processing tracking)
             if (isImage || isVideo) {
                 MediaFile mediaFile = createMediaFileRecord(
@@ -828,5 +835,40 @@ public class FileUploadService {
                 markMediaFileFailed(mediaFile.getId(), e.getMessage());
             }
         });
+    }
+    
+    /**
+     * Update Cache-Control metadata for video files after upload
+     * This is needed for iOS Safari Range request support
+     * Uses CopyObject to copy the object to itself with new metadata
+     * 
+     * @param s3Key S3 key of the uploaded video file
+     * @param contentType MIME type of the video
+     */
+    private void updateVideoCacheControl(String s3Key, String contentType) {
+        try {
+            // Build source and destination (same object - copying to itself)
+            // CopySource format: "bucket/key" (URL-encoded if needed)
+            String copySource = String.format("%s/%s", bucketName, s3Key);
+            
+            // Copy object to itself with updated Cache-Control metadata
+            // This is the standard way to update S3 object metadata
+            CopyObjectRequest copyRequest = CopyObjectRequest.builder()
+                    .destinationBucket(bucketName)
+                    .copySource(copySource)
+                    .destinationKey(s3Key)
+                    .contentType(contentType)
+                    .cacheControl("public, max-age=31536000, must-revalidate")
+                    .metadataDirective(software.amazon.awssdk.services.s3.model.MetadataDirective.REPLACE)
+                    .build();
+            
+            s3Client.copyObject(copyRequest);
+            log.info("✅ Updated Cache-Control metadata for video: {}", s3Key);
+            
+        } catch (Exception e) {
+            // Log error but don't fail the upload - Cache-Control is nice-to-have, not critical
+            log.warn("⚠️ Failed to update Cache-Control metadata for video {}: {}", s3Key, e.getMessage());
+            // Don't throw - upload should still succeed even if metadata update fails
+        }
     }
 }
