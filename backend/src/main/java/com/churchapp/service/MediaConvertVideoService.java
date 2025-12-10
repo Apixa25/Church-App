@@ -215,10 +215,12 @@ public class MediaConvertVideoService {
                 .build();
 
         // Output with BOTH video and audio
+        // IMPORTANT: nameModifier("_optimized") is required for webhook to identify the optimized file!
         Output output = Output.builder()
                 .videoDescription(videoDescription)
                 .audioDescriptions(audioDescription)
                 .containerSettings(containerSettings)
+                .nameModifier("_optimized")
                 .build();
 
         // FIX: Extract folder path and ADD TRAILING SLASH

@@ -1,0 +1,1 @@
+{"Type":"Notification","Message":"{\"version\":\"0\",\"detail-type\":\"MediaConvert Job State Change\",\"source\":\"aws.mediaconvert\",\"detail\":{\"jobId\":\"1765326412047-bywv9f\",\"status\":\"COMPLETE\",\"outputGroupDetails\":[{\"outputDetails\":[{\"outputFilePaths\":[\"s3://church-app-uploads-stevensills2/posts/optimized/b926d8e7-8ee0-4eeb-ba7d-adc4b9e9b07e.mp4\"]}]}]}}"}

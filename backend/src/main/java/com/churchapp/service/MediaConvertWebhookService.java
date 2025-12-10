@@ -35,6 +35,15 @@ public class MediaConvertWebhookService {
 
     @Value("${aws.sns.mediaconvert.topic-arn:}")
     private String snsTopicArn;
+    
+    @Value("${aws.cloudfront.distribution-url:}")
+    private String cloudFrontDistributionUrl;
+    
+    @Value("${aws.s3.bucket-name:church-app-uploads-stevensills2}")
+    private String bucketName;
+    
+    @Value("${aws.region:us-west-2}")
+    private String region;
 
     private final MediaFileRepository mediaFileRepository;
     private final ObjectMapper objectMapper;
@@ -224,6 +233,17 @@ public class MediaConvertWebhookService {
                 }
             }
 
+            // Fallback: If optimized URL not found in event, construct from known pattern
+            // EventBridge events sometimes have missing or incorrect outputFilePaths
+            // We know the pattern: posts/optimized/{uuid}_optimized.mp4
+            if (optimizedUrl == null) {
+                log.warn("⚠️ Optimized URL not found in event output. Attempting fallback construction...");
+                optimizedUrl = constructOptimizedUrlFromPattern(mediaFile);
+                if (optimizedUrl != null) {
+                    log.info("✅ Constructed optimized URL from pattern: {}", optimizedUrl);
+                }
+            }
+
             // Fallback: If thumbnail not found in event, try to construct from known pattern
             // MediaConvert creates thumbnails at: {folder}/thumbnails/{uuid}_thumbnail.jpg
             if (thumbnailUrl == null) {
@@ -235,7 +255,11 @@ public class MediaConvertWebhookService {
             }
 
             // Update MediaFile with results
+            // If we still don't have an optimized URL, use the original (this shouldn't happen)
             String finalOptimizedUrl = optimizedUrl != null ? optimizedUrl : mediaFile.getOriginalUrl();
+            if (optimizedUrl == null) {
+                log.error("❌ Failed to determine optimized URL for MediaFile: {}. Using original URL as fallback.", mediaFile.getId());
+            }
             mediaFile.markProcessingCompleted(finalOptimizedUrl, 0L, thumbnailUrl);
             mediaFileRepository.save(mediaFile);
 
@@ -248,6 +272,63 @@ public class MediaConvertWebhookService {
             log.error("❌ Error processing completed job for MediaFile: {}", mediaFile.getId(), e);
             mediaFile.markProcessingFailed("Error extracting job output: " + e.getMessage());
             mediaFileRepository.save(mediaFile);
+        }
+    }
+
+    /**
+     * Fallback: Construct optimized video URL from known pattern
+     * EventBridge events sometimes have missing or incorrect outputFilePaths
+     * Since we control the MediaConvert job settings, we know the output pattern:
+     * Input: posts/originals/{uuid}.webm (or .mov, .mp4)
+     * Output: posts/optimized/{uuid}_optimized.mp4
+     */
+    private String constructOptimizedUrlFromPattern(MediaFile mediaFile) {
+        try {
+            String originalUrl = mediaFile.getOriginalUrl();
+            if (originalUrl == null || originalUrl.isEmpty()) {
+                log.warn("⚠️ Cannot construct optimized URL: MediaFile originalUrl is null or empty");
+                return null;
+            }
+            
+            // Extract the UUID from the original URL
+            // Original URL format: https://bucket.s3.region.amazonaws.com/posts/originals/{uuid}.webm
+            // Or CloudFront: https://xxxxx.cloudfront.net/posts/originals/{uuid}.webm
+            String uuid = null;
+            if (originalUrl.contains("/posts/originals/")) {
+                int startIdx = originalUrl.indexOf("/posts/originals/") + "/posts/originals/".length();
+                int endIdx = originalUrl.lastIndexOf(".");
+                if (endIdx > startIdx) {
+                    uuid = originalUrl.substring(startIdx, endIdx);
+                }
+            }
+            
+            if (uuid == null || uuid.isEmpty()) {
+                log.warn("⚠️ Cannot extract UUID from original URL: {}", originalUrl);
+                return null;
+            }
+            
+            // Construct the optimized URL
+            // Pattern: posts/optimized/{uuid}_optimized.mp4
+            String optimizedKey = String.format("posts/optimized/%s_optimized.mp4", uuid);
+            
+            // ALWAYS use CloudFront URL - S3 direct access is denied
+            String optimizedUrl;
+            if (cloudFrontDistributionUrl != null && !cloudFrontDistributionUrl.isEmpty()) {
+                // Use CloudFront (preferred)
+                optimizedUrl = cloudFrontDistributionUrl + "/" + optimizedKey;
+                log.info("✅ Using CloudFront URL for optimized video");
+            } else {
+                // Fallback to S3 (will likely fail due to access policy, but try anyway)
+                optimizedUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, optimizedKey);
+                log.warn("⚠️ CloudFront URL not configured! Using S3 URL which may not work.");
+            }
+            
+            log.info("✅ Constructed optimized URL from pattern: {} (UUID: {})", optimizedUrl, uuid);
+            
+            return optimizedUrl;
+        } catch (Exception e) {
+            log.error("Error constructing optimized URL from pattern: {}", e.getMessage());
+            return null;
         }
     }
 
@@ -273,12 +354,16 @@ public class MediaConvertWebhookService {
                 baseFolder = folder.substring(0, folder.indexOf("/"));
             }
             
-            String bucketName = "church-app-uploads-stevensills2";
-            String region = "us-west-2";
-            
             // MediaConvert creates: {baseFolder}/thumbnails_thumbnail.0000000.jpg
             String thumbnailKey = String.format("%s/thumbnails_thumbnail.0000000.jpg", baseFolder);
-            String thumbnailUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, thumbnailKey);
+            
+            // Use CloudFront URL if available
+            String thumbnailUrl;
+            if (cloudFrontDistributionUrl != null && !cloudFrontDistributionUrl.isEmpty()) {
+                thumbnailUrl = cloudFrontDistributionUrl + "/" + thumbnailKey;
+            } else {
+                thumbnailUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, thumbnailKey);
+            }
             
             log.info("🖼️ Constructed thumbnail URL from pattern: {} (extracted base folder: {} from full folder: {})", 
                     thumbnailUrl, baseFolder, folder);
@@ -314,7 +399,8 @@ public class MediaConvertWebhookService {
 
     /**
      * Convert S3 URI to accessible HTTPS URL
-     * Example: s3://bucket-name/path/to/file.jpg -> https://bucket-name.s3.region.amazonaws.com/path/to/file.jpg
+     * IMPORTANT: Uses CloudFront URL if configured, as direct S3 access is denied
+     * Example: s3://bucket-name/path/to/file.jpg -> https://d3loytcgioxpml.cloudfront.net/path/to/file.jpg
      */
     private String convertS3UriToUrl(String s3Uri) {
         if (s3Uri == null || !s3Uri.startsWith("s3://")) {
@@ -327,19 +413,23 @@ public class MediaConvertWebhookService {
         // Split bucket and key
         int firstSlash = path.indexOf('/');
         if (firstSlash == -1) {
-            // No key, just bucket
-            return String.format("https://%s.s3.us-west-2.amazonaws.com/", path);
+            // No key, just bucket - shouldn't happen for real files
+            log.warn("S3 URI has no key: {}", s3Uri);
+            return s3Uri;
         }
 
-        String bucket = path.substring(0, firstSlash);
         String key = path.substring(firstSlash + 1);
         
-        // Use region from MediaConvertVideoService or default
-        String region = System.getenv("AWS_REGION");
-        if (region == null || region.isEmpty()) {
-            region = "us-west-2"; // Default region
+        // ALWAYS prefer CloudFront URL - S3 direct access is denied
+        if (cloudFrontDistributionUrl != null && !cloudFrontDistributionUrl.isEmpty()) {
+            String cloudFrontUrl = cloudFrontDistributionUrl + "/" + key;
+            log.info("✅ Converted S3 URI to CloudFront URL: {} -> {}", s3Uri, cloudFrontUrl);
+            return cloudFrontUrl;
         }
         
+        // Fallback to S3 (will likely fail)
+        String bucket = path.substring(0, firstSlash);
+        log.warn("⚠️ CloudFront not configured, using S3 URL which may not work: {}", s3Uri);
         return String.format("https://%s.s3.%s.amazonaws.com/%s", bucket, region, key);
     }
 }
