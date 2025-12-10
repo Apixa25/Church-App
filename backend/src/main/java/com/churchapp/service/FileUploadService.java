@@ -276,7 +276,14 @@ public class FileUploadService {
                     return;
                 }
                 
-                log.info("MediaConvert job started: {} for video: {}", jobId, mediaFile.getOriginalUrl());
+                // CRITICAL: Store job ID in MediaFile for webhook/polling to find it!
+                mediaFileRepository.findById(mediaFile.getId()).ifPresent(mf -> {
+                    mf.setJobId(jobId);
+                    mediaFileRepository.save(mf);
+                });
+                
+                log.info("MediaConvert job started: {} for video: {} (MediaFile ID: {})", 
+                        jobId, mediaFile.getOriginalUrl(), mediaFile.getId());
                 // Note: Job completion will be handled by MediaConvert webhook/notification
                 // The MediaFile will be updated when the job completes
                 
