@@ -12,6 +12,7 @@ import { formatRelativeDate } from '../utils/dateUtils';
 import { prayerInteractionAPI, handleApiError } from '../services/prayerApi';
 import { useAuth } from '../contexts/AuthContext';
 import ClickableAvatar from './ClickableAvatar';
+import { getImageUrlWithFallback } from '../utils/imageUrlUtils';
 
 interface PrayerRequestCardProps {
   prayer: PrayerRequest;
@@ -190,27 +191,45 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
 
         <h3 className="prayer-title">{prayer.title}</h3>
         
-        {prayer.imageUrl && (
-          <div className="prayer-image-container">
-            <img 
-              src={prayer.imageUrl} 
-              alt={prayer.title}
-              className="prayer-image"
-              onError={(e) => {
-                console.error('❌ Failed to load prayer image:', {
-                  imageUrl: prayer.imageUrl,
-                  prayerId: prayer.id,
-                  error: e
-                });
-                // Hide broken image
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-              onLoad={() => {
-                console.log('✅ Prayer image loaded successfully:', prayer.imageUrl);
-              }}
-            />
-          </div>
-        )}
+        {prayer.imageUrl && (() => {
+          const { primary, fallback } = getImageUrlWithFallback(prayer.imageUrl);
+          return (
+            <div className="prayer-image-container">
+              <img 
+                src={primary} 
+                alt={prayer.title}
+                className="prayer-image"
+                onError={(e) => {
+                  const img = e.target as HTMLImageElement;
+                  // Try fallback URL if primary failed
+                  if (fallback && fallback !== primary && img.src === primary) {
+                    console.warn('⚠️ CloudFront URL failed, trying S3 fallback:', {
+                      primary,
+                      fallback,
+                      prayerId: prayer.id
+                    });
+                    img.src = fallback;
+                  } else {
+                    console.error('❌ Failed to load prayer image (both URLs failed):', {
+                      primary,
+                      fallback,
+                      prayerId: prayer.id,
+                      currentSrc: img.src
+                    });
+                    // Hide broken image after trying both URLs
+                    img.style.display = 'none';
+                  }
+                }}
+                onLoad={(e) => {
+                  console.log('✅ Prayer image loaded successfully:', {
+                    url: (e.target as HTMLImageElement).src,
+                    prayerId: prayer.id
+                  });
+                }}
+              />
+            </div>
+          );
+        })()}
         
         {prayer.description && !compact && (
           <p className="prayer-description">{prayer.description}</p>
