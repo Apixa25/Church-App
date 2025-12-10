@@ -53,6 +53,9 @@ const Dashboard: React.FC = () => {
   const prevDashboardContextRef = useRef<string | null>(null);
   const prevDashboardOrgIdRef = useRef<string | null>(null);
   
+  // Track attempted banner fallbacks to prevent infinite loops
+  const bannerFallbackAttemptedRef = useRef<Set<string>>(new Set());
+  
   const navigate = useNavigate();
   const location = useLocation();
   // Default to social feed - will be adjusted based on primary org status
@@ -462,6 +465,11 @@ const Dashboard: React.FC = () => {
     ? activeOrganizationLogo 
     : null;
   
+  // Reset fallback tracking when banner URL changes (context/user change)
+  useEffect(() => {
+    bannerFallbackAttemptedRef.current.clear();
+  }, [bannerImageUrl, activeContext, activeOrganizationId]);
+  
   const decision = shouldUseUserBanner ? 'USER_BANNER' : (shouldUseOrgLogo ? 'ORG_LOGO' : 'DEFAULT');
   console.log('🖼️ Final bannerImageUrl:', bannerImageUrl, '| Decision:', decision, '| Org logo available:', hasOrgLogo, '| User banner available:', hasUserBanner);
     
@@ -505,6 +513,16 @@ const Dashboard: React.FC = () => {
               const isFamilyOrgLogo = familyOrgFallback && (currentSrc === familyOrgFallback || currentId === familyOrgId);
               const isDefault = currentSrc.includes('/dashboard-banner.jpg');
               
+              // Check if we've already attempted this fallback to prevent infinite loops
+              const hasAttemptedFallback = (fallbackUrl: string | null) => {
+                if (!fallbackUrl) return false;
+                const fallbackId = getUrlId(fallbackUrl);
+                return bannerFallbackAttemptedRef.current.has(fallbackId);
+              };
+              
+              // Mark current URL as attempted
+              bannerFallbackAttemptedRef.current.add(currentId);
+              
               console.warn('⚠️ Banner image failed to load:', {
                 currentSrc,
                 currentId,
@@ -516,33 +534,40 @@ const Dashboard: React.FC = () => {
                 userBannerPrimaryId,
                 userBannerS3Id,
                 familyOrgId,
-                shouldUseUserBanner
+                shouldUseUserBanner,
+                attemptedFallbacks: Array.from(bannerFallbackAttemptedRef.current)
               });
               
               // Priority fallback order for family context:
               // 1. User banner CloudFront fails → try user banner S3
               // 2. User banner S3 fails → try family org logo
               // 3. Family org logo fails → use default Gathering image
-              if (activeContext === 'family' && isUserBannerCloudFront && userBannerS3Fallback) {
+              if (activeContext === 'family' && isUserBannerCloudFront && userBannerS3Fallback && !hasAttemptedFallback(userBannerS3Fallback)) {
                 // User banner CloudFront failed, try S3 fallback
                 console.warn('⚠️ User banner CloudFront URL failed, trying S3 fallback');
+                bannerFallbackAttemptedRef.current.add(getUrlId(userBannerS3Fallback));
                 target.src = userBannerS3Fallback;
-              } else if (activeContext === 'family' && isUserBannerS3 && familyOrgFallback) {
+              } else if (activeContext === 'family' && isUserBannerS3 && familyOrgFallback && !hasAttemptedFallback(familyOrgFallback)) {
                 // User banner S3 also failed, try family org logo
                 console.warn('⚠️ User banner S3 URL failed, trying family organization logo');
+                bannerFallbackAttemptedRef.current.add(getUrlId(familyOrgFallback));
                 target.src = familyOrgFallback;
-              } else if (activeContext === 'family' && isFamilyOrgLogo) {
+              } else if (activeContext === 'family' && isFamilyOrgLogo && !hasAttemptedFallback('/dashboard-banner.jpg')) {
                 // Family org logo also failed, use default
                 console.warn('⚠️ Family organization logo failed, falling back to default Gathering image');
+                bannerFallbackAttemptedRef.current.add('dashboard-banner.jpg');
                 target.src = '/dashboard-banner.jpg';
-              } else if (!isDefault) {
+              } else if (!isDefault && !hasAttemptedFallback('/dashboard-banner.jpg')) {
                 // For other contexts or unexpected errors, use default
                 console.warn('⚠️ Banner image failed, falling back to default');
+                bannerFallbackAttemptedRef.current.add('dashboard-banner.jpg');
                 target.src = '/dashboard-banner.jpg';
               } else {
-                // Default also failed, hide the image
-                console.error('⚠️ All banner image fallbacks failed, hiding image');
+                // All fallbacks exhausted or already attempted, hide the image to prevent infinite loop
+                console.error('⚠️ All banner image fallbacks failed or already attempted, hiding image to prevent infinite loop');
                 target.style.display = 'none';
+                // Reset attempted fallbacks for next banner load
+                bannerFallbackAttemptedRef.current.clear();
               }
             }}
           />
