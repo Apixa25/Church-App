@@ -47,6 +47,37 @@ public class MediaConvertWebhookService {
 
     private final MediaFileRepository mediaFileRepository;
     private final ObjectMapper objectMapper;
+    
+    /**
+     * Get CloudFront base URL with trailing slash removed
+     */
+    private String getCloudFrontBaseUrl() {
+        if (cloudFrontDistributionUrl == null || cloudFrontDistributionUrl.trim().isEmpty()) {
+            return null;
+        }
+        String url = cloudFrontDistributionUrl.trim();
+        // Remove trailing slash to prevent double slashes
+        while (url.endsWith("/")) {
+            url = url.substring(0, url.length() - 1);
+        }
+        return url;
+    }
+    
+    /**
+     * Build CloudFront URL from a key (path)
+     */
+    private String buildCloudFrontUrl(String key) {
+        String baseUrl = getCloudFrontBaseUrl();
+        if (baseUrl == null) {
+            log.warn("⚠️ CloudFront URL not configured!");
+            return null;
+        }
+        // Ensure key doesn't start with slash
+        if (key.startsWith("/")) {
+            key = key.substring(1);
+        }
+        return baseUrl + "/" + key;
+    }
 
     /**
      * Process SNS webhook notification for MediaConvert job completion
@@ -139,16 +170,20 @@ public class MediaConvertWebhookService {
             String jobId = mediaconvertEvent.get("detail").get("jobId").asText();
             String jobStatus = mediaconvertEvent.get("detail").get("status").asText();
 
-            log.info("MediaConvert job completion notification - Job ID: {}, Status: {}", jobId, jobStatus);
+            log.info("🔔 MediaConvert job completion notification - Job ID: {}, Status: {}", jobId, jobStatus);
+            log.info("🔍 CloudFront URL configured: {}", getCloudFrontBaseUrl());
 
             // Find MediaFile by jobId
             MediaFile mediaFile = mediaFileRepository.findByJobId(jobId)
                     .orElse(null);
 
             if (mediaFile == null) {
-                log.warn("MediaFile not found for job ID: {}", jobId);
+                log.error("❌ MediaFile NOT FOUND for job ID: {}. This is critical - the jobId may not have been saved!", jobId);
+                log.error("❌ Check FileUploadService.processVideoAsync - is jobId being saved to the database?");
                 return;
             }
+            
+            log.info("✅ Found MediaFile: ID={}, originalUrl={}", mediaFile.getId(), mediaFile.getOriginalUrl());
 
             // Handle job completion based on status
             if ("COMPLETE".equals(jobStatus)) {
@@ -260,13 +295,17 @@ public class MediaConvertWebhookService {
             if (optimizedUrl == null) {
                 log.error("❌ Failed to determine optimized URL for MediaFile: {}. Using original URL as fallback.", mediaFile.getId());
             }
+            
+            log.info("📝 Updating MediaFile {} with optimizedUrl: {}", mediaFile.getId(), finalOptimizedUrl);
+            log.info("📝 Updating MediaFile {} with thumbnailUrl: {}", mediaFile.getId(), thumbnailUrl);
+            
             mediaFile.markProcessingCompleted(finalOptimizedUrl, 0L, thumbnailUrl);
-            mediaFileRepository.save(mediaFile);
+            MediaFile savedMediaFile = mediaFileRepository.save(mediaFile);
 
-            log.info("✅ MediaConvert job completed successfully for MediaFile: {}. Optimized: {}, Thumbnail: {}",
-                    mediaFile.getId(), 
-                    optimizedUrl != null ? "yes" : "no",
-                    thumbnailUrl != null ? "yes" : "no");
+            log.info("✅✅✅ MediaConvert job completed successfully for MediaFile: {}", mediaFile.getId());
+            log.info("✅ Final optimizedUrl in DB: {}", savedMediaFile.getOptimizedUrl());
+            log.info("✅ Final thumbnailUrl in DB: {}", savedMediaFile.getThumbnailUrl());
+            log.info("✅ Final processingStatus: {}", savedMediaFile.getProcessingStatus());
 
         } catch (Exception e) {
             log.error("❌ Error processing completed job for MediaFile: {}", mediaFile.getId(), e);
@@ -312,15 +351,13 @@ public class MediaConvertWebhookService {
             String optimizedKey = String.format("posts/optimized/%s_optimized.mp4", uuid);
             
             // ALWAYS use CloudFront URL - S3 direct access is denied
-            String optimizedUrl;
-            if (cloudFrontDistributionUrl != null && !cloudFrontDistributionUrl.isEmpty()) {
-                // Use CloudFront (preferred)
-                optimizedUrl = cloudFrontDistributionUrl + "/" + optimizedKey;
-                log.info("✅ Using CloudFront URL for optimized video");
+            String optimizedUrl = buildCloudFrontUrl(optimizedKey);
+            if (optimizedUrl != null) {
+                log.info("✅ Using CloudFront URL for optimized video: {}", optimizedUrl);
             } else {
                 // Fallback to S3 (will likely fail due to access policy, but try anyway)
                 optimizedUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, optimizedKey);
-                log.warn("⚠️ CloudFront URL not configured! Using S3 URL which may not work.");
+                log.warn("⚠️ CloudFront URL not configured! Using S3 URL which may not work: {}", optimizedUrl);
             }
             
             log.info("✅ Constructed optimized URL from pattern: {} (UUID: {})", optimizedUrl, uuid);
@@ -357,13 +394,12 @@ public class MediaConvertWebhookService {
             // MediaConvert creates: {baseFolder}/thumbnails_thumbnail.0000000.jpg
             String thumbnailKey = String.format("%s/thumbnails_thumbnail.0000000.jpg", baseFolder);
             
-            // Use CloudFront URL if available
-            String thumbnailUrl;
-            if (cloudFrontDistributionUrl != null && !cloudFrontDistributionUrl.isEmpty()) {
-                thumbnailUrl = cloudFrontDistributionUrl + "/" + thumbnailKey;
-            } else {
+            // Use CloudFront URL
+            String thumbnailUrl = buildCloudFrontUrl(thumbnailKey);
+            if (thumbnailUrl == null) {
                 thumbnailUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, thumbnailKey);
             }
+            log.info("🖼️ Constructed thumbnail URL: {}", thumbnailUrl);
             
             log.info("🖼️ Constructed thumbnail URL from pattern: {} (extracted base folder: {} from full folder: {})", 
                     thumbnailUrl, baseFolder, folder);
@@ -421,8 +457,8 @@ public class MediaConvertWebhookService {
         String key = path.substring(firstSlash + 1);
         
         // ALWAYS prefer CloudFront URL - S3 direct access is denied
-        if (cloudFrontDistributionUrl != null && !cloudFrontDistributionUrl.isEmpty()) {
-            String cloudFrontUrl = cloudFrontDistributionUrl + "/" + key;
+        String cloudFrontUrl = buildCloudFrontUrl(key);
+        if (cloudFrontUrl != null) {
             log.info("✅ Converted S3 URI to CloudFront URL: {} -> {}", s3Uri, cloudFrontUrl);
             return cloudFrontUrl;
         }
