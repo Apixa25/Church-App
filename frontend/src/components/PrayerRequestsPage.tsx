@@ -553,7 +553,6 @@ const PrayerRequestsPage: React.FC = () => {
           justify-content: center;
           z-index: 1000;
           padding: 1rem;
-          overflow-y: auto;
         }
 
         .controls-section {
