@@ -468,6 +468,7 @@ const PostCard: React.FC<PostCardProps> = ({
   // Handle video click - load video if not already loaded
   const handleVideoClick = useCallback((index: number, e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     
     // Mark video as loaded (will trigger preload="auto")
     setLoadedVideos(prev => {
@@ -476,7 +477,7 @@ const PostCard: React.FC<PostCardProps> = ({
       return newSet;
     });
     
-    // Try to play video
+    // Try to play video inline (no modal popup)
     const video = videoRefs.current.get(index);
     if (video) {
       video.play().catch(err => {
@@ -484,8 +485,7 @@ const PostCard: React.FC<PostCardProps> = ({
       });
     }
     
-    // Also open media viewer
-    handleMediaClick(index, e);
+    // NOTE: Removed handleMediaClick - videos now play inline instead of popping out
   }, []);
 
   // Lazy loading with Intersection Observer for videos
@@ -599,15 +599,12 @@ const PostCard: React.FC<PostCardProps> = ({
                     data-video-index="0"
                     onClick={(e) => {
                     if (!loadedVideos.has(0)) {
+                      // First click: load the video and start playing
                       handleVideoClick(0, e);
                     } else {
+                      // Video already loaded - let native controls handle play/pause
+                      // Don't open media viewer, just stop propagation
                       e.stopPropagation();
-                      const rect = (e.currentTarget as HTMLVideoElement).getBoundingClientRect();
-                      const clickY = e.clientY - rect.top;
-                      const videoHeight = rect.height;
-                      if (clickY < videoHeight * 0.75) {
-                        handleMediaClick(0, e);
-                      }
                     }
                   }}
                   onError={(e) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Post, FeedType, FeedResponse } from '../types/Post';
 import { getFeed } from '../services/postApi';
@@ -38,9 +38,16 @@ const PostFeed: React.FC<PostFeedProps> = ({
   const queryClient = useQueryClient();
 
   // Build query key for React Query caching - NOW INCLUDES activeOrganizationId
-  const feedTypeString = feedType === FeedType.FOLLOWING ? 'following' : feedType === FeedType.TRENDING ? 'trending' : 'community';
+  // Memoize feedTypeString to prevent recalculation
+  const feedTypeString = useMemo(() => {
+    return feedType === FeedType.FOLLOWING ? 'following' : feedType === FeedType.TRENDING ? 'trending' : 'community';
+  }, [feedType]);
+  
   // 🎯 Include activeOrganizationId in cache key so posts are cached per context
-  const queryKey = ['posts', feedTypeString, activeFilter, selectedGroupIds?.join(',') || '', activeOrganizationId || 'none'];
+  // Memoize queryKey to prevent recreation on every render (fixes infinite loop)
+  const queryKey = useMemo(() => {
+    return ['posts', feedTypeString, activeFilter, selectedGroupIds?.join(',') || '', activeOrganizationId || 'none'];
+  }, [feedTypeString, activeFilter, selectedGroupIds, activeOrganizationId]);
 
   // State
   const [posts, setPosts] = useState<Post[]>([]);
