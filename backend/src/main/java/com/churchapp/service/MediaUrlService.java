@@ -305,5 +305,83 @@ public class MediaUrlService {
     public Optional<MediaFile> getMediaFileByOptimizedUrl(String optimizedUrl) {
         return mediaFileRepository.findByOptimizedUrl(optimizedUrl);
     }
+    
+    /**
+     * Construct thumbnail URL from video URL pattern.
+     * MediaConvert creates thumbnails at: posts/thumbnails/{uuid}.0000000.jpg
+     * where {uuid} is extracted from the original video URL.
+     * 
+     * This method is used as a fallback when the thumbnail URL is not stored in the database.
+     * 
+     * @param videoUrl The video URL (original or optimized)
+     * @return CloudFront URL for the thumbnail, or null if cannot be constructed
+     */
+    public String constructThumbnailUrl(String videoUrl) {
+        if (videoUrl == null || videoUrl.isEmpty()) {
+            return null;
+        }
+        
+        try {
+            // Extract UUID from video URL
+            // Pattern: .../posts/originals/{uuid}.webm or .../posts/originals/{uuid}.mp4
+            // Or optimized: .../posts/optimized/{uuid}_optimized.mp4
+            String uuid = null;
+            
+            if (videoUrl.contains("/posts/originals/")) {
+                int startIdx = videoUrl.indexOf("/posts/originals/") + "/posts/originals/".length();
+                int endIdx = videoUrl.lastIndexOf(".");
+                if (endIdx > startIdx) {
+                    uuid = videoUrl.substring(startIdx, endIdx);
+                }
+            } else if (videoUrl.contains("/posts/optimized/")) {
+                int startIdx = videoUrl.indexOf("/posts/optimized/") + "/posts/optimized/".length();
+                int endIdx = videoUrl.indexOf("_optimized");
+                if (endIdx == -1) {
+                    endIdx = videoUrl.lastIndexOf(".");
+                }
+                if (endIdx > startIdx) {
+                    uuid = videoUrl.substring(startIdx, endIdx);
+                }
+            }
+            
+            if (uuid == null || uuid.isEmpty()) {
+                log.debug("Cannot extract UUID from video URL for thumbnail: {}", videoUrl);
+                return null;
+            }
+            
+            // Construct thumbnail URL: posts/thumbnails/{uuid}.0000000.jpg
+            String thumbnailKey = String.format("posts/thumbnails/%s.0000000.jpg", uuid);
+            
+            // Build CloudFront URL
+            String baseUrl = getCloudFrontBaseUrl();
+            if (baseUrl != null) {
+                String thumbnailUrl = baseUrl + "/" + thumbnailKey;
+                log.debug("🖼️ Constructed thumbnail URL: {} -> {}", videoUrl, thumbnailUrl);
+                return thumbnailUrl;
+            }
+            
+            // Fallback to S3 URL (likely won't work but try anyway)
+            return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, thumbnailKey);
+            
+        } catch (Exception e) {
+            log.debug("Error constructing thumbnail URL from video URL: {}", e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Get CloudFront base URL with trailing slash removed
+     */
+    private String getCloudFrontBaseUrl() {
+        if (cloudFrontDistributionUrl == null || cloudFrontDistributionUrl.trim().isEmpty()) {
+            return null;
+        }
+        String url = cloudFrontDistributionUrl.trim();
+        // Remove trailing slash to prevent double slashes
+        while (url.endsWith("/")) {
+            url = url.substring(0, url.length() - 1);
+        }
+        return url;
+    }
 }
 
