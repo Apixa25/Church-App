@@ -14,6 +14,7 @@ import { prayerAPI, handleApiError } from '../services/prayerApi';
 import { useActiveContext } from '../contexts/ActiveContextContext';
 import LoadingSpinner from './LoadingSpinner';
 import { processImageForUpload } from '../utils/imageUtils';
+import { uploadMediaDirect } from '../services/postApi';
 
 interface PrayerRequestFormProps {
   existingPrayer?: PrayerRequest;
@@ -118,31 +119,48 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
         const userAgent = navigator.userAgent;
         const isIPhone = /iPhone|iPod/.test(userAgent);
         
-        console.log('📷 Processing image for upload (smart compression)...', {
-          name: file.name,
-          type: file.type,
-          size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
-          device: isIPhone ? 'iPhone' : 'Other',
-          userAgent: userAgent
-        });
+            const imageInfo = {
+              name: file.name,
+              type: file.type,
+              size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+              device: isIPhone ? 'iPhone' : 'Other',
+              userAgent: userAgent
+            };
+            console.log('📷 Processing image for upload (smart compression)...', imageInfo);
         
-        // Add timeout wrapper for iPhone - processing can hang on large files
+        // iPhone-specific: Skip client-side processing and let server handle it
+        // iPhone Safari has issues with File objects created from canvas.toBlob in FormData
+        // The server can process HEIC and compress images, so we'll upload the original
         let processedFile: File;
-        if (isIPhone && file.size > 5 * 1024 * 1024) {
-          console.log('⏱️ iPhone large file detected, using timeout protection...');
-          try {
-            processedFile = await Promise.race([
-              processImageForUpload(file, 1920, 1920, 5 * 1024 * 1024),
-              new Promise<File>((_, reject) => 
-                setTimeout(() => reject(new Error('Processing timeout')), 25000) // 25 second timeout
-              )
-            ]);
-          } catch (timeoutError) {
-            console.warn('⚠️ Image processing timed out on iPhone, using original file:', timeoutError);
-            processedFile = file; // Use original if processing times out
-          }
+        if (isIPhone) {
+          const iphoneInfo = {
+            fileName: file.name,
+            fileSize: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+            fileType: file.type || '(unknown)',
+            reason: 'iPhone Safari FormData compatibility'
+          };
+          console.log('📱 iPhone detected - skipping client-side processing, using original file');
+          console.log('📱 Server will handle HEIC conversion and compression:', iphoneInfo);
+          // Note: addDebugLog not available here, but logs will show in debug panel when form is submitted
+          processedFile = file; // Use original file - server can handle it
         } else {
-          processedFile = await processImageForUpload(file, 1920, 1920, 5 * 1024 * 1024);
+          // Process on other devices (Android, desktop)
+          if (file.size > 5 * 1024 * 1024) {
+            console.log('⏱️ Large file detected, using timeout protection...');
+            try {
+              processedFile = await Promise.race([
+                processImageForUpload(file, 1920, 1920, 5 * 1024 * 1024),
+                new Promise<File>((_, reject) => 
+                  setTimeout(() => reject(new Error('Processing timeout')), 25000) // 25 second timeout
+                )
+              ]);
+            } catch (timeoutError) {
+              console.warn('⚠️ Image processing timed out, using original file:', timeoutError);
+              processedFile = file; // Use original if processing times out
+            }
+          } else {
+            processedFile = await processImageForUpload(file, 1920, 1920, 5 * 1024 * 1024);
+          }
         }
         
         // Only log if file was actually processed (not skipped)
@@ -192,14 +210,15 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
         };
         reader.readAsDataURL(processedFile);
       } catch (error: any) {
-        console.error('❌ Image processing failed:', {
-          error,
-          message: error?.message,
-          stack: error?.stack,
+        const errorInfo = {
+          error: error?.message,
+          stack: error?.stack?.substring(0, 200), // Truncate stack for display
           fileName: file.name,
           fileSize: file.size,
           fileType: file.type
-        });
+        };
+        console.error('❌ Image processing failed:', errorInfo);
+        // Note: addDebugLog not available here, but error will be logged when form is submitted
         
         // Fallback: use original file - server can handle it
         console.warn('⚠️ Using original file as fallback - server will process it');
@@ -240,20 +259,6 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
     setError(null);
     setSuccess(null);
 
-    // Extensive logging for iPhone debugging
-    const userAgent = navigator.userAgent;
-    const isIPhone = /iPhone|iPod/.test(userAgent);
-    
-    console.log('🚀 Prayer request submission started:', {
-      mode,
-      hasImage: !!selectedImage,
-      imageSize: selectedImage ? (selectedImage.size / 1024 / 1024).toFixed(2) + 'MB' : 'none',
-      imageType: selectedImage?.type || 'none',
-      imageName: selectedImage?.name || 'none',
-      device: isIPhone ? 'iPhone' : 'Other',
-      formData: data
-    });
-
     try {
       let response;
       
@@ -272,16 +277,24 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
             : (imagePreview ? imagePreview : undefined)
         };
         
-        // If image was selected or removed, use multipart endpoint
-        if (selectedImage || (!imagePreview && existingPrayer.imageUrl)) {
-          response = await prayerAPI.updatePrayerRequestWithImage(
-            existingPrayer.id, 
-            updateRequest, 
-            selectedImage || undefined
-          );
-        } else {
-          response = await prayerAPI.updatePrayerRequest(existingPrayer.id, updateRequest);
+        // Handle image upload/removal (same pattern as posts - works on iPhone!)
+        if (selectedImage) {
+          // New image selected - upload to S3 first
+          try {
+            const imageUrls = await uploadMediaDirect([selectedImage], 'prayer-requests');
+            if (!imageUrls || imageUrls.length === 0) {
+              throw new Error('Failed to upload image. Please try again.');
+            }
+            updateRequest.imageUrl = imageUrls[0];
+          } catch (uploadError: any) {
+            throw uploadError;
+          }
         }
+        // If imageUrl is empty string, it means remove image (handled by backend)
+        // If imageUrl is set, it means use that URL (from S3 upload or existing)
+        // If imageUrl is undefined, no change to image
+        
+        response = await prayerAPI.updatePrayerRequest(existingPrayer.id, updateRequest);
       } else {
         const createRequest: PrayerRequestCreateRequest = {
           title: data.title,
@@ -291,7 +304,7 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
           organizationId: activeOrganizationId || undefined // Pass active organization from context
         };
         
-        // If image was selected, use multipart endpoint
+        // Upload image to S3 first (same pattern as posts - works on iPhone!)
         if (selectedImage) {
           // Validate file before sending
           if (!(selectedImage instanceof File)) {
@@ -304,32 +317,26 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
             throw new Error('Image file is empty. Please try selecting a different image.');
           }
           
-          console.log('📤 Sending prayer request with image:', {
-            fileName: selectedImage.name,
-            fileSize: (selectedImage.size / 1024 / 1024).toFixed(2) + 'MB',
-            fileType: selectedImage.type,
-            isFile: selectedImage instanceof File,
-            hasData: selectedImage.size > 0
-          });
-          
           try {
-            response = await prayerAPI.createPrayerRequestWithImage(createRequest, selectedImage);
-            console.log('✅ Prayer request with image sent successfully');
-          } catch (apiError: any) {
-            console.error('❌ API call failed:', {
-              error: apiError,
-              message: apiError?.message,
-              response: apiError?.response?.data,
-              status: apiError?.response?.status,
-              statusText: apiError?.response?.statusText,
-              config: apiError?.config,
-              fileName: selectedImage.name,
-              fileSize: selectedImage.size,
-              fileType: selectedImage.type
-            });
-            throw apiError; // Re-throw to be caught by outer catch
+            // Step 1: Upload image to S3 using presigned URLs (works perfectly on iPhone!)
+            const imageUrls = await uploadMediaDirect([selectedImage], 'prayer-requests');
+            
+            if (!imageUrls || imageUrls.length === 0) {
+              throw new Error('Failed to upload image. Please try again.');
+            }
+            
+            const imageUrl = imageUrls[0];
+            
+            // Step 2: Create prayer request with imageUrl in JSON (no FormData needed!)
+            createRequest.imageUrl = imageUrl;
+            
+            response = await prayerAPI.createPrayerRequest(createRequest);
+          } catch (uploadError: any) {
+            console.error('❌ Image upload or prayer request creation failed:', uploadError);
+            throw uploadError; // Re-throw to be caught by outer catch
           }
         } else {
+          // No image - just create the prayer request
           response = await prayerAPI.createPrayerRequest(createRequest);
         }
       }
@@ -361,16 +368,7 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
         setSelectedImage(null);
       }
     } catch (err: any) {
-      console.error('❌ Prayer request submission error:', {
-        error: err,
-        response: err.response?.data,
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        message: err.message,
-        isNetworkError: !err.response, // Network error (mobile timeout, connection lost, etc.)
-        isTimeout: err.code === 'ECONNABORTED',
-        config: err.config
-      });
+      console.error('❌ Prayer request submission error:', err);
       
       // Better error messages for mobile network issues
       if (!err.response) {
