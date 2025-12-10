@@ -24,7 +24,7 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token and handle FormData
 api.interceptors.request.use(
   async (config) => {
     // Get valid access token (will refresh if needed)
@@ -34,6 +34,13 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // CRITICAL: If body is FormData, delete Content-Type header
+    // Browser must set it automatically with boundary for multipart/form-data
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+    
     return config;
   },
   (error) => {
@@ -111,12 +118,9 @@ export const prayerAPI = {
     }
     return api.post<PrayerRequest>('/prayers/with-image', formData, {
       // CRITICAL: Do NOT set Content-Type manually - browser must set it with boundary
-      // Setting it manually breaks multipart/form-data on mobile browsers
+      // The request interceptor will automatically delete Content-Type for FormData
       // The browser will automatically set: multipart/form-data; boundary=----WebKitFormBoundary...
-      timeout: 60000, // 60 second timeout for file uploads
-      headers: {
-        // Remove 'Content-Type': 'multipart/form-data' - let browser set it automatically
-      }
+      timeout: 60000 // 60 second timeout for file uploads
     });
   },
 
@@ -154,11 +158,9 @@ export const prayerAPI = {
     }
     return api.put<PrayerRequest>(`/prayers/${id}/with-image`, formData, {
       // CRITICAL: Do NOT set Content-Type manually - browser must set it with boundary
-      // Setting it manually breaks multipart/form-data on mobile browsers
-      timeout: 60000, // 60 second timeout for file uploads
-      headers: {
-        // Remove 'Content-Type': 'multipart/form-data' - let browser set it automatically
-      }
+      // The request interceptor will automatically delete Content-Type for FormData
+      // The browser will automatically set: multipart/form-data; boundary=----WebKitFormBoundary...
+      timeout: 60000 // 60 second timeout for file uploads
     });
   },
 
