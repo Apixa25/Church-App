@@ -99,6 +99,25 @@ export const prayerAPI = {
 
   // Create a new prayer request with image
   createPrayerRequestWithImage: (data: PrayerRequestCreateRequest, imageFile?: File) => {
+    // Validate file before creating FormData
+    if (imageFile) {
+      if (!(imageFile instanceof File)) {
+        console.error('❌ imageFile is not a File object:', imageFile);
+        throw new Error('Invalid image file object');
+      }
+      if (imageFile.size === 0) {
+        console.error('❌ imageFile has zero size');
+        throw new Error('Image file is empty');
+      }
+      console.log('📦 Creating FormData with image:', {
+        fileName: imageFile.name,
+        fileSize: (imageFile.size / 1024 / 1024).toFixed(2) + 'MB',
+        fileType: imageFile.type,
+        isFile: imageFile instanceof File,
+        constructor: imageFile.constructor.name
+      });
+    }
+    
     const formData = new FormData();
     formData.append('title', data.title);
     if (data.description) {
@@ -115,7 +134,12 @@ export const prayerAPI = {
     }
     if (imageFile) {
       formData.append('image', imageFile);
+      // Verify it was appended
+      const hasImage = formData.has('image');
+      console.log('✅ Image appended to FormData:', hasImage);
     }
+    
+    console.log('📤 Sending multipart request to /prayers/with-image');
     return api.post<PrayerRequest>('/prayers/with-image', formData, {
       // CRITICAL: Do NOT set Content-Type manually - browser must set it with boundary
       // The request interceptor will automatically delete Content-Type for FormData
