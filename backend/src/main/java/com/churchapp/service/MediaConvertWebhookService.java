@@ -371,39 +371,44 @@ public class MediaConvertWebhookService {
 
     /**
      * Fallback: Construct thumbnail URL from known pattern
-     * Since MediaConvert creates files with predictable patterns, we can try to construct the URL
-     * Based on the folder and the fact that MediaConvert uses nameModifier
+     * MediaConvert creates thumbnails at: posts/thumbnails/{uuid}.0000000.jpg
+     * where {uuid} is extracted from the original file URL
      */
     private String constructThumbnailUrlFromPattern(MediaFile mediaFile) {
         try {
-            String folder = mediaFile.getFolder();
-            if (folder == null || folder.isEmpty()) {
-                log.warn("⚠️ Cannot construct thumbnail URL: MediaFile folder is null or empty");
+            String originalUrl = mediaFile.getOriginalUrl();
+            if (originalUrl == null || originalUrl.isEmpty()) {
+                log.warn("⚠️ Cannot construct thumbnail URL: MediaFile originalUrl is null or empty");
                 return null;
             }
             
-            // MediaConvert creates thumbnails at: {baseFolder}/thumbnails_thumbnail.0000000.jpg
-            // The folder is like "posts/originals/{uuid}", but MediaConvert uses just the base folder "posts"
-            // Extract the base folder (first part before the first slash after the base)
-            String baseFolder = folder;
-            if (folder.contains("/")) {
-                // Extract just the base folder (e.g., "posts" from "posts/originals/{uuid}")
-                baseFolder = folder.substring(0, folder.indexOf("/"));
+            // Extract the UUID from the original URL
+            // Original URL format: https://xxx.cloudfront.net/posts/originals/{uuid}.webm
+            // Or S3: https://bucket.s3.region.amazonaws.com/posts/originals/{uuid}.webm
+            String uuid = null;
+            if (originalUrl.contains("/posts/originals/")) {
+                int startIdx = originalUrl.indexOf("/posts/originals/") + "/posts/originals/".length();
+                int endIdx = originalUrl.lastIndexOf(".");
+                if (endIdx > startIdx) {
+                    uuid = originalUrl.substring(startIdx, endIdx);
+                }
             }
             
-            // MediaConvert creates: {baseFolder}/thumbnails_thumbnail.0000000.jpg
-            String thumbnailKey = String.format("%s/thumbnails_thumbnail.0000000.jpg", baseFolder);
+            if (uuid == null || uuid.isEmpty()) {
+                log.warn("⚠️ Cannot extract UUID from original URL: {}", originalUrl);
+                return null;
+            }
+            
+            // MediaConvert creates: posts/thumbnails/{uuid}.0000000.jpg
+            String thumbnailKey = String.format("posts/thumbnails/%s.0000000.jpg", uuid);
             
             // Use CloudFront URL
             String thumbnailUrl = buildCloudFrontUrl(thumbnailKey);
             if (thumbnailUrl == null) {
                 thumbnailUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, thumbnailKey);
             }
-            log.info("🖼️ Constructed thumbnail URL: {}", thumbnailUrl);
             
-            log.info("🖼️ Constructed thumbnail URL from pattern: {} (extracted base folder: {} from full folder: {})", 
-                    thumbnailUrl, baseFolder, folder);
-            log.warn("⚠️ This is a fallback - webhook should provide the actual URL. Consider fixing EventBridge/SNS webhook delivery.");
+            log.info("🖼️ Constructed thumbnail URL from pattern: {}", thumbnailUrl);
             
             return thumbnailUrl;
         } catch (Exception e) {
