@@ -163,10 +163,16 @@ public class MediaConvertVideoService {
                 .defaultSelection(AudioDefaultSelection.DEFAULT)
                 .build();
         
-        // Input with simple audio selector
+        // Video selector with AUTO rotation to preserve iPhone/Android orientation
+        VideoSelector videoSelector = VideoSelector.builder()
+                .rotate(InputRotate.AUTO)
+                .build();
+        
+        // Input with audio selector and video selector (for rotation)
         Input input = Input.builder()
                 .fileInput(inputUri)
                 .audioSelectors(java.util.Map.of("Audio Selector 1", audioSelector))
+                .videoSelector(videoSelector)
                 .build();
 
         // SIMPLE H.264 video settings
