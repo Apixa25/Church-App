@@ -13,6 +13,7 @@ import {
   detectPlatform,
   SocialMediaPlatform 
 } from '../utils/socialMediaUtils';
+import { processImageForUpload } from '../utils/imageUtils';
 import './PostComposer.css';
 
 // ============================================================================
@@ -137,7 +138,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
@@ -147,35 +148,52 @@ const PostComposer: React.FC<PostComposerProps> = ({
       return;
     }
 
-    // Process each file
-    files.forEach(file => {
-      // Validate file type
-      if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+    // Process each file (async to handle HEIC conversion)
+    for (const file of files) {
+      // Validate file type - more permissive for mobile
+      const fileType = file.type.toLowerCase();
+      const fileName = file.name.toLowerCase();
+      const isVideo = fileType.startsWith('video/');
+      const isImage = fileType.startsWith('image/') || 
+        fileName.endsWith('.heic') || fileName.endsWith('.heif') ||
+        (fileType === '' && (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png')));
+      
+      if (!isImage && !isVideo) {
         setError('Only image and video files are allowed');
-        return;
+        continue;
       }
 
       // Validate file size (different limits for images vs videos)
-      const isVideo = file.type.startsWith('video/');
       const maxSize = isVideo ? 500 * 1024 * 1024 : 100 * 1024 * 1024; // 500MB for videos, 100MB for images
       const maxSizeMB = isVideo ? 500 : 100;
       
       if (file.size > maxSize) {
         setError(`File size must be less than ${maxSizeMB}MB${isVideo ? ' for videos' : ' for images'}`);
-        return;
+        continue;
+      }
+
+      // Process image for upload (converts HEIC from iPhone, compresses large files)
+      let processedFile = file;
+      if (isImage) {
+        try {
+          console.log('📷 Processing image for post:', file.name);
+          processedFile = await processImageForUpload(file, 1920, 1920, 5 * 1024 * 1024);
+        } catch (err) {
+          console.error('❌ Image processing failed, using original:', err);
+        }
       }
 
       // Create media file object
       const mediaFile: MediaFile = {
-        file,
-        url: URL.createObjectURL(file),
-        type: file.type.startsWith('image/') ? 'image' : 'video',
-        name: file.name,
-        size: file.size
+        file: processedFile,
+        url: URL.createObjectURL(processedFile),
+        type: isImage ? 'image' : 'video',
+        name: processedFile.name,
+        size: processedFile.size
       };
 
       setMediaFiles(prev => [...prev, mediaFile]);
-    });
+    }
 
     // Clear file input
     if (fileInputRef.current) {
@@ -184,7 +202,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
   };
 
   // The actual camera capture handler - wrapped in useCallback for stability
-  const handleCameraCapture = useCallback((file: File) => {
+  const handleCameraCapture = useCallback(async (file: File) => {
     console.log('📸 PostComposer: handleCameraCapture called');
     console.log('📸 PostComposer: File received:', file.name, file.type, file.size);
     
@@ -202,6 +220,22 @@ const PostComposer: React.FC<PostComposerProps> = ({
       return;
     }
     
+    // Process image for upload (converts HEIC from iPhone, compresses large files)
+    let processedFile = file;
+    const isImage = file.type.startsWith('image/') || 
+      file.name.toLowerCase().endsWith('.heic') || 
+      file.name.toLowerCase().endsWith('.heif');
+    
+    if (isImage) {
+      try {
+        console.log('📸 PostComposer: Processing camera capture image...');
+        processedFile = await processImageForUpload(file, 1920, 1920, 5 * 1024 * 1024);
+        console.log('📸 PostComposer: Image processed successfully');
+      } catch (err) {
+        console.error('❌ PostComposer: Image processing failed, using original:', err);
+      }
+    }
+    
     // Validate file count using functional check to avoid stale closure
     setMediaFiles(prev => {
       if (prev.length >= maxMediaFiles) {
@@ -211,16 +245,16 @@ const PostComposer: React.FC<PostComposerProps> = ({
       }
 
       // Create object URL for preview
-      const objectUrl = URL.createObjectURL(file);
+      const objectUrl = URL.createObjectURL(processedFile);
       console.log('📸 PostComposer: Created object URL:', objectUrl);
 
       // Create media file object
       const mediaFile: MediaFile = {
-        file,
+        file: processedFile,
         url: objectUrl,
-        type: file.type.startsWith('image/') ? 'image' : 'video',
-        name: file.name,
-        size: file.size
+        type: isImage ? 'image' : 'video',
+        name: processedFile.name,
+        size: processedFile.size
       };
 
       console.log('📸 PostComposer: Adding media file to state:', {
