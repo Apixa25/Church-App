@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { User } from '../types/Post';
 import { UserProfile } from '../types/Profile';
 import { updateUserProfile, uploadProfilePicture, uploadBannerImage } from '../services/postApi';
+import { processImageForUpload, isValidImageFile } from '../utils/imageUtils';
 import LoadingSpinner from './LoadingSpinner';
 import './ProfileEdit.css';
 
@@ -172,30 +173,13 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
     setSuccess('');
   };
 
-  const handleProfilePicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfilePicChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type - more permissive for mobile browsers (especially iOS)
-      // iOS devices may report empty type or application/octet-stream for camera photos
-      const fileType = file.type.toLowerCase();
-      const fileName = file.name.toLowerCase();
-      const validImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'];
-      const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
-      
-      // Check by MIME type first, then by extension as fallback for mobile
-      const hasValidType = fileType.startsWith('image/') || validImageTypes.includes(fileType);
-      const hasValidExtension = validImageExtensions.some(ext => fileName.endsWith(ext));
-      
-      // Accept if either type or extension is valid (mobile browsers may not report correct MIME type)
-      // Also accept empty/generic types if extension looks like an image (common on mobile)
-      const isLikelyImage = hasValidType || hasValidExtension || 
-        (fileType === '' && hasValidExtension) ||
-        (fileType === 'application/octet-stream' && hasValidExtension);
-      
-      if (!isLikelyImage) {
+      // Validate file type using shared utility
+      if (!isValidImageFile(file)) {
         setError('Please select a valid image file (JPG, PNG, GIF, WebP, or HEIC)');
-        console.log('File rejected - type:', fileType, 'name:', fileName);
-        // Reset input value so user can try again
+        console.log('File rejected - type:', file.type, 'name:', file.name);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -205,7 +189,6 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
       // Validate file size (100MB max)
       if (file.size > 100 * 1024 * 1024) {
         setError('Image file size must be less than 100MB');
-        // Reset input value so user can try again
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -217,8 +200,25 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
         URL.revokeObjectURL(profilePicPreview);
       }
 
-      setProfilePicFile(file);
-      setProfilePicPreview(URL.createObjectURL(file));
+      // Process image for upload (converts HEIC from iPhone, compresses large files)
+      try {
+        setError('');
+        console.log('📷 Processing profile picture for upload...');
+        
+        // Profile pics use smaller dimensions (800x800) and lower size threshold (3MB)
+        const processedFile = await processImageForUpload(file, 800, 800, 3 * 1024 * 1024);
+        
+        setProfilePicFile(processedFile);
+        setProfilePicPreview(URL.createObjectURL(processedFile));
+        console.log('✅ Profile picture ready for upload');
+      } catch (conversionError) {
+        console.error('❌ Image processing failed:', conversionError);
+        // Fallback: try to use original file
+        console.warn('⚠️ Using original file as fallback');
+        setProfilePicFile(file);
+        setProfilePicPreview(URL.createObjectURL(file));
+      }
+      
       setError('');
       
       // Reset input value to allow selecting the same file again if needed
@@ -228,30 +228,13 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
     }
   };
 
-  const handleBannerImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBannerImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type - more permissive for mobile browsers (especially iOS)
-      // iOS devices may report empty type or application/octet-stream for camera photos
-      const fileType = file.type.toLowerCase();
-      const fileName = file.name.toLowerCase();
-      const validImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'];
-      const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
-      
-      // Check by MIME type first, then by extension as fallback for mobile
-      const hasValidType = fileType.startsWith('image/') || validImageTypes.includes(fileType);
-      const hasValidExtension = validImageExtensions.some(ext => fileName.endsWith(ext));
-      
-      // Accept if either type or extension is valid (mobile browsers may not report correct MIME type)
-      // Also accept empty/generic types if extension looks like an image (common on mobile)
-      const isLikelyImage = hasValidType || hasValidExtension || 
-        (fileType === '' && hasValidExtension) ||
-        (fileType === 'application/octet-stream' && hasValidExtension);
-      
-      if (!isLikelyImage) {
+      // Validate file type using shared utility
+      if (!isValidImageFile(file)) {
         setError('Please select a valid image file (JPG, PNG, GIF, WebP, or HEIC)');
-        console.log('File rejected - type:', fileType, 'name:', fileName);
-        // Reset input value so user can try again
+        console.log('File rejected - type:', file.type, 'name:', file.name);
         if (bannerInputRef.current) {
           bannerInputRef.current.value = '';
         }
@@ -261,7 +244,6 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
       // Validate file size (100MB max)
       if (file.size > 100 * 1024 * 1024) {
         setError('Banner image file size must be less than 100MB');
-        // Reset input value so user can try again
         if (bannerInputRef.current) {
           bannerInputRef.current.value = '';
         }
@@ -273,9 +255,24 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
         URL.revokeObjectURL(bannerImagePreview);
       }
 
-      setBannerImageFile(file);
-      setBannerImagePreview(URL.createObjectURL(file));
-      setError('');
+      // Process image for upload (converts HEIC from iPhone, compresses large files)
+      try {
+        setError('');
+        console.log('📷 Processing banner image for upload...');
+        
+        // Banner images use larger dimensions (1920x1920) and higher size threshold (5MB)
+        const processedFile = await processImageForUpload(file, 1920, 1920, 5 * 1024 * 1024);
+        
+        setBannerImageFile(processedFile);
+        setBannerImagePreview(URL.createObjectURL(processedFile));
+        console.log('✅ Banner image ready for upload');
+      } catch (conversionError) {
+        console.error('❌ Image processing failed:', conversionError);
+        // Fallback: try to use original file
+        console.warn('⚠️ Using original file as fallback');
+        setBannerImageFile(file);
+        setBannerImagePreview(URL.createObjectURL(file));
+      }
       
       // Reset input value to allow selecting the same file again if needed
       if (bannerInputRef.current) {
