@@ -110,8 +110,12 @@ export const prayerAPI = {
       formData.append('image', imageFile);
     }
     return api.post<PrayerRequest>('/prayers/with-image', formData, {
+      // CRITICAL: Do NOT set Content-Type manually - browser must set it with boundary
+      // Setting it manually breaks multipart/form-data on mobile browsers
+      // The browser will automatically set: multipart/form-data; boundary=----WebKitFormBoundary...
+      timeout: 60000, // 60 second timeout for file uploads
       headers: {
-        'Content-Type': 'multipart/form-data'
+        // Remove 'Content-Type': 'multipart/form-data' - let browser set it automatically
       }
     });
   },
@@ -149,8 +153,11 @@ export const prayerAPI = {
       formData.append('image', imageFile);
     }
     return api.put<PrayerRequest>(`/prayers/${id}/with-image`, formData, {
+      // CRITICAL: Do NOT set Content-Type manually - browser must set it with boundary
+      // Setting it manually breaks multipart/form-data on mobile browsers
+      timeout: 60000, // 60 second timeout for file uploads
       headers: {
-        'Content-Type': 'multipart/form-data'
+        // Remove 'Content-Type': 'multipart/form-data' - let browser set it automatically
       }
     });
   },

@@ -179,6 +179,16 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
       }
 
       const prayer = response.data;
+      
+      // Debug logging for image URL
+      console.log('✅ Prayer request created/updated:', {
+        id: prayer.id,
+        title: prayer.title,
+        imageUrl: prayer.imageUrl,
+        hasImage: !!prayer.imageUrl,
+        fullResponse: prayer
+      });
+      
       setSuccess(mode === 'edit' ? 'Prayer request updated successfully!' : 'Prayer request created successfully!');
       
       if (onSuccess) {
@@ -195,7 +205,32 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
         setSelectedImage(null);
       }
     } catch (err: any) {
-      setError(handleApiError(err));
+      console.error('❌ Prayer request submission error:', {
+        error: err,
+        response: err.response?.data,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        message: err.message,
+        isNetworkError: !err.response, // Network error (mobile timeout, connection lost, etc.)
+        isTimeout: err.code === 'ECONNABORTED',
+        config: err.config
+      });
+      
+      // Better error messages for mobile network issues
+      if (!err.response) {
+        // Network error (timeout, connection lost, etc.)
+        if (err.code === 'ECONNABORTED') {
+          setError('Request timed out. Please check your connection and try again. If the image is large, try a smaller file.');
+        } else {
+          setError('Network error. Please check your connection and try again. If the image is large, try a smaller file.');
+        }
+      } else if (err.response?.status === 413) {
+        setError('Image file is too large. Please use an image smaller than 10MB.');
+      } else if (err.response?.status === 400 && err.response?.data?.error?.includes('image')) {
+        setError(err.response.data.error);
+      } else {
+        setError(handleApiError(err));
+      }
     } finally {
       setLoading(false);
     }
@@ -726,6 +761,7 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
         @media (max-width: 768px) {
           .prayer-request-form {
             padding: 1.5rem;
+            padding-bottom: calc(1.5rem + 100px);
             margin: 1rem;
             max-height: calc(100vh - 20px);
           }

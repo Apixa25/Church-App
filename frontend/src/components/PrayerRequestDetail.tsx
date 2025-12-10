@@ -337,6 +337,18 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
                 src={prayer.imageUrl} 
                 alt={prayer.title}
                 className="prayer-image"
+                onError={(e) => {
+                  console.error('❌ Failed to load prayer image:', {
+                    imageUrl: prayer.imageUrl,
+                    prayerId: prayer.id,
+                    error: e
+                  });
+                  // Hide broken image
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+                onLoad={() => {
+                  console.log('✅ Prayer image loaded successfully:', prayer.imageUrl);
+                }}
               />
             </div>
           )}
