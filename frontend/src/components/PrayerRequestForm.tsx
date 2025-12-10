@@ -161,6 +161,24 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
           });
         }
         
+        // Validate processed file before setting it
+        if (!(processedFile instanceof File)) {
+          console.error('❌ Processed file is not a File object:', processedFile);
+          throw new Error('Image processing failed - invalid file object');
+        }
+        
+        if (processedFile.size === 0) {
+          console.error('❌ Processed file has zero size');
+          throw new Error('Image processing failed - file is empty');
+        }
+        
+        console.log('✅ Processed file validated:', {
+          name: processedFile.name,
+          size: (processedFile.size / 1024 / 1024).toFixed(2) + 'MB',
+          type: processedFile.type,
+          isFile: processedFile instanceof File
+        });
+        
         setSelectedImage(processedFile);
         
         // Create preview URL from processed file
@@ -222,6 +240,20 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
     setError(null);
     setSuccess(null);
 
+    // Extensive logging for iPhone debugging
+    const userAgent = navigator.userAgent;
+    const isIPhone = /iPhone|iPod/.test(userAgent);
+    
+    console.log('🚀 Prayer request submission started:', {
+      mode,
+      hasImage: !!selectedImage,
+      imageSize: selectedImage ? (selectedImage.size / 1024 / 1024).toFixed(2) + 'MB' : 'none',
+      imageType: selectedImage?.type || 'none',
+      imageName: selectedImage?.name || 'none',
+      device: isIPhone ? 'iPhone' : 'Other',
+      formData: data
+    });
+
     try {
       let response;
       
@@ -261,7 +293,42 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
         
         // If image was selected, use multipart endpoint
         if (selectedImage) {
-          response = await prayerAPI.createPrayerRequestWithImage(createRequest, selectedImage);
+          // Validate file before sending
+          if (!(selectedImage instanceof File)) {
+            console.error('❌ selectedImage is not a valid File object:', selectedImage);
+            throw new Error('Invalid image file. Please try selecting the image again.');
+          }
+          
+          if (selectedImage.size === 0) {
+            console.error('❌ selectedImage has zero size:', selectedImage);
+            throw new Error('Image file is empty. Please try selecting a different image.');
+          }
+          
+          console.log('📤 Sending prayer request with image:', {
+            fileName: selectedImage.name,
+            fileSize: (selectedImage.size / 1024 / 1024).toFixed(2) + 'MB',
+            fileType: selectedImage.type,
+            isFile: selectedImage instanceof File,
+            hasData: selectedImage.size > 0
+          });
+          
+          try {
+            response = await prayerAPI.createPrayerRequestWithImage(createRequest, selectedImage);
+            console.log('✅ Prayer request with image sent successfully');
+          } catch (apiError: any) {
+            console.error('❌ API call failed:', {
+              error: apiError,
+              message: apiError?.message,
+              response: apiError?.response?.data,
+              status: apiError?.response?.status,
+              statusText: apiError?.response?.statusText,
+              config: apiError?.config,
+              fileName: selectedImage.name,
+              fileSize: selectedImage.size,
+              fileType: selectedImage.type
+            });
+            throw apiError; // Re-throw to be caught by outer catch
+          }
         } else {
           response = await prayerAPI.createPrayerRequest(createRequest);
         }
