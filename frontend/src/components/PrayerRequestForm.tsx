@@ -417,6 +417,8 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
           border: 1px solid var(--border-primary);
           border-radius: var(--border-radius-md);
           box-shadow: var(--shadow-md);
+          max-height: 90vh;
+          overflow-y: auto;
         }
 
         .form-header {
@@ -725,6 +727,7 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
           .prayer-request-form {
             padding: 1.5rem;
             margin: 1rem;
+            max-height: calc(100vh - 20px);
           }
 
           .form-actions {
