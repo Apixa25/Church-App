@@ -465,27 +465,29 @@ const PostCard: React.FC<PostCardProps> = ({
     setShowMediaViewer(true);
   };
 
-  // Handle video click - load video if not already loaded
+  // Handle video click - load video if not already loaded, then auto-play
   const handleVideoClick = useCallback((index: number, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     
-    // Mark video as loaded (will trigger preload="auto")
+    // Mark video as loaded (will trigger React to set the src attribute)
     setLoadedVideos(prev => {
       const newSet = new Set(prev);
       newSet.add(index);
       return newSet;
     });
     
-    // Try to play video inline (no modal popup)
-    const video = videoRefs.current.get(index);
-    if (video) {
-      video.play().catch(err => {
-        console.log('Video autoplay prevented:', err);
-      });
-    }
-    
-    // NOTE: Removed handleMediaClick - videos now play inline instead of popping out
+    // Wait for React to re-render with the new src, then play
+    // This small delay allows the video element to receive its src attribute
+    setTimeout(() => {
+      const video = videoRefs.current.get(index);
+      if (video) {
+        // Play the video - single click should start playback
+        video.play().catch(err => {
+          console.log('Video autoplay prevented:', err);
+        });
+      }
+    }, 50); // Small delay for React to update DOM
   }, []);
 
   // Lazy loading with Intersection Observer for videos
