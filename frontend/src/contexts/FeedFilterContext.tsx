@@ -235,10 +235,9 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
   const refreshPreference = fetchPreference;
 
   // Set filter - memoized to prevent recreation
+  // 🎯 OPTIMIZED: No longer double-fetches after successful save
   const setFilter = useCallback(async (filter: FeedFilter, groupIds: string[] = [], selectedOrganizationId?: string): Promise<void> => {
     try {
-      console.log('🔧 FeedFilterContext: Setting filter:', filter, 'groupIds:', groupIds, 'selectedOrganizationId:', selectedOrganizationId);
-      
       // Optimistically update the preference state BEFORE the API call completes
       // This prevents PostFeed from reacting to stale state
       const optimisticPreference: FeedPreference = {
@@ -264,24 +263,21 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
       
       // Update state immediately (synchronously in the same render cycle)
       setPreference(optimisticPreference);
-      console.log('⚡ FeedFilterContext: Optimistically updated preference state to:', filter);
       
-      // Make API call
+      // Make API call (fire-and-forget style - we already have the optimistic update)
       await api.post('/feed-preferences', {
         activeFilter: filter,
         selectedGroupIds: filter === 'SELECTED_GROUPS' ? groupIds : [],
         selectedOrganizationId: filter === 'PRIMARY_ONLY' ? selectedOrganizationId : undefined,
       });
 
-      console.log('✅ FeedFilterContext: Filter saved to backend');
-      
-      // Clear optimistic update ref and refresh from server
+      // Clear optimistic update ref - success!
+      // 🎯 NO refreshPreference() call - we already have the correct state from optimistic update
       optimisticUpdateRef.current = null;
-      await refreshPreference();
-      console.log('✅ FeedFilterContext: Preference refreshed from server');
     } catch (error: any) {
       console.error('❌ FeedFilterContext: Error setting feed filter:', error);
       // Revert optimistic update on error by refreshing from server
+      optimisticUpdateRef.current = null;
       await refreshPreference();
       throw new Error(error.response?.data?.message || 'Failed to update feed filter');
     }

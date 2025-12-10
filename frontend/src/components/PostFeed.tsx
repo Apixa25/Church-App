@@ -70,8 +70,6 @@ const PostFeed: React.FC<PostFeedProps> = ({
   const pullStartY = useRef<number>(0);
   const isAtTopRef = useRef<boolean>(true);
   const lastFetchTimeRef = useRef<number>(0);
-  // 🎯 Track last activeOrganizationId to detect context changes
-  const lastActiveOrgIdRef = useRef<string | null>(activeOrganizationId);
 
   const POSTS_PER_PAGE = 20;
   const INITIAL_BATCH_SIZE = 5; // 🚀 Load 5 posts first for instant display (progressive loading)
@@ -373,135 +371,99 @@ const PostFeed: React.FC<PostFeedProps> = ({
     }
   }, [feedTypeString, posts]);
 
-  // Initialize from cache on mount if available, otherwise fetch
-  const initializedRef = useRef(false);
+  // ============================================================================
+  // 🎯 CONSOLIDATED FEED LOADING LOGIC
+  // This replaces 4 separate effects with a single, well-organized approach:
+  // 1. Filter changes → PRIMARY trigger for loading (context changes update filter)
+  // 2. refreshKey → ONLY for explicit user actions (pull-to-refresh, double-tap)
+  // 3. Initial mount → Load from cache or fetch once
+  // ============================================================================
+  
+  // Track state for preventing duplicate loads
+  const feedStateRef = useRef<{
+    initialized: boolean;
+    lastFilter: string;
+    lastRefreshKey: number;
+    lastOrgId: string | null;
+  }>({ initialized: false, lastFilter: '', lastRefreshKey: 0, lastOrgId: null });
+  
+  // 🎯 SINGLE EFFECT for filter changes (PRIMARY trigger)
+  // When filter changes (including on context switch), this is the ONLY place that loads
   useEffect(() => {
-    // Only initialize once per query key change
-    if (initializedRef.current) return;
+    const filterKey = `${activeFilter}-${selectedGroupIds?.join(',') || ''}`;
+    const state = feedStateRef.current;
     
+    // Skip if filter hasn't changed
+    if (state.lastFilter === filterKey && state.initialized) {
+      return;
+    }
+    
+    // Update state FIRST to prevent re-entry
+    state.lastFilter = filterKey;
+    
+    // Check cache first
     const cachedData = queryClient.getQueryData<Post[]>(queryKey);
-    if (cachedData && cachedData.length > 0) {
-      // Only log if not already initialized to reduce console spam
-      if (!initializedRef.current) {
-        console.log('📦 PostFeed: Loading from cache', cachedData.length, 'posts');
-      }
+    
+    if (cachedData && Array.isArray(cachedData) && cachedData.length > 0) {
+      // Show cached data immediately
       setPosts(cachedData);
       setLoading(false);
-      initializedRef.current = true;
-    } else {
-      // No cache, fetch fresh data
-      if (!initializedRef.current) {
-        console.log('📥 PostFeed: No cache, fetching fresh data');
+      
+      // If this is initial mount OR filter actually changed, refresh in background
+      if (!state.initialized) {
+        state.initialized = true;
+        // Initial mount - just use cache, React Query staleTime will handle background refresh
       }
-      // Use ref to avoid dependency on loadPosts function reference
+      // Note: For filter changes, the server returns different data, so we need fresh fetch
+      else if (loadPostsRef.current) {
+        loadPostsRef.current(true);
+      }
+    } else {
+      // No cache - fetch fresh data
+      state.initialized = true;
       if (loadPostsRef.current) {
         loadPostsRef.current(true);
       }
-      initializedRef.current = true;
     }
-  }, [queryKey, queryClient]); // Only run when query key changes, not loadPosts
+  }, [activeFilter, selectedGroupIds, queryKey, queryClient]);
   
-  // Reset initialization flag when query key changes
+  // 🎯 refreshKey effect - ONLY for explicit user actions (pull-to-refresh, double-tap home)
+  // This does NOT run on context changes anymore (Dashboard no longer increments refreshKey on context change)
   useEffect(() => {
-    initializedRef.current = false;
-  }, [queryKey]);
-
-  // Load posts when refreshKey changes (explicit refresh)
-  // Track last processed refreshKey to prevent infinite loops
-  const lastProcessedRefreshKeyRef = useRef<number>(0);
-  useEffect(() => {
-    if (refreshKey !== undefined && refreshKey > 0 && refreshKey !== lastProcessedRefreshKeyRef.current) {
-      console.log('🔄 PostFeed: refreshKey changed, checking cache first...', refreshKey);
-      lastProcessedRefreshKeyRef.current = refreshKey;
-      
-      // Check if we have cached data first
-      const cachedData = queryClient.getQueryData<Post[]>(queryKey);
-      const queryState = queryClient.getQueryState(queryKey);
-      
-      // Check if cache is fresh (within staleTime of 10 minutes)
-      const cacheAge = queryState?.dataUpdatedAt ? Date.now() - queryState.dataUpdatedAt : Infinity;
-      const isCacheFresh = cacheAge < 10 * 60 * 1000; // 10 minutes
-      
-      if (cachedData && Array.isArray(cachedData) && cachedData.length > 0) {
-        console.log('✅ PostFeed: Found cached posts', {
-          count: cachedData.length,
-          cacheAge: Math.round(cacheAge / 1000) + 's',
-          isFresh: isCacheFresh
-        });
-        
-        // Show cached posts immediately
-        setPosts(cachedData);
-        setLoading(false);
-        
-        // Only refresh in background if cache is stale (older than 10 minutes)
-        if (!isCacheFresh) {
-          console.log('🔄 PostFeed: Cache is stale, refreshing in background...');
-          if (loadPostsRef.current) {
-            loadPostsRef.current(true);
-          }
-        } else {
-          console.log('✅ PostFeed: Cache is fresh, skipping refresh - using cached data');
-        }
-      } else {
-        console.log('🔄 PostFeed: No cached posts, refreshing immediately');
-        // No cache, refresh immediately
-        if (loadPostsRef.current) {
-          loadPostsRef.current(true);
-        }
-      }
-    }
-  }, [refreshKey, queryKey, queryClient]); // Include queryKey to check correct cache
-
-  // Refresh feed when filter changes
-  // Track last filter state to prevent duplicate refreshes
-  const lastFilterRef = useRef<string>('');
-  useEffect(() => {
-    const filterKey = `${activeFilter}-${JSON.stringify(selectedGroupIds)}`;
-    if (filterKey === lastFilterRef.current) {
-      return; // Filter hasn't actually changed
-    }
-    lastFilterRef.current = filterKey;
-    console.log('🔄 PostFeed: Filter changed - activeFilter:', activeFilter, 'selectedGroupIds:', selectedGroupIds);
-    if (loadPostsRef.current) {
-      console.log('📥 PostFeed: Triggering feed refresh due to filter change');
-      loadPostsRef.current(true);
-    } else {
-      console.warn('⚠️ PostFeed: loadPostsRef.current is not set, cannot refresh feed');
-    }
-  }, [activeFilter, selectedGroupIds]);
-
-  // 🎯 When activeOrganizationId changes, check cache and show immediately
-  // NOTE: We DON'T trigger refresh here - let refreshKey mechanism handle it
-  // This prevents duplicate refreshes when Dashboard increments refreshKey
-  useEffect(() => {
-    // Only trigger if organization actually changed (not initial mount)
-    if (lastActiveOrgIdRef.current !== null && lastActiveOrgIdRef.current !== activeOrganizationId) {
-      console.log('🔄 PostFeed: Active context changed!', {
-        from: lastActiveOrgIdRef.current,
-        to: activeOrganizationId
-      });
-      
-      // Check if we have cached posts for the new context
-      const cachedData = queryClient.getQueryData<Post[]>(queryKey);
-      
-      if (cachedData && Array.isArray(cachedData) && cachedData.length > 0) {
-        console.log('✅ PostFeed: Found cached posts for new context, showing immediately (refreshKey will handle background refresh)');
-        // Show cached posts immediately - no background refresh needed
-        // The refreshKey from Dashboard will trigger a refresh if needed
-        setPosts(cachedData);
-        setLoading(false);
-        // DON'T call loadPosts here - let refreshKey handle it to avoid duplicate refreshes
-      } else {
-        console.log('🔄 PostFeed: No cached posts for new context - will wait for refreshKey to trigger refresh');
-        // No cache - clear posts and show loading
-        // The refreshKey from Dashboard will trigger the refresh
-        setPosts([]);
-        setLoading(true);
-      }
+    const state = feedStateRef.current;
+    
+    // Only process if refreshKey changed and is > 0 (explicit user action)
+    if (refreshKey === undefined || refreshKey <= 0 || refreshKey === state.lastRefreshKey) {
+      return;
     }
     
-    // Update ref
-    lastActiveOrgIdRef.current = activeOrganizationId;
+    state.lastRefreshKey = refreshKey;
+    
+    // Force refresh - user explicitly requested it
+    if (loadPostsRef.current) {
+      loadPostsRef.current(true);
+    }
+  }, [refreshKey]);
+  
+  // 🎯 activeOrganizationId effect - Just show cached data, don't trigger loads
+  // The filter change effect will handle loading (Dashboard calls setFilter on context change)
+  useEffect(() => {
+    const state = feedStateRef.current;
+    
+    // Skip if org hasn't changed or on initial mount
+    if (state.lastOrgId === activeOrganizationId) {
+      return;
+    }
+    
+    state.lastOrgId = activeOrganizationId;
+    
+    // Just show cached data if available - filter effect will handle loading
+    const cachedData = queryClient.getQueryData<Post[]>(queryKey);
+    if (cachedData && Array.isArray(cachedData) && cachedData.length > 0) {
+      setPosts(cachedData);
+      setLoading(false);
+    }
+    // Note: We do NOT load here - the filter change effect handles it
   }, [activeOrganizationId, queryKey, queryClient]);
 
   // Set up WebSocket subscriptions for real-time updates

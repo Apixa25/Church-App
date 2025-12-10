@@ -24,13 +24,11 @@ const WarningBanner: React.FC<WarningBannerProps> = ({ onViewWarnings }) => {
         const response = await getMyWarnings();
         const count = response.totalWarningCount || response.warningCount || 0;
         setWarningCount(count);
-        console.log('⚠️ WarningBanner: Loaded warnings - count:', count, 'response:', response);
         
         // Check if user has dismissed the banner before (stored in localStorage)
         const dismissedKey = `warning_banner_dismissed_${user.id || user.userId}`;
         const dismissed = localStorage.getItem(dismissedKey);
         setIsDismissed(dismissed === 'true');
-        console.log('⚠️ WarningBanner: isDismissed:', dismissed === 'true');
       } catch (error) {
         console.error('❌ Error loading warnings:', error);
         // Still set loading to false even on error
@@ -49,9 +47,6 @@ const WarningBanner: React.FC<WarningBannerProps> = ({ onViewWarnings }) => {
       setIsDismissed(true);
     }
   };
-
-  // Debug logging
-  console.log('⚠️ WarningBanner render check:', { isLoading, warningCount, isDismissed, userId: user?.id });
 
   if (isLoading) {
     return null; // Don't show while loading
