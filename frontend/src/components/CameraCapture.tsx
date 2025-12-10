@@ -60,17 +60,17 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
         stream.getTracks().forEach(track => track.stop());
       }
 
-      // Optimized for social media video (like X/Twitter, Instagram)
-      // 720p @ 30fps is the industry standard for mobile social apps
-      // This provides smooth capture while keeping files small for fast uploads
+      // Market-standard video constraints (X.com/Instagram approach)
+      // Request 1080p resolution - let device choose its native resolution
+      // Modern platforms (Instagram, X.com) support and prefer 1080p
       const constraints: MediaStreamConstraints = {
         video: {
           facingMode: facingMode,
-          // 720p is optimal for social feeds - users watch on small screens anyway
-          width: { ideal: 1280, min: 640, max: 1280 },
-          height: { ideal: 720, min: 480, max: 720 },
-          // 30fps is smooth and battery-friendly (X, Instagram, TikTok all use 30fps default)
-          frameRate: { ideal: 30, min: 24, max: 30 }
+          // Request 1080p like Instagram/X.com - remove max to allow device's native resolution
+          width: { ideal: 1920, min: 1280 },  // Allow up to 1080p (no max constraint)
+          height: { ideal: 1080, min: 720 },  // Allow up to 1080p (no max constraint)
+          // Allow up to 60fps if device supports it (X.com/Instagram standard)
+          frameRate: { ideal: 30, min: 15, max: 60 }
         },
         audio: true // Always request audio so switching to video mode doesn't restart camera
       };
@@ -80,6 +80,16 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
 
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
+        // Ensure video element is ready before recording
+        videoRef.current.onloadedmetadata = () => {
+          const videoTrack = mediaStream.getVideoTracks()[0];
+          const settings = videoTrack.getSettings();
+          console.log('📹 Camera ready:', {
+            width: videoRef.current?.videoWidth || settings.width,
+            height: videoRef.current?.videoHeight || settings.height,
+            frameRate: settings.frameRate
+          });
+        };
       }
     } catch (err: any) {
       console.error('Error accessing camera:', err);
@@ -182,7 +192,31 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
         return;
       }
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      // Calculate bitrate based on actual resolution (Instagram/X.com approach)
+      // Get actual video track settings to determine resolution
+      const videoTrack = stream.getVideoTracks()[0];
+      const settings = videoTrack.getSettings();
+      const actualWidth = settings.width || videoRef.current?.videoWidth || 1920;
+      const actualHeight = settings.height || videoRef.current?.videoHeight || 1080;
+
+      // Market-standard bitrates (Instagram: 3.5 Mbps for 1080p, 2 Mbps for 720p)
+      let videoBitrate: number;
+      if (actualWidth >= 1920 || actualHeight >= 1080) {
+        videoBitrate = 3500000;  // 3.5 Mbps for 1080p (Instagram standard)
+        console.log('📹 Using 1080p bitrate: 3.5 Mbps');
+      } else {
+        videoBitrate = 2000000;  // 2 Mbps for 720p
+        console.log('📹 Using 720p bitrate: 2 Mbps');
+      }
+      const audioBitrate = 128000; // 128 kbps AAC (industry standard)
+
+      // Create MediaRecorder with explicit bitrate (critical for quality)
+      // This matches Instagram/X.com approach of setting explicit bitrates
+      const mediaRecorder = new MediaRecorder(stream, { 
+        mimeType,
+        videoBitsPerSecond: videoBitrate,  // Explicit bitrate prevents browser defaults
+        audioBitsPerSecond: audioBitrate   // 128 kbps AAC
+      });
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -204,9 +238,10 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
         stopCamera();
       };
 
-      // Start recording with timeslice for better iOS compatibility
-      // iOS Safari requires timeslice parameter for reliable recording
-      mediaRecorder.start(100); // Collect data every 100ms
+      // Start recording with optimized timeslice
+      // Larger timeslice (250ms) reduces overhead and improves performance
+      // iOS Safari works fine with larger timeslices too
+      mediaRecorder.start(250); // Collect data every 250ms (better performance than 100ms)
       mediaRecorderRef.current = mediaRecorder;
       setIsRecording(true);
     } catch (err: any) {

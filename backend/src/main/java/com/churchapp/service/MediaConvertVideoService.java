@@ -176,10 +176,12 @@ public class MediaConvertVideoService {
                 .build();
 
         // SIMPLE H.264 video settings
-        // VBR mode requires bitrate - using 1 Mbps (1000 kbps) for good quality
+        // VBR mode requires bitrate - using configured bitrate (market standard: 3.5 Mbps for 1080p)
+        // Convert from kbps (config) to bps (MediaConvert API expects bits per second)
+        int bitrateBps = videoBitrate * 1000;  // Convert kbps to bps
         H264Settings h264Settings = H264Settings.builder()
                 .rateControlMode(H264RateControlMode.VBR)
-                .bitrate(1000000)           // 1 Mbps - required for VBR mode
+                .bitrate(bitrateBps)           // Use configured bitrate (3.5 Mbps = 3500 kbps)
                 .codecProfile(H264CodecProfile.MAIN)
                 .codecLevel(H264CodecLevel.AUTO)
                 .build();
