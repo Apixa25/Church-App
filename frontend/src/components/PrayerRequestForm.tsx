@@ -13,6 +13,7 @@ import {
 import { prayerAPI, handleApiError } from '../services/prayerApi';
 import { useActiveContext } from '../contexts/ActiveContextContext';
 import LoadingSpinner from './LoadingSpinner';
+import { processImageForUpload } from '../utils/imageUtils';
 
 interface PrayerRequestFormProps {
   existingPrayer?: PrayerRequest;
@@ -74,7 +75,7 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
     }
   }, [existingPrayer, reset]);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // Validate file type - more permissive for mobile browsers
@@ -106,15 +107,103 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
         return;
       }
       
-      setSelectedImage(file);
       setError(null);
+      setLoading(true);
       
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        // Smart image processing following industry best practices (Instagram/X.com approach):
+        // - Always convert HEIC/HEIF (server compatibility)
+        // - Only compress large files (>5MB) for faster uploads
+        // - Skip processing for small optimized JPEGs (<2MB)
+        const userAgent = navigator.userAgent;
+        const isIPhone = /iPhone|iPod/.test(userAgent);
+        
+        console.log('📷 Processing image for upload (smart compression)...', {
+          name: file.name,
+          type: file.type,
+          size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+          device: isIPhone ? 'iPhone' : 'Other',
+          userAgent: userAgent
+        });
+        
+        // Add timeout wrapper for iPhone - processing can hang on large files
+        let processedFile: File;
+        if (isIPhone && file.size > 5 * 1024 * 1024) {
+          console.log('⏱️ iPhone large file detected, using timeout protection...');
+          try {
+            processedFile = await Promise.race([
+              processImageForUpload(file, 1920, 1920, 5 * 1024 * 1024),
+              new Promise<File>((_, reject) => 
+                setTimeout(() => reject(new Error('Processing timeout')), 25000) // 25 second timeout
+              )
+            ]);
+          } catch (timeoutError) {
+            console.warn('⚠️ Image processing timed out on iPhone, using original file:', timeoutError);
+            processedFile = file; // Use original if processing times out
+          }
+        } else {
+          processedFile = await processImageForUpload(file, 1920, 1920, 5 * 1024 * 1024);
+        }
+        
+        // Only log if file was actually processed (not skipped)
+        if (processedFile !== file) {
+          const reduction = Math.round((1 - processedFile.size / file.size) * 100);
+          console.log('✅ Image processed:', {
+            originalSize: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+            processedSize: (processedFile.size / 1024 / 1024).toFixed(2) + 'MB',
+            reduction: reduction + '%',
+            uploadTimeEstimate: '~' + Math.round(processedFile.size / 1024 / 50) + 's on 4G'
+          });
+        } else {
+          console.log('✅ Image ready (no processing needed):', {
+            size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+            type: file.type
+          });
+        }
+        
+        setSelectedImage(processedFile);
+        
+        // Create preview URL from processed file
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result as string);
+        };
+        reader.onerror = (err) => {
+          console.error('❌ FileReader error creating preview:', err);
+          // Continue anyway - preview is optional
+        };
+        reader.readAsDataURL(processedFile);
+      } catch (error: any) {
+        console.error('❌ Image processing failed:', {
+          error,
+          message: error?.message,
+          stack: error?.stack,
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type
+        });
+        
+        // Fallback: use original file - server can handle it
+        console.warn('⚠️ Using original file as fallback - server will process it');
+        setSelectedImage(file);
+        
+        // Create preview URL from original file
+        try {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setImagePreview(reader.result as string);
+          };
+          reader.onerror = (err) => {
+            console.error('❌ FileReader error on fallback:', err);
+          };
+          reader.readAsDataURL(file);
+        } catch (readerError) {
+          console.error('❌ Failed to create preview even with original file:', readerError);
+          // Continue without preview - user can still submit
+        }
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -326,11 +415,11 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
               </div>
             )}
             {/* Single file input for both states - prevents duplicate ID issue */}
+            {/* Note: Removed capture="environment" to allow gallery selection on mobile */}
             <input
               id="prayer-image-input"
               type="file"
               accept="image/*,.heic,.heif"
-              capture="environment"
               onChange={handleImageSelect}
               disabled={loading}
               style={{ display: 'none' }}

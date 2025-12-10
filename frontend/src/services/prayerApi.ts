@@ -120,7 +120,7 @@ export const prayerAPI = {
       // CRITICAL: Do NOT set Content-Type manually - browser must set it with boundary
       // The request interceptor will automatically delete Content-Type for FormData
       // The browser will automatically set: multipart/form-data; boundary=----WebKitFormBoundary...
-      timeout: 60000 // 60 second timeout for file uploads
+      timeout: 90000 // 90 second timeout for file uploads (mobile networks can be slow)
     });
   },
 
@@ -160,7 +160,7 @@ export const prayerAPI = {
       // CRITICAL: Do NOT set Content-Type manually - browser must set it with boundary
       // The request interceptor will automatically delete Content-Type for FormData
       // The browser will automatically set: multipart/form-data; boundary=----WebKitFormBoundary...
-      timeout: 60000 // 60 second timeout for file uploads
+      timeout: 90000 // 90 second timeout for file uploads (mobile networks can be slow)
     });
   },
 
