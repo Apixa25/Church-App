@@ -45,14 +45,6 @@ const Dashboard: React.FC = () => {
   // Legacy compatibility: primaryMembership maps to the currently active context
   const primaryMembership = activeMembership;
   
-  // Track previous context to detect changes (for filter updates)
-  const prevContextRef = useRef<string | null>(null);
-  const prevOrgIdRef = useRef<string | null>(null);
-  
-  // Track previous context separately for dashboard re-fetch
-  const prevDashboardContextRef = useRef<string | null>(null);
-  const prevDashboardOrgIdRef = useRef<string | null>(null);
-  
   // Track attempted banner fallbacks to prevent infinite loops
   const bannerFallbackAttemptedRef = useRef<Set<string>>(new Set());
   
@@ -77,41 +69,13 @@ const Dashboard: React.FC = () => {
     return () => window.removeEventListener('feedRefresh', handleFeedRefresh);
   }, []);
 
-  // 🎯 Track last activeContext to detect changes
-  const lastActiveContextRef = useRef<ActiveContextType>(activeContext);
-  const lastActiveOrgIdRef = useRef<string | null>(activeOrganizationId);
-
-  // 🎯 When context changes, trigger feed refresh
-  useEffect(() => {
-    // Only trigger if context actually changed (not initial mount)
-    if (
-      lastActiveContextRef.current !== activeContext ||
-      lastActiveOrgIdRef.current !== activeOrganizationId
-    ) {
-      console.log('🔄 Dashboard: Context changed! Triggering feed refresh...', {
-        from: { context: lastActiveContextRef.current, orgId: lastActiveOrgIdRef.current },
-        to: { context: activeContext, orgId: activeOrganizationId }
-      });
-      
-      // Increment refreshKey to trigger PostFeed refresh
-      setFeedRefreshKey(prev => prev + 1);
-      
-      // Update refs
-      lastActiveContextRef.current = activeContext;
-      lastActiveOrgIdRef.current = activeOrganizationId;
-    }
-  }, [activeContext, activeOrganizationId]);
-
-  // Debug: Log render conditions
-  useEffect(() => {
-    console.log('🔍 Dashboard Render Debug:', {
-      feedView,
-      hasPrimaryOrg: hasAnyPrimary,
-      showContextSwitcher,
-      activeContext,
-      hasAnyPrimary
-    });
-  }, [feedView, hasAnyPrimary, showContextSwitcher, activeContext]);
+  // 🎯 CONSOLIDATED: Single ref to track context changes (prevents duplicate effects)
+  // This replaces multiple overlapping refs and effects
+  const contextStateRef = useRef<{
+    context: string | null;
+    orgId: string | null;
+    initialized: boolean;
+  }>({ context: null, orgId: null, initialized: false });
 
   // Social score - hearts state
   const [heartsCount, setHeartsCount] = useState(0);
@@ -266,117 +230,65 @@ const Dashboard: React.FC = () => {
     }
   }, [hasPrimaryOrg, feedView]);
 
-  // Auto-refresh feed and update filter when context changes
+  // ============================================================================
+  // 🎯 CONSOLIDATED CONTEXT CHANGE HANDLER (replaces 3 separate useEffects)
+  // This single effect handles: filter updates, dashboard refetch, and feed refresh
+  // ============================================================================
   useEffect(() => {
-    // Skip on initial mount (when prevContextRef is null)
-    if (prevContextRef.current === null) {
-      prevContextRef.current = activeContext || 'gathering';
-      prevOrgIdRef.current = activeOrganizationId || null;
-      return;
-    }
-
-    // Check if context or organization actually changed
-    const contextChanged = prevContextRef.current !== (activeContext || 'gathering');
-    const orgChanged = prevOrgIdRef.current !== (activeOrganizationId || null);
-
-    if ((contextChanged || orgChanged) && activeOrganizationId && (activeContext === 'church' || activeContext === 'family')) {
-      // Context changed - automatically set filter to PRIMARY_ONLY for the new organization
-      console.log('🔄 Context changed, auto-updating filter to PRIMARY_ONLY for:', activeOrganizationId);
-      
-      setFilter('PRIMARY_ONLY', [], activeOrganizationId)
-        .then(() => {
-          // Filter change will trigger PostFeed refresh automatically via filter change effect
-          // No need to manually refresh here - PostFeed listens to filter changes
-          console.log('✅ Filter updated, PostFeed will refresh automatically');
-        })
-        .catch((error) => {
-          console.error('Failed to update filter on context change:', error);
-          // Only refresh if filter update fails (fallback)
-          setFeedRefreshKey(prev => prev + 1);
-        });
-    }
-
-    // Update refs for next comparison
-    prevContextRef.current = activeContext || 'gathering';
-    prevOrgIdRef.current = activeOrganizationId || null;
-  }, [activeContext, activeOrganizationId, setFilter]);
-
-  // Re-fetch dashboard data when active context or organization changes
-  // Use activeOrganizationId as the primary trigger since it changes when context switches
-  useEffect(() => {
-    // Allow fetching even without organizationId (for admins or users without primary org)
-    // But only if we're authenticated and not in a transitional state
-    const shouldFetch = user && (
-      // Has valid organizationId with church/family context
-      (activeOrganizationId && (activeContext === 'church' || activeContext === 'family')) ||
-      // Or in gathering context (no primary org) - still fetch for admin actions
-      (activeContext === 'gathering' && !activeOrganizationId)
-    );
-    
-    if (!shouldFetch) {
-      console.log('🔄 Dashboard - Skipping fetch: conditions not met', { 
-        activeOrganizationId, 
-        activeContext, 
-        hasUser: !!user 
-      });
-      // Update refs even when skipping to prevent false change detection on next render
-      prevDashboardContextRef.current = activeContext || 'gathering';
-      prevDashboardOrgIdRef.current = activeOrganizationId || null;
-      return;
-    }
-
     const currentContext = activeContext || 'gathering';
     const currentOrgId = activeOrganizationId || null;
+    const prevState = contextStateRef.current;
     
-    console.log('🔄 Dashboard - Context change useEffect triggered');
-    console.log('🔄 Dashboard - prevDashboardContextRef.current:', prevDashboardContextRef.current);
-    console.log('🔄 Dashboard - currentContext:', currentContext);
-    console.log('🔄 Dashboard - prevDashboardOrgIdRef.current:', prevDashboardOrgIdRef.current);
-    console.log('🔄 Dashboard - currentOrgId:', currentOrgId);
+    // Check if this is initial mount
+    if (!prevState.initialized) {
+      contextStateRef.current = {
+        context: currentContext,
+        orgId: currentOrgId,
+        initialized: true
+      };
+      return; // Skip on initial mount - React Query handles initial fetch
+    }
     
-    // Handle initial mount - fetch data if we have a valid organizationId
-    if (prevDashboardContextRef.current === null) {
-      console.log('🔄 Dashboard - Initial mount, checking if we should fetch');
-      prevDashboardContextRef.current = currentContext;
-      prevDashboardOrgIdRef.current = currentOrgId;
-      
-      // Fetch data on initial mount if conditions are met
-      // This handles the case when user first logs in and contexts are ready
-      // Note: React Query will automatically fetch on mount, so this is mainly for logging
-      if (shouldFetch) {
-        console.log('🔄 Dashboard - Initial mount with valid conditions, React Query will fetch dashboard data');
-      } else {
-        console.log('🔄 Dashboard - Initial mount but conditions not met yet, will fetch when ready');
-      }
+    // Check if context or organization actually changed
+    const contextChanged = prevState.context !== currentContext;
+    const orgChanged = prevState.orgId !== currentOrgId;
+    
+    // Exit early if nothing changed (most common case)
+    if (!contextChanged && !orgChanged) {
       return;
     }
-
-    // Check if context or organization actually changed
-    const contextChanged = prevDashboardContextRef.current !== currentContext;
-    const orgChanged = prevDashboardOrgIdRef.current !== currentOrgId;
-
-    console.log('🔄 Dashboard - contextChanged:', contextChanged, 'orgChanged:', orgChanged);
-    console.log('🔄 Dashboard - prevContext:', prevDashboardContextRef.current, 'currentContext:', currentContext);
-    console.log('🔄 Dashboard - prevOrgId:', prevDashboardOrgIdRef.current, 'currentOrgId:', currentOrgId);
-
-    if (contextChanged || orgChanged) {
-      console.log('🔄 Context/Org changed, React Query will automatically refetch dashboard data for:', activeOrganizationId);
-      // Update refs BEFORE fetching to prevent duplicate calls
-      prevDashboardContextRef.current = currentContext;
-      prevDashboardOrgIdRef.current = currentOrgId;
-      // React Query automatically refetches when query key changes (activeOrganizationId)
-      // Force a manual refetch to ensure fresh data
-      refetchDashboard();
-      // Note: Feed will refresh automatically when filter changes (handled in filter change effect above)
-      // No need to manually refresh feed here - PostFeed uses React Query cache and will update when filter changes
-    } else {
-      console.log('🔄 Dashboard - No change detected');
-      // Still update refs even if no fetch
-      prevDashboardContextRef.current = currentContext;
-      prevDashboardOrgIdRef.current = currentOrgId;
+    
+    // Update ref FIRST to prevent duplicate processing
+    contextStateRef.current = {
+      context: currentContext,
+      orgId: currentOrgId,
+      initialized: true
+    };
+    
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔄 Dashboard: Context changed', {
+        from: { context: prevState.context, orgId: prevState.orgId },
+        to: { context: currentContext, orgId: currentOrgId }
+      });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeContext, activeOrganizationId]);
+    
+    // Handle context change - do all updates in ONE place
+    if (currentOrgId && (currentContext === 'church' || currentContext === 'family')) {
+      // 1. Update filter (this will trigger PostFeed refresh via filter change)
+      setFilter('PRIMARY_ONLY', [], currentOrgId).catch((error) => {
+        console.error('Failed to update filter on context change:', error);
+      });
+      
+      // 2. Dashboard data will auto-refetch via React Query (queryKey includes activeOrganizationId)
+      // No need to call refetchDashboard() - it's redundant!
+    }
+    
+    // Note: We do NOT call setFeedRefreshKey here anymore!
+    // PostFeed will refresh automatically when filter changes OR when queryKey changes
+    // This eliminates the duplicate refresh problem
+    
+  }, [activeContext, activeOrganizationId, setFilter]);
 
   // Handle reset flag from Home button click - reset dashboard to initial state
   // NOTE: This is now only triggered by explicit double-tap, not regular navigation
@@ -433,19 +345,6 @@ const Dashboard: React.FC = () => {
   const shouldUseUserBanner = hasUserBanner && userBannerUrls;
   const shouldUseOrgLogo = !shouldUseUserBanner && hasOrgLogo;
   
-  console.log('🖼️ Banner Image Debug:', {
-    activeContext,
-    activeOrganizationLogo,
-    activeOrganizationName,
-    activeMembershipType: activeMembership?.organizationType,
-    activeMembershipLogoUrl: activeMembership?.organizationLogoUrl,
-    isGatheringGlobal,
-    hasOrgLogo,
-    hasUserBanner,
-    shouldUseOrgLogo,
-    shouldUseUserBanner
-  });
-  
   // Determine banner image with priority:
   // 1. User banner image (if logged in and has banner)
   // 2. Organization logo (if no user banner)
@@ -471,7 +370,6 @@ const Dashboard: React.FC = () => {
   }, [bannerImageUrl, activeContext, activeOrganizationId]);
   
   const decision = shouldUseUserBanner ? 'USER_BANNER' : (shouldUseOrgLogo ? 'ORG_LOGO' : 'DEFAULT');
-  console.log('🖼️ Final bannerImageUrl:', bannerImageUrl, '| Decision:', decision, '| Org logo available:', hasOrgLogo, '| User banner available:', hasUserBanner);
     
   // Get display name for header - uses active context
   const displayOrgName = activeOrganizationName || 'The Gathering';

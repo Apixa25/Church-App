@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Post, PostType, Comment, SharePostRequest } from '../types/Post';
 import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost, deletePost, recordPostView, blockUser, unblockUser, getBlockStatus, followUser, unfollowUser, getFollowStatus, reportContent } from '../services/postApi';
@@ -538,11 +538,7 @@ const PostCard: React.FC<PostCardProps> = ({
   }, [post.mediaUrls, visibleVideos]);
 
   const renderMedia = () => {
-    // 🐛 DEBUG: Log media URLs and thumbnail URLs for troubleshooting
-    console.log('🖼️ PostCard renderMedia - postId:', post.id, 'mediaUrls:', post.mediaUrls, 'mediaTypes:', post.mediaTypes, 'thumbnailUrls:', post.thumbnailUrls);
-    
     if (!post.mediaUrls || post.mediaUrls.length === 0) {
-      console.log('🖼️ PostCard: No media URLs for post', post.id);
       return null;
     }
 
@@ -575,10 +571,8 @@ const PostCard: React.FC<PostCardProps> = ({
                 className="media-image"
                 loading="lazy"
                 onError={(e) => {
+                  // Only log errors, not every successful load
                   console.error('🖼️ PostCard: Image failed to load:', post.mediaUrls[0], 'for post:', post.id);
-                }}
-                onLoad={() => {
-                  console.log('🖼️ PostCard: Image loaded successfully:', post.mediaUrls[0].substring(0, 80) + '...');
                 }}
               />
             ) : (
@@ -1082,4 +1076,31 @@ const PostCard: React.FC<PostCardProps> = ({
   );
 };
 
-export default PostCard;
+// 🎯 OPTIMIZATION: Memoize PostCard to prevent unnecessary re-renders
+// Only re-render when post data actually changes
+const MemoizedPostCard = memo(PostCard, (prevProps, nextProps) => {
+  // Return true if props are EQUAL (skip re-render)
+  // Return false if props are DIFFERENT (re-render)
+  
+  const prevPost = prevProps.post;
+  const nextPost = nextProps.post;
+  
+  // Check critical fields that affect display
+  if (prevPost.id !== nextPost.id) return false;
+  if (prevPost.likesCount !== nextPost.likesCount) return false;
+  if (prevPost.commentsCount !== nextPost.commentsCount) return false;
+  if (prevPost.sharesCount !== nextPost.sharesCount) return false;
+  if (prevPost.isLikedByCurrentUser !== nextPost.isLikedByCurrentUser) return false;
+  if (prevPost.isBookmarkedByCurrentUser !== nextPost.isBookmarkedByCurrentUser) return false;
+  if (prevPost.content !== nextPost.content) return false;
+  if (prevPost.updatedAt !== nextPost.updatedAt) return false;
+  
+  // Check callback references only if they exist
+  if (prevProps.onPostUpdate !== nextProps.onPostUpdate) return false;
+  if (prevProps.onPostDelete !== nextProps.onPostDelete) return false;
+  
+  // All checked props are equal - skip re-render
+  return true;
+});
+
+export default MemoizedPostCard;
