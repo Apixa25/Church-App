@@ -89,6 +89,14 @@ public class PostResponse {
         response.setQuote(post.getIsQuote());
         response.setCreatedAt(post.getCreatedAt());
         response.setUpdatedAt(post.getUpdatedAt());
+        
+        // #region agent log
+        try {
+            java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Admin\\Church-App\\Church-App\\.cursor\\debug.log", true);
+            fw.write(String.format("{\"id\":\"log_%d_%s\",\"timestamp\":%d,\"location\":\"PostResponse.java:90\",\"message\":\"PostResponse.fromEntity - createdAt timestamp\",\"data\":{\"postId\":\"%s\",\"createdAt\":\"%s\",\"createdAtIsNull\":%b,\"createdAtToString\":\"%s\"},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"C\"}\n", System.currentTimeMillis(), java.util.UUID.randomUUID().toString().substring(0,8), System.currentTimeMillis(), post.getId().toString(), post.getCreatedAt() != null ? post.getCreatedAt().toString() : "null", post.getCreatedAt() == null, post.getCreatedAt() != null ? post.getCreatedAt().toString() : "null"));
+            fw.close();
+        } catch (Exception e) {}
+        // #endregion
         response.setPostType(post.getPostType());
         response.setAnonymous(post.getIsAnonymous());
         response.setCategory(post.getCategory());
