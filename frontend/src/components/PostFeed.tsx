@@ -384,33 +384,40 @@ const PostFeed: React.FC<PostFeedProps> = ({
     initialized: boolean;
     lastFilter: string;
     lastFeedType: string; // 🐛 Track feedType changes (Community/Following/Trending)
+    lastQueryKey: string; // 🐛 Track queryKey changes (includes activeOrganizationId)
     lastRefreshKey: number;
     lastOrgId: string | null;
-  }>({ initialized: false, lastFilter: '', lastFeedType: '', lastRefreshKey: 0, lastOrgId: null });
+  }>({ initialized: false, lastFilter: '', lastFeedType: '', lastQueryKey: '', lastRefreshKey: 0, lastOrgId: null });
   
   // 🎯 SINGLE EFFECT for filter changes (PRIMARY trigger)
   // When filter changes (including on context switch), this is the ONLY place that loads
   useEffect(() => {
     const filterKey = `${activeFilter}-${selectedGroupIds?.join(',') || ''}`;
+    const queryKeyString = queryKey.join('-'); // Convert queryKey array to string for comparison
     const state = feedStateRef.current;
     
-    // 🐛 FIX: Check if feedType OR filter changed
+    // 🐛 FIX: Check if feedType, filter, OR queryKey (which includes activeOrganizationId) changed
     const feedTypeChanged = state.lastFeedType !== feedTypeString;
     const filterChanged = state.lastFilter !== filterKey;
+    const queryKeyChanged = state.lastQueryKey !== queryKeyString;
     
-    // Skip if neither feedType nor filter changed (and already initialized)
-    if (!feedTypeChanged && !filterChanged && state.initialized) {
+    // Skip if nothing changed (and already initialized)
+    if (!feedTypeChanged && !filterChanged && !queryKeyChanged && state.initialized) {
       return;
     }
     
-    // 🐛 DEBUG: Log when feed type changes (helps verify fix is working)
+    // 🐛 DEBUG: Log when feed type, filter, or context changes (helps verify fix is working)
     if (feedTypeChanged && state.initialized) {
       console.log('🔄 PostFeed: Feed type changed from', state.lastFeedType, 'to', feedTypeString);
+    }
+    if (queryKeyChanged && state.initialized) {
+      console.log('🔄 PostFeed: Query key changed (context/organization changed) from', state.lastQueryKey, 'to', queryKeyString);
     }
     
     // Update state FIRST to prevent re-entry
     state.lastFilter = filterKey;
     state.lastFeedType = feedTypeString; // 🐛 Track current feedType
+    state.lastQueryKey = queryKeyString; // 🐛 Track current queryKey (includes activeOrganizationId)
     
     // Check cache first
     const cachedData = queryClient.getQueryData<Post[]>(queryKey);
@@ -420,12 +427,12 @@ const PostFeed: React.FC<PostFeedProps> = ({
       setPosts(cachedData);
       setLoading(false);
       
-      // If this is initial mount OR filter/feedType actually changed, refresh in background
+      // If this is initial mount OR filter/feedType/context actually changed, refresh in background
       if (!state.initialized) {
         state.initialized = true;
         // Initial mount - just use cache, React Query staleTime will handle background refresh
       }
-      // Note: For filter/feedType changes, the server returns different data, so we need fresh fetch
+      // Note: For filter/feedType/context changes, the server returns different data, so we need fresh fetch
       else if (loadPostsRef.current) {
         loadPostsRef.current(true);
       }
