@@ -14,11 +14,9 @@ root.render(
   </React.StrictMode>
 );
 
-// Register service worker for offline support and faster load times
-serviceWorkerRegistration.register({
-  onSuccess: () => console.log('App cached for offline use'),
-  onUpdate: () => console.log('New content available; please refresh'),
-});
+// Service worker disabled for now - enable when PWA features are needed
+// To enable: Create a service-worker.js file and use serviceWorkerRegistration.register()
+serviceWorkerRegistration.unregister();
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))

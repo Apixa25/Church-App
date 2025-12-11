@@ -265,11 +265,25 @@
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
+  /* iOS Safari fix: Use padding-bottom trick as fallback */
+  padding-bottom: 56.25%; /* 16:9 aspect ratio (9/16 = 0.5625) */
+  height: 0; /* Required for padding-bottom trick */
   overflow: hidden;
   border-radius: var(--border-radius-md);
   background: var(--bg-secondary);
   cursor: pointer;
   transition: transform var(--transition-base), opacity var(--transition-base);
+  /* Force aspect ratio on iOS */
+  -webkit-aspect-ratio: 16 / 9;
+  display: block;
+}
+
+/* Modern browsers: use aspect-ratio, override padding-bottom */
+@supports (aspect-ratio: 16 / 9) {
+  .media-item {
+    padding-bottom: 0;
+    height: auto;
+  }
 }
 
 .media-item:hover {
@@ -286,20 +300,36 @@
 }
 
 .media-image {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
   display: block;
+  /* iOS Safari fix: Force dimensions */
+  min-width: 100%;
+  min-height: 100%;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .media-video {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
   display: block;
   background: var(--bg-secondary);
+  /* iOS Safari fix: Force dimensions */
+  min-width: 100%;
+  min-height: 100%;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 /* Video error message - shown when video can't play (e.g., WebM on iOS) */
@@ -332,7 +362,9 @@
 
 /* Video container wrapper for play button overlay */
 .video-container-wrapper {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -427,14 +459,35 @@
 .media-item-single {
   width: 100%;
   aspect-ratio: 16 / 9; /* Standard aspect ratio to fill space */
+  /* iOS Safari fix: Use padding-bottom trick as fallback */
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  height: 0;
   overflow: hidden;
+  position: relative;
+  display: block;
+  -webkit-aspect-ratio: 16 / 9;
+}
+
+/* Modern browsers: use aspect-ratio, override padding-bottom */
+@supports (aspect-ratio: 16 / 9) {
+  .media-item-single {
+    padding-bottom: 0;
+    height: auto;
+  }
 }
 
 .media-item-single .media-image {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover; /* Crop to fill space - user can click to see full image */
   object-position: center;
+  min-width: 100%;
+  min-height: 100%;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 /* Two images - side by side */
@@ -493,10 +546,17 @@
 
 .media-item-grid .media-image,
 .media-item-grid .media-video {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
+  min-width: 100%;
+  min-height: 100%;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 /* Overlay for "more" indicator */
@@ -776,6 +836,33 @@
   .media-item {
     border-radius: 0 !important;
     width: 100% !important;
+    aspect-ratio: 16 / 9 !important;
+    padding-bottom: 56.25% !important; /* iOS fallback */
+    height: 0 !important;
+    position: relative !important;
+    display: block !important;
+  }
+
+  /* Modern browsers: use aspect-ratio, override padding-bottom */
+  @supports (aspect-ratio: 16 / 9) {
+    .media-item {
+      padding-bottom: 0 !important;
+      height: auto !important;
+    }
+  }
+
+  .media-image,
+  .media-video {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    min-width: 100% !important;
+    min-height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
   }
 
   /* Grid layout responsive adjustments */
@@ -804,7 +891,19 @@
 
   .media-item-single {
     aspect-ratio: 16 / 9 !important;
+    padding-bottom: 56.25% !important; /* iOS fallback */
+    height: 0 !important;
     width: 100% !important;
+    position: relative !important;
+    display: block !important;
+  }
+
+  /* Modern browsers: use aspect-ratio, override padding-bottom */
+  @supports (aspect-ratio: 16 / 9) {
+    .media-item-single {
+      padding-bottom: 0 !important;
+      height: auto !important;
+    }
   }
 
   .post-actions {
