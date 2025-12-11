@@ -306,27 +306,47 @@ const Dashboard: React.FC = () => {
                             activeOrganizationName?.includes('The Gathering') ||
                             activeOrganizationName?.includes('Gathering Community');
   
-  // Simple banner image priority (like X.com/Instagram):
-  // 1. User's personal banner image (always takes priority)
-  // 2. Organization logo (if no user banner) - also convert to S3 in dev to avoid CORS
-  // 3. Default banner
+  // 🎯 CONTEXT-AWARE banner image priority:
+  // - CHURCH context: Organization controls the banner (church branding)
+  // - FAMILY context: User controls the banner (personal preference)
+  // - GATHERING context: Organization banner if available, else user's, else default
   const userBannerImage = user?.bannerImageUrl;
   const hasUserBanner = userBannerImage && typeof userBannerImage === 'string' && userBannerImage.trim() !== '';
   const hasOrgLogo = activeOrganizationLogo && !isGatheringGlobal;
   
-  // Try CloudFront first (should work without crossOrigin), fallback to S3 if needed
-  const bannerImageUrl = hasUserBanner
-    ? getBannerImageUrl(userBannerImage) // CloudFront URL
-    : hasOrgLogo
-      ? getBannerImageUrl(activeOrganizationLogo) // CloudFront URL
-      : '/dashboard-banner.jpg';
+  // Determine banner priority based on context type
+  let bannerImageUrl: string;
+  let s3FallbackUrl: string | null;
   
-  // S3 fallback URLs for error handling (if CloudFront fails)
-  const s3FallbackUrl = hasUserBanner
-    ? getBannerImageS3Fallback(userBannerImage)
-    : hasOrgLogo
+  if (activeContext === 'family') {
+    // 🏠 FAMILY CONTEXT: User's personal image takes priority
+    // Each family member sees their own preferred banner for personalization
+    bannerImageUrl = hasUserBanner
+      ? getBannerImageUrl(userBannerImage)
+      : hasOrgLogo
+        ? getBannerImageUrl(activeOrganizationLogo)
+        : '/dashboard-banner.jpg';
+    
+    s3FallbackUrl = hasUserBanner
+      ? getBannerImageS3Fallback(userBannerImage)
+      : hasOrgLogo
+        ? getBannerImageS3Fallback(activeOrganizationLogo)
+        : null;
+  } else {
+    // ⛪ CHURCH CONTEXT (or Gathering): Organization image takes priority
+    // Church controls what members see on their dashboard for branding consistency
+    bannerImageUrl = hasOrgLogo
+      ? getBannerImageUrl(activeOrganizationLogo)
+      : hasUserBanner
+        ? getBannerImageUrl(userBannerImage)
+        : '/dashboard-banner.jpg';
+    
+    s3FallbackUrl = hasOrgLogo
       ? getBannerImageS3Fallback(activeOrganizationLogo)
-      : null;
+      : hasUserBanner
+        ? getBannerImageS3Fallback(userBannerImage)
+        : null;
+  }
   
   // Final fallback order: CloudFront -> S3 -> Org Logo -> Default
   const fallbackUrl = s3FallbackUrl || (hasOrgLogo ? getBannerImageUrl(activeOrganizationLogo) : '/dashboard-banner.jpg');
