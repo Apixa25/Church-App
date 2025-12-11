@@ -78,6 +78,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.filter-logo-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  display: block;
+}
+
+/* Ensure filter icon container handles images properly */
+.filter-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .filter-content {

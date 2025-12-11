@@ -476,7 +476,18 @@ const Dashboard: React.FC = () => {
         <div className="header-content">
           <div className="header-left">
             <h1>
-              <span className="wheat-emoji">🌾</span>
+              <img 
+                src="/app-logo.png" 
+                alt="The Gathering" 
+                className="app-logo-header"
+                onError={(e) => {
+                  // Fallback to existing logo if app-logo.png doesn't exist
+                  const target = e.target as HTMLImageElement;
+                  if (target.src !== `${window.location.origin}/logo192.png`) {
+                    target.src = '/logo192.png';
+                  }
+                }}
+              />
               {displayOrgName}
             </h1>
           </div>
