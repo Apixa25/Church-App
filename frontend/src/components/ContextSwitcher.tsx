@@ -120,7 +120,7 @@ const Dropdown = styled.div<{ $isOpen: boolean }>`
   border: 1px solid var(--border-primary, #3a3a4e);
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-  z-index: 1000;
+  z-index: 99999; /* High z-index to appear above dashboard header (z-index: 100) */
   overflow: hidden;
   opacity: ${props => props.$isOpen ? 1 : 0};
   visibility: ${props => props.$isOpen ? 'visible' : 'hidden'};
