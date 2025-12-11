@@ -45,6 +45,9 @@ const SwitcherButton = styled.button`
   color: var(--text-primary, #fff);
   transition: all 0.2s ease;
   white-space: nowrap;
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
 
   &:hover {
     background: var(--bg-tertiary, #1e1e2e);
@@ -213,6 +216,9 @@ const OptionButton = styled.button<{ $isActive: boolean }>`
   text-align: left;
   transition: all 0.2s ease;
   margin-bottom: 4px;
+  pointer-events: auto;
+  position: relative;
+  z-index: 2;
 
   &:last-child {
     margin-bottom: 0;
@@ -306,16 +312,47 @@ const ContextSwitcher: React.FC = () => {
   }, [familyPrimary?.organizationLogoUrl]);
 
   // Close dropdown when clicking outside
+  // Use a ref to track when dropdown was just opened to prevent immediate closure
+  const justOpenedRef = useRef(false);
+  
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+      const target = event.target as HTMLElement;
+      const isInDropdown = dropdownRef.current?.contains(target as Node);
+      // Check if click is in portal dropdown by looking for the data attribute or checking if it's a button inside
+      const isInPortal = target?.closest('[data-portal-dropdown="true"]') !== null;
+      const isInOverlay = target?.closest('[class*="PortalOverlay"]') !== null;
+      // Also check if it's an option button (they have specific styling/classes)
+      const isOptionButton = target?.closest('button')?.getAttribute('type') === 'button' && 
+                            (target?.closest('button')?.textContent?.includes('Church') || 
+                             target?.closest('button')?.textContent?.includes('Family'));
+      
+      // Ignore clicks immediately after opening (within 100ms) to prevent the opening click from closing it
+      if (justOpenedRef.current) {
+        justOpenedRef.current = false;
+        return;
       }
+      
+      // Don't close if click is inside dropdown (regular or portal), on overlay, or on option button
+      if (isInDropdown || isInPortal || isInOverlay || isOptionButton) {
+        return;
+      }
+      
+      setIsOpen(false);
     };
 
     if (isOpen) {
+      // Mark that dropdown just opened - use setTimeout to ensure this happens after the current event loop
+      justOpenedRef.current = true;
+      setTimeout(() => {
+        justOpenedRef.current = false;
+      }, 100);
+      
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        justOpenedRef.current = false;
+      };
     }
   }, [isOpen]);
 
@@ -325,8 +362,12 @@ const ContextSwitcher: React.FC = () => {
   }
 
   const handleSelect = (context: 'church' | 'family') => {
-    setActiveContext(context);
-    setIsOpen(false);
+    if (typeof setActiveContext === 'function') {
+      setActiveContext(context);
+      setIsOpen(false);
+    } else {
+      console.error('❌ ContextSwitcher: setActiveContext is not a function!', setActiveContext);
+    }
   };
 
   const getContextIcon = () => {
@@ -347,7 +388,12 @@ const ContextSwitcher: React.FC = () => {
         {hasChurch && churchPrimary && (
           <OptionButton
             $isActive={activeContext === 'church'}
-            onClick={() => handleSelect('church')}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleSelect('church');
+            }}
+            type="button"
           >
             {churchPrimary.organizationLogoUrl && !churchLogoError ? (
               <OptionLogo 
@@ -373,7 +419,12 @@ const ContextSwitcher: React.FC = () => {
         {hasFamily && familyPrimary && (
           <OptionButton
             $isActive={activeContext === 'family'}
-            onClick={() => handleSelect('family')}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleSelect('family');
+            }}
+            type="button"
           >
             {familyPrimary.organizationLogoUrl && !familyLogoError ? (
               <OptionLogo 
@@ -399,9 +450,25 @@ const ContextSwitcher: React.FC = () => {
     </>
   );
 
+  const handleButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const newIsOpen = !isOpen;
+    setIsOpen(newIsOpen);
+    // If opening, mark that it just opened to prevent immediate closure
+    if (newIsOpen) {
+      justOpenedRef.current = true;
+    }
+  };
+
   return (
     <SwitcherContainer ref={dropdownRef}>
-      <SwitcherButton onClick={() => setIsOpen(!isOpen)}>
+      <SwitcherButton 
+        onClick={handleButtonClick}
+        type="button"
+        aria-label="Switch context"
+        aria-expanded={isOpen}
+      >
         {activeOrganizationLogo && !activeLogoError ? (
           <OrgLogo 
             src={activeOrganizationLogo} 
@@ -428,7 +495,7 @@ const ContextSwitcher: React.FC = () => {
       {ReactDOM.createPortal(
         <>
           <PortalOverlay $isOpen={isOpen} onClick={() => setIsOpen(false)} />
-          <PortalDropdown $isOpen={isOpen}>
+          <PortalDropdown $isOpen={isOpen} data-portal-dropdown="true">
             {dropdownContent}
           </PortalDropdown>
         </>,
