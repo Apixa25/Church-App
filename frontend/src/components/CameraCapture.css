@@ -88,6 +88,10 @@
   transform: translateZ(0);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+  /* Prevent video element from causing layout shifts */
+  display: block;
+  /* Optimize for smooth real-time rendering */
+  -webkit-transform: translateZ(0);
 }
 
 /* Mirror only front camera - applied via JavaScript class */

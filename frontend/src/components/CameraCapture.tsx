@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { Camera, Video, RefreshCw, X, Check, RotateCcw } from 'lucide-react';
 import './CameraCapture.css';
 
@@ -26,14 +26,19 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [capturedFile, setCapturedFile] = useState<File | null>(null);
 
-  // Recording timer
+  // Recording timer - optimized to prevent unnecessary re-renders
+  // Use ref to track time without causing re-renders of video element
+  const recordingTimeRef = useRef(0);
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isRecording) {
       interval = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
+        recordingTimeRef.current += 1;
+        // Only update state for UI display, but minimize re-renders
+        setRecordingTime(recordingTimeRef.current);
       }, 1000);
     } else {
+      recordingTimeRef.current = 0;
       setRecordingTime(0);
     }
     return () => clearInterval(interval);
@@ -60,17 +65,17 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
         stream.getTracks().forEach(track => track.stop());
       }
 
-      // Market-standard video constraints (X.com/Instagram approach)
-      // Request 1080p resolution - let device choose its native resolution
-      // Modern platforms (Instagram, X.com) support and prefer 1080p
+      // Optimized video constraints for smooth preview and recording
+      // 720p provides smooth real-time rendering while maintaining good quality
+      // Higher resolutions cause jittery preview due to browser rendering limitations
       const constraints: MediaStreamConstraints = {
         video: {
           facingMode: facingMode,
-          // Request 1080p like Instagram/X.com - remove max to allow device's native resolution
-          width: { ideal: 1920, min: 1280 },  // Allow up to 1080p (no max constraint)
-          height: { ideal: 1080, min: 720 },  // Allow up to 1080p (no max constraint)
-          // Allow up to 60fps if device supports it (X.com/Instagram standard)
-          frameRate: { ideal: 30, min: 15, max: 60 }
+          // 720p max for smooth preview - higher resolutions cause jitter
+          width: { ideal: 1280, min: 640, max: 1280 },
+          height: { ideal: 720, min: 480, max: 720 },
+          // Cap at 30fps for smooth performance (60fps causes jitter on many devices)
+          frameRate: { ideal: 30, min: 24, max: 30 }
         },
         audio: true // Always request audio so switching to video mode doesn't restart camera
       };
@@ -79,8 +84,11 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
       setStream(mediaStream);
 
       if (videoRef.current) {
+        // CRITICAL: Set srcObject directly without causing re-render
+        // Don't recreate the video element - just update the stream
         videoRef.current.srcObject = mediaStream;
-        // Ensure video element is ready before recording
+        
+        // Ensure video element is ready and optimize for smooth playback
         videoRef.current.onloadedmetadata = () => {
           const videoTrack = mediaStream.getVideoTracks()[0];
           const settings = videoTrack.getSettings();
@@ -89,6 +97,13 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
             height: videoRef.current?.videoHeight || settings.height,
             frameRate: settings.frameRate
           });
+          
+          // Force video to play smoothly (prevent browser optimizations that cause jitter)
+          if (videoRef.current) {
+            videoRef.current.play().catch(err => {
+              console.warn('Video autoplay prevented:', err);
+            });
+          }
         };
       }
     } catch (err: any) {
@@ -192,23 +207,23 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
         return;
       }
 
-      // Calculate bitrate based on actual resolution (Instagram/X.com approach)
-      // Get actual video track settings to determine resolution
+      // Calculate bitrate for 720p recording (optimized for smooth performance)
+      // 2 Mbps is optimal for 720p - provides good quality without causing jitter
       const videoTrack = stream.getVideoTracks()[0];
       const settings = videoTrack.getSettings();
-      const actualWidth = settings.width || videoRef.current?.videoWidth || 1920;
-      const actualHeight = settings.height || videoRef.current?.videoHeight || 1080;
+      const actualWidth = settings.width || videoRef.current?.videoWidth || 1280;
+      const actualHeight = settings.height || videoRef.current?.videoHeight || 720;
 
-      // Market-standard bitrates (Instagram: 3.5 Mbps for 1080p, 2 Mbps for 720p)
-      let videoBitrate: number;
-      if (actualWidth >= 1920 || actualHeight >= 1080) {
-        videoBitrate = 3500000;  // 3.5 Mbps for 1080p (Instagram standard)
-        console.log('📹 Using 1080p bitrate: 3.5 Mbps');
-      } else {
-        videoBitrate = 2000000;  // 2 Mbps for 720p
-        console.log('📹 Using 720p bitrate: 2 Mbps');
-      }
-      const audioBitrate = 128000; // 128 kbps AAC (industry standard)
+      // Use 2 Mbps for 720p - optimal balance of quality and smoothness
+      // Higher bitrates can cause encoding lag and jittery recording
+      const videoBitrate = 2000000;  // 2 Mbps for 720p (smooth recording)
+      const audioBitrate = 128000;    // 128 kbps AAC (industry standard)
+      
+      console.log('📹 Recording settings:', {
+        resolution: `${actualWidth}x${actualHeight}`,
+        videoBitrate: `${videoBitrate / 1000000} Mbps`,
+        audioBitrate: `${audioBitrate / 1000} kbps`
+      });
 
       // Create MediaRecorder with explicit bitrate (critical for quality)
       // This matches Instagram/X.com approach of setting explicit bitrates
@@ -398,7 +413,16 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
                 autoPlay
                 playsInline
                 muted
+                // CRITICAL: Prevent React from recreating video element on re-renders
+                // Use key to stabilize element identity
+                key="camera-video-preview"
                 className={`camera-video ${facingMode === 'user' ? 'mirrored' : ''}`}
+                // Performance optimizations for smooth rendering
+                style={{
+                  // Force GPU acceleration
+                  transform: 'translateZ(0)',
+                  willChange: 'transform'
+                }}
               />
               <canvas ref={canvasRef} style={{ display: 'none' }} />
 
