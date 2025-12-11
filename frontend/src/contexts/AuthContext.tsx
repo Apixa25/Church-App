@@ -122,26 +122,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await profileAPI.getMyProfile();
       const freshUserData = response.data;
       
-      // 🖼️ DEBUG: Log profilePicUrl to identify OAuth image loading issue
-      console.log('🔍 AuthContext.fetchFreshUserData - Backend profilePicUrl:', freshUserData.profilePicUrl);
-      console.log('🔍 AuthContext.fetchFreshUserData - Previous profilePicUrl:', localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).profilePicUrl : 'none');
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/1932ad9f-c18f-426f-ad76-28f420bb63b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:123',message:'Backend returned user data',data:{bannerImageUrl:freshUserData.bannerImageUrl,bannerImageUrlType:typeof freshUserData.bannerImageUrl,bannerImageUrlEmpty:!freshUserData.bannerImageUrl || (typeof freshUserData.bannerImageUrl === 'string' && freshUserData.bannerImageUrl.trim() === '')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-      
       // Update user state with fresh data
       setUser(prevUser => {
         if (prevUser) {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/1932ad9f-c18f-426f-ad76-28f420bb63b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:132',message:'Before spread - prevUser bannerImageUrl',data:{prevUserBannerImageUrl:prevUser.bannerImageUrl,prevUserBannerImageUrlType:typeof prevUser.bannerImageUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-          // #endregion
-          
           const updatedUser = { ...prevUser, ...freshUserData };
-          
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/1932ad9f-c18f-426f-ad76-28f420bb63b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:134',message:'After spread - updatedUser bannerImageUrl',data:{updatedUserBannerImageUrl:updatedUser.bannerImageUrl,updatedUserBannerImageUrlType:typeof updatedUser.bannerImageUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-          // #endregion
           
           // 🖼️ FIX: Always use backend profilePicUrl if it exists (Google OAuth images come from backend)
           // Only preserve prevUser.profilePicUrl if backend returns null/empty AND prevUser has a valid URL
@@ -150,31 +134,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               freshUserData.profilePicUrl.trim() !== '') {
             // Backend has a valid profilePicUrl - use it (this is the Google OAuth image)
             updatedUser.profilePicUrl = freshUserData.profilePicUrl;
-            console.log('✅ AuthContext - Using backend profilePicUrl:', freshUserData.profilePicUrl);
           } else if (prevUser.profilePicUrl && 
                      typeof prevUser.profilePicUrl === 'string' && 
                      prevUser.profilePicUrl.trim() !== '') {
             // Backend doesn't have one, but prevUser does - preserve it
             updatedUser.profilePicUrl = prevUser.profilePicUrl;
-            console.log('⚠️ AuthContext - Preserving prevUser profilePicUrl:', prevUser.profilePicUrl);
           }
           
           if (!freshUserData.bannerImageUrl || 
               (typeof freshUserData.bannerImageUrl === 'string' && freshUserData.bannerImageUrl.trim() === '')) {
             updatedUser.bannerImageUrl = prevUser.bannerImageUrl;
-            
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/1932ad9f-c18f-426f-ad76-28f420bb63b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:152',message:'Preserved prevUser bannerImageUrl',data:{preservedBannerImageUrl:updatedUser.bannerImageUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-            // #endregion
-          } else {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/1932ad9f-c18f-426f-ad76-28f420bb63b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:155',message:'Using fresh bannerImageUrl from backend',data:{freshBannerImageUrl:updatedUser.bannerImageUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
           }
-          
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/1932ad9f-c18f-426f-ad76-28f420bb63b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:158',message:'Final updatedUser bannerImageUrl before save',data:{finalBannerImageUrl:updatedUser.bannerImageUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B'})}).catch(()=>{});
-          // #endregion
           
           // Update localStorage with fresh user data
           localStorage.setItem('user', JSON.stringify(updatedUser));

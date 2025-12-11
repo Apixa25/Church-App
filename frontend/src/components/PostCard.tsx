@@ -451,11 +451,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
   // Use the centralized date formatting utility
   const formatDate = (dateString: string): string => {
-    // #region agent log
-    const formatted = formatRelativeDate(dateString);
-    fetch('http://127.0.0.1:7242/ingest/1932ad9f-c18f-426f-ad76-28f420bb63b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PostCard.tsx:454',message:'PostCard formatDate called',data:{postId:post.id,createdAtInput:dateString,createdAtInputType:typeof dateString,createdAtInputIsArray:Array.isArray(dateString),formattedResult:formatted},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    return formatted;
-    // #endregion
+    return formatRelativeDate(dateString);
   };
 
   const handleMediaClick = (index: number, e?: React.MouseEvent | React.KeyboardEvent) => {
