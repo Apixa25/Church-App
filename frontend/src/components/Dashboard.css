@@ -446,18 +446,35 @@
   }
 
   .composer-modal-overlay {
-    padding: 10px;
+    padding: 12px;
+    align-items: flex-start;
+    padding-top: 35vh; /* Position 35% down from top */
   }
 
   .composer-modal-content {
     max-width: none;
     border-radius: var(--border-radius-md);
-    margin: 10px;
+    margin: 0 8px;
+    max-height: 50vh; /* Constrain height so it doesn't overflow */
+    overflow-y: auto;
     animation: slideUpMobile 0.3s ease forwards;
   }
 }
 
 @media (max-width: 480px) {
+  /* Extra compact modal for small screens - positioned 35% down */
+  .composer-modal-overlay {
+    padding: 8px;
+    padding-top: 35vh; /* 35% down from top */
+  }
+
+  .composer-modal-content {
+    margin: 0 6px;
+    max-height: 55vh; /* Slightly more room on very small screens */
+    border-radius: var(--border-radius-sm);
+    overflow-y: auto;
+  }
+
   .status-banner {
     margin-top: 24px;
     padding: 16px;
