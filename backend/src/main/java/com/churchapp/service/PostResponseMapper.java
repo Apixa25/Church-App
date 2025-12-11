@@ -150,7 +150,7 @@ public class PostResponseMapper {
         
         for (int i = 0; i < mediaUrls.size(); i++) {
             String mediaUrl = mediaUrls.get(i);
-            String mediaType = i < mediaTypes.size() ? mediaTypes.get(i) : null;
+            String mediaType = (mediaTypes != null && i < mediaTypes.size()) ? mediaTypes.get(i) : null;
             String existingThumbnail = (existingThumbnails != null && i < existingThumbnails.size()) 
                 ? existingThumbnails.get(i) 
                 : null;
@@ -162,7 +162,8 @@ public class PostResponseMapper {
             }
             
             // Only videos need thumbnails
-            if (mediaType != null && mediaType.startsWith("video/")) {
+            // Check for both "video" and "video/" prefix since mediaType can be either format
+            if (mediaType != null && (mediaType.startsWith("video/") || mediaType.equals("video"))) {
                 // Look up MediaFile to see if thumbnail has been generated
                 try {
                     // Try to find MediaFile by original URL
