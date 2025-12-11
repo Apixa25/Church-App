@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import styled from 'styled-components';
 import { useActiveContext } from '../contexts/ActiveContextContext';
 import { useOrganization } from '../contexts/OrganizationContext';
@@ -111,6 +112,47 @@ const DropdownArrow = styled.span<{ $isOpen: boolean }>`
   transform: ${props => props.$isOpen ? 'rotate(180deg)' : 'rotate(0deg)'};
 `;
 
+/* 
+ * iOS Safari Fix: Using React Portal to render dropdown outside the dashboard-header DOM tree.
+ * This completely escapes the stacking context created by backdrop-filter: blur() on iOS Safari.
+ * Only visible on mobile (max-width: 480px) - desktop uses the regular Dropdown.
+ */
+const PortalOverlay = styled.div<{ $isOpen: boolean }>`
+  display: none; /* Hidden on desktop */
+  
+  @media (max-width: 480px) {
+    display: ${props => props.$isOpen ? 'block' : 'none'};
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99998;
+  }
+`;
+
+const PortalDropdown = styled.div<{ $isOpen: boolean }>`
+  display: none; /* Hidden on desktop */
+  
+  @media (max-width: 480px) {
+    display: ${props => props.$isOpen ? 'block' : 'none'};
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100% - 32px);
+    max-width: 400px;
+    background: var(--bg-tertiary, #1e1e2e);
+    border: 1px solid var(--border-primary, #3a3a4e);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    z-index: 99999;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+`;
+
 const Dropdown = styled.div<{ $isOpen: boolean }>`
   position: absolute;
   top: calc(100% + 8px);
@@ -120,7 +162,7 @@ const Dropdown = styled.div<{ $isOpen: boolean }>`
   border: 1px solid var(--border-primary, #3a3a4e);
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-  z-index: 99999; /* High z-index to appear above dashboard header (z-index: 100) */
+  z-index: 1000;
   overflow: hidden;
   opacity: ${props => props.$isOpen ? 1 : 0};
   visibility: ${props => props.$isOpen ? 'visible' : 'hidden'};
@@ -128,15 +170,8 @@ const Dropdown = styled.div<{ $isOpen: boolean }>`
   transition: all 0.2s ease;
 
   @media (max-width: 480px) {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    right: auto;
-    bottom: auto;
-    transform: ${props => props.$isOpen ? 'translate(-50%, -50%) scale(1)' : 'translate(-50%, -50%) scale(0.95)'};
-    min-width: auto;
-    width: calc(100% - 32px);
-    max-width: 400px;
+    /* Hide on mobile - use portal version instead */
+    display: none !important;
   }
 `;
 
@@ -300,6 +335,70 @@ const ContextSwitcher: React.FC = () => {
     return '🌍';
   };
 
+  // Extract dropdown content to reuse in both regular and portal dropdowns
+  const dropdownContent = (
+    <>
+      <DropdownHeader>
+        <DropdownTitle>Switch Context</DropdownTitle>
+        <DropdownSubtitle>Choose which organization to view</DropdownSubtitle>
+      </DropdownHeader>
+
+      <DropdownOptions>
+        {hasChurch && churchPrimary && (
+          <OptionButton
+            $isActive={activeContext === 'church'}
+            onClick={() => handleSelect('church')}
+          >
+            {churchPrimary.organizationLogoUrl && !churchLogoError ? (
+              <OptionLogo 
+                src={churchPrimary.organizationLogoUrl} 
+                alt="" 
+                crossOrigin="anonymous"
+                onError={() => {
+                  console.warn('⚠️ Church org logo failed to load, falling back to icon:', churchPrimary.organizationLogoUrl);
+                  setChurchLogoError(true);
+                }}
+              />
+            ) : (
+              <OptionIcon>⛪</OptionIcon>
+            )}
+            <OptionContent>
+              <OptionName>{churchPrimary.organizationName}</OptionName>
+              <OptionType>Church • {churchPrimary.organizationType}</OptionType>
+            </OptionContent>
+            {activeContext === 'church' && <ActiveIndicator />}
+          </OptionButton>
+        )}
+
+        {hasFamily && familyPrimary && (
+          <OptionButton
+            $isActive={activeContext === 'family'}
+            onClick={() => handleSelect('family')}
+          >
+            {familyPrimary.organizationLogoUrl && !familyLogoError ? (
+              <OptionLogo 
+                src={familyPrimary.organizationLogoUrl} 
+                alt="" 
+                crossOrigin="anonymous"
+                onError={() => {
+                  console.warn('⚠️ Family org logo failed to load, falling back to icon:', familyPrimary.organizationLogoUrl);
+                  setFamilyLogoError(true);
+                }}
+              />
+            ) : (
+              <OptionIcon>🏠</OptionIcon>
+            )}
+            <OptionContent>
+              <OptionName>{familyPrimary.organizationName}</OptionName>
+              <OptionType>Family Organization</OptionType>
+            </OptionContent>
+            {activeContext === 'family' && <ActiveIndicator />}
+          </OptionButton>
+        )}
+      </DropdownOptions>
+    </>
+  );
+
   return (
     <SwitcherContainer ref={dropdownRef}>
       <SwitcherButton onClick={() => setIsOpen(!isOpen)}>
@@ -320,66 +419,21 @@ const ContextSwitcher: React.FC = () => {
         <DropdownArrow $isOpen={isOpen}>▼</DropdownArrow>
       </SwitcherButton>
 
+      {/* Desktop: Regular dropdown (no iOS Safari issues on desktop) */}
       <Dropdown $isOpen={isOpen}>
-        <DropdownHeader>
-          <DropdownTitle>Switch Context</DropdownTitle>
-          <DropdownSubtitle>Choose which organization to view</DropdownSubtitle>
-        </DropdownHeader>
-
-        <DropdownOptions>
-          {hasChurch && churchPrimary && (
-            <OptionButton
-              $isActive={activeContext === 'church'}
-              onClick={() => handleSelect('church')}
-            >
-              {churchPrimary.organizationLogoUrl && !churchLogoError ? (
-                <OptionLogo 
-                  src={churchPrimary.organizationLogoUrl} 
-                  alt="" 
-                  crossOrigin="anonymous"
-                  onError={() => {
-                    console.warn('⚠️ Church org logo failed to load, falling back to icon:', churchPrimary.organizationLogoUrl);
-                    setChurchLogoError(true);
-                  }}
-                />
-              ) : (
-                <OptionIcon>⛪</OptionIcon>
-              )}
-              <OptionContent>
-                <OptionName>{churchPrimary.organizationName}</OptionName>
-                <OptionType>Church • {churchPrimary.organizationType}</OptionType>
-              </OptionContent>
-              {activeContext === 'church' && <ActiveIndicator />}
-            </OptionButton>
-          )}
-
-          {hasFamily && familyPrimary && (
-            <OptionButton
-              $isActive={activeContext === 'family'}
-              onClick={() => handleSelect('family')}
-            >
-              {familyPrimary.organizationLogoUrl && !familyLogoError ? (
-                <OptionLogo 
-                  src={familyPrimary.organizationLogoUrl} 
-                  alt="" 
-                  crossOrigin="anonymous"
-                  onError={() => {
-                    console.warn('⚠️ Family org logo failed to load, falling back to icon:', familyPrimary.organizationLogoUrl);
-                    setFamilyLogoError(true);
-                  }}
-                />
-              ) : (
-                <OptionIcon>🏠</OptionIcon>
-              )}
-              <OptionContent>
-                <OptionName>{familyPrimary.organizationName}</OptionName>
-                <OptionType>Family Organization</OptionType>
-              </OptionContent>
-              {activeContext === 'family' && <ActiveIndicator />}
-            </OptionButton>
-          )}
-        </DropdownOptions>
+        {dropdownContent}
       </Dropdown>
+
+      {/* Mobile: Portal-based dropdown - renders at document.body level to escape iOS Safari stacking context */}
+      {ReactDOM.createPortal(
+        <>
+          <PortalOverlay $isOpen={isOpen} onClick={() => setIsOpen(false)} />
+          <PortalDropdown $isOpen={isOpen}>
+            {dropdownContent}
+          </PortalDropdown>
+        </>,
+        document.body
+      )}
     </SwitcherContainer>
   );
 };
