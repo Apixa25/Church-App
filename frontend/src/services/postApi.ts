@@ -93,14 +93,6 @@ export const getFeed = async (
   const response = await api.get('/posts/feed', {
     params: { feedType, page, size }
   });
-  
-  // #region agent log
-  if (response.data && response.data.content && response.data.content.length > 0) {
-    const firstPost = response.data.content[0];
-    fetch('http://127.0.0.1:7242/ingest/1932ad9f-c18f-426f-ad76-28f420bb63b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'postApi.ts:96',message:'getFeed received posts',data:{feedType:feedType,postCount:response.data.content.length,firstPostId:firstPost.id,firstPostCreatedAt:firstPost.createdAt,firstPostCreatedAtType:typeof firstPost.createdAt,firstPostCreatedAtIsArray:Array.isArray(firstPost.createdAt)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-  }
-  // #endregion
-  
   return response.data;
 };
 

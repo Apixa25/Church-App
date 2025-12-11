@@ -74,14 +74,6 @@ public class UserProfileService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         
-        // #region agent log
-        try {
-            java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Admin\\Church-App\\Church-App\\.cursor\\debug.log", true);
-            fw.write(String.format("{\"id\":\"log_%d_%s\",\"timestamp\":%d,\"location\":\"UserProfileService.java:73\",\"message\":\"updateUserProfile called\",\"data\":{\"userId\":\"%s\",\"requestBannerImageUrl\":\"%s\",\"requestBannerImageUrlNull\":%b,\"currentUserBannerImageUrl\":\"%s\",\"currentUserBannerImageUrlNull\":%b},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n", System.currentTimeMillis(), java.util.UUID.randomUUID().toString().substring(0,8), System.currentTimeMillis(), userId.toString(), request.getBannerImageUrl() != null ? request.getBannerImageUrl() : "null", request.getBannerImageUrl() == null, user.getBannerImageUrl() != null ? user.getBannerImageUrl() : "null", user.getBannerImageUrl() == null));
-            fw.close();
-        } catch (Exception e) {}
-        // #endregion
-        
         // Update only the fields that are provided
         if (request.getName() != null && !request.getName().trim().isEmpty()) {
             user.setName(request.getName().trim());
@@ -184,21 +176,6 @@ public class UserProfileService {
         // Only update bannerImageUrl if it's explicitly provided and not empty
         if (request.getBannerImageUrl() != null && !request.getBannerImageUrl().trim().isEmpty()) {
             user.setBannerImageUrl(request.getBannerImageUrl().trim());
-            // #region agent log
-            try {
-                java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Admin\\Church-App\\Church-App\\.cursor\\debug.log", true);
-                fw.write(String.format("{\"id\":\"log_%d_%s\",\"timestamp\":%d,\"location\":\"UserProfileService.java:178\",\"message\":\"bannerImageUrl updated\",\"data\":{\"userId\":\"%s\",\"newBannerImageUrl\":\"%s\"},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n", System.currentTimeMillis(), java.util.UUID.randomUUID().toString().substring(0,8), System.currentTimeMillis(), userId.toString(), user.getBannerImageUrl()));
-                fw.close();
-            } catch (Exception e) {}
-            // #endregion
-        } else {
-            // #region agent log
-            try {
-                java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Admin\\Church-App\\Church-App\\.cursor\\debug.log", true);
-                fw.write(String.format("{\"id\":\"log_%d_%s\",\"timestamp\":%d,\"location\":\"UserProfileService.java:178\",\"message\":\"bannerImageUrl NOT updated (preserved)\",\"data\":{\"userId\":\"%s\",\"requestBannerImageUrl\":\"%s\",\"preservedBannerImageUrl\":\"%s\"},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n", System.currentTimeMillis(), java.util.UUID.randomUUID().toString().substring(0,8), System.currentTimeMillis(), userId.toString(), request.getBannerImageUrl() != null ? request.getBannerImageUrl() : "null", user.getBannerImageUrl() != null ? user.getBannerImageUrl() : "null"));
-                fw.close();
-            } catch (Exception e) {}
-            // #endregion
         }
         
         User updatedUser = userRepository.save(user);

@@ -481,10 +481,6 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
       if (bannerImageUrl) {
         updatedProfile.bannerImageUrl = bannerImageUrl;
       }
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/1932ad9f-c18f-426f-ad76-28f420bb63b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ProfileEdit.tsx:485',message:'ProfileEdit sending profile update',data:{hasBannerImageUrl:!!bannerImageUrl,bannerImageUrl:bannerImageUrl,bannerImageUrlInUpdatedProfile:!!updatedProfile.bannerImageUrl,updatedProfileKeys:Object.keys(updatedProfile)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
 
       const result = await updateUserProfile(user!.userId, updatedProfile);
 
