@@ -98,3 +98,5 @@ Try submitting the prayer request with the 6.7MB image and:
 The logs will tell us exactly where the instant failure is happening! 🎯
 
 
+
+

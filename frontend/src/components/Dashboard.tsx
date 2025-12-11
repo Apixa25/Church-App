@@ -332,6 +332,13 @@ const Dashboard: React.FC = () => {
   
   // 🖼️ DEBUG: Log banner image decision
   const userBannerImage = user?.bannerImageUrl;
+  
+  // #region agent log
+  useEffect(() => {
+    fetch('http://127.0.0.1:7242/ingest/1932ad9f-c18f-426f-ad76-28f420bb63b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dashboard.tsx:334',message:'Dashboard received user bannerImageUrl',data:{userBannerImageUrl:userBannerImage,userBannerImageUrlType:typeof userBannerImage,userId:user?.userId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  }, [userBannerImage, user?.userId]);
+  // #endregion
+  
   const hasUserBanner = userBannerImage && typeof userBannerImage === 'string' && userBannerImage.trim() !== '';
   
   // Get user banner with S3 fallback (like profile pictures)
@@ -370,6 +377,12 @@ const Dashboard: React.FC = () => {
   }, [bannerImageUrl, activeContext, activeOrganizationId]);
   
   const decision = shouldUseUserBanner ? 'USER_BANNER' : (shouldUseOrgLogo ? 'ORG_LOGO' : 'DEFAULT');
+  
+  // #region agent log
+  useEffect(() => {
+    fetch('http://127.0.0.1:7242/ingest/1932ad9f-c18f-426f-ad76-28f420bb63b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dashboard.tsx:379',message:'Banner image decision and URL',data:{decision:decision,bannerImageUrl:bannerImageUrl,shouldUseUserBanner:shouldUseUserBanner,hasUserBanner:hasUserBanner,userBannerUrls:userBannerUrls,activeContext:activeContext},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  }, [decision, bannerImageUrl, shouldUseUserBanner, hasUserBanner, activeContext]);
+  // #endregion
     
   // Get display name for header - uses active context
   const displayOrgName = activeOrganizationName || 'The Gathering';
@@ -380,7 +393,12 @@ const Dashboard: React.FC = () => {
         {/* Banner Image Background */}
         <div className="dashboard-banner-background">
           <img 
-            src={bannerImageUrl} 
+            src={bannerImageUrl}
+            onLoad={(e) => {
+              // #region agent log
+              fetch('http://127.0.0.1:7242/ingest/1932ad9f-c18f-426f-ad76-28f420bb63b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dashboard.tsx:390',message:'Banner image loaded successfully',data:{src:(e.target as HTMLImageElement).src},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+              // #endregion
+            }} 
             alt={primaryMembership?.organizationName || 'Church banner'} 
             className="banner-bg-image"
             // Only use crossOrigin in production - localhost has CORS issues with CloudFront
@@ -390,6 +408,10 @@ const Dashboard: React.FC = () => {
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               const currentSrc = target.src;
+              
+              // #region agent log
+              fetch('http://127.0.0.1:7242/ingest/1932ad9f-c18f-426f-ad76-28f420bb63b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dashboard.tsx:397',message:'Banner image failed to load',data:{currentSrc:currentSrc,bannerImageUrl:bannerImageUrl,shouldUseUserBanner:shouldUseUserBanner,activeContext:activeContext},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+              // #endregion
               
               // Extract just the filename/unique ID from URLs for comparison (more reliable than full URL match)
               const getUrlId = (url: string) => {
@@ -421,6 +443,10 @@ const Dashboard: React.FC = () => {
               // Mark current URL as attempted
               bannerFallbackAttemptedRef.current.add(currentId);
               
+              // #region agent log
+              fetch('http://127.0.0.1:7242/ingest/1932ad9f-c18f-426f-ad76-28f420bb63b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dashboard.tsx:422',message:'Banner image error handler - checking fallback conditions',data:{isUserBannerCloudFront:isUserBannerCloudFront,isUserBannerS3:isUserBannerS3,isFamilyOrgLogo:isFamilyOrgLogo,userBannerS3Fallback:userBannerS3Fallback,familyOrgFallback:familyOrgFallback,activeContext:activeContext,hasAttemptedS3:hasAttemptedFallback(userBannerS3Fallback),hasAttemptedFamilyOrg:hasAttemptedFallback(familyOrgFallback)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+              // #endregion
+              
               console.warn('⚠️ Banner image failed to load:', {
                 currentSrc,
                 currentId,
@@ -443,11 +469,21 @@ const Dashboard: React.FC = () => {
               if (activeContext === 'family' && isUserBannerCloudFront && userBannerS3Fallback && !hasAttemptedFallback(userBannerS3Fallback)) {
                 // User banner CloudFront failed, try S3 fallback
                 console.warn('⚠️ User banner CloudFront URL failed, trying S3 fallback');
+                
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/1932ad9f-c18f-426f-ad76-28f420bb63b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dashboard.tsx:465',message:'Trying S3 fallback for user banner',data:{userBannerS3Fallback:userBannerS3Fallback,currentSrc:currentSrc,activeContext:activeContext},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                // #endregion
+                
                 bannerFallbackAttemptedRef.current.add(getUrlId(userBannerS3Fallback));
                 target.src = userBannerS3Fallback;
               } else if (activeContext === 'family' && isUserBannerS3 && familyOrgFallback && !hasAttemptedFallback(familyOrgFallback)) {
                 // User banner S3 also failed, try family org logo
                 console.warn('⚠️ User banner S3 URL failed, trying family organization logo');
+                
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/1932ad9f-c18f-426f-ad76-28f420bb63b9',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Dashboard.tsx:471',message:'S3 fallback failed, trying family org logo',data:{familyOrgFallback:familyOrgFallback,currentSrc:currentSrc,activeContext:activeContext},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                // #endregion
+                
                 bannerFallbackAttemptedRef.current.add(getUrlId(familyOrgFallback));
                 target.src = familyOrgFallback;
               } else if (activeContext === 'family' && isFamilyOrgLogo && !hasAttemptedFallback('/dashboard-banner.jpg')) {

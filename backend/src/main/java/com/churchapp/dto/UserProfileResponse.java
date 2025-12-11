@@ -51,6 +51,17 @@ public class UserProfileResponse {
     private Boolean isLikedByCurrentUser;
     
     public static UserProfileResponse fromUser(User user) {
+        // #region agent log
+        try {
+            java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Admin\\Church-App\\Church-App\\.cursor\\debug.log", true);
+            String bannerUrl = user.getBannerImageUrl() != null ? user.getBannerImageUrl() : "null";
+            String logLine = String.format("{\"location\":\"UserProfileResponse.java:53\",\"message\":\"UserProfileResponse.fromUser - bannerImageUrl from database\",\"data\":{\"userId\":\"%s\",\"bannerImageUrl\":\"%s\",\"bannerImageUrlEmpty\":%s},\"timestamp\":%d,\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n",
+                user.getId().toString(), bannerUrl.replace("\"", "\\\""), (user.getBannerImageUrl() == null || user.getBannerImageUrl().trim().isEmpty()), System.currentTimeMillis());
+            fw.write(logLine);
+            fw.close();
+        } catch (Exception e) {}
+        // #endregion
+        
         return new UserProfileResponse(
             user.getId(),
             user.getEmail(),
