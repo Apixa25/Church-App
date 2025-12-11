@@ -22,7 +22,7 @@ import { FeedType } from '../types/Post';
 import { profileAPI } from '../services/api';
 import WarningBanner from './WarningBanner';
 import WarningsSection from './WarningsSection';
-import { getImageUrlWithFallback } from '../utils/imageUrlUtils';
+import { getBannerImageUrl, getBannerImageS3Fallback } from '../utils/imageUrlUtils';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -45,9 +45,6 @@ const Dashboard: React.FC = () => {
   // Legacy compatibility: primaryMembership maps to the currently active context
   const primaryMembership = activeMembership;
   
-  // Track attempted banner fallbacks to prevent infinite loops
-  const bannerFallbackAttemptedRef = useRef<Set<string>>(new Set());
-  
   const navigate = useNavigate();
   const location = useLocation();
   // Default to social feed - will be adjusted based on primary org status
@@ -61,7 +58,6 @@ const Dashboard: React.FC = () => {
   // 🔄 Listen for feedRefresh event from BottomNav double-tap
   useEffect(() => {
     const handleFeedRefresh = () => {
-      console.log('🔄 Dashboard: Received feedRefresh event - refreshing posts...');
       setFeedRefreshKey(prev => prev + 1);
     };
 
@@ -98,48 +94,32 @@ const Dashboard: React.FC = () => {
     loadHeartsData();
   }, [user?.userId]);
 
-  // 🖼️ DEBUG: Log profilePicUrl to identify OAuth image loading issue
-  useEffect(() => {
-    if (user?.profilePicUrl) {
-      console.log('🔍 Dashboard - user.profilePicUrl:', user.profilePicUrl);
-    } else {
-      console.log('🔍 Dashboard - user.profilePicUrl: MISSING');
-    }
-  }, [user?.profilePicUrl]);
 
-  // Refresh user data when component mounts to ensure profile picture is current
+  // Refresh user data only when returning from profile page (not on every render!)
+  // This prevents infinite loops while ensuring bannerImageUrl is current
+  const prevPathnameRef = useRef<string>(location.pathname);
+  const hasRefreshedRef = useRef<boolean>(false);
+  
   useEffect(() => {
     const refreshUserData = async () => {
-      if (user && !user.profilePicUrl && updateUser) {
+      if (user?.userId && updateUser && !hasRefreshedRef.current) {
         try {
           // Import profileAPI dynamically to avoid circular dependency
           const { profileAPI } = await import('../services/api');
           const response = await profileAPI.getMyProfile();
           const freshUserData = response.data;
           
-          // Update user data if profilePicUrl is now available
-          if (freshUserData.profilePicUrl && user.userId === freshUserData.userId) {
-            // Update the user context with fresh data
+          // Only update if data actually changed to prevent loops
+          if (user.userId === freshUserData.userId && 
+              user.bannerImageUrl !== freshUserData.bannerImageUrl) {
+            hasRefreshedRef.current = true;
             updateUser({
-              profilePicUrl: freshUserData.profilePicUrl,
-              bio: freshUserData.bio,
-              location: freshUserData.location,
-              website: freshUserData.website,
-              interests: freshUserData.interests,
-              phoneNumber: freshUserData.phoneNumber,
-              addressLine1: freshUserData.addressLine1,
-              addressLine2: freshUserData.addressLine2,
-              city: freshUserData.city,
-              stateProvince: freshUserData.stateProvince,
-              postalCode: freshUserData.postalCode,
-              country: freshUserData.country,
-              latitude: freshUserData.latitude,
-              longitude: freshUserData.longitude,
-              geocodeStatus: freshUserData.geocodeStatus,
-              birthday: freshUserData.birthday,
-              spiritualGift: freshUserData.spiritualGift,
-              equippingGifts: freshUserData.equippingGifts
+              bannerImageUrl: freshUserData.bannerImageUrl
             });
+            // Reset after a delay to allow future refreshes
+            setTimeout(() => {
+              hasRefreshedRef.current = false;
+            }, 1000);
           }
         } catch (error) {
           console.error('Failed to refresh user data in Dashboard:', error);
@@ -147,8 +127,18 @@ const Dashboard: React.FC = () => {
       }
     };
 
-    refreshUserData();
-  }, [user, updateUser]);
+    // Only refresh when pathname changes from profile back to dashboard
+    const wasOnProfile = prevPathnameRef.current.includes('/profile');
+    const isOnDashboard = location.pathname === '/dashboard' || location.pathname === '/';
+    
+    if (wasOnProfile && isOnDashboard) {
+      hasRefreshedRef.current = false; // Reset flag when navigating back
+      refreshUserData();
+    }
+    
+    prevPathnameRef.current = location.pathname;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   // Check if user has any primary organization (Church OR Family) - used to optimize API calls
   const hasPrimaryOrg = hasAnyPrimary;
@@ -162,13 +152,7 @@ const Dashboard: React.FC = () => {
   } = useQuery({
     queryKey: ['dashboard', activeOrganizationId, hasPrimaryOrg],
     queryFn: async () => {
-      console.log('📊 Dashboard.useQuery - activeOrganizationId:', activeOrganizationId);
-      console.log('📊 Dashboard.useQuery - activeContext:', activeContext);
-      console.log('📊 Dashboard.useQuery - hasPrimaryOrg:', hasPrimaryOrg);
-      const data = await dashboardApi.getDashboardWithAll(hasPrimaryOrg, activeOrganizationId || undefined);
-      console.log('📊 Dashboard.useQuery - received stats:', data.stats);
-      console.log('📊 Dashboard.useQuery - received quickActions count:', data.quickActions?.length);
-      return data;
+      return await dashboardApi.getDashboardWithAll(hasPrimaryOrg, activeOrganizationId || undefined);
     },
     staleTime: 5 * 60 * 1000, // 5 minutes - data is fresh for 5 min
     gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache
@@ -265,13 +249,6 @@ const Dashboard: React.FC = () => {
       initialized: true
     };
     
-    // Only log in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔄 Dashboard: Context changed', {
-        from: { context: prevState.context, orgId: prevState.orgId },
-        to: { context: currentContext, orgId: currentOrgId }
-      });
-    }
     
     // Handle context change - do all updates in ONE place
     if (currentOrgId && (currentContext === 'church' || currentContext === 'family')) {
@@ -295,7 +272,6 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const resetState = (location.state as any)?.reset === true;
     if (resetState) {
-      console.log('🔄 Dashboard reset triggered - restoring initial state (explicit refresh)');
       
       // Reset all dashboard state to initial values (like fresh login)
       setFeedView('social');
@@ -330,47 +306,45 @@ const Dashboard: React.FC = () => {
                             activeOrganizationName?.includes('The Gathering') ||
                             activeOrganizationName?.includes('Gathering Community');
   
-  const userBannerImage = user?.bannerImageUrl;
-  
-  const hasUserBanner = userBannerImage && typeof userBannerImage === 'string' && userBannerImage.trim() !== '';
-  
-  // Get user banner with S3 fallback (like profile pictures)
-  const userBannerUrls = userBannerImage ? getImageUrlWithFallback(userBannerImage) : null;
-  
-  // Determine banner image with priority (CORRECTED):
-  // 1. User banner image takes priority when logged in (personal customization)
-  // 2. Organization logo (if no user banner)
-  // 3. Fallback to default banner
-  const hasOrgLogo = activeOrganizationLogo && !isGatheringGlobal;
-  const shouldUseUserBanner = hasUserBanner && userBannerUrls;
-  const shouldUseOrgLogo = !shouldUseUserBanner && hasOrgLogo;
-  
-  // Determine banner image with priority:
-  // 1. User banner image (if logged in and has banner)
-  // 2. Organization logo (if no user banner)
+  // Simple banner image priority (like X.com/Instagram):
+  // 1. User's personal banner image (always takes priority)
+  // 2. Organization logo (if no user banner) - also convert to S3 in dev to avoid CORS
   // 3. Default banner
-  const bannerImageUrl = shouldUseUserBanner && userBannerUrls
-    ? userBannerUrls.primary
-    : shouldUseOrgLogo
-      ? activeOrganizationLogo
+  const userBannerImage = user?.bannerImageUrl;
+  const hasUserBanner = userBannerImage && typeof userBannerImage === 'string' && userBannerImage.trim() !== '';
+  const hasOrgLogo = activeOrganizationLogo && !isGatheringGlobal;
+  
+  // Try CloudFront first (should work without crossOrigin), fallback to S3 if needed
+  const bannerImageUrl = hasUserBanner
+    ? getBannerImageUrl(userBannerImage) // CloudFront URL
+    : hasOrgLogo
+      ? getBannerImageUrl(activeOrganizationLogo) // CloudFront URL
       : '/dashboard-banner.jpg';
   
-  // Determine fallback order for error handling
-  // In family context: user banner (CloudFront) → user banner (S3) → family org logo → default Gathering image
-  const userBannerS3Fallback = userBannerUrls?.fallback && userBannerUrls.fallback !== userBannerUrls.primary
-    ? userBannerUrls.fallback
-    : null;
-  const familyOrgFallback = activeContext === 'family' && activeOrganizationLogo && !isGatheringGlobal 
-    ? activeOrganizationLogo 
-    : null;
+  // S3 fallback URLs for error handling (if CloudFront fails)
+  const s3FallbackUrl = hasUserBanner
+    ? getBannerImageS3Fallback(userBannerImage)
+    : hasOrgLogo
+      ? getBannerImageS3Fallback(activeOrganizationLogo)
+      : null;
   
-  // Reset fallback tracking when banner URL changes (context/user change)
+  // Final fallback order: CloudFront -> S3 -> Org Logo -> Default
+  const fallbackUrl = s3FallbackUrl || (hasOrgLogo ? getBannerImageUrl(activeOrganizationLogo) : '/dashboard-banner.jpg');
+  
+  // Debug logging to help diagnose banner issues
   useEffect(() => {
-    bannerFallbackAttemptedRef.current.clear();
-  }, [bannerImageUrl, activeContext, activeOrganizationId]);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🖼️ Dashboard Banner Selection:', {
+        userBannerImage,
+        hasUserBanner,
+        activeOrganizationLogo,
+        hasOrgLogo,
+        bannerImageUrl,
+        activeContext
+      });
+    }
+  }, [userBannerImage, hasUserBanner, activeOrganizationLogo, hasOrgLogo, bannerImageUrl, activeContext]);
   
-  const decision = shouldUseUserBanner ? 'USER_BANNER' : (shouldUseOrgLogo ? 'ORG_LOGO' : 'DEFAULT');
-    
   // Get display name for header - uses active context
   const displayOrgName = activeOrganizationName || 'The Gathering';
 
@@ -380,93 +354,49 @@ const Dashboard: React.FC = () => {
         {/* Banner Image Background */}
         <div className="dashboard-banner-background">
           <img 
+            key={bannerImageUrl} // Force re-render when URL changes
             src={bannerImageUrl}
-            onLoad={() => {}} 
             alt={primaryMembership?.organizationName || 'Church banner'} 
             className="banner-bg-image"
-            // Only use crossOrigin in production - localhost has CORS issues with CloudFront
-            {...(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-              ? {} 
-              : { crossOrigin: 'anonymous' })}
             onError={(e) => {
+              // Fallback chain: CloudFront -> S3 -> Org Logo -> Default
               const target = e.target as HTMLImageElement;
               const currentSrc = target.src;
               
-              // Extract just the filename/unique ID from URLs for comparison (more reliable than full URL match)
-              const getUrlId = (url: string) => {
-                try {
-                  const parts = url.split('/');
-                  return parts[parts.length - 1] || url;
-                } catch {
-                  return url;
-                }
-              };
+              if (process.env.NODE_ENV === 'development') {
+                console.error('❌ Banner image failed to load:', currentSrc);
+              }
               
-              const currentId = getUrlId(currentSrc);
-              const userBannerPrimaryId = userBannerUrls?.primary ? getUrlId(userBannerUrls.primary) : '';
-              const userBannerS3Id = userBannerS3Fallback ? getUrlId(userBannerS3Fallback) : '';
-              const familyOrgId = familyOrgFallback ? getUrlId(familyOrgFallback) : '';
-              
-              const isUserBannerCloudFront = userBannerUrls?.primary && (currentSrc === userBannerUrls.primary || currentId === userBannerPrimaryId);
-              const isUserBannerS3 = userBannerS3Fallback && (currentSrc === userBannerS3Fallback || currentId === userBannerS3Id);
-              const isFamilyOrgLogo = familyOrgFallback && (currentSrc === familyOrgFallback || currentId === familyOrgId);
+              // Check which fallback to try
+              const isCloudFront = currentSrc.includes('cloudfront.net');
+              const isS3 = currentSrc.includes('.s3.') && currentSrc.includes('.amazonaws.com');
               const isDefault = currentSrc.includes('/dashboard-banner.jpg');
               
-              // Check if we've already attempted this fallback to prevent infinite loops
-              const hasAttemptedFallback = (fallbackUrl: string | null) => {
-                if (!fallbackUrl) return false;
-                const fallbackId = getUrlId(fallbackUrl);
-                return bannerFallbackAttemptedRef.current.has(fallbackId);
-              };
-              
-              // Mark current URL as attempted
-              bannerFallbackAttemptedRef.current.add(currentId);
-              
-              console.warn('⚠️ Banner image failed to load:', {
-                currentSrc,
-                currentId,
-                activeContext,
-                isUserBannerCloudFront,
-                isUserBannerS3,
-                isFamilyOrgLogo,
-                isDefault,
-                userBannerPrimaryId,
-                userBannerS3Id,
-                familyOrgId,
-                shouldUseUserBanner,
-                attemptedFallbacks: Array.from(bannerFallbackAttemptedRef.current)
-              });
-              
-              // Priority fallback order for family context:
-              // 1. User banner CloudFront fails → try user banner S3
-              // 2. User banner S3 fails → try family org logo
-              // 3. Family org logo fails → use default Gathering image
-              if (activeContext === 'family' && isUserBannerCloudFront && userBannerS3Fallback && !hasAttemptedFallback(userBannerS3Fallback)) {
-                // User banner CloudFront failed, try S3 fallback
-                console.warn('⚠️ User banner CloudFront URL failed, trying S3 fallback');
-                bannerFallbackAttemptedRef.current.add(getUrlId(userBannerS3Fallback));
-                target.src = userBannerS3Fallback;
-              } else if (activeContext === 'family' && isUserBannerS3 && familyOrgFallback && !hasAttemptedFallback(familyOrgFallback)) {
-                // User banner S3 also failed, try family org logo
-                console.warn('⚠️ User banner S3 URL failed, trying family organization logo');
-                bannerFallbackAttemptedRef.current.add(getUrlId(familyOrgFallback));
-                target.src = familyOrgFallback;
-              } else if (activeContext === 'family' && isFamilyOrgLogo && !hasAttemptedFallback('/dashboard-banner.jpg')) {
-                // Family org logo also failed, use default
-                console.warn('⚠️ Family organization logo failed, falling back to default Gathering image');
-                bannerFallbackAttemptedRef.current.add('dashboard-banner.jpg');
+              if (isCloudFront && s3FallbackUrl && !target.dataset.s3FallbackAttempted) {
+                // CloudFront failed, try S3
+                target.dataset.s3FallbackAttempted = 'true';
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('🔄 CloudFront failed, trying S3:', s3FallbackUrl);
+                }
+                target.src = s3FallbackUrl;
+              } else if (isS3 && fallbackUrl && fallbackUrl !== s3FallbackUrl && !target.dataset.orgFallbackAttempted) {
+                // S3 failed, try org logo or default
+                target.dataset.orgFallbackAttempted = 'true';
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('🔄 S3 failed, trying fallback:', fallbackUrl);
+                }
+                target.src = fallbackUrl;
+              } else if (!isDefault) {
+                // Final fallback to default
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('🔄 Falling back to default banner');
+                }
                 target.src = '/dashboard-banner.jpg';
-              } else if (!isDefault && !hasAttemptedFallback('/dashboard-banner.jpg')) {
-                // For other contexts or unexpected errors, use default
-                console.warn('⚠️ Banner image failed, falling back to default');
-                bannerFallbackAttemptedRef.current.add('dashboard-banner.jpg');
-                target.src = '/dashboard-banner.jpg';
-              } else {
-                // All fallbacks exhausted or already attempted, hide the image to prevent infinite loop
-                console.error('⚠️ All banner image fallbacks failed or already attempted, hiding image to prevent infinite loop');
-                target.style.display = 'none';
-                // Reset attempted fallbacks for next banner load
-                bannerFallbackAttemptedRef.current.clear();
+              }
+            }}
+            onLoad={() => {
+              if (process.env.NODE_ENV === 'development') {
+                console.log('✅ Banner image loaded successfully:', bannerImageUrl);
               }
             }}
           />
