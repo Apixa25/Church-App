@@ -448,7 +448,7 @@
   .composer-modal-overlay {
     padding: 12px;
     align-items: flex-start;
-    padding-top: 35vh; /* Position 35% down from top */
+    padding-top: 25vh; /* Position 25% down from top */
   }
 
   .composer-modal-content {
@@ -462,10 +462,10 @@
 }
 
 @media (max-width: 480px) {
-  /* Extra compact modal for small screens - positioned 35% down */
+  /* Extra compact modal for small screens - positioned 25% down */
   .composer-modal-overlay {
     padding: 8px;
-    padding-top: 35vh; /* 35% down from top */
+    padding-top: 25vh; /* 25% down from top */
   }
 
   .composer-modal-content {
