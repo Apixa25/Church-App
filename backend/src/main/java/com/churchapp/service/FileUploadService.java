@@ -108,8 +108,11 @@ public class FileUploadService {
             log.info("Original file uploaded: {}", originalUrl);
             
             // Create MediaFile record to track processing status
+            // CRITICAL: Do NOT track banner-images or profile-pictures in MediaFile table
+            // These are final images that don't need optimization/processing, and shouldn't be
+            // deleted by the cleanup service. Only track files that need processing (posts, chat-media, etc.)
             MediaFile mediaFile = null;
-            if (isImage || isVideo) {
+            if ((isImage || isVideo) && !folder.equals("banner-images") && !folder.equals("profile-pictures")) {
                 mediaFile = createMediaFileRecord(
                     originalUrl,
                     file.getContentType(),

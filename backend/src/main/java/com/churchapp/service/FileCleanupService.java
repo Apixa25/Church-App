@@ -13,6 +13,7 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Service for cleaning up original media files after processing
@@ -55,6 +56,12 @@ public class FileCleanupService {
                 ProcessingStatus.COMPLETED, 
                 cutoffTime
             );
+            
+            // CRITICAL: Filter out banner-images and profile-pictures folders
+            // These are final images that should NEVER be deleted by cleanup
+            filesToCleanup = filesToCleanup.stream()
+                .filter(mf -> !mf.getFolder().equals("banner-images") && !mf.getFolder().equals("profile-pictures"))
+                .collect(Collectors.toList());
             
             log.info("Found {} original files ready for cleanup (older than {} hours)", 
                     filesToCleanup.size(), retentionHours);

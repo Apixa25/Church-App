@@ -21,52 +21,37 @@ export const parseEventDate = (dateInput: string | number[]): Date | null => {
       
       // Use local timezone constructor with proper month conversion
       date = new Date(year, month - 1, day, hour, minute, second); // Month is 0-indexed in Date constructor
-    } else {
-      // Handle string format with proper timezone handling
-      let cleanDateString = dateInput;
-      
-      // Handle various timezone formats
-      if (cleanDateString.endsWith('Z')) {
-        // UTC timezone - parse as UTC then convert to local
-        date = new Date(cleanDateString);
-      } else if (cleanDateString.includes('+') || /T.*-\d{2}:\d{2}$/.test(cleanDateString)) {
-        // Has timezone offset (e.g., +05:00 or -05:00 after T) - parse directly
-        date = new Date(cleanDateString);
       } else {
-        // No timezone info - Parse as local time (not UTC)
-        // Backend sends LocalDateTime which doesn't include timezone info
-        // We should parse it as local time to avoid timezone offset issues
-        if (cleanDateString.includes('T')) {
-          // ISO format without timezone - parse as local time
-          // Extract date components and create Date in local timezone
-          const isoMatch = cleanDateString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?/);
-          if (isoMatch) {
-            const [, year, month, day, hour, minute, second, millis] = isoMatch;
-            date = new Date(
-              parseInt(year, 10),
-              parseInt(month, 10) - 1, // Month is 0-indexed
-              parseInt(day, 10),
-              parseInt(hour, 10),
-              parseInt(minute, 10),
-              parseInt(second, 10),
-              millis ? parseInt(millis.substring(0, 3), 10) : 0
-            );
-          } else {
-            // Fallback to standard parsing (will use local timezone)
-            date = new Date(cleanDateString);
-          }
+        // Handle string format with proper timezone handling
+        let cleanDateString = dateInput;
+        
+        // Handle various timezone formats
+        if (cleanDateString.endsWith('Z')) {
+          // UTC timezone - parse as UTC then convert to local
+          date = new Date(cleanDateString);
+        } else if (cleanDateString.includes('+') || /T.*-\d{2}:\d{2}$/.test(cleanDateString)) {
+          // Has timezone offset (e.g., +05:00 or -05:00 after T) - parse directly
+          date = new Date(cleanDateString);
         } else {
-          // Date only - parse as local date
-          const dateMatch = cleanDateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
-          if (dateMatch) {
-            const [, year, month, day] = dateMatch;
-            date = new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10));
+          // No timezone info - Backend sends LocalDateTime from database (stored as UTC)
+          // CRITICAL FIX: Treat as UTC, not local time, to avoid timezone offset issues
+          // The database stores timestamps in UTC, so we need to parse them as UTC
+          if (cleanDateString.includes('T')) {
+            // ISO format without timezone - treat as UTC by appending 'Z'
+            // This ensures the date is parsed correctly relative to the current time
+            date = new Date(cleanDateString + 'Z');
           } else {
-            date = new Date(cleanDateString);
+            // Date only - parse as local date (no time component, so timezone doesn't matter)
+            const dateMatch = cleanDateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (dateMatch) {
+              const [, year, month, day] = dateMatch;
+              date = new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10));
+            } else {
+              date = new Date(cleanDateString);
+            }
           }
         }
       }
-    }
     
     // Validate the date
     if (isNaN(date.getTime())) {
