@@ -62,3 +62,56 @@ export function getImageUrlWithFallback(url: string): { primary: string; fallbac
   return { primary: url, fallback: url };
 }
 
+/**
+ * Get banner image URL - tries CloudFront first, falls back to S3
+ * Since we removed crossOrigin attribute, CloudFront should work for display
+ * Only use S3 as fallback if CloudFront fails
+ * 
+ * @param url Original URL (could be CloudFront or S3)
+ * @returns URL to try (CloudFront preferred, S3 as fallback)
+ */
+export function getBannerImageUrl(url: string): string {
+  if (!url) {
+    return '';
+  }
+
+  // If it's already an S3 URL, return as-is
+  if (url.includes(`${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`)) {
+    return url;
+  }
+
+  // If it's a CloudFront URL, use it directly (no crossOrigin, so CORS shouldn't block display)
+  // The browser will load it fine for <img> tags without crossOrigin attribute
+  if (url.includes(CLOUDFRONT_DOMAIN)) {
+    return url; // Use CloudFront directly - should work without crossOrigin
+  }
+
+  // Unknown format, return as-is
+  return url;
+}
+
+/**
+ * Get S3 fallback URL for banner images (used in error handler)
+ * 
+ * @param url Original URL (could be CloudFront or S3)
+ * @returns S3 URL for fallback
+ */
+export function getBannerImageS3Fallback(url: string): string {
+  if (!url) {
+    return '';
+  }
+
+  // If it's already an S3 URL, return as-is
+  if (url.includes(`${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`)) {
+    return url;
+  }
+
+  // If it's a CloudFront URL, convert to S3 for fallback
+  if (url.includes(CLOUDFRONT_DOMAIN)) {
+    return convertCloudFrontToS3Url(url);
+  }
+
+  // Unknown format, return as-is
+  return url;
+}
+

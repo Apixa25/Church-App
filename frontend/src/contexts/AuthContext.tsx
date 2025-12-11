@@ -141,8 +141,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             updatedUser.profilePicUrl = prevUser.profilePicUrl;
           }
           
-          if (!freshUserData.bannerImageUrl || 
-              (typeof freshUserData.bannerImageUrl === 'string' && freshUserData.bannerImageUrl.trim() === '')) {
+          // 🖼️ FIX: Always use backend bannerImageUrl if it exists (same logic as profilePicUrl)
+          if (freshUserData.bannerImageUrl && 
+              typeof freshUserData.bannerImageUrl === 'string' && 
+              freshUserData.bannerImageUrl.trim() !== '') {
+            // Backend has a valid bannerImageUrl - use it
+            updatedUser.bannerImageUrl = freshUserData.bannerImageUrl;
+          } else if (prevUser.bannerImageUrl && 
+                     typeof prevUser.bannerImageUrl === 'string' && 
+                     prevUser.bannerImageUrl.trim() !== '') {
+            // Backend doesn't have one, but prevUser does - preserve it
             updatedUser.bannerImageUrl = prevUser.bannerImageUrl;
           }
           
