@@ -57,10 +57,18 @@ public class FileCleanupService {
                 cutoffTime
             );
             
-            // CRITICAL: Filter out banner-images and profile-pictures folders
-            // These are final images that should NEVER be deleted by cleanup
+            // CRITICAL: Filter out final images that should NEVER be deleted by cleanup
+            // Only delete original files that have been processed/compressed (posts, chat-media, etc.)
+            // DO NOT delete:
+            // - banner-images: User banner images (final, never compressed)
+            // - profile-pictures: User profile pictures (final, never compressed)
+            // - organizations/logos: Organization logos (final, never compressed)
+            // - prayer-requests: Prayer request images (final, never compressed)
             filesToCleanup = filesToCleanup.stream()
-                .filter(mf -> !mf.getFolder().equals("banner-images") && !mf.getFolder().equals("profile-pictures"))
+                .filter(mf -> !mf.getFolder().equals("banner-images") && 
+                             !mf.getFolder().equals("profile-pictures") &&
+                             !mf.getFolder().equals("organizations/logos") &&
+                             !mf.getFolder().equals("prayer-requests"))
                 .collect(Collectors.toList());
             
             log.info("Found {} original files ready for cleanup (older than {} hours)", 
