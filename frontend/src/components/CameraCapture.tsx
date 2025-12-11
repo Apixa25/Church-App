@@ -313,13 +313,6 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
         
         onCapture(fileClone);
         console.log('📸 CameraCapture: onCapture returned successfully');
-        
-        // FALLBACK: Also try the global function if onCapture didn't work
-        const globalCapture = (window as any).__cameraCaptureCallback;
-        if (globalCapture && typeof globalCapture === 'function') {
-          console.log('📸 CameraCapture: Also calling global fallback...');
-          globalCapture(fileClone);
-        }
       } catch (error) {
         console.error('📸 CameraCapture: Error calling onCapture:', error);
         
