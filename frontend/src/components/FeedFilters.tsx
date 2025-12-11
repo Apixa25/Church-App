@@ -13,12 +13,31 @@ const FeedFilters: React.FC<FeedFiltersProps> = ({
   onFeedTypeChange,
   disabled = false
 }) => {
-  const feedOptions = [
+  const feedOptions: Array<{
+    type: FeedType;
+    label: string;
+    description: string;
+    icon: string | JSX.Element;
+    color: string;
+  }> = [
     {
       type: FeedType.CHRONOLOGICAL,
       label: 'Community',
       description: 'All Posts',
-      icon: '🌾',
+      icon: (
+        <img 
+          src="/app-logo.png" 
+          alt="Community Feed" 
+          className="filter-logo-icon"
+          onError={(e) => {
+            // Fallback to existing logo if app-logo.png doesn't exist
+            const target = e.target as HTMLImageElement;
+            if (target.src !== `${window.location.origin}/logo192.png`) {
+              target.src = '/logo192.png';
+            }
+          }}
+        />
+      ),
       color: '#2196f3'
     },
     {
