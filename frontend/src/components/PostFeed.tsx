@@ -383,9 +383,10 @@ const PostFeed: React.FC<PostFeedProps> = ({
   const feedStateRef = useRef<{
     initialized: boolean;
     lastFilter: string;
+    lastFeedType: string; // 🐛 Track feedType changes (Community/Following/Trending)
     lastRefreshKey: number;
     lastOrgId: string | null;
-  }>({ initialized: false, lastFilter: '', lastRefreshKey: 0, lastOrgId: null });
+  }>({ initialized: false, lastFilter: '', lastFeedType: '', lastRefreshKey: 0, lastOrgId: null });
   
   // 🎯 SINGLE EFFECT for filter changes (PRIMARY trigger)
   // When filter changes (including on context switch), this is the ONLY place that loads
@@ -393,13 +394,23 @@ const PostFeed: React.FC<PostFeedProps> = ({
     const filterKey = `${activeFilter}-${selectedGroupIds?.join(',') || ''}`;
     const state = feedStateRef.current;
     
-    // Skip if filter hasn't changed
-    if (state.lastFilter === filterKey && state.initialized) {
+    // 🐛 FIX: Check if feedType OR filter changed
+    const feedTypeChanged = state.lastFeedType !== feedTypeString;
+    const filterChanged = state.lastFilter !== filterKey;
+    
+    // Skip if neither feedType nor filter changed (and already initialized)
+    if (!feedTypeChanged && !filterChanged && state.initialized) {
       return;
+    }
+    
+    // 🐛 DEBUG: Log when feed type changes (helps verify fix is working)
+    if (feedTypeChanged && state.initialized) {
+      console.log('🔄 PostFeed: Feed type changed from', state.lastFeedType, 'to', feedTypeString);
     }
     
     // Update state FIRST to prevent re-entry
     state.lastFilter = filterKey;
+    state.lastFeedType = feedTypeString; // 🐛 Track current feedType
     
     // Check cache first
     const cachedData = queryClient.getQueryData<Post[]>(queryKey);
@@ -409,12 +420,12 @@ const PostFeed: React.FC<PostFeedProps> = ({
       setPosts(cachedData);
       setLoading(false);
       
-      // If this is initial mount OR filter actually changed, refresh in background
+      // If this is initial mount OR filter/feedType actually changed, refresh in background
       if (!state.initialized) {
         state.initialized = true;
         // Initial mount - just use cache, React Query staleTime will handle background refresh
       }
-      // Note: For filter changes, the server returns different data, so we need fresh fetch
+      // Note: For filter/feedType changes, the server returns different data, so we need fresh fetch
       else if (loadPostsRef.current) {
         loadPostsRef.current(true);
       }
@@ -425,7 +436,7 @@ const PostFeed: React.FC<PostFeedProps> = ({
         loadPostsRef.current(true);
       }
     }
-  }, [activeFilter, selectedGroupIds, queryKey, queryClient]);
+  }, [activeFilter, selectedGroupIds, feedTypeString, queryKey, queryClient]); // 🐛 ADD feedTypeString to dependencies
   
   // 🎯 refreshKey effect - ONLY for explicit user actions (pull-to-refresh, double-tap home)
   // This does NOT run on context changes anymore (Dashboard no longer increments refreshKey on context change)
