@@ -53,3 +53,21 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# ============================================
+# SECURITY: Sensitive files with secrets
+# ============================================
+backend/stripe-vars.json
+backend/eb-env-vars.json
+backend/eb-env-vars2.json
+backend/env-config.json
+
+# ============================================
+# Debug/Log files (don't commit to repo)
+# ============================================
+backend/*.txt
+backend/*.zip
+backend/bundle-logs/
+backend/bundle-logs2/
+backend/bundle-logs3/
+backend/verify-final/
