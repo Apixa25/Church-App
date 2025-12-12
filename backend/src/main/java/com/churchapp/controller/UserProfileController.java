@@ -36,7 +36,7 @@ import java.util.UUID;
 @RequestMapping("/profile")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8100", "capacitor://localhost"})
+// CORS is handled globally by SecurityConfig - no need for controller-level annotation
 public class UserProfileController {
     
     private final UserProfileService userProfileService;
