@@ -14,7 +14,6 @@ import {
   PostSearchFilters
 } from '../types/Post';
 import { ProfileUpdateRequest } from '../types/Profile';
-import { getApiUrl } from '../config/runtimeConfig';
 
 // ========== POST CRUD OPERATIONS ==========
 
@@ -503,170 +502,87 @@ export const updateUserProfile = async (userId: string, profileData: ProfileUpda
   return response.data;
 };
 
+/**
+ * Upload profile picture using presigned URL (industry-standard approach)
+ * 
+ * This bypasses Nginx entirely by uploading directly to S3.
+ * Works on all devices including iPhone, no file size limits from Nginx!
+ * 
+ * Flow: Frontend → Backend (get presigned URL) → S3 (direct upload) → Backend (confirm)
+ */
 export const uploadProfilePicture = async (file: File): Promise<string> => {
-  const formData = new FormData();
-  formData.append('file', file);
+  console.log('📸 Uploading profile picture using presigned URL (bypasses Nginx)');
+  console.log(`   File: ${file.name}, Size: ${(file.size / 1024 / 1024).toFixed(2)}MB, Type: ${file.type}`);
   
-  // iPhone Safari workaround: Use native fetch for FormData to avoid Axios issues
-  const userAgent = navigator.userAgent;
-  const isIPhone = /iPhone|iPod/.test(userAgent);
-  
-  if (isIPhone) {
-    console.log('📱 iPhone detected - using native fetch for profile picture upload');
+  try {
+    // Step 1: Get presigned URL from backend (goes through Nginx but tiny request)
+    console.log('🔑 Step 1: Getting presigned URL from backend...');
+    const presignedResponse = await generatePresignedUploadUrl(file, 'profile-pictures');
+    console.log('✅ Got presigned URL:', presignedResponse.s3Key);
     
-    // Get auth token
-    const { tokenService } = await import('./tokenService');
-    const token = await tokenService.getValidAccessToken();
+    // Step 2: Upload directly to S3 (bypasses Nginx completely!)
+    console.log('☁️ Step 2: Uploading directly to S3...');
+    await uploadFileToS3(file, presignedResponse.presignedUrl);
+    console.log('✅ File uploaded to S3 successfully');
     
-    // Use native fetch - browser handles FormData correctly
-    // DO NOT set Content-Type - browser MUST set it with boundary automatically
-    const API_BASE_URL = getApiUrl();
-    const url = `${API_BASE_URL}/profile/me/upload-picture`;
+    // Step 3: Confirm upload completion to backend
+    console.log('✔️ Step 3: Confirming upload with backend...');
+    const confirmResponse = await confirmUpload({
+      s3Key: presignedResponse.s3Key,
+      fileName: file.name,
+      contentType: file.type,
+      fileSize: file.size
+    });
     
-    // Handle timeout with AbortController
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000);
+    console.log('🎉 Profile picture upload complete!', confirmResponse.fileUrl);
+    return confirmResponse.fileUrl;
     
-    try {
-      const fetchResponse = await fetch(url, {
-        method: 'POST',
-        body: formData,
-        // DO NOT set Content-Type header - browser will set multipart/form-data with boundary
-        headers: {
-          'Authorization': `Bearer ${token || ''}`,
-          // Explicitly omit Content-Type - let browser handle it
-        },
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!fetchResponse.ok) {
-        const errorData = await fetchResponse.json().catch(() => ({ error: fetchResponse.statusText }));
-        throw {
-          response: {
-            status: fetchResponse.status,
-            statusText: fetchResponse.statusText,
-            data: errorData
-          }
-        };
-      }
-      
-      const responseData = await fetchResponse.json();
-      return responseData.fileUrl;
-    } catch (fetchError: any) {
-      clearTimeout(timeoutId);
-      if (fetchError.name === 'AbortError') {
-        const timeoutError = new Error('Upload timed out. Please check your connection and try again.') as any;
-        timeoutError.code = 'ECONNABORTED';
-        throw timeoutError;
-      }
-      throw fetchError;
-    }
-  } else {
-    // Use Axios for non-iPhone devices
-    const requestConfig = {
-      timeout: 90000,
-      headers: {
-        'Content-Type': undefined as any,
-      },
-      transformRequest: [(data: any) => {
-        if (data instanceof FormData) {
-          return data;
-        }
-        return data;
-      }]
-    };
-    
-    const response = await api.post('/profile/me/upload-picture', formData, requestConfig);
-    return response.data.fileUrl;
+  } catch (error: any) {
+    console.error('❌ Profile picture upload failed:', error);
+    throw error;
   }
 };
 
+/**
+ * Upload banner image using presigned URL (industry-standard approach)
+ * 
+ * This is how Instagram, X.com, and other major platforms handle uploads:
+ * - Bypasses Nginx completely (no file size limits!)
+ * - Works on all devices including iPhone
+ * - Uploads directly to S3 for better performance
+ * 
+ * Flow: Frontend → Backend (get presigned URL) → S3 (direct upload) → Backend (confirm)
+ */
 export const uploadBannerImage = async (file: File): Promise<string> => {
-  const formData = new FormData();
-  formData.append('file', file);
+  console.log('🖼️ Uploading banner image using presigned URL (bypasses Nginx)');
+  console.log(`   File: ${file.name}, Size: ${(file.size / 1024 / 1024).toFixed(2)}MB, Type: ${file.type}`);
   
-  // iPhone Safari workaround: Use native fetch for FormData to avoid Axios issues
-  const userAgent = navigator.userAgent;
-  const isIPhone = /iPhone|iPod/.test(userAgent);
-  
-  if (isIPhone) {
-    console.log('📱 iPhone detected - using native fetch for banner image upload');
+  try {
+    // Step 1: Get presigned URL from backend (goes through Nginx but tiny request)
+    console.log('🔑 Step 1: Getting presigned URL from backend...');
+    const presignedResponse = await generatePresignedUploadUrl(file, 'banners');
+    console.log('✅ Got presigned URL:', presignedResponse.s3Key);
     
-    // Get auth token
-    const { tokenService } = await import('./tokenService');
-    const token = await tokenService.getValidAccessToken();
+    // Step 2: Upload directly to S3 (bypasses Nginx completely!)
+    console.log('☁️ Step 2: Uploading directly to S3...');
+    await uploadFileToS3(file, presignedResponse.presignedUrl);
+    console.log('✅ File uploaded to S3 successfully');
     
-    // Use native fetch - browser handles FormData correctly
-    // DO NOT set Content-Type - browser MUST set it with boundary automatically
-    const API_BASE_URL = getApiUrl();
-    const url = `${API_BASE_URL}/profile/me/upload-banner`;
+    // Step 3: Confirm upload completion to backend
+    console.log('✔️ Step 3: Confirming upload with backend...');
+    const confirmResponse = await confirmUpload({
+      s3Key: presignedResponse.s3Key,
+      fileName: file.name,
+      contentType: file.type,
+      fileSize: file.size
+    });
     
-    // Handle timeout with AbortController
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000);
+    console.log('🎉 Banner image upload complete!', confirmResponse.fileUrl);
+    return confirmResponse.fileUrl;
     
-    try {
-      const fetchResponse = await fetch(url, {
-        method: 'POST',
-        body: formData,
-        // DO NOT set Content-Type header - browser will set multipart/form-data with boundary
-        headers: {
-          'Authorization': `Bearer ${token || ''}`,
-          // Explicitly omit Content-Type - let browser handle it
-        },
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!fetchResponse.ok) {
-        const errorData = await fetchResponse.json().catch(() => ({ error: fetchResponse.statusText }));
-        console.error('❌ Banner image upload failed:', {
-          status: fetchResponse.status,
-          statusText: fetchResponse.statusText,
-          error: errorData,
-          fileName: file.name,
-          fileSize: (file.size / 1024 / 1024).toFixed(2) + 'MB'
-        });
-        throw {
-          response: {
-            status: fetchResponse.status,
-            statusText: fetchResponse.statusText,
-            data: errorData
-          }
-        };
-      }
-      
-      const responseData = await fetchResponse.json();
-      return responseData.fileUrl;
-    } catch (fetchError: any) {
-      clearTimeout(timeoutId);
-      if (fetchError.name === 'AbortError') {
-        const timeoutError = new Error('Upload timed out. Please check your connection and try again. If the image is large, try a smaller file.') as any;
-        timeoutError.code = 'ECONNABORTED';
-        throw timeoutError;
-      }
-      throw fetchError;
-    }
-  } else {
-    // Use Axios for non-iPhone devices
-    const requestConfig = {
-      timeout: 90000,
-      headers: {
-        'Content-Type': undefined as any,
-      },
-      transformRequest: [(data: any) => {
-        if (data instanceof FormData) {
-          return data;
-        }
-        return data;
-      }]
-    };
-    
-    const response = await api.post('/profile/me/upload-banner', formData, requestConfig);
-    return response.data.fileUrl;
+  } catch (error: any) {
+    console.error('❌ Banner image upload failed:', error);
+    throw error;
   }
 };
 
