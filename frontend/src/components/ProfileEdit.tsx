@@ -101,21 +101,9 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
   const [bannerImageFile, setBannerImageFile] = useState<File | null>(null);
   const [bannerImagePreview, setBannerImagePreview] = useState<string>('');
   const [newInterest, setNewInterest] = useState('');
-  
-  // 🐛 iPhone Debug Panel State
-  const [debugLogs, setDebugLogs] = useState<string[]>([]);
-  const [showDebugPanel, setShowDebugPanel] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
-  
-  // 🐛 Debug logging function for iPhone debugging
-  const addDebugLog = (message: string, data?: any) => {
-    const timestamp = new Date().toLocaleTimeString();
-    const logEntry = `[${timestamp}] ${message}${data ? ': ' + JSON.stringify(data, null, 2) : ''}`;
-    console.log(message, data || '');
-    setDebugLogs(prev => [...prev.slice(-29), logEntry]); // Keep last 30 logs
-  };
 
   // Load current user data or external profile
   useEffect(() => {
@@ -416,84 +404,20 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
     setIsSaving(true);
     setError('');
     setSuccess('');
-    
-    // 🐛 iPhone Debug: Clear logs and show panel
-    const isIPhone = /iPhone|iPod/.test(navigator.userAgent);
-    setDebugLogs([]);
-    if (isIPhone) {
-      setShowDebugPanel(true);
-    }
-    
-    addDebugLog('🚀 Profile save started', {
-      hasProfilePic: !!profilePicFile,
-      hasBannerImage: !!bannerImageFile,
-      bannerFileSize: bannerImageFile ? (bannerImageFile.size / 1024 / 1024).toFixed(2) + 'MB' : 'none',
-      bannerFileType: bannerImageFile?.type || 'none',
-      bannerFileName: bannerImageFile?.name || 'none',
-      device: isIPhone ? 'iPhone' : 'Other',
-      userAgent: navigator.userAgent.substring(0, 100)
-    });
 
     try {
       // Upload profile picture if changed
       let profilePicUrl = user.profilePicUrl;
       if (profilePicFile) {
-        addDebugLog('📤 Uploading profile picture...', {
-          fileName: profilePicFile.name,
-          fileSize: (profilePicFile.size / 1024 / 1024).toFixed(2) + 'MB',
-          fileType: profilePicFile.type
-        });
         const uploadResult = await uploadProfilePicture(profilePicFile);
         profilePicUrl = uploadResult;
-        addDebugLog('✅ Profile picture uploaded', { url: uploadResult });
       }
 
       // Upload banner image if changed
       let bannerImageUrl = (user as any).bannerImageUrl || (externalProfile as any)?.bannerImageUrl;
       if (bannerImageFile) {
-        try {
-          addDebugLog('🖼️ Starting banner image upload...', {
-            fileName: bannerImageFile.name,
-            fileSize: (bannerImageFile.size / 1024 / 1024).toFixed(2) + 'MB',
-            fileType: bannerImageFile.type,
-            isIPhone: isIPhone
-          });
-          
-          const uploadResult = await uploadBannerImage(bannerImageFile);
-          bannerImageUrl = uploadResult;
-          addDebugLog('✅ Banner image uploaded successfully', { url: uploadResult });
-        } catch (bannerErr: any) {
-          addDebugLog('❌ Banner upload FAILED', {
-            message: bannerErr?.message,
-            status: bannerErr?.response?.status,
-            statusText: bannerErr?.response?.statusText,
-            isNetworkError: !bannerErr?.response,
-            isTimeout: bannerErr?.code === 'ECONNABORTED',
-            errorName: bannerErr?.name,
-            errorCode: bannerErr?.code,
-            responseData: bannerErr?.response?.data,
-            config: {
-              url: bannerErr?.config?.url,
-              method: bannerErr?.config?.method
-            }
-          });
-          
-          // If banner upload endpoint doesn't exist yet, use profile picture endpoint as fallback
-          try {
-            addDebugLog('⚠️ Trying fallback: profile picture endpoint...');
-            const uploadResult = await uploadProfilePicture(bannerImageFile);
-            bannerImageUrl = uploadResult;
-            addDebugLog('✅ Banner uploaded via fallback endpoint', { url: uploadResult });
-          } catch (fallbackErr: any) {
-            addDebugLog('❌ Fallback upload also FAILED', {
-              message: fallbackErr?.message,
-              status: fallbackErr?.response?.status,
-              isNetworkError: !fallbackErr?.response,
-              responseData: fallbackErr?.response?.data
-            });
-            throw new Error(`Failed to upload banner image: ${bannerErr.message || 'Unknown error'}`);
-          }
-        }
+        const uploadResult = await uploadBannerImage(bannerImageFile);
+        bannerImageUrl = uploadResult;
       }
 
       // Prepare profile data with serialization for backend expectations
@@ -542,13 +466,7 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
         updatedProfile.bannerImageUrl = bannerImageUrl;
       }
 
-      addDebugLog('📤 Updating profile...', {
-        hasProfilePicUrl: !!updatedProfile.profilePicUrl,
-        hasBannerImageUrl: !!updatedProfile.bannerImageUrl
-      });
-      
       const result = await updateUserProfile(user!.userId, updatedProfile);
-      addDebugLog('✅ Profile updated successfully!');
 
       // Update local user state
       if (updateUser) {
@@ -613,17 +531,6 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
 
     } catch (err: any) {
       console.error('Error updating profile:', err);
-      addDebugLog('❌ Profile save FAILED', {
-        message: err?.message,
-        status: err?.response?.status,
-        statusText: err?.response?.statusText,
-        isNetworkError: !err?.response,
-        isTimeout: err?.code === 'ECONNABORTED',
-        errorName: err?.name,
-        errorCode: err?.code,
-        responseData: err?.response?.data,
-        stack: err?.stack?.substring(0, 200)
-      });
       setError(err.message || 'Failed to update profile');
     } finally {
       setIsSaving(false);
@@ -1108,29 +1015,6 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
           <div className="message success">
             <span className="message-icon">✅</span>
             <span>{success}</span>
-          </div>
-        )}
-
-        {/* 🐛 iPhone Debug Panel - Shows console logs on screen */}
-        {showDebugPanel && debugLogs.length > 0 && (
-          <div className="debug-panel">
-            <div className="debug-panel-header">
-              <span>🐛 Debug Logs (iPhone)</span>
-              <button 
-                type="button"
-                onClick={() => setShowDebugPanel(false)}
-                className="debug-close-btn"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="debug-panel-content">
-              {debugLogs.map((log, index) => (
-                <div key={index} className="debug-log-entry">
-                  {log}
-                </div>
-              ))}
-            </div>
           </div>
         )}
 

@@ -141,7 +141,7 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
           };
           console.log('📱 iPhone detected - skipping client-side processing, using original file');
           console.log('📱 Server will handle HEIC conversion and compression:', iphoneInfo);
-          // Note: addDebugLog not available here, but logs will show in debug panel when form is submitted
+          // Server will handle HEIC conversion and compression
           processedFile = file; // Use original file - server can handle it
         } else {
           // Process on other devices (Android, desktop)
@@ -218,7 +218,7 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
           fileType: file.type
         };
         console.error('❌ Image processing failed:', errorInfo);
-        // Note: addDebugLog not available here, but error will be logged when form is submitted
+        // Error already logged via console.error above
         
         // Fallback: use original file - server can handle it
         console.warn('⚠️ Using original file as fallback - server will process it');
