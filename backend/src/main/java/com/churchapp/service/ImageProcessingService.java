@@ -13,7 +13,6 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Iterator;
 
 /**
  * Service for processing and optimizing images
@@ -39,6 +38,10 @@ public class ImageProcessingService {
     /**
      * Process and optimize an image
      * 
+     * IMPORTANT: This method handles EXIF orientation automatically!
+     * Mobile phones often store images rotated with an EXIF tag indicating how to display them.
+     * We use Thumbnailator's useExifOrientation(true) to automatically rotate images correctly.
+     * 
      * @param file Original image file
      * @return Processing result with optimized image data
      * @throws IOException If processing fails
@@ -54,23 +57,29 @@ public class ImageProcessingService {
         }
         log.info("Processing image: {} ({} bytes)", file.getOriginalFilename(), originalSize);
 
-        // Read original image - support WebP and other formats
+        // Read bytes for processing
+        byte[] imageBytes = file.getBytes();
+        
+        // Read image WITH EXIF orientation applied
+        // This ensures photos from phones are correctly rotated
         BufferedImage originalImage;
+        int originalWidth;
+        int originalHeight;
+        
         try {
-            // Read bytes first to ensure we can retry if needed
-            byte[] imageBytes = file.getBytes();
+            // Use Thumbnailator to read with EXIF orientation support
+            // This automatically rotates the image based on EXIF metadata (fixes sideways phone photos!)
+            ByteArrayInputStream exifStream = new ByteArrayInputStream(imageBytes);
+            originalImage = Thumbnails.of(exifStream)
+                    .scale(1.0)  // Read at original size
+                    .useExifOrientation(true)  // 🔑 Apply EXIF rotation automatically!
+                    .asBufferedImage();
             
-            // Try ImageIO first (now supports WebP with imageio-webp library)
-            ByteArrayInputStream inputStream1 = new ByteArrayInputStream(imageBytes);
-            originalImage = ImageIO.read(inputStream1);
-            
-            // If ImageIO fails, try Thumbnailator as fallback
             if (originalImage == null) {
-                log.debug("ImageIO returned null, trying Thumbnailator...");
-                ByteArrayInputStream inputStream2 = new ByteArrayInputStream(imageBytes);
-                originalImage = Thumbnails.of(inputStream2)
-                        .scale(1.0)  // Read at original size
-                        .asBufferedImage();
+                // Fallback to ImageIO (won't have EXIF rotation, but better than nothing)
+                log.warn("Thumbnailator could not read image, falling back to ImageIO (EXIF orientation may be lost)");
+                ByteArrayInputStream fallbackStream = new ByteArrayInputStream(imageBytes);
+                originalImage = ImageIO.read(fallbackStream);
             }
             
             if (originalImage == null) {
@@ -80,6 +89,11 @@ public class ImageProcessingService {
                 throw new IOException("Could not read image file. Format may not be supported. " +
                         "File: " + file.getOriginalFilename() + ", ContentType: " + file.getContentType());
             }
+            
+            // Get dimensions AFTER EXIF rotation has been applied
+            originalWidth = originalImage.getWidth();
+            originalHeight = originalImage.getHeight();
+            
         } catch (IOException e) {
             log.error("Error reading image file: {}", e.getMessage(), e);
             throw e;
@@ -88,10 +102,7 @@ public class ImageProcessingService {
             throw new IOException("Could not read image file: " + e.getMessage(), e);
         }
 
-        int originalWidth = originalImage.getWidth();
-        int originalHeight = originalImage.getHeight();
-
-        log.debug("Original image dimensions: {}x{}", originalWidth, originalHeight);
+        log.debug("Original image dimensions (after EXIF rotation): {}x{}", originalWidth, originalHeight);
 
         // Calculate new dimensions (maintain aspect ratio)
         int newWidth = originalWidth;
@@ -109,6 +120,7 @@ public class ImageProcessingService {
         }
 
         // Process image: resize and compress to JPEG
+        // Since originalImage is already EXIF-rotated, we can process it directly
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         
         Thumbnails.of(originalImage)
@@ -154,16 +166,18 @@ public class ImageProcessingService {
             // Read bytes first to support multiple read attempts
             byte[] imageBytes = file.getBytes();
             
-            // Try ImageIO first (supports WebP with imageio-webp library)
-            ByteArrayInputStream inputStream1 = new ByteArrayInputStream(imageBytes);
-            BufferedImage image = ImageIO.read(inputStream1);
+            // Use Thumbnailator with EXIF orientation to get accurate dimensions
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(imageBytes);
+            BufferedImage image = Thumbnails.of(inputStream)
+                    .scale(1.0)
+                    .useExifOrientation(true)  // Apply EXIF rotation for accurate dimensions
+                    .asBufferedImage();
             
-            // Fallback to Thumbnailator if ImageIO fails
+            // Fallback to ImageIO if Thumbnailator fails
             if (image == null) {
-                ByteArrayInputStream inputStream2 = new ByteArrayInputStream(imageBytes);
-                image = Thumbnails.of(inputStream2)
-                        .scale(1.0)
-                        .asBufferedImage();
+                log.debug("Thumbnailator returned null, trying ImageIO...");
+                ByteArrayInputStream fallbackStream = new ByteArrayInputStream(imageBytes);
+                image = ImageIO.read(fallbackStream);
             }
             
             if (image == null) {
