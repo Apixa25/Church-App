@@ -118,15 +118,21 @@ public class SettingsController {
             @RequestBody Map<String, Object> appearanceSettings,
             Authentication auth) {
         try {
+            log.info("Updating appearance settings: {}", appearanceSettings);
             UUID userId = getUserIdFromAuth(auth);
             settingsService.updateAppearanceSettings(userId, appearanceSettings);
 
             Map<String, String> response = new HashMap<>();
             response.put("message", "Appearance settings updated successfully");
             return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid appearance setting value: {}", e.getMessage(), e);
+            Map<String, String> response = new HashMap<>();
+            response.put("error", "Invalid setting value: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
         } catch (Exception e) {
             log.error("Error updating appearance settings: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to update appearance settings", e);
+            throw new RuntimeException("Failed to update appearance settings: " + e.getMessage(), e);
         }
     }
 

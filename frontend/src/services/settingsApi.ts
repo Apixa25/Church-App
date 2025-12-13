@@ -237,8 +237,12 @@ export const handleApiError = (error: any): string => {
 // Theme application utility
 export const applyTheme = (theme: string) => {
   const root = document.documentElement;
+  const themeLower = theme.toLowerCase();
 
-  switch (theme.toLowerCase()) {
+  // Save to localStorage for instant loading on next visit
+  localStorage.setItem('app-theme', themeLower);
+
+  switch (themeLower) {
     case 'dark':
       root.setAttribute('data-theme', 'dark');
       break;
@@ -250,27 +254,45 @@ export const applyTheme = (theme: string) => {
         root.setAttribute('data-theme', 'light');
       }
       break;
-    default:
+    case 'light':
       root.setAttribute('data-theme', 'light');
+      break;
+    default:
+      root.setAttribute('data-theme', 'dark');
   }
 };
 
 // Font size application utility
 export const applyFontSize = (fontSize: string) => {
   const root = document.documentElement;
+  const fontSizeLower = fontSize.toLowerCase();
 
-  switch (fontSize.toLowerCase()) {
+  // Save to localStorage for instant loading on next visit
+  localStorage.setItem('app-font-size', fontSizeLower);
+
+  switch (fontSizeLower) {
     case 'small':
       root.style.fontSize = '14px';
       break;
     case 'large':
       root.style.fontSize = '18px';
       break;
-    case 'extra_large':
-      root.style.fontSize = '20px';
-      break;
     default: // medium
       root.style.fontSize = '16px';
+  }
+};
+
+// Apply stored settings from localStorage on app load (instant, no API call)
+export const applyStoredSettings = () => {
+  const storedTheme = localStorage.getItem('app-theme');
+  const storedFontSize = localStorage.getItem('app-font-size');
+
+  if (storedTheme) {
+    applyTheme(storedTheme);
+  }
+
+  if (storedFontSize) {
+    applyFontSize(storedFontSize);
   }
 };
 
@@ -316,5 +338,6 @@ export default {
   handleApiError,
   applyTheme,
   applyFontSize,
-  applyAccessibilitySettings
+  applyAccessibilitySettings,
+  applyStoredSettings
 };

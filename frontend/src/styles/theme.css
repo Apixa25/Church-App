@@ -3,7 +3,8 @@
    Inspired by modern, sophisticated dark UI
    ======================================== */
 
-:root {
+:root,
+[data-theme="dark"] {
   /* Background Colors - Dark Base */
   --bg-primary: #0a0a0f;
   --bg-secondary: #141420;
@@ -106,6 +107,108 @@
   /* Legacy color mappings for gradual migration */
   --gradient-primary: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
   --gradient-secondary: linear-gradient(135deg, var(--accent-secondary) 0%, var(--accent-tertiary) 100%);
+}
+
+/* ========================================
+   LIGHT THEME - Clean & Welcoming
+   ======================================== */
+
+[data-theme="light"] {
+  /* Background Colors - Light & Clean */
+  --bg-primary: #f8f9fc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f0f2f5;
+  --bg-elevated: #ffffff;
+  --bg-overlay: rgba(0, 0, 0, 0.5);
+  
+  /* Text Colors - Dark for readability */
+  --text-primary: #1a1a2e;
+  --text-secondary: #4a4a5c;
+  --text-tertiary: #6b6b7c;
+  --text-disabled: #9a9aac;
+  
+  /* Accent Colors - Slightly deeper for light mode contrast */
+  --accent-primary: #4a6eff;
+  --accent-primary-dark: #3d5ee0;
+  --accent-primary-light: #6b8fff;
+  --accent-secondary: #7c4dff;
+  --accent-secondary-dark: #651fff;
+  --accent-secondary-light: #9d7aff;
+  --accent-tertiary: #0891b2;
+  --accent-tertiary-dark: #0e7490;
+  --accent-tertiary-light: #22d3ee;
+  
+  /* Glow Effects - Softer for light mode */
+  --glow-blue: 0 4px 20px rgba(74, 110, 255, 0.25),
+               0 2px 10px rgba(74, 110, 255, 0.15);
+  --glow-purple: 0 4px 20px rgba(124, 77, 255, 0.25),
+                 0 2px 10px rgba(124, 77, 255, 0.15);
+  --glow-teal: 0 4px 20px rgba(8, 145, 178, 0.25),
+               0 2px 10px rgba(8, 145, 178, 0.15);
+  
+  /* Interactive Elements */
+  --button-primary-bg: #4a6eff;
+  --button-primary-hover: #3d5ee0;
+  --button-primary-active: #3050d0;
+  --button-primary-glow: rgba(74, 110, 255, 0.3);
+  
+  --button-secondary-bg: transparent;
+  --button-secondary-border: rgba(74, 110, 255, 0.5);
+  --button-secondary-hover: rgba(74, 110, 255, 0.08);
+  
+  /* Borders & Dividers - Subtle */
+  --border-primary: rgba(0, 0, 0, 0.1);
+  --border-secondary: rgba(0, 0, 0, 0.05);
+  --border-glow: rgba(74, 110, 255, 0.3);
+  
+  /* Shadows - Soft & Natural */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.15);
+  
+  /* Status Colors - Same, work well on light */
+  --success: #10b981;
+  --success-glow: rgba(16, 185, 129, 0.2);
+  --warning: #f59e0b;
+  --warning-glow: rgba(245, 158, 11, 0.2);
+  --error: #ef4444;
+  --error-glow: rgba(239, 68, 68, 0.2);
+  --info: #0891b2;
+  --info-glow: rgba(8, 145, 178, 0.2);
+}
+
+/* Light theme body background */
+[data-theme="light"] body {
+  background: var(--bg-primary);
+  background-image:
+    radial-gradient(at 0% 0%, rgba(74, 110, 255, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(124, 77, 255, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(8, 145, 178, 0.08) 0px, transparent 50%);
+  color: var(--text-primary);
+}
+
+/* Light theme ambient glow - subtler */
+[data-theme="light"] body::before {
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(74, 110, 255, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(124, 77, 255, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, rgba(8, 145, 178, 0.05) 0%, transparent 50%);
+}
+
+/* Light theme scrollbar */
+[data-theme="light"] ::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #c0c5d0;
+  border: 2px solid var(--bg-tertiary);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
 }
 
 /* ========================================

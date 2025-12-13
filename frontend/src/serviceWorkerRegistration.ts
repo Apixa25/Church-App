@@ -1,4 +1,5 @@
-// This optional service worker enables offline capabilities and faster load times.
+// 🚀 The Gathering - Service Worker Registration
+// This enables offline capabilities, faster load times, and automatic update notifications
 // Learn more: https://cra.link/PWA
 
 const isLocalhost = Boolean(
@@ -15,8 +16,90 @@ type Config = {
 // Global update handler - can be set from App component
 let globalUpdateHandler: ((registration: ServiceWorkerRegistration) => void) | null = null;
 
+// Store the registration for periodic updates
+let swRegistration: ServiceWorkerRegistration | null = null;
+
+// How often to check for updates (in milliseconds)
+// Default: every 5 minutes while app is open
+const UPDATE_CHECK_INTERVAL = 5 * 60 * 1000;
+
 export function setUpdateHandler(handler: (registration: ServiceWorkerRegistration) => void) {
   globalUpdateHandler = handler;
+}
+
+// 🔄 Force check for updates - can be called manually
+export function checkForUpdates(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (swRegistration) {
+      console.log('🔍 Checking for service worker updates...');
+      swRegistration.update()
+        .then(() => {
+          console.log('✅ Update check complete');
+          resolve(true);
+        })
+        .catch((error) => {
+          console.error('❌ Update check failed:', error);
+          resolve(false);
+        });
+    } else {
+      console.log('⚠️ No service worker registration found');
+      resolve(false);
+    }
+  });
+}
+
+// 🗑️ Clear all caches - useful for debugging or forcing fresh content
+export function clearAllCaches(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if ('caches' in window) {
+      caches.keys()
+        .then((cacheNames) => {
+          return Promise.all(
+            cacheNames.map((cacheName) => caches.delete(cacheName))
+          );
+        })
+        .then(() => {
+          console.log('🗑️ All caches cleared');
+          resolve(true);
+        })
+        .catch((error) => {
+          console.error('❌ Failed to clear caches:', error);
+          resolve(false);
+        });
+    } else {
+      resolve(false);
+    }
+  });
+}
+
+// Start periodic update checks
+function startPeriodicUpdateCheck(registration: ServiceWorkerRegistration) {
+  // Check for updates periodically while the app is open
+  setInterval(() => {
+    console.log('🔄 Periodic update check...');
+    registration.update().catch((error) => {
+      console.log('Update check failed (may be offline):', error);
+    });
+  }, UPDATE_CHECK_INTERVAL);
+
+  // Also check for updates when the page becomes visible again
+  // This catches updates when user switches back to the app
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      console.log('👁️ App became visible, checking for updates...');
+      registration.update().catch((error) => {
+        console.log('Update check failed (may be offline):', error);
+      });
+    }
+  });
+
+  // Check for updates when coming back online
+  window.addEventListener('online', () => {
+    console.log('🌐 Back online, checking for updates...');
+    registration.update().catch((error) => {
+      console.log('Update check failed:', error);
+    });
+  });
 }
 
 export function register(config?: Config) {
@@ -45,15 +128,38 @@ function registerValidSW(swUrl: string, config?: Config) {
   navigator.serviceWorker
     .register(swUrl)
     .then((registration) => {
+      // Store registration for periodic updates
+      swRegistration = registration;
+      
+      // Start periodic update checks
+      startPeriodicUpdateCheck(registration);
+      
+      console.log('✅ Service Worker registered successfully');
+      
+      // Check if there's already a waiting service worker
+      // (This can happen if the user opened multiple tabs)
+      if (registration.waiting) {
+        console.log('📦 Update already waiting, triggering notification');
+        if (config && config.onUpdate) {
+          config.onUpdate(registration);
+        }
+        if (globalUpdateHandler) {
+          globalUpdateHandler(registration);
+        }
+      }
+      
       registration.onupdatefound = () => {
         const installingWorker = registration.installing;
         if (installingWorker == null) {
           return;
         }
+        
+        console.log('🔄 New service worker installing...');
+        
         installingWorker.onstatechange = () => {
           if (installingWorker.state === 'installed') {
             if (navigator.serviceWorker.controller) {
-              console.log('New content available; please refresh.');
+              console.log('🎉 New content available! Showing update notification.');
               // Call both config callback and global handler
               if (config && config.onUpdate) {
                 config.onUpdate(registration);
@@ -62,7 +168,7 @@ function registerValidSW(swUrl: string, config?: Config) {
                 globalUpdateHandler(registration);
               }
             } else {
-              console.log('Content cached for offline use.');
+              console.log('📦 Content cached for offline use.');
               if (config && config.onSuccess) {
                 config.onSuccess(registration);
               }
@@ -72,7 +178,7 @@ function registerValidSW(swUrl: string, config?: Config) {
       };
     })
     .catch((error) => {
-      console.error('Error registering service worker:', error);
+      console.error('❌ Error registering service worker:', error);
     });
 }
 
