@@ -219,3 +219,4 @@ self.addEventListener('periodicsync', (event) => {
 
 console.log('📱 The Gathering Service Worker loaded');
 
+

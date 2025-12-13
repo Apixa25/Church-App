@@ -597,7 +597,7 @@ public class SettingsService {
             .allowDirectMessages(true)
             .showOnlineStatus(true)
             .prayerRequestVisibility(UserSettings.PrayerVisibility.CHURCH_MEMBERS)
-            .theme(UserSettings.Theme.LIGHT)
+            .theme(UserSettings.Theme.DARK)
             .language("en")
             .timezone("UTC")
             .fontSize(UserSettings.FontSize.MEDIUM)
