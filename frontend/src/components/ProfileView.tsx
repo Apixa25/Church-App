@@ -20,6 +20,7 @@ import { Membership } from '../contexts/OrganizationContext';
 import FamilyGroupCreateForm from './FamilyGroupCreateForm';
 import LoadingSpinner from './LoadingSpinner';
 import { getImageUrlWithFallback } from '../utils/imageUrlUtils';
+import MediaViewer from './MediaViewer';
 import './ProfileView.css';
 
 interface ProfileViewProps {
@@ -53,6 +54,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const [bannerImageUrl, setBannerImageUrl] = useState<string>('');
   const [bannerImageFallback, setBannerImageFallback] = useState<string>('');
   const [sharesReceived, setSharesReceived] = useState(0);
+  
+  // Profile picture viewer state
+  const [showProfilePicViewer, setShowProfilePicViewer] = useState(false);
 
   // Bookmarks state
   const [bookmarkedPosts, setBookmarkedPosts] = useState<Post[]>([]);
@@ -655,8 +659,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
                 <img 
                   src={profilePicUrl} 
                   alt={profile.name}
-                  className="profile-picture-display"
+                  className="profile-picture-display profile-picture-clickable"
                   key={profilePicUrl}
+                  onClick={() => setShowProfilePicViewer(true)}
+                  title="Click to view full size"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     // Try S3 fallback if CloudFront fails
@@ -1230,6 +1236,17 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
             />
           </div>
         </div>
+      )}
+
+      {/* Profile Picture Viewer Modal */}
+      {profilePicUrl && !imageError && (
+        <MediaViewer
+          mediaUrls={[profilePicUrl]}
+          mediaTypes={['image/jpeg']}
+          isOpen={showProfilePicViewer}
+          onClose={() => setShowProfilePicViewer(false)}
+          initialIndex={0}
+        />
       )}
     </div>
   );
