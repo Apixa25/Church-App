@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QuickAction } from '../services/dashboardApi';
+import LoadingSpinner from './LoadingSpinner';
 
 interface QuickActionsProps {
   actions: QuickAction[];
@@ -17,16 +18,21 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions, isLoading }) => {
       prayer: '🙏',
       chat: '💬',
       megaphone: '📢',
+      announcement: '📢',
       calendar: '📅',
       shield: '🛡️',
       flag: '🚩',
       book: '📚',
+      resource: '📚',
       heart: '💝',
+      donation: '💝',
+      history: '💝',
       settings: '⚙️',
       rsvp: '🎫',
-      resource: '📚',
       upload: '📁',
-      music: '🎵'
+      music: '🎵',
+      create: '✏️',
+      chart: '📊'
     };
     return iconMap[iconType] || '📝';
   };
@@ -45,14 +51,16 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions, isLoading }) => {
     }
   };
 
+  const handleEmojiClick = (action: QuickAction) => {
+    // 🚀 Direct navigation - immediately go to the action destination
+    handleActionClick(action);
+  };
+
   if (isLoading) {
     return (
       <div className="quick-actions loading">
         <h3>⚡ Quick Actions</h3>
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading actions...</p>
-        </div>
+        <LoadingSpinner type="multi-ring" size="small" text="Loading actions..." />
       </div>
     );
   }
@@ -60,9 +68,30 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions, isLoading }) => {
   return (
     <div className="quick-actions">
       <h3>⚡ Quick Actions</h3>
+      
+      {/* 🎯 Emoji Shortcuts Bar */}
+      {actions.length > 0 && (
+        <div className="emoji-shortcuts-bar">
+          {actions.map((action) => (
+            <button
+              key={`emoji-${action.id}`}
+              className="emoji-shortcut"
+              onClick={() => handleEmojiClick(action)}
+              aria-label={action.title}
+              title={action.title}
+            >
+              {getActionIcon(action.iconType)}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="actions-grid">
         {actions.map((action) => (
-          <div key={action.id} className="action-card">
+          <div 
+            key={action.id} 
+            className="action-card"
+          >
             <div className="action-icon">
               {getActionIcon(action.iconType)}
             </div>

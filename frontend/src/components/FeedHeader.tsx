@@ -41,16 +41,31 @@ const FeedHeader: React.FC<FeedHeaderProps> = ({
     }
   };
 
-  const getFeedIcon = (type: FeedType): string => {
+  const getFeedIcon = (type: FeedType): string | JSX.Element => {
+    const LogoImage = () => (
+      <img 
+        src="/app-logo.png" 
+        alt="Community Feed" 
+        className="feed-logo-icon"
+        onError={(e) => {
+          // Fallback to existing logo if app-logo.png doesn't exist
+          const target = e.target as HTMLImageElement;
+          if (target.src !== `${window.location.origin}/logo192.png`) {
+            target.src = '/logo192.png';
+          }
+        }}
+      />
+    );
+    
     switch (type) {
       case FeedType.CHRONOLOGICAL:
-        return '🌾';
+        return <LogoImage />;
       case FeedType.TRENDING:
         return '🔥';
       case FeedType.FOR_YOU:
         return '✨';
       default:
-        return '🌾';
+        return <LogoImage />;
     }
   };
 

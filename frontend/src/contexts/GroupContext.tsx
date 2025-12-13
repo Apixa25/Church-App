@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
+import { getApiUrl } from '../config/runtimeConfig';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
+const API_BASE_URL = getApiUrl();
 
 export interface Group {
   id: string;
@@ -104,9 +105,9 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
 
       // Fetch all group memberships in parallel
       const [allRes, unmutedRes, mutedRes] = await Promise.all([
-        api.get('/api/groups/my-groups'),
-        api.get('/api/groups/my-groups/unmuted'),
-        api.get('/api/groups/my-groups/muted'),
+        api.get('/groups/my-groups'),
+        api.get('/groups/my-groups/unmuted'),
+        api.get('/groups/my-groups/muted'),
       ]);
 
       setMyGroups(allRes.data || []);
@@ -127,7 +128,7 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
   // Create group
   const createGroup = async (groupData: Partial<Group>): Promise<Group> => {
     try {
-      const response = await api.post('/api/groups', groupData);
+      const response = await api.post('/groups', groupData);
       await refreshGroups();
       return response.data;
     } catch (error: any) {
@@ -139,7 +140,7 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
   // Update group
   const updateGroup = async (groupId: string, groupData: Partial<Group>): Promise<Group> => {
     try {
-      const response = await api.put(`/api/groups/${groupId}`, groupData);
+      const response = await api.put(`/groups/${groupId}`, groupData);
       await refreshGroups();
       return response.data;
     } catch (error: any) {
@@ -151,7 +152,7 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
   // Delete group
   const deleteGroup = async (groupId: string): Promise<void> => {
     try {
-      await api.delete(`/api/groups/${groupId}`);
+      await api.delete(`/groups/${groupId}`);
       await refreshGroups();
     } catch (error: any) {
       console.error('Error deleting group:', error);
@@ -162,7 +163,7 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
   // Join group
   const joinGroup = async (groupId: string): Promise<GroupMembership> => {
     try {
-      const response = await api.post(`/api/groups/${groupId}/join`);
+      const response = await api.post(`/groups/${groupId}/join`);
       await refreshGroups();
       return response.data;
     } catch (error: any) {
@@ -174,7 +175,7 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
   // Leave group
   const leaveGroup = async (groupId: string): Promise<void> => {
     try {
-      await api.delete(`/api/groups/${groupId}/leave`);
+      await api.delete(`/groups/${groupId}/leave`);
       await refreshGroups();
     } catch (error: any) {
       console.error('Error leaving group:', error);
@@ -185,7 +186,7 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
   // Mute group
   const muteGroup = async (groupId: string): Promise<void> => {
     try {
-      await api.post(`/api/groups/${groupId}/mute`);
+      await api.post(`/groups/${groupId}/mute`);
       await refreshGroups();
     } catch (error: any) {
       console.error('Error muting group:', error);
@@ -196,7 +197,7 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
   // Unmute group
   const unmuteGroup = async (groupId: string): Promise<void> => {
     try {
-      await api.post(`/api/groups/${groupId}/unmute`);
+      await api.post(`/groups/${groupId}/unmute`);
       await refreshGroups();
     } catch (error: any) {
       console.error('Error unmuting group:', error);
@@ -207,7 +208,7 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
   // Check if user is member
   const isMember = async (groupId: string): Promise<boolean> => {
     try {
-      const response = await api.get(`/api/groups/${groupId}/is-member`);
+      const response = await api.get(`/groups/${groupId}/is-member`);
       return response.data;
     } catch (error) {
       console.error('Error checking membership:', error);
@@ -218,7 +219,7 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
   // Check if user is creator
   const isCreator = async (groupId: string): Promise<boolean> => {
     try {
-      const response = await api.get(`/api/groups/${groupId}/is-creator`);
+      const response = await api.get(`/groups/${groupId}/is-creator`);
       return response.data;
     } catch (error) {
       console.error('Error checking creator status:', error);
@@ -229,7 +230,7 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
   // Check if user can join
   const canJoin = async (groupId: string): Promise<boolean> => {
     try {
-      const response = await api.get(`/api/groups/${groupId}/can-join`);
+      const response = await api.get(`/groups/${groupId}/can-join`);
       return response.data;
     } catch (error) {
       console.error('Error checking join eligibility:', error);
@@ -244,7 +245,7 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
     size: number = 20
   ): Promise<{ content: Group[], totalElements: number }> => {
     try {
-      const response = await api.get('/api/groups/search', {
+      const response = await api.get('/groups/search', {
         params: { query, page, size },
       });
       return {
@@ -264,7 +265,7 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
     size: number = 20
   ): Promise<{ content: Group[], totalElements: number }> => {
     try {
-      const response = await api.get('/api/groups/by-tags', {
+      const response = await api.get('/groups/by-tags', {
         params: { tags, page, size },
       });
       return {
@@ -280,7 +281,7 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
   // Get group by ID
   const getGroupById = async (groupId: string): Promise<Group> => {
     try {
-      const response = await api.get(`/api/groups/${groupId}`);
+      const response = await api.get(`/groups/${groupId}`);
       return response.data;
     } catch (error: any) {
       console.error('Error fetching group:', error);
@@ -291,7 +292,7 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
   // Get member count
   const getMemberCount = async (groupId: string): Promise<number> => {
     try {
-      const response = await api.get(`/api/groups/${groupId}/member-count`);
+      const response = await api.get(`/groups/${groupId}/member-count`);
       return response.data;
     } catch (error) {
       console.error('Error fetching member count:', error);

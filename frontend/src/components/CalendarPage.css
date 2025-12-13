@@ -1,154 +1,277 @@
-/* CalendarPage Component Styles - Dark Modern Theme */
+/* CalendarPage Component Styles - Full Width Seamless */
 
 .calendar-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  background: var(--bg-primary);
+  max-width: 100%;
+  margin: 0;
+  padding: 8px 8px 0 8px;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
-/* Header */
-.calendar-header {
+/* ============================================
+   WEB & TABLET ONLY STYLES (min-width: 769px)
+   Constrain layout similar to Prayer Requests page
+   ============================================ */
+
+@media (min-width: 769px) {
+  .calendar-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem;
+  }
+}
+
+/* Top Navigation - Back Home at very top - Desktop Only */
+.page-top-nav {
+  margin-bottom: 8px;
+  display: none; /* Hidden by default (mobile) */
+}
+
+/* Show Back Home button on desktop only */
+@media (min-width: 769px) {
+  .page-top-nav {
+    display: block;
+    margin-bottom: 16px;
+  }
+}
+
+.back-home-btn {
   background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-primary);
-  padding: 24px 20px;
-  margin-bottom: 30px;
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  padding: 8px 14px;
+  border-radius: var(--border-radius-pill);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all var(--transition-base);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
 }
 
-.header-top {
+.back-home-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-primary);
+  box-shadow: 0 2px 8px var(--button-primary-glow);
+}
+
+/* Header - Compact, no box */
+.calendar-header {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-bottom: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 8px;
+}
+
+@media (min-width: 769px) {
+  .calendar-header {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--border-radius-md);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-md);
+  }
 }
 
 .header-title {
-  flex: 1;
-  text-align: center;
+  text-align: left;
 }
 
 .header-title h1 {
   color: var(--text-primary);
-  font-size: 32px;
+  font-size: 1.15rem;
   font-weight: 700;
-  margin: 0 0 5px 0;
-}
-
-.header-title p {
-  color: var(--text-secondary);
-  font-size: 16px;
   margin: 0;
-}
-
-.header-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.back-home-btn {
-  background: var(--gradient-primary);
-  color: white;
-  border: none;
-  padding: 0.8rem 1.2rem;
-  border-radius: var(--border-radius-md);
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all var(--transition-base);
   display: flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 2px 8px var(--button-primary-glow);
-  text-decoration: none;
-  min-width: 120px;
-  justify-content: center;
 }
 
-.back-home-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--glow-blue);
+@media (min-width: 769px) {
+  .header-title h1 {
+    font-size: 2rem;
+    margin: 0 0 0.5rem 0;
+  }
+  
+  .header-title p {
+    font-size: 1.1rem;
+    line-height: 1.4;
+  }
 }
 
-.back-home-btn:active {
-  transform: translateY(0);
+.header-title p {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  margin: 0;
 }
 
-/* Controls */
+/* Controls - Search/Filter above Month/Week/Day toggles */
 .calendar-controls {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-  padding: 20px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--border-radius-md);
-  box-shadow: var(--shadow-md);
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+  padding: 12px 0 0 0;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--border-primary);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+@media (min-width: 769px) {
+  .calendar-controls {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--border-radius-md);
+    padding: 1rem;
+    margin-top: 0;
+    margin-bottom: 2rem; /* Increased spacing before Month/Week/Day toggles */
+    box-shadow: var(--shadow-md);
+    border-top: 1px solid var(--border-primary);
+  }
 }
 
 .filters {
   display: flex;
-  gap: 15px;
-  align-items: center;
+  flex-direction: row;
+  gap: 8px;
+  align-items: stretch;
+  flex-wrap: wrap;
 }
 
 .search-input {
-  padding: 10px 15px;
+  padding: 8px 12px;
   background: var(--bg-secondary);
-  border: 2px solid var(--border-primary);
+  border: 1px solid var(--border-primary);
   border-radius: var(--border-radius-md);
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-primary);
-  width: 250px;
+  flex: 2;
+  min-width: 120px;
   transition: all var(--transition-base);
+  box-sizing: border-box;
 }
 
 .search-input:focus {
   outline: none;
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.2),
-              0 0 20px var(--button-primary-glow);
   background: var(--bg-tertiary);
 }
 
 .filter-select {
-  padding: 10px 15px;
+  padding: 8px 12px;
   background: var(--bg-secondary);
-  border: 2px solid var(--border-primary);
+  border: 1px solid var(--border-primary);
   border-radius: var(--border-radius-md);
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-primary);
   cursor: pointer;
   transition: all var(--transition-base);
+  flex: 1;
+  min-width: 100px;
+  box-sizing: border-box;
 }
 
 .filter-select:focus {
   outline: none;
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.2),
-              0 0 20px var(--button-primary-glow);
   background: var(--bg-tertiary);
 }
 
+/* Create Event Button - Mobile only */
+.create-event-btn-mobile {
+  display: none; /* Hidden by default (desktop) */
+  padding: 8px 12px;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px var(--button-primary-glow);
+  flex: 1;
+  min-width: 100px;
+}
+
+.create-event-btn-mobile:hover {
+  background: linear-gradient(135deg, var(--accent-primary-dark), var(--accent-secondary-dark));
+  transform: translateY(-1px);
+  box-shadow: var(--glow-blue);
+}
+
+.create-event-btn-mobile:active {
+  transform: translateY(0);
+}
+
+/* Create Event Button - Web/Desktop only */
+.create-event-btn-web {
+  display: none; /* Hidden by default (mobile) */
+  padding: 8px 12px;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px var(--button-primary-glow);
+  flex: 1;
+  min-width: 100px;
+}
+
+.create-event-btn-web:hover {
+  background: linear-gradient(135deg, var(--accent-primary-dark), var(--accent-secondary-dark));
+  transform: translateY(-1px);
+  box-shadow: var(--glow-blue);
+}
+
+.create-event-btn-web:active {
+  transform: translateY(0);
+}
+
+/* Show web button on desktop */
+@media (min-width: 769px) {
+  .create-event-btn-web {
+    display: block;
+  }
+}
+
+/* View Toggle in header - large pills */
 .view-toggle {
   display: flex;
-  gap: 5px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
-  padding: 5px;
-  border-radius: var(--border-radius-md);
+  gap: 10px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+  justify-content: flex-end;
 }
 
 .view-btn {
-  padding: 10px 20px;
+  padding: 14px 28px;
   border: none;
-  background: transparent;
-  border-radius: var(--border-radius-sm);
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-pill);
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   transition: all var(--transition-base);
   color: var(--text-secondary);
 }
@@ -156,21 +279,29 @@
 .view-btn.active {
   background: var(--accent-primary);
   color: white;
-  box-shadow: 0 2px 8px var(--button-primary-glow);
 }
 
 .view-btn:hover:not(.active) {
-  background: var(--bg-elevated);
+  background: var(--bg-tertiary);
   color: var(--text-primary);
 }
 
-/* Content */
+/* Content - No box, seamless, no extra spacing */
 .calendar-content {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--border-radius-md);
-  box-shadow: var(--shadow-md);
-  overflow: hidden;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Desktop: Add spacing for better layout */
+@media (min-width: 769px) {
+  .calendar-content {
+    margin-bottom: 2rem;
+  }
 }
 
 /* Loading */
@@ -286,39 +417,65 @@
 /* Responsive */
 @media (max-width: 768px) {
   .calendar-page {
-    padding: 15px;
+    padding: 12px;
   }
-  
-  .header-top {
-    flex-direction: column;
-    gap: 15px;
-    align-items: stretch;
+
+  /* Hide Back Home button on mobile */
+  .page-top-nav {
+    display: none !important;
   }
-  
-  .header-title {
-    text-align: center;
+
+  .back-home-btn {
+    display: none !important;
   }
-  
+
+  .calendar-header {
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
   .header-title h1 {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
   }
-  
-  .header-actions {
-    justify-content: center;
+
+  .header-title p {
+    font-size: 13px;
   }
   
   .calendar-controls {
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
     align-items: stretch;
+    padding: 16px;
+    margin-bottom: 16px;
   }
   
   .filters {
     flex-direction: column;
     gap: 10px;
+    width: 100%;
   }
   
-  .search-input {
+  /* Mobile: Search input full width - spans entire width */
+  .calendar-controls .filters .search-input {
+    width: 100% !important;
+    flex: none !important;
+    flex-grow: 0 !important;
+    flex-shrink: 0 !important;
+    flex-basis: auto !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Mobile: Hide All Status selector */
+  .filter-select-status {
+    display: none !important;
+  }
+  
+  /* Mobile: Show Create Event button */
+  .create-event-btn-mobile {
+    display: block;
     width: 100%;
   }
   

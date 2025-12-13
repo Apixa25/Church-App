@@ -12,6 +12,9 @@ import {
 } from '../types/Prayer';
 import { prayerAPI, handleApiError } from '../services/prayerApi';
 import { useActiveContext } from '../contexts/ActiveContextContext';
+import LoadingSpinner from './LoadingSpinner';
+import { processImageForUpload } from '../utils/imageUtils';
+import { uploadMediaDirect } from '../services/postApi';
 
 interface PrayerRequestFormProps {
   existingPrayer?: PrayerRequest;
@@ -73,30 +76,171 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
     }
   }, [existingPrayer, reset]);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        setError('Please select an image file');
+      // Validate file type - more permissive for mobile browsers
+      // Mobile devices (especially iOS) may report empty type or application/octet-stream for camera photos
+      const fileType = file.type.toLowerCase();
+      const fileName = file.name.toLowerCase();
+      const validImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'];
+      const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
+      
+      // Check by MIME type first, then by extension as fallback for mobile
+      const hasValidType = fileType.startsWith('image/') || validImageTypes.includes(fileType);
+      const hasValidExtension = validImageExtensions.some(ext => fileName.endsWith(ext));
+      
+      // Accept if either type or extension is valid (mobile browsers may not report correct MIME type)
+      // Also accept empty/generic types if extension looks like an image (common on mobile)
+      const isLikelyImage = hasValidType || hasValidExtension || 
+        (fileType === '' && hasValidExtension) ||
+        (fileType === 'application/octet-stream' && hasValidExtension);
+      
+      if (!isLikelyImage) {
+        setError('Please select an image file (JPG, PNG, GIF, WebP, or HEIC)');
+        console.log('File rejected - type:', fileType, 'name:', fileName);
         return;
       }
       
-      // Validate file size (10MB limit)
-      if (file.size > 10 * 1024 * 1024) {
-        setError('Image size must be less than 10MB');
+      // Validate file size (100MB limit)
+      if (file.size > 100 * 1024 * 1024) {
+        setError('Image size must be less than 100MB');
         return;
       }
       
-      setSelectedImage(file);
       setError(null);
+      setLoading(true);
       
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        // Smart image processing following industry best practices (Instagram/X.com approach):
+        // - Always convert HEIC/HEIF (server compatibility)
+        // - Only compress large files (>5MB) for faster uploads
+        // - Skip processing for small optimized JPEGs (<2MB)
+        const userAgent = navigator.userAgent;
+        const isIPhone = /iPhone|iPod/.test(userAgent);
+        
+            const imageInfo = {
+              name: file.name,
+              type: file.type,
+              size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+              device: isIPhone ? 'iPhone' : 'Other',
+              userAgent: userAgent
+            };
+            console.log('📷 Processing image for upload (smart compression)...', imageInfo);
+        
+        // iPhone-specific: Skip client-side processing and let server handle it
+        // iPhone Safari has issues with File objects created from canvas.toBlob in FormData
+        // The server can process HEIC and compress images, so we'll upload the original
+        let processedFile: File;
+        if (isIPhone) {
+          const iphoneInfo = {
+            fileName: file.name,
+            fileSize: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+            fileType: file.type || '(unknown)',
+            reason: 'iPhone Safari FormData compatibility'
+          };
+          console.log('📱 iPhone detected - skipping client-side processing, using original file');
+          console.log('📱 Server will handle HEIC conversion and compression:', iphoneInfo);
+          // Server will handle HEIC conversion and compression
+          processedFile = file; // Use original file - server can handle it
+        } else {
+          // Process on other devices (Android, desktop)
+          if (file.size > 5 * 1024 * 1024) {
+            console.log('⏱️ Large file detected, using timeout protection...');
+            try {
+              processedFile = await Promise.race([
+                processImageForUpload(file, 1920, 1920, 5 * 1024 * 1024),
+                new Promise<File>((_, reject) => 
+                  setTimeout(() => reject(new Error('Processing timeout')), 25000) // 25 second timeout
+                )
+              ]);
+            } catch (timeoutError) {
+              console.warn('⚠️ Image processing timed out, using original file:', timeoutError);
+              processedFile = file; // Use original if processing times out
+            }
+          } else {
+            processedFile = await processImageForUpload(file, 1920, 1920, 5 * 1024 * 1024);
+          }
+        }
+        
+        // Only log if file was actually processed (not skipped)
+        if (processedFile !== file) {
+          const reduction = Math.round((1 - processedFile.size / file.size) * 100);
+          console.log('✅ Image processed:', {
+            originalSize: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+            processedSize: (processedFile.size / 1024 / 1024).toFixed(2) + 'MB',
+            reduction: reduction + '%',
+            uploadTimeEstimate: '~' + Math.round(processedFile.size / 1024 / 50) + 's on 4G'
+          });
+        } else {
+          console.log('✅ Image ready (no processing needed):', {
+            size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+            type: file.type
+          });
+        }
+        
+        // Validate processed file before setting it
+        if (!(processedFile instanceof File)) {
+          console.error('❌ Processed file is not a File object:', processedFile);
+          throw new Error('Image processing failed - invalid file object');
+        }
+        
+        if (processedFile.size === 0) {
+          console.error('❌ Processed file has zero size');
+          throw new Error('Image processing failed - file is empty');
+        }
+        
+        console.log('✅ Processed file validated:', {
+          name: processedFile.name,
+          size: (processedFile.size / 1024 / 1024).toFixed(2) + 'MB',
+          type: processedFile.type,
+          isFile: processedFile instanceof File
+        });
+        
+        setSelectedImage(processedFile);
+        
+        // Create preview URL from processed file
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result as string);
+        };
+        reader.onerror = (err) => {
+          console.error('❌ FileReader error creating preview:', err);
+          // Continue anyway - preview is optional
+        };
+        reader.readAsDataURL(processedFile);
+      } catch (error: any) {
+        const errorInfo = {
+          error: error?.message,
+          stack: error?.stack?.substring(0, 200), // Truncate stack for display
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type
+        };
+        console.error('❌ Image processing failed:', errorInfo);
+        // Error already logged via console.error above
+        
+        // Fallback: use original file - server can handle it
+        console.warn('⚠️ Using original file as fallback - server will process it');
+        setSelectedImage(file);
+        
+        // Create preview URL from original file
+        try {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setImagePreview(reader.result as string);
+          };
+          reader.onerror = (err) => {
+            console.error('❌ FileReader error on fallback:', err);
+          };
+          reader.readAsDataURL(file);
+        } catch (readerError) {
+          console.error('❌ Failed to create preview even with original file:', readerError);
+          // Continue without preview - user can still submit
+        }
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -104,7 +248,7 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
     setSelectedImage(null);
     setImagePreview(null);
     // Clear file input
-    const fileInput = document.getElementById('image-input') as HTMLInputElement;
+    const fileInput = document.getElementById('prayer-image-input') as HTMLInputElement;
     if (fileInput) {
       fileInput.value = '';
     }
@@ -133,16 +277,24 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
             : (imagePreview ? imagePreview : undefined)
         };
         
-        // If image was selected or removed, use multipart endpoint
-        if (selectedImage || (!imagePreview && existingPrayer.imageUrl)) {
-          response = await prayerAPI.updatePrayerRequestWithImage(
-            existingPrayer.id, 
-            updateRequest, 
-            selectedImage || undefined
-          );
-        } else {
-          response = await prayerAPI.updatePrayerRequest(existingPrayer.id, updateRequest);
+        // Handle image upload/removal (same pattern as posts - works on iPhone!)
+        if (selectedImage) {
+          // New image selected - upload to S3 first
+          try {
+            const imageUrls = await uploadMediaDirect([selectedImage], 'prayer-requests');
+            if (!imageUrls || imageUrls.length === 0) {
+              throw new Error('Failed to upload image. Please try again.');
+            }
+            updateRequest.imageUrl = imageUrls[0];
+          } catch (uploadError: any) {
+            throw uploadError;
+          }
         }
+        // If imageUrl is empty string, it means remove image (handled by backend)
+        // If imageUrl is set, it means use that URL (from S3 upload or existing)
+        // If imageUrl is undefined, no change to image
+        
+        response = await prayerAPI.updatePrayerRequest(existingPrayer.id, updateRequest);
       } else {
         const createRequest: PrayerRequestCreateRequest = {
           title: data.title,
@@ -152,15 +304,54 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
           organizationId: activeOrganizationId || undefined // Pass active organization from context
         };
         
-        // If image was selected, use multipart endpoint
+        // Upload image to S3 first (same pattern as posts - works on iPhone!)
         if (selectedImage) {
-          response = await prayerAPI.createPrayerRequestWithImage(createRequest, selectedImage);
+          // Validate file before sending
+          if (!(selectedImage instanceof File)) {
+            console.error('❌ selectedImage is not a valid File object:', selectedImage);
+            throw new Error('Invalid image file. Please try selecting the image again.');
+          }
+          
+          if (selectedImage.size === 0) {
+            console.error('❌ selectedImage has zero size:', selectedImage);
+            throw new Error('Image file is empty. Please try selecting a different image.');
+          }
+          
+          try {
+            // Step 1: Upload image to S3 using presigned URLs (works perfectly on iPhone!)
+            const imageUrls = await uploadMediaDirect([selectedImage], 'prayer-requests');
+            
+            if (!imageUrls || imageUrls.length === 0) {
+              throw new Error('Failed to upload image. Please try again.');
+            }
+            
+            const imageUrl = imageUrls[0];
+            
+            // Step 2: Create prayer request with imageUrl in JSON (no FormData needed!)
+            createRequest.imageUrl = imageUrl;
+            
+            response = await prayerAPI.createPrayerRequest(createRequest);
+          } catch (uploadError: any) {
+            console.error('❌ Image upload or prayer request creation failed:', uploadError);
+            throw uploadError; // Re-throw to be caught by outer catch
+          }
         } else {
+          // No image - just create the prayer request
           response = await prayerAPI.createPrayerRequest(createRequest);
         }
       }
 
       const prayer = response.data;
+      
+      // Debug logging for image URL
+      console.log('✅ Prayer request created/updated:', {
+        id: prayer.id,
+        title: prayer.title,
+        imageUrl: prayer.imageUrl,
+        hasImage: !!prayer.imageUrl,
+        fullResponse: prayer
+      });
+      
       setSuccess(mode === 'edit' ? 'Prayer request updated successfully!' : 'Prayer request created successfully!');
       
       if (onSuccess) {
@@ -177,7 +368,23 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
         setSelectedImage(null);
       }
     } catch (err: any) {
-      setError(handleApiError(err));
+      console.error('❌ Prayer request submission error:', err);
+      
+      // Better error messages for mobile network issues
+      if (!err.response) {
+        // Network error (timeout, connection lost, etc.)
+        if (err.code === 'ECONNABORTED') {
+          setError('Request timed out. Please check your connection and try again. If the image is large, try a smaller file.');
+        } else {
+          setError('Network error. Please check your connection and try again. If the image is large, try a smaller file.');
+        }
+      } else if (err.response?.status === 413) {
+        setError('Image file is too large. Please use an image smaller than 10MB.');
+      } else if (err.response?.status === 400 && err.response?.data?.error?.includes('image')) {
+        setError(err.response.data.error);
+      } else {
+        setError(handleApiError(err));
+      }
     } finally {
       setLoading(false);
     }
@@ -272,42 +479,34 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
                 </button>
               </div>
             )}
+            {/* Single file input for both states - prevents duplicate ID issue */}
+            {/* Note: Removed capture="environment" to allow gallery selection on mobile */}
+            <input
+              id="prayer-image-input"
+              type="file"
+              accept="image/*,.heic,.heif"
+              onChange={handleImageSelect}
+              disabled={loading}
+              style={{ display: 'none' }}
+            />
             {!imagePreview && (
-              <label htmlFor="image-input" className="image-upload-label">
-                <input
-                  id="image-input"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  disabled={loading}
-                  style={{ display: 'none' }}
-                />
+              <label htmlFor="prayer-image-input" className="image-upload-label">
                 <div className="image-upload-button">
                   <span className="upload-icon">📷</span>
                   <span className="upload-text">Upload Image</span>
                 </div>
-                <small className="form-help">JPG, PNG, GIF, or WebP • Max 10MB</small>
+                <small className="form-help">JPG, PNG, GIF, WebP, or HEIC • Max 10MB</small>
               </label>
             )}
             {imagePreview && (
-              <label htmlFor="image-input" className="image-upload-label">
-                <input
-                  id="image-input"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  disabled={loading}
-                  style={{ display: 'none' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('image-input')?.click()}
-                  className="change-image-btn"
-                  disabled={loading}
-                >
-                  Change Image
-                </button>
-              </label>
+              <button
+                type="button"
+                onClick={() => document.getElementById('prayer-image-input')?.click()}
+                className="change-image-btn"
+                disabled={loading}
+              >
+                Change Image
+              </button>
             )}
           </div>
         </div>
@@ -386,7 +585,9 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
           >
             {loading ? (
               <>
-                <span className="loading-spinner"></span>
+                <div style={{ display: 'inline-block', marginRight: '8px' }}>
+                  <LoadingSpinner type="multi-ring" size="inline" />
+                </div>
                 {mode === 'edit' ? 'Updating...' : 'Submitting...'}
               </>
             ) : (
@@ -405,6 +606,8 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
           border: 1px solid var(--border-primary);
           border-radius: var(--border-radius-md);
           box-shadow: var(--shadow-md);
+          max-height: 90vh;
+          overflow-y: auto;
         }
 
         .form-header {
@@ -712,7 +915,9 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
         @media (max-width: 768px) {
           .prayer-request-form {
             padding: 1.5rem;
+            padding-bottom: calc(1.5rem + 100px);
             margin: 1rem;
+            max-height: calc(100vh - 20px);
           }
 
           .form-actions {

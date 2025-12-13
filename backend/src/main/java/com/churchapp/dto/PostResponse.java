@@ -21,6 +21,7 @@ public class PostResponse {
     private String content;
     private List<String> mediaUrls;
     private List<String> mediaTypes;
+    private List<String> thumbnailUrls;
     private UUID parentPostId;
     private UUID quotedPostId;
     private boolean isReply;
@@ -35,6 +36,11 @@ public class PostResponse {
     private int commentsCount;
     private int sharesCount;
     private int bookmarksCount;
+
+    // Social media embed fields
+    private String externalUrl;         // Original URL of the shared social media content
+    private String externalPlatform;    // Platform type: X_POST, FACEBOOK_REEL, INSTAGRAM_REEL, YOUTUBE
+    private String externalEmbedHtml;   // oEmbed HTML response for rendering embedded content
 
     // Additional computed fields
     private boolean isLikedByCurrentUser;
@@ -70,6 +76,7 @@ public class PostResponse {
         response.setContent(post.getContent());
         response.setMediaUrls(post.getMediaUrls());
         response.setMediaTypes(post.getMediaTypes());
+        response.setThumbnailUrls(post.getThumbnailUrls());
 
         if (post.getParentPost() != null) {
             response.setParentPostId(post.getParentPost().getId());
@@ -90,6 +97,11 @@ public class PostResponse {
         response.setCommentsCount(post.getCommentsCount());
         response.setSharesCount(post.getSharesCount());
         response.setBookmarksCount(post.getBookmarksCount());
+
+        // Map social media embed fields if present
+        response.setExternalUrl(post.getExternalUrl());
+        response.setExternalPlatform(post.getExternalPlatform());
+        response.setExternalEmbedHtml(post.getExternalEmbedHtml());
 
         // Map organization info if present
         if (post.getOrganization() != null) {

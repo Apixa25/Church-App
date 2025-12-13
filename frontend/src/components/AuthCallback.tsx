@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { tokenService } from '../services/tokenService';
+import LoadingSpinner from './LoadingSpinner';
 // import { useAuth } from '../contexts/AuthContext'; // Not currently used
 
 const AuthCallback: React.FC = () => {
@@ -8,6 +10,10 @@ const AuthCallback: React.FC = () => {
   // const { setUser } = useAuth(); // Not currently used in this component
 
   useEffect(() => {
+    // Debug: Log current URL and all search params
+    console.log('🔍 AuthCallback - Current URL:', window.location.href);
+    console.log('🔍 AuthCallback - Search params:', Object.fromEntries(searchParams.entries()));
+    
     const token = searchParams.get('token');
     const refreshToken = searchParams.get('refreshToken');
     const userId = searchParams.get('userId');
@@ -15,7 +21,19 @@ const AuthCallback: React.FC = () => {
     const name = searchParams.get('name');
     const role = searchParams.get('role');
     const isNewUser = searchParams.get('isNewUser') === 'true';
-    const error = searchParams.get('error');
+    const error = searchParams.get('error') || searchParams.get('authError');
+
+    // Debug: Log all extracted values
+    console.log('🔍 AuthCallback - Extracted values:', {
+      token: token ? 'Present' : 'Missing',
+      refreshToken: refreshToken ? 'Present' : 'Missing',
+      userId: userId || 'Missing',
+      email: email || 'Missing',
+      name: name || 'Missing',
+      role: role || 'Missing',
+      isNewUser,
+      error: error || 'None'
+    });
 
     if (error) {
       console.error('OAuth2 error:', error);
@@ -26,18 +44,28 @@ const AuthCallback: React.FC = () => {
     }
 
     if (token && userId && email && name && role) {
+      // 🖼️ Handle profilePicUrl - decode and filter empty strings
+      // searchParams.get() automatically decodes URL-encoded values
+      const profilePicUrlParam = searchParams.get('profilePicUrl');
+      const profilePicUrl = profilePicUrlParam && profilePicUrlParam.trim() !== '' 
+        ? profilePicUrlParam 
+        : undefined;
+      
       const userData = {
         userId,
         email,
         name,
         role,
-        profilePicUrl: searchParams.get('profilePicUrl'),
+        profilePicUrl, // Will be undefined if empty/null, which is fine
       };
 
       // Save to localStorage
       localStorage.setItem('authToken', token);
       localStorage.setItem('refreshToken', refreshToken || '');
       localStorage.setItem('user', JSON.stringify(userData));
+
+      // Schedule automatic token refresh (silent refresh)
+      tokenService.scheduleTokenRefresh();
 
       // Force a page reload to refresh the auth context
       console.log('OAuth2 login successful, redirecting to dashboard');
@@ -55,7 +83,7 @@ const AuthCallback: React.FC = () => {
   return (
     <div className="auth-callback-container">
       <div className="auth-callback">
-        <div className="loading-spinner">⏳</div>
+        <LoadingSpinner type="multi-ring" size="large" />
         <h2>🔐 Completing Authentication...</h2>
         <p>Please wait while we finish setting up your account.</p>
       </div>

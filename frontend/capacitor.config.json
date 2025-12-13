@@ -20,21 +20,27 @@
     "App": {
       "launchUrl": "thegathering://",
       "deepLinkScheme": "thegathering"
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#141420",
+      "overlaysWebView": false
     }
   },
   "server": {
-    "url": "http://localhost:3000",
-    "cleartext": true,
+    "url": "https://www.thegathrd.com",
+    "cleartext": false,
     "androidScheme": "https",
     "iosScheme": "https",
-    "hostname": "app.thegathering.com",
+    "hostname": "www.thegathrd.com",
     "allowNavigation": [
-      "http://localhost:3000",
-      "http://localhost:8080",
-      "https://app.thegathering.com",
-      "https://api.thegathering.com",
+      "https://www.thegathrd.com",
+      "https://app.thegathrd.com",
+      "https://api.thegathrd.com",
       "https://stripe.com",
-      "https://*.stripe.com"
+      "https://*.stripe.com",
+      "http://localhost:3000",
+      "http://localhost:8080"
     ]
   },
   "android": {

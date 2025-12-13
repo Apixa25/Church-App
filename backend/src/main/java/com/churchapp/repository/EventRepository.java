@@ -19,34 +19,73 @@ import java.util.UUID;
 public interface EventRepository extends JpaRepository<Event, UUID> {
     
     // Find by creator
-    Page<Event> findByCreator(User creator, Pageable pageable);
+    @Query(value = "SELECT e FROM Event e " +
+           "LEFT JOIN FETCH e.creator " +
+           "LEFT JOIN FETCH e.group " +
+           "WHERE e.creator = :creator",
+           countQuery = "SELECT COUNT(e) FROM Event e WHERE e.creator = :creator")
+    Page<Event> findByCreator(@Param("creator") User creator, Pageable pageable);
     
     List<Event> findByCreatorIdOrderByStartTimeDesc(UUID creatorId);
     
     // Find by status
-    Page<Event> findByStatusOrderByStartTimeAsc(Event.EventStatus status, Pageable pageable);
+    @Query(value = "SELECT e FROM Event e " +
+           "LEFT JOIN FETCH e.creator " +
+           "LEFT JOIN FETCH e.group " +
+           "WHERE e.status = :status " +
+           "ORDER BY e.startTime ASC",
+           countQuery = "SELECT COUNT(e) FROM Event e WHERE e.status = :status")
+    Page<Event> findByStatusOrderByStartTimeAsc(@Param("status") Event.EventStatus status, Pageable pageable);
     
     // Find by category
-    Page<Event> findByCategoryOrderByStartTimeAsc(Event.EventCategory category, Pageable pageable);
+    @Query(value = "SELECT e FROM Event e " +
+           "LEFT JOIN FETCH e.creator " +
+           "LEFT JOIN FETCH e.group " +
+           "WHERE e.category = :category " +
+           "ORDER BY e.startTime ASC",
+           countQuery = "SELECT COUNT(e) FROM Event e WHERE e.category = :category")
+    Page<Event> findByCategoryOrderByStartTimeAsc(@Param("category") Event.EventCategory category, Pageable pageable);
     
     // Find by category and status
+    @Query(value = "SELECT e FROM Event e " +
+           "LEFT JOIN FETCH e.creator " +
+           "LEFT JOIN FETCH e.group " +
+           "WHERE e.category = :category AND e.status = :status " +
+           "ORDER BY e.startTime ASC",
+           countQuery = "SELECT COUNT(e) FROM Event e WHERE e.category = :category AND e.status = :status")
     Page<Event> findByCategoryAndStatusOrderByStartTimeAsc(
-        Event.EventCategory category, 
-        Event.EventStatus status, 
+        @Param("category") Event.EventCategory category, 
+        @Param("status") Event.EventStatus status, 
         Pageable pageable
     );
     
     // Find by group
-    Page<Event> findByGroupOrderByStartTimeAsc(ChatGroup group, Pageable pageable);
+    @Query(value = "SELECT e FROM Event e " +
+           "LEFT JOIN FETCH e.creator " +
+           "LEFT JOIN FETCH e.group " +
+           "WHERE e.group = :group " +
+           "ORDER BY e.startTime ASC",
+           countQuery = "SELECT COUNT(e) FROM Event e WHERE e.group = :group")
+    Page<Event> findByGroupOrderByStartTimeAsc(@Param("group") ChatGroup group, Pageable pageable);
     
     List<Event> findByGroupIdOrderByStartTimeAsc(UUID groupId);
     
     // Find upcoming events
-    @Query("SELECT e FROM Event e WHERE e.startTime > :now AND e.status = 'SCHEDULED' ORDER BY e.startTime ASC")
+    @Query(value = "SELECT e FROM Event e " +
+           "LEFT JOIN FETCH e.creator " +
+           "LEFT JOIN FETCH e.group " +
+           "WHERE e.startTime > :now AND e.status = 'SCHEDULED' " +
+           "ORDER BY e.startTime ASC",
+           countQuery = "SELECT COUNT(e) FROM Event e WHERE e.startTime > :now AND e.status = 'SCHEDULED'")
     Page<Event> findUpcomingEvents(@Param("now") LocalDateTime now, Pageable pageable);
     
     // Find events within date range
-    @Query("SELECT e FROM Event e WHERE e.startTime >= :startDate AND e.startTime <= :endDate ORDER BY e.startTime ASC")
+    @Query(value = "SELECT e FROM Event e " +
+           "LEFT JOIN FETCH e.creator " +
+           "LEFT JOIN FETCH e.group " +
+           "WHERE e.startTime >= :startDate AND e.startTime <= :endDate " +
+           "ORDER BY e.startTime ASC",
+           countQuery = "SELECT COUNT(e) FROM Event e WHERE e.startTime >= :startDate AND e.startTime <= :endDate")
     Page<Event> findEventsByDateRange(
         @Param("startDate") LocalDateTime startDate, 
         @Param("endDate") LocalDateTime endDate, 
@@ -54,11 +93,17 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
     );
     
     // Search events by title or description
-    @Query("SELECT e FROM Event e WHERE " +
-           "LOWER(e.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+    @Query(value = "SELECT e FROM Event e " +
+           "LEFT JOIN FETCH e.creator " +
+           "LEFT JOIN FETCH e.group " +
+           "WHERE (LOWER(e.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
            "LOWER(e.description) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(e.location) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
-           "ORDER BY e.startTime ASC")
+           "LOWER(e.location) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
+           "ORDER BY e.startTime ASC",
+           countQuery = "SELECT COUNT(e) FROM Event e WHERE " +
+           "(LOWER(e.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(e.description) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(e.location) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
     Page<Event> searchEvents(@Param("searchTerm") String searchTerm, Pageable pageable);
     
     // Count by status
@@ -95,7 +140,12 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
     List<Event> findEventsRequiringApproval();
     
     // Find recent events ordered by creation date (for activity feed)
-    @Query("SELECT e FROM Event e WHERE e.status = 'SCHEDULED' ORDER BY e.createdAt DESC")
+    @Query(value = "SELECT e FROM Event e " +
+           "LEFT JOIN FETCH e.creator " +
+           "LEFT JOIN FETCH e.group " +
+           "WHERE e.status = 'SCHEDULED' " +
+           "ORDER BY e.createdAt DESC",
+           countQuery = "SELECT COUNT(e) FROM Event e WHERE e.status = 'SCHEDULED'")
     Page<Event> findRecentEventsOrderByCreatedAt(Pageable pageable);
 
     // ========================================================================
@@ -103,9 +153,12 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
     // ========================================================================
 
     // Find events by organization
-    @Query("SELECT e FROM Event e WHERE " +
-           "e.organization.id = :orgId " +
-           "ORDER BY e.startTime ASC")
+    @Query(value = "SELECT e FROM Event e " +
+           "LEFT JOIN FETCH e.creator " +
+           "LEFT JOIN FETCH e.group " +
+           "WHERE e.organization.id = :orgId " +
+           "ORDER BY e.startTime ASC",
+           countQuery = "SELECT COUNT(e) FROM Event e WHERE e.organization.id = :orgId")
     Page<Event> findByOrganizationId(@Param("orgId") UUID orgId, Pageable pageable);
 
     // Find upcoming events by organization

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import DatePicker from 'react-datepicker';
 import { Event, getEventCategoryDisplay, getEventStatusDisplay } from '../types/Event';
 import EventCard from './EventCard';
-import { getDateKey } from '../utils/dateUtils';
+import { getDateKey, expandRecurringEvent } from '../utils/dateUtils';
 import 'react-datepicker/dist/react-datepicker.css';
 import './CalendarView.css';
 
@@ -29,11 +29,32 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 }) => {
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month');
 
-  // Group events by date for highlighting in calendar
+  // Expand recurring events and group all events by date for highlighting in calendar
   const eventsByDate = useMemo(() => {
     const grouped: Record<string, Event[]> = {};
     
+    // Calculate view boundaries for recurring event expansion
+    // Expand events for a wide range to cover calendar navigation
+    const viewStart = new Date(selectedDate);
+    viewStart.setMonth(viewStart.getMonth() - 1); // 1 month before
+    const viewEnd = new Date(selectedDate);
+    viewEnd.setMonth(viewEnd.getMonth() + 3); // 3 months ahead
+    
+    // Expand all events (recurring events will be expanded, non-recurring will remain as-is)
+    const expandedEvents: Event[] = [];
     events.forEach(event => {
+      if (event.isRecurring && event.recurrenceType) {
+        // Expand recurring events into multiple instances
+        const instances = expandRecurringEvent(event, viewStart, viewEnd);
+        expandedEvents.push(...instances);
+      } else {
+        // Non-recurring events are added as-is
+        expandedEvents.push(event);
+      }
+    });
+    
+    // Group expanded events by date
+    expandedEvents.forEach(event => {
       const dateKey = getDateKey(event.startTime);
       if (dateKey) {
         if (!grouped[dateKey]) {
@@ -44,7 +65,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     });
     
     return grouped;
-  }, [events]);
+  }, [events, selectedDate]);
 
   // Get events for selected date
   const selectedDateEvents = useMemo(() => {
@@ -67,7 +88,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           <div className="event-indicators">
             {dayEvents.slice(0, 3).map((event, index) => (
               <div
-                key={event.id}
+                key={(event as any)._recurrenceInstance || event.id}
                 className={`event-dot ${event.category.toLowerCase()}`}
                 title={event.title}
               />
@@ -157,26 +178,63 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         {/* Main Calendar */}
         <div className="calendar-main">
           {viewMode === 'month' && (
-            <div className="datepicker-container">
-              <DatePicker
-                selected={selectedDate}
-                onChange={(date: Date | null) => date && onDateSelect(date)}
-                inline
-                showWeekNumbers
-                renderDayContents={renderDayContents}
-                calendarClassName="custom-calendar"
-                dayClassName={(date) => {
-                  const dateKey = date.toDateString();
-                  const hasEvents = eventsByDate[dateKey]?.length > 0;
-                  const isToday = date.toDateString() === new Date().toDateString();
-                  
-                  let className = 'calendar-day';
-                  if (hasEvents) className += ' has-events';
-                  if (isToday) className += ' today';
-                  
-                  return className;
-                }}
-              />
+            <div className="calendar-month-layout">
+              <div className="datepicker-container">
+                <DatePicker
+                  selected={selectedDate}
+                  onChange={(date: Date | null) => date && onDateSelect(date)}
+                  inline
+                  renderDayContents={renderDayContents}
+                  calendarClassName="custom-calendar"
+                  dayClassName={(date) => {
+                    const dateKey = date.toDateString();
+                    const hasEvents = eventsByDate[dateKey]?.length > 0;
+                    const isToday = date.toDateString() === new Date().toDateString();
+                    
+                    let className = 'calendar-day';
+                    if (hasEvents) className += ' has-events';
+                    if (isToday) className += ' today';
+                    
+                    return className;
+                  }}
+                />
+              </div>
+
+              {/* Selected Date Events - Side by side on desktop */}
+              <div className="selected-date-events">
+                <div className="selected-date-header">
+                  <h3>{formatSelectedDate(selectedDate)}</h3>
+                  <p>{selectedDateEvents.length} event{selectedDateEvents.length !== 1 ? 's' : ''}</p>
+                </div>
+
+                <div className="events-list">
+                  {selectedDateEvents.length === 0 ? (
+                    <div className="no-events">
+                      <p>No events scheduled for this date</p>
+                      <button 
+                        className="btn btn-primary btn-sm"
+                        onClick={() => onCreateEvent && onCreateEvent(selectedDate)}
+                      >
+                        Create Event
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="events-grid">
+                      {selectedDateEvents.map(event => (
+                        <EventCard
+                          key={(event as any)._recurrenceInstance || event.id}
+                          event={event}
+                          onSelect={() => onEventSelect(event)}
+                          onUpdate={onEventUpdate}
+                          onDelete={onEventDelete}
+                          onRsvpUpdate={onRsvpUpdate}
+                          compact={true}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
@@ -227,7 +285,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       <div className="day-events">
                         {dayEvents.slice(0, 3).map(event => (
                           <div 
-                            key={event.id}
+                            key={(event as any)._recurrenceInstance || event.id}
                             className={`event-item ${event.category.toLowerCase()}`}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -297,7 +355,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                       .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
                       .map(event => (
                         <div 
-                          key={event.id}
+                          key={(event as any)._recurrenceInstance || event.id}
                           className="timeline-event"
                           onClick={() => onEventSelect(event)}
                         >
@@ -337,73 +395,45 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             </div>
           )}
 
-          {/* Selected Date Events */}
-          <div className="selected-date-events">
-            <div className="selected-date-header">
-              <h3>{formatSelectedDate(selectedDate)}</h3>
-              <p>{selectedDateEvents.length} event{selectedDateEvents.length !== 1 ? 's' : ''}</p>
-            </div>
+          {/* Selected Date Events - For Week and Day views (below calendar) */}
+          {(viewMode === 'week' || viewMode === 'day') && (
+            <div className="selected-date-events">
+              <div className="selected-date-header">
+                <h3>{formatSelectedDate(selectedDate)}</h3>
+                <p>{selectedDateEvents.length} event{selectedDateEvents.length !== 1 ? 's' : ''}</p>
+              </div>
 
-            <div className="events-list">
-              {selectedDateEvents.length === 0 ? (
-                <div className="no-events">
-                  <p>No events scheduled for this date</p>
-                  <button 
-                    className="btn btn-primary btn-sm"
-                    onClick={() => onCreateEvent && onCreateEvent(selectedDate)}
-                  >
-                    Create Event
-                  </button>
-                </div>
-              ) : (
-                <div className="events-grid">
-                  {selectedDateEvents.map(event => (
-                    <EventCard
-                      key={event.id}
-                      event={event}
-                      onSelect={() => onEventSelect(event)}
-                      onUpdate={onEventUpdate}
-                      onDelete={onEventDelete}
-                      onRsvpUpdate={onRsvpUpdate}
-                      compact={true}
-                    />
-                  ))}
-                </div>
-              )}
+              <div className="events-list">
+                {selectedDateEvents.length === 0 ? (
+                  <div className="no-events">
+                    <p>No events scheduled for this date</p>
+                    <button 
+                      className="btn btn-primary btn-sm"
+                      onClick={() => onCreateEvent && onCreateEvent(selectedDate)}
+                    >
+                      Create Event
+                    </button>
+                  </div>
+                ) : (
+                  <div className="events-grid">
+                    {selectedDateEvents.map(event => (
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        onSelect={() => onEventSelect(event)}
+                        onUpdate={onEventUpdate}
+                        onDelete={onEventDelete}
+                        onRsvpUpdate={onRsvpUpdate}
+                        compact={true}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Calendar Legend */}
-        <div className="calendar-legend">
-          <h4>Event Categories</h4>
-          <div className="legend-items">
-            <div className="legend-item">
-              <div className="legend-dot worship"></div>
-              <span>Worship</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-dot bible_study"></div>
-              <span>Bible Study</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-dot fellowship"></div>
-              <span>Fellowship</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-dot youth"></div>
-              <span>Youth</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-dot prayer"></div>
-              <span>Prayer</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-dot general"></div>
-              <span>Other</span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

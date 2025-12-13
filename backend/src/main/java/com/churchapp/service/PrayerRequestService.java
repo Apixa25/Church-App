@@ -110,10 +110,17 @@ public class PrayerRequestService {
         String imageUrl = null;
         if (imageFile != null && !imageFile.isEmpty()) {
             try {
-                // Validate that it's an image
+                // Validate that it's an image - more permissive for mobile devices (HEIC, etc.)
                 String contentType = imageFile.getContentType();
-                if (contentType == null || !contentType.startsWith("image/")) {
-                    throw new RuntimeException("File must be an image");
+                String filename = imageFile.getOriginalFilename();
+                
+                // Check if it's a valid image by content type or file extension
+                // Mobile browsers (especially iOS) may report incorrect or empty content types
+                boolean isValidImage = isValidImageFile(contentType, filename);
+                
+                if (!isValidImage) {
+                    log.warn("Rejected file upload - contentType: {}, filename: {}", contentType, filename);
+                    throw new RuntimeException("File must be an image (JPEG, PNG, GIF, WebP, or HEIC)");
                 }
 
                 // Upload image to S3
@@ -241,10 +248,13 @@ public class PrayerRequestService {
         } else if (imageFile != null && !imageFile.isEmpty()) {
             // Upload new image
             try {
-                // Validate that it's an image
+                // Validate that it's an image - more permissive for mobile devices (HEIC, etc.)
                 String contentType = imageFile.getContentType();
-                if (contentType == null || !contentType.startsWith("image/")) {
-                    throw new RuntimeException("File must be an image");
+                String filename = imageFile.getOriginalFilename();
+                
+                if (!isValidImageFile(contentType, filename)) {
+                    log.warn("Rejected file upload - contentType: {}, filename: {}", contentType, filename);
+                    throw new RuntimeException("File must be an image (JPEG, PNG, GIF, WebP, or HEIC)");
                 }
                 
                 // Delete old image if exists
@@ -631,5 +641,44 @@ public class PrayerRequestService {
         } catch (Exception e) {
             log.error("Error sending prayer update notification: {}", e.getMessage());
         }
+    }
+    
+    /**
+     * Validate if a file is an image by checking content type and file extension.
+     * More permissive validation for mobile devices which may report incorrect MIME types.
+     * Especially important for iOS HEIC photos which browsers may not recognize properly.
+     */
+    private boolean isValidImageFile(String contentType, String filename) {
+        // Valid image MIME types (including HEIC/HEIF for iOS)
+        java.util.Set<String> validImageTypes = java.util.Set.of(
+            "image/jpeg", "image/jpg", "image/png", "image/gif", 
+            "image/webp", "image/heic", "image/heif"
+        );
+        
+        // Valid image file extensions
+        java.util.Set<String> validImageExtensions = java.util.Set.of(
+            ".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif"
+        );
+        
+        // Check content type first
+        if (contentType != null) {
+            String lowerContentType = contentType.toLowerCase();
+            if (lowerContentType.startsWith("image/") || validImageTypes.contains(lowerContentType)) {
+                return true;
+            }
+        }
+        
+        // Fall back to file extension check (important for mobile browsers)
+        if (filename != null) {
+            String lowerFilename = filename.toLowerCase();
+            for (String ext : validImageExtensions) {
+                if (lowerFilename.endsWith(ext)) {
+                    log.info("Accepted file by extension: {} (contentType was: {})", filename, contentType);
+                    return true;
+                }
+            }
+        }
+        
+        return false;
     }
 }

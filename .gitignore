@@ -5,6 +5,12 @@ frontend/.env
 .env.*
 !.env.example
 
+# AWS Database and deployment info (contains sensitive data)
+AWS_DATABASE_INFO.md
+AWS_CREDENTIALS.md
+*.credentials
+*.secrets
+
 # IMPORTANT: application.properties should only have placeholders, never actual API keys!
 # Always use environment variables for secrets (STRIPE_SECRET_KEY, STRIPE_PUBLIC_KEY, etc.)
 
@@ -47,3 +53,21 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# ============================================
+# SECURITY: Sensitive files with secrets
+# ============================================
+backend/stripe-vars.json
+backend/eb-env-vars.json
+backend/eb-env-vars2.json
+backend/env-config.json
+
+# ============================================
+# Debug/Log files (don't commit to repo)
+# ============================================
+backend/*.txt
+backend/*.zip
+backend/bundle-logs/
+backend/bundle-logs2/
+backend/bundle-logs3/
+backend/verify-final/

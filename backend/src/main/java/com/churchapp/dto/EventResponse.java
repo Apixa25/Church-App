@@ -47,6 +47,17 @@ public class EventResponse {
     private LocalDateTime updatedAt;
     
     public static EventResponse fromEvent(Event event) {
+        // Safely get creator information with null checks
+        UUID creatorId = null;
+        String creatorName = null;
+        String creatorProfilePicUrl = null;
+        
+        if (event.getCreator() != null) {
+            creatorId = event.getCreator().getId();
+            creatorName = event.getCreator().getName();
+            creatorProfilePicUrl = event.getCreator().getProfilePicUrl();
+        }
+        
         return new EventResponse(
             event.getId(),
             event.getTitle(),
@@ -54,9 +65,9 @@ public class EventResponse {
             event.getStartTime(),
             event.getEndTime(),
             event.getLocation(),
-            event.getCreator().getId(),
-            event.getCreator().getName(),
-            event.getCreator().getProfilePicUrl(),
+            creatorId,
+            creatorName,
+            creatorProfilePicUrl,
             event.getGroup() != null ? event.getGroup().getId() : null,
             event.getGroup() != null ? event.getGroup().getName() : null,
             getDisplayCategory(event),

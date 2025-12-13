@@ -1,7 +1,6 @@
 package com.churchapp.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -42,7 +41,6 @@ public class Post {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @NotBlank(message = "Post content cannot be blank")
     @Size(max = 2000, message = "Post content cannot exceed 2000 characters")
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
@@ -56,6 +54,11 @@ public class Post {
     @CollectionTable(name = "post_media_types", joinColumns = @JoinColumn(name = "post_id"))
     @Column(name = "media_type")
     private List<String> mediaTypes = new ArrayList<>();
+
+    @ElementCollection
+    @CollectionTable(name = "post_media_thumbnail_urls", joinColumns = @JoinColumn(name = "post_id"))
+    @Column(name = "thumbnail_url")
+    private List<String> thumbnailUrls = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_post_id")
@@ -130,6 +133,16 @@ public class Post {
     @JoinColumn(name = "hidden_by")
     private User hiddenBy; // Moderator who hid the post
 
+    // Social media embed fields
+    @Column(name = "external_url", length = 500)
+    private String externalUrl; // Original URL of the shared social media content
+
+    @Column(name = "external_platform", length = 50)
+    private String externalPlatform; // Platform type: X_POST, FACEBOOK_REEL, INSTAGRAM_REEL, YOUTUBE
+
+    @Column(name = "external_embed_html", columnDefinition = "TEXT")
+    private String externalEmbedHtml; // oEmbed HTML response for rendering embedded content
+
     public enum PostVisibility {
         PUBLIC,
         ORG_ONLY
@@ -196,6 +209,11 @@ public class Post {
     // Helper method to check if post is a quote
     public boolean isQuotePost() {
         return quotedPost != null;
+    }
+
+    // Helper method to check if post has external social media content
+    public boolean hasExternalContent() {
+        return externalUrl != null && !externalUrl.trim().isEmpty();
     }
 
     // Getter methods for boolean fields (needed for DTOs)

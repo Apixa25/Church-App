@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.UUID;
@@ -15,7 +14,6 @@ import java.util.UUID;
 @AllArgsConstructor
 public class CreatePostRequest {
 
-    @NotBlank(message = "Post content cannot be blank")
     @Size(max = 2000, message = "Post content cannot exceed 2000 characters")
     private String content;
 
@@ -35,6 +33,9 @@ public class CreatePostRequest {
     private UUID organizationId;  // Optional: explicitly set post to specific organization
 
     private UUID groupId;          // Optional: post to specific group
+
+    // Social media embed fields
+    private String externalUrl;    // Optional: URL of social media content to embed (X, Facebook, Instagram, YouTube)
 
     public boolean isAnonymous() {
         return anonymous;

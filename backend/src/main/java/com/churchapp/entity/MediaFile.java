@@ -45,6 +45,14 @@ public class MediaFile {
      */
     @Column(name = "optimized_url", length = 500)
     private String optimizedUrl;
+
+    /**
+     * Thumbnail URL (stored in S3 /thumbnails/ folder)
+     * This is a JPEG image extracted from the first frame of videos
+     * Null until thumbnail generation completes (only for videos)
+     */
+    @Column(name = "thumbnail_url", length = 500)
+    private String thumbnailUrl;
     
     /**
      * Type of media file: 'image' or 'video'
@@ -113,7 +121,14 @@ public class MediaFile {
      */
     @Column(name = "original_filename", length = 255)
     private String originalFilename;
-    
+
+    /**
+     * MediaConvert job ID (for video processing)
+     * Used to poll job status and extract thumbnail URLs
+     */
+    @Column(name = "job_id", length = 100)
+    private String jobId;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -164,9 +179,17 @@ public class MediaFile {
      * Mark processing as completed successfully
      */
     public void markProcessingCompleted(String optimizedUrl, Long optimizedSize) {
+        markProcessingCompleted(optimizedUrl, optimizedSize, null);
+    }
+
+    /**
+     * Mark processing as completed successfully with thumbnail URL
+     */
+    public void markProcessingCompleted(String optimizedUrl, Long optimizedSize, String thumbnailUrl) {
         this.processingStatus = ProcessingStatus.COMPLETED;
         this.optimizedUrl = optimizedUrl;
         this.optimizedSize = optimizedSize;
+        this.thumbnailUrl = thumbnailUrl;
         this.processingCompletedAt = LocalDateTime.now();
         this.errorMessage = null;
     }

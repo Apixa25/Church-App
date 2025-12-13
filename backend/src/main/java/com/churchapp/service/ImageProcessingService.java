@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
@@ -37,6 +38,10 @@ public class ImageProcessingService {
     /**
      * Process and optimize an image
      * 
+     * IMPORTANT: This method handles EXIF orientation automatically!
+     * Mobile phones often store images rotated with an EXIF tag indicating how to display them.
+     * We use Thumbnailator's useExifOrientation(true) to automatically rotate images correctly.
+     * 
      * @param file Original image file
      * @return Processing result with optimized image data
      * @throws IOException If processing fails
@@ -52,16 +57,52 @@ public class ImageProcessingService {
         }
         log.info("Processing image: {} ({} bytes)", file.getOriginalFilename(), originalSize);
 
-        // Read original image
-        BufferedImage originalImage = ImageIO.read(file.getInputStream());
-        if (originalImage == null) {
-            throw new IOException("Could not read image file");
+        // Read bytes for processing
+        byte[] imageBytes = file.getBytes();
+        
+        // Read image WITH EXIF orientation applied
+        // This ensures photos from phones are correctly rotated
+        BufferedImage originalImage;
+        int originalWidth;
+        int originalHeight;
+        
+        try {
+            // Use Thumbnailator to read with EXIF orientation support
+            // This automatically rotates the image based on EXIF metadata (fixes sideways phone photos!)
+            ByteArrayInputStream exifStream = new ByteArrayInputStream(imageBytes);
+            originalImage = Thumbnails.of(exifStream)
+                    .scale(1.0)  // Read at original size
+                    .useExifOrientation(true)  // 🔑 Apply EXIF rotation automatically!
+                    .asBufferedImage();
+            
+            if (originalImage == null) {
+                // Fallback to ImageIO (won't have EXIF rotation, but better than nothing)
+                log.warn("Thumbnailator could not read image, falling back to ImageIO (EXIF orientation may be lost)");
+                ByteArrayInputStream fallbackStream = new ByteArrayInputStream(imageBytes);
+                originalImage = ImageIO.read(fallbackStream);
+            }
+            
+            if (originalImage == null) {
+                // Log available ImageIO readers for debugging
+                String[] readerFormatNames = ImageIO.getReaderFormatNames();
+                log.error("Could not read image. Available formats: {}", String.join(", ", readerFormatNames));
+                throw new IOException("Could not read image file. Format may not be supported. " +
+                        "File: " + file.getOriginalFilename() + ", ContentType: " + file.getContentType());
+            }
+            
+            // Get dimensions AFTER EXIF rotation has been applied
+            originalWidth = originalImage.getWidth();
+            originalHeight = originalImage.getHeight();
+            
+        } catch (IOException e) {
+            log.error("Error reading image file: {}", e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error reading image: {}", e.getMessage(), e);
+            throw new IOException("Could not read image file: " + e.getMessage(), e);
         }
 
-        int originalWidth = originalImage.getWidth();
-        int originalHeight = originalImage.getHeight();
-
-        log.debug("Original image dimensions: {}x{}", originalWidth, originalHeight);
+        log.debug("Original image dimensions (after EXIF rotation): {}x{}", originalWidth, originalHeight);
 
         // Calculate new dimensions (maintain aspect ratio)
         int newWidth = originalWidth;
@@ -79,6 +120,7 @@ public class ImageProcessingService {
         }
 
         // Process image: resize and compress to JPEG
+        // Since originalImage is already EXIF-rotated, we can process it directly
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         
         Thumbnails.of(originalImage)
@@ -121,7 +163,23 @@ public class ImageProcessingService {
      */
     public boolean needsProcessing(MultipartFile file) {
         try {
-            BufferedImage image = ImageIO.read(file.getInputStream());
+            // Read bytes first to support multiple read attempts
+            byte[] imageBytes = file.getBytes();
+            
+            // Use Thumbnailator with EXIF orientation to get accurate dimensions
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(imageBytes);
+            BufferedImage image = Thumbnails.of(inputStream)
+                    .scale(1.0)
+                    .useExifOrientation(true)  // Apply EXIF rotation for accurate dimensions
+                    .asBufferedImage();
+            
+            // Fallback to ImageIO if Thumbnailator fails
+            if (image == null) {
+                log.debug("Thumbnailator returned null, trying ImageIO...");
+                ByteArrayInputStream fallbackStream = new ByteArrayInputStream(imageBytes);
+                image = ImageIO.read(fallbackStream);
+            }
+            
             if (image == null) {
                 return false;
             }
@@ -129,9 +187,10 @@ public class ImageProcessingService {
             return image.getWidth() > maxWidth || 
                    image.getHeight() > maxHeight ||
                    file.getSize() > (2 * 1024 * 1024); // More than 2MB
-        } catch (IOException e) {
-            log.warn("Could not check if image needs processing", e);
-            return true; // Process anyway to be safe
+        } catch (Exception e) {
+            log.warn("Could not check if image needs processing: {}", e.getMessage());
+            // If we can't read it, assume it needs processing
+            return true;
         }
     }
 }

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import styled from 'styled-components';
 import { useActiveContext } from '../contexts/ActiveContextContext';
 import { useOrganization } from '../contexts/OrganizationContext';
@@ -23,6 +24,11 @@ const SwitcherContainer = styled.div`
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
+
+  @media (max-width: 480px) {
+    display: block;
+    width: 100%; /* Will be overridden by parent .feed-view-toggle > * rule to 90% */
+  }
 `;
 
 const SwitcherButton = styled.button`
@@ -39,6 +45,9 @@ const SwitcherButton = styled.button`
   color: var(--text-primary, #fff);
   transition: all 0.2s ease;
   white-space: nowrap;
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
 
   &:hover {
     background: var(--bg-tertiary, #1e1e2e);
@@ -51,9 +60,27 @@ const SwitcherButton = styled.button`
   }
 
   @media (max-width: 480px) {
-    padding: 10px 12px;
-    font-size: 13px;
-    gap: 6px;
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 14px;
+    gap: 8px;
+    justify-content: center;
+    background: var(--bg-elevated, #2a2a3e);
+    border: 1px solid var(--border-primary, #3a3a4e);
+    border-radius: 25px; /* Pill shape */
+    color: var(--text-primary, #fff);
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+    &:hover {
+      background: var(--bg-tertiary, #1e1e2e);
+      border-color: var(--border-glow, #5b7fff);
+      box-shadow: 0 0 8px var(--button-primary-glow, rgba(91, 127, 255, 0.3));
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
   }
 `;
 
@@ -76,9 +103,9 @@ const OrgName = styled.span`
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100px;
-  
+
   @media (max-width: 480px) {
-    max-width: 70px;
+    max-width: 150px;
   }
 `;
 
@@ -86,6 +113,47 @@ const DropdownArrow = styled.span<{ $isOpen: boolean }>`
   font-size: 10px;
   transition: transform 0.2s ease;
   transform: ${props => props.$isOpen ? 'rotate(180deg)' : 'rotate(0deg)'};
+`;
+
+/* 
+ * iOS Safari Fix: Using React Portal to render dropdown outside the dashboard-header DOM tree.
+ * This completely escapes the stacking context created by backdrop-filter: blur() on iOS Safari.
+ * Only visible on mobile (max-width: 480px) - desktop uses the regular Dropdown.
+ */
+const PortalOverlay = styled.div<{ $isOpen: boolean }>`
+  display: none; /* Hidden on desktop */
+  
+  @media (max-width: 480px) {
+    display: ${props => props.$isOpen ? 'block' : 'none'};
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99998;
+  }
+`;
+
+const PortalDropdown = styled.div<{ $isOpen: boolean }>`
+  display: none; /* Hidden on desktop */
+  
+  @media (max-width: 480px) {
+    display: ${props => props.$isOpen ? 'block' : 'none'};
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100% - 32px);
+    max-width: 400px;
+    background: var(--bg-tertiary, #1e1e2e);
+    border: 1px solid var(--border-primary, #3a3a4e);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    z-index: 99999;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
 `;
 
 const Dropdown = styled.div<{ $isOpen: boolean }>`
@@ -105,12 +173,8 @@ const Dropdown = styled.div<{ $isOpen: boolean }>`
   transition: all 0.2s ease;
 
   @media (max-width: 480px) {
-    position: fixed;
-    top: auto;
-    bottom: 80px;
-    left: 16px;
-    right: 16px;
-    min-width: auto;
+    /* Hide on mobile - use portal version instead */
+    display: none !important;
   }
 `;
 
@@ -152,6 +216,9 @@ const OptionButton = styled.button<{ $isActive: boolean }>`
   text-align: left;
   transition: all 0.2s ease;
   margin-bottom: 4px;
+  pointer-events: auto;
+  position: relative;
+  z-index: 2;
 
   &:last-child {
     margin-bottom: 0;
@@ -226,17 +293,66 @@ const ContextSwitcher: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // 🛡️ Image error states - gracefully fall back to emoji icons when images fail to load
+  const [activeLogoError, setActiveLogoError] = useState(false);
+  const [churchLogoError, setChurchLogoError] = useState(false);
+  const [familyLogoError, setFamilyLogoError] = useState(false);
+
+  // Reset error states when logo URLs change (e.g., user re-uploads logo)
+  useEffect(() => {
+    setActiveLogoError(false);
+  }, [activeOrganizationLogo]);
+
+  useEffect(() => {
+    setChurchLogoError(false);
+  }, [churchPrimary?.organizationLogoUrl]);
+
+  useEffect(() => {
+    setFamilyLogoError(false);
+  }, [familyPrimary?.organizationLogoUrl]);
+
   // Close dropdown when clicking outside
+  // Use a ref to track when dropdown was just opened to prevent immediate closure
+  const justOpenedRef = useRef(false);
+  
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+      const target = event.target as HTMLElement;
+      const isInDropdown = dropdownRef.current?.contains(target as Node);
+      // Check if click is in portal dropdown by looking for the data attribute or checking if it's a button inside
+      const isInPortal = target?.closest('[data-portal-dropdown="true"]') !== null;
+      const isInOverlay = target?.closest('[class*="PortalOverlay"]') !== null;
+      // Also check if it's an option button (they have specific styling/classes)
+      const isOptionButton = target?.closest('button')?.getAttribute('type') === 'button' && 
+                            (target?.closest('button')?.textContent?.includes('Church') || 
+                             target?.closest('button')?.textContent?.includes('Family'));
+      
+      // Ignore clicks immediately after opening (within 100ms) to prevent the opening click from closing it
+      if (justOpenedRef.current) {
+        justOpenedRef.current = false;
+        return;
       }
+      
+      // Don't close if click is inside dropdown (regular or portal), on overlay, or on option button
+      if (isInDropdown || isInPortal || isInOverlay || isOptionButton) {
+        return;
+      }
+      
+      setIsOpen(false);
     };
 
     if (isOpen) {
+      // Mark that dropdown just opened - use setTimeout to ensure this happens after the current event loop
+      justOpenedRef.current = true;
+      setTimeout(() => {
+        justOpenedRef.current = false;
+      }, 100);
+      
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        justOpenedRef.current = false;
+      };
     }
   }, [isOpen]);
 
@@ -246,8 +362,12 @@ const ContextSwitcher: React.FC = () => {
   }
 
   const handleSelect = (context: 'church' | 'family') => {
-    setActiveContext(context);
-    setIsOpen(false);
+    if (typeof setActiveContext === 'function') {
+      setActiveContext(context);
+      setIsOpen(false);
+    } else {
+      console.error('❌ ContextSwitcher: setActiveContext is not a function!', setActiveContext);
+    }
   };
 
   const getContextIcon = () => {
@@ -256,62 +376,131 @@ const ContextSwitcher: React.FC = () => {
     return '🌍';
   };
 
+  // Extract dropdown content to reuse in both regular and portal dropdowns
+  const dropdownContent = (
+    <>
+      <DropdownHeader>
+        <DropdownTitle>Switch Context</DropdownTitle>
+        <DropdownSubtitle>Choose which organization to view</DropdownSubtitle>
+      </DropdownHeader>
+
+      <DropdownOptions>
+        {hasChurch && churchPrimary && (
+          <OptionButton
+            $isActive={activeContext === 'church'}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleSelect('church');
+            }}
+            type="button"
+          >
+            {churchPrimary.organizationLogoUrl && !churchLogoError ? (
+              <OptionLogo 
+                src={churchPrimary.organizationLogoUrl} 
+                alt="" 
+                crossOrigin="anonymous"
+                onError={() => {
+                  console.warn('⚠️ Church org logo failed to load, falling back to icon:', churchPrimary.organizationLogoUrl);
+                  setChurchLogoError(true);
+                }}
+              />
+            ) : (
+              <OptionIcon>⛪</OptionIcon>
+            )}
+            <OptionContent>
+              <OptionName>{churchPrimary.organizationName}</OptionName>
+              <OptionType>Church • {churchPrimary.organizationType}</OptionType>
+            </OptionContent>
+            {activeContext === 'church' && <ActiveIndicator />}
+          </OptionButton>
+        )}
+
+        {hasFamily && familyPrimary && (
+          <OptionButton
+            $isActive={activeContext === 'family'}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleSelect('family');
+            }}
+            type="button"
+          >
+            {familyPrimary.organizationLogoUrl && !familyLogoError ? (
+              <OptionLogo 
+                src={familyPrimary.organizationLogoUrl} 
+                alt="" 
+                crossOrigin="anonymous"
+                onError={() => {
+                  console.warn('⚠️ Family org logo failed to load, falling back to icon:', familyPrimary.organizationLogoUrl);
+                  setFamilyLogoError(true);
+                }}
+              />
+            ) : (
+              <OptionIcon>🏠</OptionIcon>
+            )}
+            <OptionContent>
+              <OptionName>{familyPrimary.organizationName}</OptionName>
+              <OptionType>Family Organization</OptionType>
+            </OptionContent>
+            {activeContext === 'family' && <ActiveIndicator />}
+          </OptionButton>
+        )}
+      </DropdownOptions>
+    </>
+  );
+
+  const handleButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const newIsOpen = !isOpen;
+    setIsOpen(newIsOpen);
+    // If opening, mark that it just opened to prevent immediate closure
+    if (newIsOpen) {
+      justOpenedRef.current = true;
+    }
+  };
+
   return (
     <SwitcherContainer ref={dropdownRef}>
-      <SwitcherButton onClick={() => setIsOpen(!isOpen)}>
-        {activeOrganizationLogo ? (
-          <OrgLogo src={activeOrganizationLogo} alt="" />
+      <SwitcherButton 
+        onClick={handleButtonClick}
+        type="button"
+        aria-label="Switch context"
+        aria-expanded={isOpen}
+      >
+        {activeOrganizationLogo && !activeLogoError ? (
+          <OrgLogo 
+            src={activeOrganizationLogo} 
+            alt="" 
+            crossOrigin="anonymous"
+            onError={() => {
+              console.warn('⚠️ Active org logo failed to load, falling back to icon:', activeOrganizationLogo);
+              setActiveLogoError(true);
+            }}
+          />
         ) : (
           <OrgIcon>{getContextIcon()}</OrgIcon>
         )}
-        <OrgName>{activeOrganizationName}</OrgName>
+        <OrgName>{activeOrganizationName?.substring(0, 25) || activeOrganizationName}</OrgName>
         <DropdownArrow $isOpen={isOpen}>▼</DropdownArrow>
       </SwitcherButton>
 
+      {/* Desktop: Regular dropdown (no iOS Safari issues on desktop) */}
       <Dropdown $isOpen={isOpen}>
-        <DropdownHeader>
-          <DropdownTitle>Switch Context</DropdownTitle>
-          <DropdownSubtitle>Choose which organization to view</DropdownSubtitle>
-        </DropdownHeader>
-
-        <DropdownOptions>
-          {hasChurch && churchPrimary && (
-            <OptionButton
-              $isActive={activeContext === 'church'}
-              onClick={() => handleSelect('church')}
-            >
-              {churchPrimary.organizationLogoUrl ? (
-                <OptionLogo src={churchPrimary.organizationLogoUrl} alt="" />
-              ) : (
-                <OptionIcon>⛪</OptionIcon>
-              )}
-              <OptionContent>
-                <OptionName>{churchPrimary.organizationName}</OptionName>
-                <OptionType>Church • {churchPrimary.organizationType}</OptionType>
-              </OptionContent>
-              {activeContext === 'church' && <ActiveIndicator />}
-            </OptionButton>
-          )}
-
-          {hasFamily && familyPrimary && (
-            <OptionButton
-              $isActive={activeContext === 'family'}
-              onClick={() => handleSelect('family')}
-            >
-              {familyPrimary.organizationLogoUrl ? (
-                <OptionLogo src={familyPrimary.organizationLogoUrl} alt="" />
-              ) : (
-                <OptionIcon>🏠</OptionIcon>
-              )}
-              <OptionContent>
-                <OptionName>{familyPrimary.organizationName}</OptionName>
-                <OptionType>Family Organization</OptionType>
-              </OptionContent>
-              {activeContext === 'family' && <ActiveIndicator />}
-            </OptionButton>
-          )}
-        </DropdownOptions>
+        {dropdownContent}
       </Dropdown>
+
+      {/* Mobile: Portal-based dropdown - renders at document.body level to escape iOS Safari stacking context */}
+      {ReactDOM.createPortal(
+        <>
+          <PortalOverlay $isOpen={isOpen} onClick={() => setIsOpen(false)} />
+          <PortalDropdown $isOpen={isOpen} data-portal-dropdown="true">
+            {dropdownContent}
+          </PortalDropdown>
+        </>,
+        document.body
+      )}
     </SwitcherContainer>
   );
 };

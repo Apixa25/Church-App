@@ -13,6 +13,7 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Service for cleaning up original media files after processing
@@ -55,6 +56,20 @@ public class FileCleanupService {
                 ProcessingStatus.COMPLETED, 
                 cutoffTime
             );
+            
+            // CRITICAL: Filter out final images that should NEVER be deleted by cleanup
+            // Only delete original files that have been processed/compressed (posts, chat-media, etc.)
+            // DO NOT delete:
+            // - banner-images: User banner images (final, never compressed)
+            // - profile-pictures: User profile pictures (final, never compressed)
+            // - organizations/logos: Organization logos (final, never compressed)
+            // - prayer-requests: Prayer request images (final, never compressed)
+            filesToCleanup = filesToCleanup.stream()
+                .filter(mf -> !mf.getFolder().equals("banner-images") && 
+                             !mf.getFolder().equals("profile-pictures") &&
+                             !mf.getFolder().equals("organizations/logos") &&
+                             !mf.getFolder().equals("prayer-requests"))
+                .collect(Collectors.toList());
             
             log.info("Found {} original files ready for cleanup (older than {} hours)", 
                     filesToCleanup.size(), retentionHours);
@@ -139,16 +154,35 @@ public class FileCleanupService {
     }
     
     /**
-     * Extract S3 key from full URL
+     * Extract S3 key from full URL (handles both S3 and CloudFront URLs)
      */
     private String extractKeyFromUrl(String fileUrl) {
-        if (fileUrl == null || !fileUrl.contains(bucketName)) {
+        if (fileUrl == null || fileUrl.isEmpty()) {
             throw new IllegalArgumentException("Invalid file URL: " + fileUrl);
         }
-        String urlPattern = String.format("https://%s.s3.%s.amazonaws.com/", bucketName, region);
-        if (fileUrl.startsWith(urlPattern)) {
-            return fileUrl.substring(urlPattern.length());
+        
+        // Handle CloudFront URLs: https://d3loytcgioxpml.cloudfront.net/posts/originals/file.webm
+        if (fileUrl.contains("cloudfront.net")) {
+            // Extract everything after the domain
+            int domainEnd = fileUrl.indexOf(".net/");
+            if (domainEnd > 0) {
+                return fileUrl.substring(domainEnd + 5); // +5 to skip ".net/"
+            }
         }
+        
+        // Handle S3 URLs: https://bucket.s3.region.amazonaws.com/key
+        if (fileUrl.contains(bucketName)) {
+            String urlPattern = String.format("https://%s.s3.%s.amazonaws.com/", bucketName, region);
+            if (fileUrl.startsWith(urlPattern)) {
+                return fileUrl.substring(urlPattern.length());
+            }
+            // Try alternative S3 URL format
+            String altPattern = String.format("https://%s.s3-%s.amazonaws.com/", bucketName, region);
+            if (fileUrl.startsWith(altPattern)) {
+                return fileUrl.substring(altPattern.length());
+            }
+        }
+        
         throw new IllegalArgumentException("URL format not recognized: " + fileUrl);
     }
 }

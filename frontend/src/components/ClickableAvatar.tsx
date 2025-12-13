@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWebSocket } from '../contexts/WebSocketContext';
+import { getImageUrlWithFallback } from '../utils/imageUrlUtils';
 import './ClickableAvatar.css';
 
 interface ClickableAvatarProps {
@@ -25,6 +26,23 @@ const ClickableAvatar: React.FC<ClickableAvatarProps> = ({
   showConnectionStatus = false,
 }) => {
   const navigate = useNavigate();
+  const [imageError, setImageError] = useState(false);
+  const [imageSrc, setImageSrc] = useState<string>('');
+  const [fallbackSrc, setFallbackSrc] = useState<string>('');
+  
+  // Reset image error and set up URLs when profilePicUrl changes
+  useEffect(() => {
+    if (profilePicUrl) {
+      const { primary, fallback } = getImageUrlWithFallback(profilePicUrl);
+      setImageSrc(primary);
+      setFallbackSrc(fallback);
+      setImageError(false);
+    } else {
+      setImageSrc('');
+      setFallbackSrc('');
+      setImageError(false);
+    }
+  }, [profilePicUrl]);
   
   // Use WebSocket hook - must be called unconditionally (React hooks rule)
   // Note: This requires component to be used inside WebSocketProvider
@@ -69,11 +87,24 @@ const ClickableAvatar: React.FC<ClickableAvatarProps> = ({
       aria-label={isAnonymous ? 'Anonymous user' : `View ${userName}'s profile`}
       title={isAnonymous ? 'Anonymous' : userName}
     >
-      {profilePicUrl ? (
+      {imageSrc && !imageError ? (
         <img
-          src={profilePicUrl}
+          src={imageSrc}
           alt={isAnonymous ? 'Anonymous' : userName}
           className="avatar-image"
+          referrerPolicy="no-referrer"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            // 🛡️ Fallback: Try S3 URL if CloudFront fails, then show placeholder
+            if (target.src === imageSrc && fallbackSrc && fallbackSrc !== imageSrc) {
+              console.warn('⚠️ CloudFront URL failed, trying S3 fallback:', imageSrc);
+              target.src = fallbackSrc;
+              return; // Don't set error yet, try fallback first
+            }
+            // Both URLs failed, show placeholder
+            console.warn('⚠️ Profile image failed to load (both CloudFront and S3), falling back to placeholder:', imageSrc);
+            setImageError(true);
+          }}
         />
       ) : (
         <div className="avatar-placeholder">

@@ -3,8 +3,9 @@ import styled from 'styled-components';
 import axios from 'axios';
 import { isOnlyEmojis, generateUniqueSlug } from '../utils/emojiUtils';
 import './FamilyGroupCreateForm.css';
+import { getApiUrl } from '../config/runtimeConfig';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
+const API_BASE_URL = getApiUrl();
 
 interface FamilyGroupCreateFormProps {
   onSuccess?: (organization: any) => void;
@@ -78,9 +79,9 @@ const FamilyGroupCreateForm: React.FC<FamilyGroupCreateFormProps> = ({ onSuccess
         return;
       }
       
-      // Validate file size (5MB max)
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Image size must be less than 5MB');
+      // Validate file size (100MB max)
+      if (file.size > 100 * 1024 * 1024) {
+        setError('Image size must be less than 100MB');
         return;
       }
 

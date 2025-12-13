@@ -51,6 +51,7 @@ public class UserProfileResponse {
     private Boolean isLikedByCurrentUser;
     
     public static UserProfileResponse fromUser(User user) {
+        
         return new UserProfileResponse(
             user.getId(),
             user.getEmail(),

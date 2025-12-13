@@ -120,6 +120,69 @@
   object-fit: contain;
   display: block;
   border-radius: 8px;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+/* Video error message in MediaViewer */
+.media-viewer-error {
+  max-width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 8px;
+  color: var(--text-secondary, #ffffff);
+  min-height: 300px;
+}
+
+.media-viewer-error p {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-primary, #ffffff);
+}
+
+.media-viewer-error small {
+  font-size: 14px;
+  color: var(--text-tertiary, rgba(255, 255, 255, 0.7));
+  opacity: 0.8;
+  margin-bottom: 24px;
+}
+
+.media-viewer-close-button {
+  padding: 12px 24px;
+  background: var(--accent-primary, #1d9bf0);
+  color: white;
+  border: none;
+  border-radius: 24px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.media-viewer-close-button:hover {
+  background: var(--accent-primary-hover, #1a8cd8);
+}
+
+/* Clickable media - click anywhere on image to close */
+.media-viewer-clickable {
+  cursor: pointer;
+  transition: opacity 0.3s ease, transform 0.2s ease;
+}
+
+.media-viewer-clickable:hover {
+  opacity: 0.95;
+  transform: scale(0.995);
+}
+
+.media-viewer-clickable:active {
+  transform: scale(0.99);
 }
 
 /* Loading Spinner */
@@ -376,14 +439,8 @@
   outline-offset: 2px;
 }
 
-/* Loading states */
-.media-viewer-image[style*="display: none"],
-.media-viewer-video[style*="display: none"] {
-  opacity: 0;
-}
-
+/* Loading states - opacity transitions handled inline, but ensure smooth transitions */
 .media-viewer-image,
 .media-viewer-video {
-  opacity: 1;
-  transition: opacity 0.3s ease;
+  will-change: opacity;
 }

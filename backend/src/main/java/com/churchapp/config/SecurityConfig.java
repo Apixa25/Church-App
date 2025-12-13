@@ -24,17 +24,24 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
+import org.springframework.beans.factory.annotation.Value;
+
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
+@lombok.extern.slf4j.Slf4j
 public class SecurityConfig {
     
     private final UserDetailsServiceImpl userDetailsService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    
+    @Value("${cors.allowed-origins:http://localhost:3000,http://localhost:3001,http://localhost:8100,capacitor://localhost,http://localhost,https://www.thegathrd.com,https://thegathrd.com,http://www.thegathrd.com,http://thegathrd.com}")
+    private String allowedOrigins;
     
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -64,6 +71,8 @@ public class SecurityConfig {
                 .maxSessionsPreventsLogin(false)
             )
             .authorizeHttpRequests(auth -> auth
+                // CORS preflight requests - MUST be permitted for CORS to work
+                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/oauth2/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
@@ -71,6 +80,8 @@ public class SecurityConfig {
                 .requestMatchers("/test/**").permitAll()  // Keep test endpoint public for now
                 .requestMatchers("/ws/**").permitAll()    // Allow WebSocket handshake - auth handled in WebSocketConfig
                 .requestMatchers("/announcements/**").permitAll()  // Allow public access to announcements for now
+                .requestMatchers("/media/webhook/mediaconvert").permitAll()  // MediaConvert SNS webhook (context-path=/api, so full URL is /api/media/...)
+                .requestMatchers("/donations/webhook/stripe").permitAll()  // Stripe webhook (context-path=/api, so full URL is /api/donations/...)
                 .requestMatchers("/chat/**").authenticated()  // JWT authentication for chat APIs
                 .requestMatchers("/profile/**").authenticated()
                 .requestMatchers("/dashboard/**").authenticated()  // Explicitly protect dashboard
@@ -128,10 +139,33 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        
+        // Parse comma-separated origins from environment variable
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .collect(Collectors.toList());
+        
+        // Log the configured origins for debugging
+        log.info("🔧 CORS Configuration - Allowed origins raw value: {}", allowedOrigins);
+        log.info("🔧 CORS Configuration - Parsed origins: {}", origins);
+        
+        // When allowCredentials is true, we must use setAllowedOrigins (not patterns)
+        // and cannot use "*" - must specify exact origins
+        if (!origins.isEmpty()) {
+            configuration.setAllowedOrigins(origins);
+            log.info("✅ CORS: Using {} specific origins", origins.size());
+        } else {
+            // Fallback: if no origins configured, allow all (but credentials must be false)
+            configuration.setAllowedOriginPatterns(List.of("*"));
+            configuration.setAllowCredentials(false);
+            log.warn("⚠️ CORS: No origins configured, using wildcard pattern (credentials disabled)");
+        }
+        
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L); // Cache preflight requests for 1 hour
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

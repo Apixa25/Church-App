@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import statusBarService from './services/statusBarService';
+import { applyStoredSettings } from './services/settingsApi';
 import { AuthProvider } from './contexts/AuthContext';
 import { WebSocketProvider } from './contexts/WebSocketContext';
 import { OrganizationProvider } from './contexts/OrganizationContext';
@@ -10,6 +13,7 @@ import LoginForm from './components/LoginForm';
 import RegisterForm from './components/RegisterForm';
 import Dashboard from './components/Dashboard';
 import AuthCallback from './components/AuthCallback';
+import AuthError from './components/AuthError';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import PublicPostPreview from './components/PublicPostPreview';
@@ -34,19 +38,113 @@ import WorshipRoom from './components/WorshipRoom';
 import OrganizationBrowser from './components/OrganizationBrowser';
 import GroupBrowser from './components/GroupBrowser';
 import WebSocketStatusIndicator from './components/WebSocketStatusIndicator';
+import QuickActionsPage from './components/QuickActionsPage';
+import BottomNav from './components/BottomNav';
+import PostComposer from './components/PostComposer';
+import CameraCapture from './components/CameraCapture';
 import './App.css';
+import './components/Dashboard.css'; // Import for composer modal styles
 import { GlobalSearchProvider } from './components/global-search/GlobalSearchProvider';
+import { UploadQueueProvider } from './contexts/UploadQueueContext';
+import UploadProgressIndicator from './components/UploadProgressIndicator';
+import UpdateNotification from './components/UpdateNotification';
+import * as serviceWorkerRegistration from './serviceWorkerRegistration';
+
+// 🚀 React Query Configuration - Smart Caching
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes - data is fresh for 5 min
+      gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache for 10 min (formerly cacheTime)
+      refetchOnWindowFocus: false, // Don't refetch when window regains focus
+      refetchOnMount: false, // Don't refetch on mount if data is fresh
+      retry: 1, // Only retry once on failure
+    },
+  },
+});
 
 const App: React.FC = () => {
+  const [showComposer, setShowComposer] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [capturedMediaFile, setCapturedMediaFile] = useState<File | undefined>(undefined);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [waitingWorker, setWaitingWorker] = useState<ServiceWorkerRegistration | null>(null);
+
+  useEffect(() => {
+    // Apply stored theme and font settings immediately (no flash of wrong theme)
+    applyStoredSettings();
+
+    // Initialize native status bar styling
+    statusBarService.initialize();
+
+    // Set up service worker update handler
+    serviceWorkerRegistration.setUpdateHandler((registration: ServiceWorkerRegistration) => {
+      setUpdateAvailable(true);
+      setWaitingWorker(registration);
+    });
+  }, []);
+
+  const handleCameraCapture = (file: File) => {
+    console.log('📸 App.tsx: Camera captured file:', file.name, file.size);
+    // Store the captured file and open the composer
+    setCapturedMediaFile(file);
+    setShowCamera(false);
+    setShowComposer(true);
+  };
+  
+  const handleComposerClose = () => {
+    setShowComposer(false);
+    // Clear the captured file when composer closes
+    setCapturedMediaFile(undefined);
+  };
+
+  const handleUpdate = () => {
+    if (waitingWorker && waitingWorker.waiting) {
+      // Tell the service worker to skip waiting and activate
+      waitingWorker.waiting.postMessage({ type: 'SKIP_WAITING' });
+      
+      // Listen for the service worker to take control
+      waitingWorker.addEventListener('controllerchange', () => {
+        // Reload the page to get the new version
+        window.location.reload();
+      });
+      
+      // Fallback: reload after a short delay if controllerchange doesn't fire
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } else {
+      // Fallback: just reload if no waiting worker
+      window.location.reload();
+    }
+  };
+
+  const handleDismissUpdate = () => {
+    setUpdateAvailable(false);
+    setWaitingWorker(null);
+  };
+
   return (
-    <AuthProvider>
-      <WebSocketProvider>
-        <OrganizationProvider>
-          <ActiveContextProvider>
-            <GroupProvider>
-              <FeedFilterProvider>
-                <Router>
-                <GlobalSearchProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <WebSocketProvider>
+          <OrganizationProvider>
+            <ActiveContextProvider>
+              <GroupProvider>
+                <FeedFilterProvider>
+                  <UploadQueueProvider>
+                  <Router>
+                  <GlobalSearchProvider>
+                  {/* 🚀 Global Upload Progress Indicator - shows at top during background uploads */}
+                  <UploadProgressIndicator />
+                  {/* 🔄 Update Notification - shows when new version is available */}
+                  {updateAvailable && (
+                    <UpdateNotification
+                      onUpdate={handleUpdate}
+                      onDismiss={handleDismissUpdate}
+                      autoRefreshDelay={10} // Auto-refresh after 10 seconds
+                    />
+                  )}
                   <div className="App">
                     {/* WebSocket status is now shown on the profile picture in Dashboard */}
                     {/* <WebSocketStatusIndicator /> */}
@@ -55,7 +153,7 @@ const App: React.FC = () => {
             <Route path="/login" element={<LoginForm />} />
             <Route path="/register" element={<RegisterForm />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
-            <Route path="/auth/error" element={<div>Authentication Error</div>} />
+            <Route path="/auth/error" element={<AuthError />} />
             <Route path="/posts/:postId" element={<PublicPostPreview />} />
             
             {/* Protected routes */}
@@ -341,28 +439,68 @@ const App: React.FC = () => {
             />
 
             {/* Group routes */}
-            <Route 
-              path="/groups" 
+            <Route
+              path="/groups"
               element={
                 <ProtectedRoute>
                   <GroupBrowser />
                 </ProtectedRoute>
-              } 
+              }
+            />
+
+            <Route
+              path="/quick-actions"
+              element={
+                <ProtectedRoute>
+                  <QuickActionsPage />
+                </ProtectedRoute>
+              }
             />
 
                   {/* Default redirect */}
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
+
+                  {/* Global Post Composer Modal */}
+                  {showComposer && (
+                    <div className="composer-modal-overlay" onClick={handleComposerClose}>
+                      <div className="composer-modal-content" onClick={(e) => e.stopPropagation()}>
+                        <PostComposer
+                          onCancel={handleComposerClose}
+                          onPostCreated={handleComposerClose}
+                          placeholder="Share what's happening in your community..."
+                          initialMediaFile={capturedMediaFile}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Global Camera Capture Modal */}
+                  {showCamera && (
+                    <CameraCapture
+                      onCapture={handleCameraCapture}
+                      onClose={() => setShowCamera(false)}
+                    />
+                  )}
+
+                  {/* Global Bottom Navigation - Mobile Only */}
+                  <BottomNav
+                    onPostClick={() => setShowComposer(prev => !prev)}
+                    onCameraClick={() => setShowCamera(true)}
+                    showComposer={showComposer}
+                  />
                   </div>
                 </GlobalSearchProvider>
               </Router>
+              </UploadQueueProvider>
               </FeedFilterProvider>
             </GroupProvider>
           </ActiveContextProvider>
         </OrganizationProvider>
       </WebSocketProvider>
     </AuthProvider>
+    </QueryClientProvider>
   );
 };
 

@@ -23,6 +23,9 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private Long expiration;
     
+    @Value("${jwt.refresh-expiration}")
+    private Long refreshExpiration;
+    
     public String generateToken(String email, UUID userId, String role) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId.toString());
@@ -32,7 +35,9 @@ public class JwtUtil {
     
     public String generateRefreshToken(String email) {
         Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, email);
+        // Mark this as a refresh token for validation purposes
+        claims.put("type", "refresh");
+        return createRefreshToken(claims, email);
     }
     
     private String createToken(Map<String, Object> claims, String subject) {
@@ -45,9 +50,39 @@ public class JwtUtil {
                 .compact();
     }
     
+    private String createRefreshToken(Map<String, Object> claims, String subject) {
+        return Jwts.builder()
+                .claims(claims)
+                .subject(subject)
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + refreshExpiration))
+                .signWith(getSigningKey())
+                .compact();
+    }
+    
     public Boolean validateToken(String token, UserDetails userDetails) {
         final String email = getEmailFromToken(token);
+        // Check if token is a refresh token (should not be used as access token)
+        Claims claims = getAllClaimsFromToken(token);
+        String tokenType = claims.get("type", String.class);
+        if ("refresh".equals(tokenType)) {
+            return false; // Refresh tokens cannot be used as access tokens
+        }
         return (email.equals(userDetails.getUsername()) && !isTokenExpired(token));
+    }
+    
+    public Boolean validateRefreshToken(String token) {
+        try {
+            Claims claims = getAllClaimsFromToken(token);
+            // Verify it's actually a refresh token
+            String tokenType = claims.get("type", String.class);
+            if (!"refresh".equals(tokenType)) {
+                return false;
+            }
+            return !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
     }
     
     public String getEmailFromToken(String token) {

@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import LoadingSpinner from './LoadingSpinner';
+import { isVideoIncompatibleWithIOS, getVideoErrorMessage } from '../utils/videoUtils';
 import './MediaViewer.css';
 
 interface MediaViewerProps {
@@ -16,13 +19,15 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
   onClose,
   initialIndex = 0
 }) => {
-  const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isLoading, setIsLoading] = useState(true);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      setCurrentIndex(initialIndex);
       setIsLoading(true);
+      setImageLoaded(false);
+      setVideoError(null);
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -34,29 +39,11 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
     };
   }, [isOpen, initialIndex]);
 
-  const handlePrevious = () => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : mediaUrls.length - 1));
-    setIsLoading(true);
-  };
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev < mediaUrls.length - 1 ? prev + 1 : 0));
-    setIsLoading(true);
-  };
-
+  // Handle Escape key to close
   const handleKeyDown = (e: KeyboardEvent) => {
     if (!isOpen) return;
-
-    switch (e.key) {
-      case 'ArrowLeft':
-        handlePrevious();
-        break;
-      case 'ArrowRight':
-        handleNext();
-        break;
-      case 'Escape':
-        onClose();
-        break;
+    if (e.key === 'Escape') {
+      onClose();
     }
   };
 
@@ -67,134 +54,117 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, currentIndex]);
+  }, [isOpen]);
 
   const handleImageLoad = () => {
     setIsLoading(false);
+    setImageLoaded(true);
   };
 
   const handleVideoLoad = () => {
     setIsLoading(false);
+    setImageLoaded(true);
   };
 
   if (!isOpen || mediaUrls.length === 0) return null;
 
-  const currentUrl = mediaUrls[currentIndex];
-  const currentType = mediaTypes[currentIndex] || 'image';
+  // Only show the single clicked image (no navigation between images)
+  const currentUrl = mediaUrls[initialIndex];
+  const currentType = mediaTypes[initialIndex] || 'image';
   const isImage = currentType.startsWith('image');
   const isVideo = currentType.startsWith('video');
 
-  return (
-    <div className="media-viewer-overlay" onClick={onClose}>
-      <div className="media-viewer-container" onClick={(e) => e.stopPropagation()}>
-        {/* Close Button */}
-        <button
-          className="media-viewer-close"
-          onClick={onClose}
-          aria-label="Close media viewer"
-        >
-          ✕
-        </button>
-
-        {/* Navigation Buttons */}
-        {mediaUrls.length > 1 && (
-          <>
-            <button
-              className="media-viewer-nav media-viewer-prev"
-              onClick={handlePrevious}
-              aria-label="Previous media"
-            >
-              ‹
-            </button>
-            <button
-              className="media-viewer-nav media-viewer-next"
-              onClick={handleNext}
-              aria-label="Next media"
-            >
-              ›
-            </button>
-          </>
-        )}
-
-        {/* Media Content */}
+  const modalContent = (
+    <div 
+      className="media-viewer-overlay" 
+      onClick={onClose}
+      style={{ display: isOpen ? 'flex' : 'none' }}
+    >
+      <div className="media-viewer-container">
+        {/* Media Content - Click anywhere on the image/video to close */}
         <div className="media-viewer-content">
           {isLoading && (
             <div className="media-viewer-loading">
-              <div className="loading-spinner"></div>
+              <LoadingSpinner type="multi-ring" size="medium" />
             </div>
           )}
 
           {isImage && (
             <img
               src={currentUrl}
-              alt={`Media ${currentIndex + 1} of ${mediaUrls.length}`}
-              className="media-viewer-image"
+              alt="Full size media - click to close"
+              className="media-viewer-image media-viewer-clickable"
+              onClick={onClose}
               onLoad={handleImageLoad}
-              onError={() => setIsLoading(false)}
-              style={{ display: isLoading ? 'none' : 'block' }}
+              onError={() => {
+                setIsLoading(false);
+                setImageLoaded(true);
+              }}
+              style={{ 
+                opacity: imageLoaded ? 1 : 0,
+                transition: 'opacity 0.3s ease',
+                cursor: 'pointer'
+              }}
             />
           )}
 
           {isVideo && (
-            <video
-              src={currentUrl}
-              controls
-              autoPlay
-              className="media-viewer-video"
-              onLoadedData={handleVideoLoad}
-              onError={() => setIsLoading(false)}
-              style={{ display: isLoading ? 'none' : 'block' }}
-            />
+            videoError ? (
+              <div className="media-viewer-error">
+                <p>{videoError}</p>
+                <small>Video is being processed for iPhone compatibility</small>
+                <button onClick={onClose} className="media-viewer-close-button">Close</button>
+              </div>
+            ) : (
+              <video
+                src={currentUrl}
+                controls
+                autoPlay
+                playsInline
+                crossOrigin="anonymous"
+                className="media-viewer-video media-viewer-clickable"
+                onClick={onClose}
+                onLoadedData={handleVideoLoad}
+                onError={(e) => {
+                  const video = e.currentTarget as HTMLVideoElement;
+                  const error = video.error;
+                  
+                  console.error('Video playback error:', {
+                    url: currentUrl,
+                    mediaType: currentType,
+                    errorCode: error?.code,
+                    errorMessage: error?.message
+                  });
+                  
+                  setIsLoading(false);
+                  setImageLoaded(true);
+                  
+                  // Check if it's a WebM format on iOS
+                  if (isVideoIncompatibleWithIOS(currentType, currentUrl)) {
+                    setVideoError(getVideoErrorMessage(currentType, currentUrl));
+                  } else if (error) {
+                    if (error.code === 4) {
+                      setVideoError('Video format not supported on this device');
+                    } else {
+                      setVideoError('Unable to play video. Please try again later.');
+                    }
+                  }
+                }}
+                style={{ 
+                  opacity: imageLoaded ? 1 : 0,
+                  transition: 'opacity 0.3s ease',
+                  cursor: 'pointer'
+                }}
+              />
+            )
           )}
         </div>
-
-        {/* Media Counter */}
-        {mediaUrls.length > 1 && (
-          <div className="media-viewer-counter">
-            {currentIndex + 1} of {mediaUrls.length}
-          </div>
-        )}
-
-        {/* Thumbnail Strip */}
-        {mediaUrls.length > 1 && (
-          <div className="media-viewer-thumbnails">
-            {mediaUrls.map((url, index) => {
-              const type = mediaTypes[index] || 'image';
-              const isThumbnailImage = type.startsWith('image');
-
-              return (
-                <button
-                  key={index}
-                  className={`media-thumbnail ${index === currentIndex ? 'active' : ''}`}
-                  onClick={() => {
-                    setCurrentIndex(index);
-                    setIsLoading(true);
-                  }}
-                  aria-label={`View media ${index + 1}`}
-                >
-                  {isThumbnailImage ? (
-                    <img
-                      src={url}
-                      alt={`Thumbnail ${index + 1}`}
-                      className="thumbnail-image"
-                    />
-                  ) : (
-                    <div className="thumbnail-video">
-                      <video
-                        src={url}
-                        className="thumbnail-video-preview"
-                      />
-                      <div className="video-icon">▶</div>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
     </div>
   );
+
+  // Render at document body level using Portal for proper fixed positioning
+  return createPortal(modalContent, document.body);
 };
 
 export default MediaViewer;

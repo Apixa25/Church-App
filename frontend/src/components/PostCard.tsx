@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback, memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Post, PostType, Comment, SharePostRequest } from '../types/Post';
 import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost, deletePost, recordPostView, blockUser, unblockUser, getBlockStatus, followUser, unfollowUser, getFollowStatus, reportContent } from '../services/postApi';
@@ -11,6 +11,9 @@ import ReportModal from './ReportModal';
 import PostStatsModal from './PostStatsModal';
 import ClickableAvatar from './ClickableAvatar';
 import MediaViewer from './MediaViewer';
+import LoadingSpinner from './LoadingSpinner';
+import SocialMediaEmbedCard from './SocialMediaEmbedCard';
+import { isVideoIncompatibleWithIOS, getVideoErrorMessage } from '../utils/videoUtils';
 import './PostCard.css';
 
 interface PostCardProps {
@@ -46,6 +49,12 @@ const PostCard: React.FC<PostCardProps> = ({
   const [comments, setComments] = useState<Comment[]>([]);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  
+  // Video loading state - track which videos should be loaded
+  const [loadedVideos, setLoadedVideos] = useState<Set<number>>(new Set());
+  const [visibleVideos, setVisibleVideos] = useState<Set<number>>(new Set());
+  const videoRefs = useRef<Map<number, HTMLVideoElement>>(new Map());
+  const [videoErrors, setVideoErrors] = useState<Map<number, string>>(new Map());
   const [isBlocked, setIsBlocked] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
@@ -55,20 +64,62 @@ const PostCard: React.FC<PostCardProps> = ({
   const [showPostStatsModal, setShowPostStatsModal] = useState(false);
   const [showMediaViewer, setShowMediaViewer] = useState(false);
   const [mediaViewerIndex, setMediaViewerIndex] = useState(0);
+  
+  // Track if we've done an optimistic update to prevent props from overwriting it
+  const optimisticUpdateRef = useRef<{ type: 'like' | 'bookmark' | 'comment' | 'share'; timestamp: number } | null>(null);
 
   useEffect(() => {
-    setIsLiked(post.isLikedByCurrentUser || false);
-    setIsBookmarked(post.isBookmarkedByCurrentUser || false);
-    setLikesCount(post.likesCount);
-    setCommentsCount(post.commentsCount);
-    setSharesCount(post.sharesCount);
+    // Only sync from props if not currently loading (to avoid overriding optimistic updates)
+    if (!isLoading) {
+      // Check if we have a recent optimistic update that shouldn't be overwritten
+      const hasRecentOptimisticUpdate = optimisticUpdateRef.current && 
+        (Date.now() - optimisticUpdateRef.current.timestamp) < 2000; // 2 second window
+      
+      setIsLiked(post.isLikedByCurrentUser || false);
+      setIsBookmarked(post.isBookmarkedByCurrentUser || false);
+      
+      // Only sync likesCount if:
+      // 1. It's different from current state
+      // 2. We don't have a recent optimistic like update
+      // 3. OR the prop value is actually higher (meaning it's a real update from server, not stale data)
+      if (post.likesCount !== likesCount) {
+        const shouldSync = !hasRecentOptimisticUpdate || 
+                          optimisticUpdateRef.current?.type !== 'like' ||
+                          post.likesCount > likesCount; // Only sync if prop is higher (real update)
+        
+        if (shouldSync) {
+          console.log('❤️ useEffect syncing likesCount from props:', {
+            postId: post.id,
+            propLikesCount: post.likesCount,
+            stateLikesCount: likesCount,
+            hasRecentOptimisticUpdate: hasRecentOptimisticUpdate && optimisticUpdateRef.current?.type === 'like'
+          });
+          setLikesCount(post.likesCount);
+          // Clear optimistic update ref if we're syncing (means server caught up)
+          if (optimisticUpdateRef.current?.type === 'like') {
+            optimisticUpdateRef.current = null;
+          }
+        } else {
+          console.log('❤️ useEffect SKIPPING sync (optimistic update in progress):', {
+            postId: post.id,
+            propLikesCount: post.likesCount,
+            stateLikesCount: likesCount
+          });
+        }
+      }
+      
+      setCommentsCount(post.commentsCount);
+      setSharesCount(post.sharesCount);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     post.id,
     post.isLikedByCurrentUser,
     post.isBookmarkedByCurrentUser,
     post.likesCount,
     post.commentsCount,
-    post.sharesCount
+    post.sharesCount,
+    isLoading // Include isLoading to prevent sync during operations
   ]);
 
   // Record post view when post is displayed
@@ -130,11 +181,25 @@ const PostCard: React.FC<PostCardProps> = ({
 
     setIsLoading(true);
     const wasLiked = isLiked;
+    // Store original values for potential revert
+    const originalLikesCount = likesCount;
+    // Calculate new count before state updates (to avoid stale closure)
+    const newLikesCount = wasLiked ? likesCount - 1 : likesCount + 1;
+
+    console.log('❤️ handleLike called:', {
+      postId: post.id,
+      wasLiked,
+      originalLikesCount,
+      newLikesCount
+    });
 
     try {
+      // Mark optimistic update
+      optimisticUpdateRef.current = { type: 'like', timestamp: Date.now() };
+      
       // Optimistic update
       setIsLiked(!wasLiked);
-      setLikesCount(prev => wasLiked ? prev - 1 : prev + 1);
+      setLikesCount(newLikesCount);
 
       if (wasLiked) {
         await unlikePost(post.id);
@@ -143,18 +208,33 @@ const PostCard: React.FC<PostCardProps> = ({
       }
 
       // Update parent component if callback provided
+      // Use the calculated newLikesCount instead of stale closure value
       if (onPostUpdate) {
-        onPostUpdate({
+        const updatedPost = {
           ...post,
-          likesCount: wasLiked ? likesCount - 1 : likesCount + 1,
+          likesCount: newLikesCount,
           isLikedByCurrentUser: !wasLiked
+        };
+        console.log('❤️ Calling onPostUpdate with:', {
+          postId: updatedPost.id,
+          likesCount: updatedPost.likesCount,
+          isLikedByCurrentUser: updatedPost.isLikedByCurrentUser
         });
+        onPostUpdate(updatedPost);
       }
+      
+      // Clear optimistic update ref after a delay to allow server response
+      setTimeout(() => {
+        if (optimisticUpdateRef.current?.type === 'like') {
+          optimisticUpdateRef.current = null;
+        }
+      }, 3000); // 3 second window
     } catch (error) {
       // Revert optimistic update on error
+      console.error('❤️ Error toggling like, reverting:', error);
       setIsLiked(wasLiked);
-      setLikesCount(prev => wasLiked ? prev + 1 : prev - 1);
-      console.error('Error toggling like:', error);
+      setLikesCount(originalLikesCount); // Revert to original count
+      optimisticUpdateRef.current = null; // Clear on error
     } finally {
       setIsLoading(false);
     }
@@ -374,125 +454,389 @@ const PostCard: React.FC<PostCardProps> = ({
     return formatRelativeDate(dateString);
   };
 
-  const handleMediaClick = (index: number) => {
+  const handleMediaClick = (index: number, e?: React.MouseEvent | React.KeyboardEvent) => {
+    if (e) {
+      e.stopPropagation();
+      if (e.type === 'click') {
+        e.preventDefault();
+      }
+    }
     setMediaViewerIndex(index);
     setShowMediaViewer(true);
   };
 
+  // Handle video click - load video if not already loaded, then auto-play
+  const handleVideoClick = useCallback((index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    // Mark video as loaded (will trigger React to set the src attribute)
+    setLoadedVideos(prev => {
+      const newSet = new Set(prev);
+      newSet.add(index);
+      return newSet;
+    });
+    
+    // Wait for React to re-render with the new src, then play
+    // This small delay allows the video element to receive its src attribute
+    setTimeout(() => {
+      const video = videoRefs.current.get(index);
+      if (video) {
+        // Play the video - single click should start playback
+        video.play().catch(err => {
+          console.log('Video autoplay prevented:', err);
+        });
+      }
+    }, 50); // Small delay for React to update DOM
+  }, []);
+
+  // Lazy loading with Intersection Observer for videos
+  // Note: We track visibility but don't auto-load - videos only load on user click
+  useEffect(() => {
+    if (!post.mediaUrls || post.mediaUrls.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const index = parseInt(entry.target.getAttribute('data-video-index') || '0');
+            setVisibleVideos(prev => {
+              const newSet = new Set(prev);
+              newSet.add(index);
+              return newSet;
+            });
+            // Unobserve once visible (we don't need to track it anymore)
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      {
+        rootMargin: '100px', // Start tracking 100px before video enters viewport
+        threshold: 0.01
+      }
+    );
+
+    // Observe all video elements that exist
+    const observeVideos = () => {
+      videoRefs.current.forEach((video, index) => {
+        if (video && !visibleVideos.has(index)) {
+          observer.observe(video);
+        }
+      });
+    };
+
+    // Initial observation
+    observeVideos();
+
+    // Re-observe after a short delay to catch videos that render later
+    const timeoutId = setTimeout(observeVideos, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      observer.disconnect();
+    };
+  }, [post.mediaUrls, visibleVideos]);
+
   const renderMedia = () => {
-    if (!post.mediaUrls || post.mediaUrls.length === 0) return null;
+    if (!post.mediaUrls || post.mediaUrls.length === 0) {
+      return null;
+    }
 
-    return (
-      <div className="post-media">
-        {post.mediaUrls.map((url, index) => {
-          const mediaType = post.mediaTypes?.[index] || 'image';
-          const isImage = mediaType.startsWith('image');
+    const mediaCount = post.mediaUrls.length;
 
-          return (
-            <div 
-              key={index} 
-              className="media-item"
-              onClick={() => handleMediaClick(index)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleMediaClick(index);
-                }
-              }}
-              aria-label={`View full ${isImage ? 'image' : 'video'} ${index + 1}`}
-            >
-              {isImage ? (
-                <img
-                  src={url}
-                  alt={`Post media ${index + 1}`}
-                  className="media-image"
-                  loading="lazy"
-                />
-              ) : (
-                <video
-                  src={url}
-                  controls
-                  className="media-video"
-                  preload="metadata"
-                  onClick={(e) => {
-                    // Only open viewer if clicking outside the controls area
-                    // Check if the click target is the video element itself (not controls)
-                    if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === 'VIDEO') {
-                      // Check if click is in the bottom 25% where controls typically are
-                      const rect = (e.currentTarget as HTMLVideoElement).getBoundingClientRect();
-                      const clickY = e.clientY - rect.top;
-                      const videoHeight = rect.height;
-                      if (clickY < videoHeight * 0.75) {
-                        handleMediaClick(index);
+    // Single image - full width with natural aspect ratio
+    if (mediaCount === 1) {
+      const mediaType = post.mediaTypes?.[0] || 'image';
+      const isImage = mediaType.startsWith('image');
+      
+      return (
+        <div className="post-media">
+          <div 
+            className="media-item media-item-single"
+            onClick={(e) => handleMediaClick(0, e)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleMediaClick(0, e);
+              }
+            }}
+            aria-label={`View full ${isImage ? 'image' : 'video'}`}
+          >
+            {isImage ? (
+              <img
+                src={post.mediaUrls[0]}
+                alt="Post media"
+                className="media-image"
+                loading="lazy"
+                onError={(e) => {
+                  // Only log errors, not every successful load
+                  console.error('🖼️ PostCard: Image failed to load:', post.mediaUrls[0], 'for post:', post.id);
+                }}
+              />
+            ) : (
+              <div className="video-container-wrapper">
+                {videoErrors.has(0) ? (
+                  <div className="video-error-message">
+                    <p>{videoErrors.get(0)}</p>
+                    <small>Video is being processed for iPhone compatibility</small>
+                  </div>
+                ) : (
+                  <video
+                    ref={(el) => {
+                      if (el) videoRefs.current.set(0, el);
+                    }}
+                    src={loadedVideos.has(0) ? post.mediaUrls[0] : undefined}
+                    controls={loadedVideos.has(0)}
+                    className="media-video"
+                    preload={loadedVideos.has(0) ? "auto" : (post.thumbnailUrls && post.thumbnailUrls[0] ? "none" : "metadata")}
+                    poster={post.thumbnailUrls && post.thumbnailUrls[0] ? post.thumbnailUrls[0] : undefined}
+                    data-video-index="0"
+                    onClick={(e) => {
+                    if (!loadedVideos.has(0)) {
+                      // First click: load the video and start playing
+                      handleVideoClick(0, e);
+                    } else {
+                      // Video already loaded - let native controls handle play/pause
+                      // Don't open media viewer, just stop propagation
+                      e.stopPropagation();
+                    }
+                  }}
+                  onError={(e) => {
+                    const video = e.currentTarget as HTMLVideoElement;
+                    const error = video.error;
+                    const mediaType = post.mediaTypes?.[0];
+                    const url = post.mediaUrls[0];
+                    
+                    console.error('Video playback error:', {
+                      index: 0,
+                      url,
+                      mediaType,
+                      errorCode: error?.code,
+                      errorMessage: error?.message
+                    });
+                    
+                    // Check if it's a WebM format on iOS
+                    if (isVideoIncompatibleWithIOS(mediaType, url)) {
+                      const errorMsg = getVideoErrorMessage(mediaType, url);
+                      setVideoErrors(prev => new Map(prev).set(0, errorMsg));
+                    } else if (error) {
+                      // Other video errors
+                      if (error.code === 4) {
+                        setVideoErrors(prev => new Map(prev).set(0, 'Video format not supported on this device'));
+                      } else {
+                        setVideoErrors(prev => new Map(prev).set(0, 'Unable to play video. Please try again later.'));
                       }
                     }
                   }}
+                  playsInline
+                  crossOrigin="anonymous"
                 />
-              )}
-            </div>
-          );
-        })}
+                )}
+                {!loadedVideos.has(0) && (
+                  <div 
+                    className="video-play-overlay"
+                    onClick={(e) => handleVideoClick(0, e)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleVideoClick(0, e as any);
+                      }
+                    }}
+                    aria-label="Play video"
+                  >
+                    <div className="video-play-button">
+                      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="32" cy="32" r="32" fill="rgba(0, 0, 0, 0.6)"/>
+                        <path d="M24 20L44 32L24 44V20Z" fill="white"/>
+                      </svg>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Multiple images - grid layout
+    return (
+      <div className="post-media post-media-grid">
+        <div className={`media-grid media-grid-${Math.min(mediaCount, 4)}`}>
+          {post.mediaUrls.slice(0, 4).map((url, index) => {
+            const mediaType = post.mediaTypes?.[index] || 'image';
+            const isImage = mediaType.startsWith('image');
+            const isLastVisible = index === 3 && mediaCount > 4;
+            const remainingCount = mediaCount - 4;
+
+            return (
+              <div 
+                key={index} 
+                className={`media-item media-item-grid ${isLastVisible ? 'media-item-overlay' : ''}`}
+                onClick={(e) => handleMediaClick(index, e)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleMediaClick(index, e);
+                  }
+                }}
+                aria-label={`View image ${index + 1} of ${mediaCount}`}
+              >
+                {isImage ? (
+                  <img
+                    src={url}
+                    alt={`Post media ${index + 1}`}
+                    className="media-image"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="video-container-wrapper video-grid-wrapper">
+                    {videoErrors.has(index) ? (
+                      <div className="video-error-message">
+                        <p>{videoErrors.get(index)}</p>
+                        <small>Video is being processed for iPhone compatibility</small>
+                      </div>
+                    ) : (
+                      <video
+                        ref={(el) => {
+                          if (el) videoRefs.current.set(index, el);
+                        }}
+                        src={loadedVideos.has(index) ? url : undefined}
+                        controls={false}
+                        className="media-video"
+                        preload={loadedVideos.has(index) ? "auto" : (post.thumbnailUrls && post.thumbnailUrls[index] ? "none" : "metadata")}
+                        poster={post.thumbnailUrls && post.thumbnailUrls[index] ? post.thumbnailUrls[index] : undefined}
+                        data-video-index={index.toString()}
+                        onClick={(e) => {
+                          if (!loadedVideos.has(index)) {
+                            handleVideoClick(index, e);
+                          } else {
+                            e.stopPropagation();
+                            handleMediaClick(index, e);
+                          }
+                        }}
+                        onError={(e) => {
+                          const video = e.currentTarget as HTMLVideoElement;
+                          const error = video.error;
+                          const mediaType = post.mediaTypes?.[index];
+                          
+                          console.error('Video playback error:', {
+                            index,
+                            url,
+                            mediaType,
+                            errorCode: error?.code,
+                            errorMessage: error?.message
+                          });
+                          
+                          // Check if it's a WebM format on iOS
+                          if (isVideoIncompatibleWithIOS(mediaType, url)) {
+                            const errorMsg = getVideoErrorMessage(mediaType, url);
+                            setVideoErrors(prev => new Map(prev).set(index, errorMsg));
+                          } else if (error) {
+                            // Other video errors
+                            if (error.code === 4) {
+                              setVideoErrors(prev => new Map(prev).set(index, 'Video format not supported on this device'));
+                            } else {
+                              setVideoErrors(prev => new Map(prev).set(index, 'Unable to play video. Please try again later.'));
+                            }
+                          }
+                        }}
+                        playsInline
+                        crossOrigin="anonymous"
+                      />
+                    )}
+                    {!loadedVideos.has(index) && (
+                      <div 
+                        className="video-play-overlay video-grid-overlay"
+                        onClick={(e) => handleVideoClick(index, e)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleVideoClick(index, e as any);
+                          }
+                        }}
+                        aria-label="Play video"
+                      >
+                        <div className="video-play-button video-grid-play-button">
+                          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="24" cy="24" r="24" fill="rgba(0, 0, 0, 0.6)"/>
+                            <path d="M18 15L30 24L18 33V15Z" fill="white"/>
+                          </svg>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {isLastVisible && (
+                  <div className="media-overlay-count">
+                    +{remainingCount} more
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   };
 
   return (
     <div className={`post-card ${compact ? 'compact' : ''}`}>
-      {/* Post Header */}
+      {/* Post Header - X-style layout */}
       <div className="post-header">
-        <div className="post-author">
-          <ClickableAvatar
-            userId={post.userId}
-            profilePicUrl={post.userProfilePicUrl}
-            userName={post.userName}
-            size="medium"
-            isAnonymous={post.isAnonymous}
-          />
-          <div className="author-info">
-            <div className="author-name">
+        <ClickableAvatar
+          userId={post.userId}
+          profilePicUrl={post.userProfilePicUrl}
+          userName={post.userName}
+          size="medium"
+          isAnonymous={post.isAnonymous}
+        />
+        <div className="author-info">
+          {/* Line 1: Name + timestamp */}
+          <div className="author-name-row">
+            <span className="author-name">
               {post.isAnonymous ? 'Anonymous' : post.userName}
-              {post.postType !== PostType.GENERAL && (
-                <span className="post-type-badge">
-                  {getPostTypeIcon(post.postType)} {getPostTypeLabel(post.postType)}
-                </span>
-              )}
-            </div>
+            </span>
+            {post.postType !== PostType.GENERAL && (
+              <span className="post-type-badge">
+                {getPostTypeIcon(post.postType)}
+              </span>
+            )}
+            <span className="timestamp">{formatDate(post.createdAt)}</span>
+          </div>
+          {/* Line 2: Org/Group (only if exists) */}
+          {(post.group || post.organization || post.location) && (
             <div className="post-meta">
               {post.location && <span className="location">📍 {post.location}</span>}
-              {/* Organization/Group Label - Priority: Group takes precedence over organization */}
               {(post.group || post.organization) && (
                 <span 
                   className="post-context-name clickable"
                   onClick={async (e) => {
                     e.stopPropagation();
                     try {
-                      console.log('🔍 Filtering feed - Group:', post.group?.name, 'Organization:', post.organization?.name);
                       if (post.group) {
-                        // Filter feed to show only posts from this group
-                        console.log('📌 Setting filter to SELECTED_GROUPS with group ID:', post.group.id);
                         if (location.pathname !== '/dashboard') {
                           navigate('/dashboard');
-                          // Wait a bit for navigation to complete
                           await new Promise(resolve => setTimeout(resolve, 100));
                         }
                         await setFilter('SELECTED_GROUPS', [post.group.id]);
-                        console.log('✅ Filter set successfully for group:', post.group.name);
                       } else if (post.organization) {
-                        // Filter feed to show only posts from this organization
-                        console.log('📌 Setting filter to PRIMARY_ONLY with organization ID:', post.organization.id);
                         if (location.pathname !== '/dashboard') {
                           navigate('/dashboard');
-                          // Wait a bit for navigation to complete
                           await new Promise(resolve => setTimeout(resolve, 100));
                         }
                         await setFilter('PRIMARY_ONLY', [], post.organization.id);
-                        console.log('✅ Filter set successfully for organization:', post.organization.name);
                       }
                     } catch (error) {
-                      console.error('❌ Error filtering feed:', error);
-                      alert('Failed to filter feed. Please try again.');
+                      console.error('Error filtering feed:', error);
                     }
                   }}
                   title={post.group ? `Show posts from ${post.group.name}` : `Show posts from ${post.organization?.name}`}
@@ -500,9 +844,8 @@ const PostCard: React.FC<PostCardProps> = ({
                   {post.group ? post.group.name : post.organization?.name}
                 </span>
               )}
-              <span className="timestamp">{formatDate(post.createdAt)}</span>
             </div>
-          </div>
+          )}
         </div>
         <div className="post-header-actions">
           {canDelete && (
@@ -540,7 +883,9 @@ const PostCard: React.FC<PostCardProps> = ({
                       disabled={blockLoading}
                     >
                       {blockLoading ? (
-                        <span className="loading-spinner">...</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px' }}>
+                          <LoadingSpinner type="multi-ring" size="inline" />
+                        </span>
                       ) : isBlocked ? (
                         '🚫 Unblock'
                       ) : (
@@ -602,6 +947,31 @@ const PostCard: React.FC<PostCardProps> = ({
 
       {/* Post Media */}
       {renderMedia()}
+      
+      {/* Social Media Embed */}
+      {post.externalUrl && post.externalEmbedHtml && (
+        <div className="post-external-embed">
+          <SocialMediaEmbedCard
+            embedHtml={post.externalEmbedHtml}
+            externalUrl={post.externalUrl}
+            platform={post.externalPlatform || 'UNKNOWN'}
+          />
+        </div>
+      )}
+      
+      {/* Fallback: Show link if embed HTML is not available */}
+      {post.externalUrl && !post.externalEmbedHtml && (
+        <div className="post-external-link-fallback">
+          <a
+            href={post.externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="external-link-button"
+          >
+            🔗 View on {post.externalPlatform || 'External Site'} →
+          </a>
+        </div>
+      )}
 
       {/* Post Actions */}
       <div className="post-actions">
@@ -706,4 +1076,31 @@ const PostCard: React.FC<PostCardProps> = ({
   );
 };
 
-export default PostCard;
+// 🎯 OPTIMIZATION: Memoize PostCard to prevent unnecessary re-renders
+// Only re-render when post data actually changes
+const MemoizedPostCard = memo(PostCard, (prevProps, nextProps) => {
+  // Return true if props are EQUAL (skip re-render)
+  // Return false if props are DIFFERENT (re-render)
+  
+  const prevPost = prevProps.post;
+  const nextPost = nextProps.post;
+  
+  // Check critical fields that affect display
+  if (prevPost.id !== nextPost.id) return false;
+  if (prevPost.likesCount !== nextPost.likesCount) return false;
+  if (prevPost.commentsCount !== nextPost.commentsCount) return false;
+  if (prevPost.sharesCount !== nextPost.sharesCount) return false;
+  if (prevPost.isLikedByCurrentUser !== nextPost.isLikedByCurrentUser) return false;
+  if (prevPost.isBookmarkedByCurrentUser !== nextPost.isBookmarkedByCurrentUser) return false;
+  if (prevPost.content !== nextPost.content) return false;
+  if (prevPost.updatedAt !== nextPost.updatedAt) return false;
+  
+  // Check callback references only if they exist
+  if (prevProps.onPostUpdate !== nextProps.onPostUpdate) return false;
+  if (prevProps.onPostDelete !== nextProps.onPostDelete) return false;
+  
+  // All checked props are equal - skip re-render
+  return true;
+});
+
+export default MemoizedPostCard;

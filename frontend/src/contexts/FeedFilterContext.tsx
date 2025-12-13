@@ -1,10 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useMemo, useCallback, ReactNode } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
 import { useOrganization } from './OrganizationContext';
 import { useActiveContext } from './ActiveContextContext';
+import { getApiUrl } from '../config/runtimeConfig';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
+const API_BASE_URL = getApiUrl();
 
 export type FeedFilter = 'EVERYTHING' | 'ALL' | 'PRIMARY_ONLY' | 'SELECTED_GROUPS';
 
@@ -78,11 +79,13 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
   // Legacy compatibility: secondaryMemberships maps to groups
   const secondaryMemberships = groups;
 
-  // Axios instance with auth
-  const api = axios.create({
-    baseURL: API_BASE_URL,
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
+  // Memoize axios instance to prevent recreation on every render
+  const api = useMemo(() => {
+    return axios.create({
+      baseURL: API_BASE_URL,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  }, [token]);
 
   // Update primaryOrgId and secondaryOrgIds based on active context (DUAL PRIMARY SYSTEM)
   // When PRIMARY_ONLY filter is active, use the active context's organization
@@ -118,8 +121,8 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
     setSecondaryOrgIds(secondaryIds);
   }, [activeContext, activeOrganizationId, churchPrimary, familyPrimary, groups]);
 
-  // Fetch feed preference and parameters
-  const fetchPreference = async () => {
+  // Fetch feed preference and parameters - memoized to prevent recreation
+  const fetchPreference = useCallback(async () => {
     if (!isAuthenticated) {
       // Clear all state for unauthenticated users
       setPreference(null);
@@ -226,15 +229,15 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAuthenticated, api]);
 
+  // Alias for refreshPreference
   const refreshPreference = fetchPreference;
 
-  // Set filter
-  const setFilter = async (filter: FeedFilter, groupIds: string[] = [], selectedOrganizationId?: string): Promise<void> => {
+  // Set filter - memoized to prevent recreation
+  // 🎯 OPTIMIZED: No longer double-fetches after successful save
+  const setFilter = useCallback(async (filter: FeedFilter, groupIds: string[] = [], selectedOrganizationId?: string): Promise<void> => {
     try {
-      console.log('🔧 FeedFilterContext: Setting filter:', filter, 'groupIds:', groupIds, 'selectedOrganizationId:', selectedOrganizationId);
-      
       // Optimistically update the preference state BEFORE the API call completes
       // This prevents PostFeed from reacting to stale state
       const optimisticPreference: FeedPreference = {
@@ -260,31 +263,28 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
       
       // Update state immediately (synchronously in the same render cycle)
       setPreference(optimisticPreference);
-      console.log('⚡ FeedFilterContext: Optimistically updated preference state to:', filter);
       
-      // Make API call
+      // Make API call (fire-and-forget style - we already have the optimistic update)
       await api.post('/feed-preferences', {
         activeFilter: filter,
         selectedGroupIds: filter === 'SELECTED_GROUPS' ? groupIds : [],
         selectedOrganizationId: filter === 'PRIMARY_ONLY' ? selectedOrganizationId : undefined,
       });
 
-      console.log('✅ FeedFilterContext: Filter saved to backend');
-      
-      // Clear optimistic update ref and refresh from server
+      // Clear optimistic update ref - success!
+      // 🎯 NO refreshPreference() call - we already have the correct state from optimistic update
       optimisticUpdateRef.current = null;
-      await refreshPreference();
-      console.log('✅ FeedFilterContext: Preference refreshed from server');
     } catch (error: any) {
       console.error('❌ FeedFilterContext: Error setting feed filter:', error);
       // Revert optimistic update on error by refreshing from server
+      optimisticUpdateRef.current = null;
       await refreshPreference();
       throw new Error(error.response?.data?.message || 'Failed to update feed filter');
     }
-  };
+  }, [preference, api, refreshPreference]);
 
-  // Reset filter to EVERYTHING (default)
-  const resetFilter = async (): Promise<void> => {
+  // Reset filter to EVERYTHING (default) - memoized
+  const resetFilter = useCallback(async (): Promise<void> => {
     try {
       await api.delete('/feed-preferences');
       await refreshPreference();
@@ -292,19 +292,65 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
       console.error('Error resetting feed filter:', error);
       throw new Error(error.response?.data?.message || 'Failed to reset feed filter');
     }
-  };
+  }, [api, refreshPreference]);
 
+  // Track if we're currently fetching to prevent infinite loops
+  const isFetchingRef = useRef(false);
+  
   // Initialize preference on mount and when auth changes
   useEffect(() => {
-    fetchPreference();
-  }, [isAuthenticated, token]);
+    if (!isFetchingRef.current) {
+      isFetchingRef.current = true;
+      fetchPreference().finally(() => {
+        isFetchingRef.current = false;
+      });
+    }
+  }, [isAuthenticated, token, fetchPreference]);
+
+  // 🎯 When activeOrganizationId changes and filter is PRIMARY_ONLY, update preference
+  // Track last synced org ID to prevent infinite loops
+  const lastSyncedOrgIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    // Only update if filter is PRIMARY_ONLY and we have a preference
+    if (
+      preference &&
+      preference.activeFilter === 'PRIMARY_ONLY' &&
+      activeOrganizationId &&
+      preference.selectedOrganizationId !== activeOrganizationId &&
+      lastSyncedOrgIdRef.current !== activeOrganizationId
+    ) {
+      console.log('🔄 FeedFilterContext: Syncing selectedOrganizationId with active context', {
+        from: preference.selectedOrganizationId,
+        to: activeOrganizationId
+      });
+      
+      lastSyncedOrgIdRef.current = activeOrganizationId;
+      
+      // Update preference optimistically
+      setPreference(prev => prev ? {
+        ...prev,
+        selectedOrganizationId: activeOrganizationId
+      } : null);
+      
+      // Note: We don't persist this to backend automatically because:
+      // 1. The backend uses activeOrganizationId from context when PRIMARY_ONLY is active
+      // 2. This is just for UI consistency - the actual filtering happens server-side
+      // 3. If user wants to persist, they can manually change the filter
+    } else if (!activeOrganizationId) {
+      // Reset tracking when org ID is cleared
+      lastSyncedOrgIdRef.current = null;
+    }
+  }, [activeOrganizationId, preference]);
 
   // Ensure selectedGroupIds is always a new array reference for proper React dependency tracking
-  const selectedGroupIdsArray = preference?.selectedGroupIds 
-    ? [...preference.selectedGroupIds] 
-    : [];
+  const selectedGroupIdsArray = useMemo(() => {
+    return preference?.selectedGroupIds 
+      ? [...preference.selectedGroupIds] 
+      : [];
+  }, [preference?.selectedGroupIds]);
 
-  const value: FeedFilterContextType = {
+  // Memoize context value to prevent unnecessary re-renders
+  const value: FeedFilterContextType = useMemo(() => ({
     preference,
     activeFilter: preference?.activeFilter || 'EVERYTHING',
     selectedGroupIds: selectedGroupIdsArray,
@@ -317,7 +363,19 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
     setFilter,
     resetFilter,
     refreshPreference,
-  };
+  }), [
+    preference,
+    selectedGroupIdsArray,
+    feedParameters,
+    visibleGroupIds,
+    hasPrimaryOrg,
+    primaryOrgId,
+    secondaryOrgIds,
+    loading,
+    setFilter,
+    resetFilter,
+    refreshPreference,
+  ]);
 
   return (
     <FeedFilterContext.Provider value={value}>

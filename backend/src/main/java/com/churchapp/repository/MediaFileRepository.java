@@ -32,6 +32,13 @@ public interface MediaFileRepository extends JpaRepository<MediaFile, UUID> {
     List<MediaFile> findByProcessingStatus(ProcessingStatus status);
     
     /**
+     * Find all media files with a specific processing status that have a job ID
+     * Used for polling MediaConvert jobs
+     */
+    @Query("SELECT m FROM MediaFile m WHERE m.processingStatus = :status AND m.jobId IS NOT NULL")
+    List<MediaFile> findByProcessingStatusAndJobIdIsNotNull(@Param("status") ProcessingStatus status);
+    
+    /**
      * Find all media files that are ready for cleanup
      * (completed processing, created more than retention hours ago)
      */
@@ -64,5 +71,29 @@ public interface MediaFileRepository extends JpaRepository<MediaFile, UUID> {
      * Count media files by processing status
      */
     long countByProcessingStatus(ProcessingStatus status);
+    
+    /**
+     * Find media file by MediaConvert job ID
+     * Used for webhook processing to update MediaFile when job completes
+     */
+    java.util.Optional<MediaFile> findByJobId(String jobId);
+    
+    /**
+     * Find all video files with optimized URLs (completed processing)
+     */
+    @Query("SELECT m FROM MediaFile m WHERE m.fileType = 'video' AND m.optimizedUrl IS NOT NULL")
+    List<MediaFile> findVideosWithOptimizedUrls();
+    
+    /**
+     * Count videos by processing status
+     */
+    @Query("SELECT COUNT(m) FROM MediaFile m WHERE m.fileType = 'video' AND m.processingStatus = :status")
+    long countVideosByStatus(@Param("status") ProcessingStatus status);
+    
+    /**
+     * Find videos without optimized URLs (for debugging)
+     */
+    @Query("SELECT m FROM MediaFile m WHERE m.fileType = 'video' AND (m.optimizedUrl IS NULL OR m.optimizedUrl = '')")
+    List<MediaFile> findVideosWithoutOptimizedUrls();
 }
 

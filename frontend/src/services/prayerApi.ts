@@ -13,39 +13,126 @@ import {
   PrayerInteractionSummary
 } from '../types/Prayer';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8083/api';
+import { getApiUrl } from '../config/runtimeConfig';
 
+const API_BASE_URL = getApiUrl();
+
+// Create axios instance WITHOUT default Content-Type
+// We'll set it dynamically in the interceptor based on request type
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  // DO NOT set default Content-Type here - let interceptor handle it
+  // This prevents FormData requests from getting the wrong Content-Type
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token and handle FormData
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken');
+  async (config) => {
+    // Get valid access token (will refresh if needed)
+    const { tokenService } = await import('./tokenService');
+    const token = await tokenService.getValidAccessToken();
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // CRITICAL: Detect FormData and remove Content-Type header
+    // iPhone Safari sometimes doesn't properly identify FormData with instanceof
+    // So we check multiple ways to be sure
+    const isFormData = 
+      config.data instanceof FormData ||
+      (config.data && typeof config.data === 'object' && config.data.constructor?.name === 'FormData') ||
+      (config.data && typeof config.data === 'object' && 'append' in config.data && typeof config.data.append === 'function') ||
+      // Also check if Content-Type was explicitly set to undefined (our signal)
+      (config.headers && (config.headers['Content-Type'] === undefined || config.headers['content-type'] === undefined));
+    
+    if (isFormData || config.url?.includes('/with-image')) {
+      // AGGRESSIVE: Remove Content-Type header in ALL possible ways
+      // Browser MUST set it automatically with boundary for multipart/form-data
+      delete config.headers['Content-Type'];
+      delete config.headers['content-type'];
+      delete config.headers['Content-type'];
+      delete config.headers['CONTENT-TYPE'];
+      
+      // Also set to undefined to ensure it's not added back
+      if (config.headers) {
+        config.headers['Content-Type'] = undefined as any;
+        config.headers['content-type'] = undefined as any;
+      }
+      
+      // Log for debugging
+      console.log('🔧 Axios Interceptor: FormData detected, removed Content-Type header', {
+        url: config.url,
+        method: config.method,
+        hasImage: config.data?.has ? config.data.has('image') : 'unknown',
+        formDataKeys: config.data instanceof FormData ? Array.from(config.data.keys()) : 'not FormData',
+        isFormDataCheck: isFormData,
+        dataType: typeof config.data,
+        dataConstructor: config.data?.constructor?.name,
+        userAgent: navigator.userAgent,
+        headersAfter: Object.keys(config.headers || {})
+      });
+    } else {
+      // Not FormData - keep Content-Type as is (or set to JSON if not set)
+      if (!config.headers['Content-Type'] && !config.headers['content-type']) {
+        config.headers['Content-Type'] = 'application/json';
+      }
+      console.log('🔧 Axios Interceptor: Regular request (not FormData)', {
+        url: config.url,
+        method: config.method,
+        contentType: config.headers['Content-Type'] || config.headers['content-type'],
+        dataType: typeof config.data,
+        dataConstructor: config.data?.constructor?.name
+      });
+    }
+    
     return config;
   },
   (error) => {
+    console.error('❌ Axios Request Interceptor Error:', error);
     return Promise.reject(error);
   }
 );
 
-// Response interceptor to handle auth errors
+// Response interceptor to handle auth errors with automatic token refresh
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Handle 401 errors with automatic token refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true; // Prevent infinite retry loop
+
+      try {
+        // Attempt to refresh token
+        const { tokenService } = await import('./tokenService');
+        const refreshed = await tokenService.refreshTokenSilently();
+        
+        if (refreshed?.token) {
+          // Update authorization header with new token
+          originalRequest.headers.Authorization = `Bearer ${refreshed.token}`;
+          
+          // Retry the original request
+          return api(originalRequest);
+        } else {
+          // Refresh failed - redirect to login
+          throw error;
+        }
+      } catch (refreshError) {
+        // Refresh failed - clear tokens and redirect to login
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        
+        // Only redirect if we're not already on the login page
+        if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+          window.location.href = '/login';
+        }
+        return Promise.reject(refreshError);
+      }
     }
+
     return Promise.reject(error);
   }
 );
@@ -57,29 +144,170 @@ export const prayerAPI = {
     api.post<PrayerRequest>('/prayers', data),
 
   // Create a new prayer request with image
-  createPrayerRequestWithImage: (data: PrayerRequestCreateRequest, imageFile?: File) => {
-    const formData = new FormData();
-    formData.append('title', data.title);
-    if (data.description) {
-      formData.append('description', data.description);
-    }
-    if (data.isAnonymous !== undefined) {
-      formData.append('isAnonymous', data.isAnonymous.toString());
-    }
-    if (data.category) {
-      formData.append('category', data.category);
-    }
-    if (data.organizationId) {
-      formData.append('organizationId', data.organizationId);
-    }
+  createPrayerRequestWithImage: async (data: PrayerRequestCreateRequest, imageFile?: File) => {
+    // Validate file before creating FormData
     if (imageFile) {
-      formData.append('image', imageFile);
-    }
-    return api.post<PrayerRequest>('/prayers/with-image', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
+      if (!(imageFile instanceof File)) {
+        console.error('❌ imageFile is not a File object:', imageFile);
+        throw new Error('Invalid image file object');
       }
-    });
+      if (imageFile.size === 0) {
+        console.error('❌ imageFile has zero size');
+        throw new Error('Image file is empty');
+      }
+      console.log('📦 Creating FormData with image:', {
+        fileName: imageFile.name,
+        fileSize: (imageFile.size / 1024 / 1024).toFixed(2) + 'MB',
+        fileType: imageFile.type,
+        isFile: imageFile instanceof File,
+        constructor: imageFile.constructor.name,
+        lastModified: imageFile.lastModified,
+        userAgent: navigator.userAgent
+      });
+    }
+    
+    try {
+      const formData = new FormData();
+      
+      // Append text fields first
+      formData.append('title', data.title);
+      if (data.description) {
+        formData.append('description', data.description);
+      }
+      if (data.isAnonymous !== undefined) {
+        formData.append('isAnonymous', data.isAnonymous.toString());
+      }
+      if (data.category) {
+        formData.append('category', data.category);
+      }
+      if (data.organizationId) {
+        formData.append('organizationId', data.organizationId);
+      }
+      
+      // Append file last (some browsers are sensitive to order)
+      if (imageFile) {
+        try {
+          formData.append('image', imageFile, imageFile.name); // Include filename explicitly
+          // Verify it was appended
+          const hasImage = formData.has('image');
+          console.log('✅ Image appended to FormData:', hasImage);
+          
+          if (!hasImage) {
+            throw new Error('Failed to append image to FormData');
+          }
+        } catch (appendError) {
+          console.error('❌ Failed to append image to FormData:', appendError);
+          throw new Error('Failed to prepare image for upload. Please try again.');
+        }
+      }
+      
+      // Final validation before sending
+      console.log('📤 Final FormData validation before API call:', {
+        isFormData: formData instanceof FormData,
+        hasImage: formData.has('image'),
+        formDataKeys: Array.from(formData.keys()),
+        imageFile: imageFile ? {
+          name: imageFile.name,
+          size: imageFile.size,
+          type: imageFile.type,
+          isFile: imageFile instanceof File
+        } : 'no image',
+        userAgent: navigator.userAgent
+      });
+      
+      // Verify FormData is actually a FormData object
+      if (!(formData instanceof FormData)) {
+        const formDataAny = formData as any;
+        console.error('❌ CRITICAL: formData is not a FormData instance!', {
+          type: typeof formData,
+          constructor: formDataAny?.constructor?.name,
+          hasAppend: typeof formDataAny?.append === 'function'
+        });
+        throw new Error('FormData creation failed - invalid FormData object');
+      }
+      
+      console.log('📤 Sending multipart request to /prayers/with-image');
+      
+      // iPhone Safari workaround: Use native fetch for FormData to avoid Axios issues
+      const userAgent = navigator.userAgent;
+      const isIPhone = /iPhone|iPod/.test(userAgent);
+      
+      if (isIPhone) {
+        console.log('📱 iPhone detected - using native fetch for FormData upload');
+        
+        // Get auth token
+        const { tokenService } = await import('./tokenService');
+        const token = await tokenService.getValidAccessToken();
+        
+        // Use native fetch - browser handles FormData correctly
+        // DO NOT set Content-Type - browser MUST set it with boundary automatically
+        const url = `${API_BASE_URL}/prayers/with-image`;
+        
+        // Handle timeout with AbortController
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 90000);
+        
+        try {
+          const fetchResponse = await fetch(url, {
+            method: 'POST',
+            body: formData,
+            // DO NOT set Content-Type header - browser will set multipart/form-data with boundary
+            headers: {
+              'Authorization': `Bearer ${token || ''}`,
+              // Explicitly omit Content-Type - let browser handle it
+            },
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!fetchResponse.ok) {
+            const errorData = await fetchResponse.json().catch(() => ({ error: fetchResponse.statusText }));
+            throw {
+              response: {
+                status: fetchResponse.status,
+                statusText: fetchResponse.statusText,
+                data: errorData
+              }
+            };
+          }
+          
+          const responseData = await fetchResponse.json();
+          return { data: responseData };
+        } catch (fetchError: any) {
+          clearTimeout(timeoutId);
+          if (fetchError.name === 'AbortError') {
+            const timeoutError = new Error('Request timeout') as any;
+            timeoutError.code = 'ECONNABORTED';
+            throw timeoutError;
+          }
+          throw fetchError;
+        }
+      } else {
+        // Use Axios for non-iPhone devices
+        const requestConfig = {
+          timeout: 90000,
+          headers: {
+            'Content-Type': undefined as any,
+          },
+          transformRequest: [(data: any) => {
+            if (data instanceof FormData) {
+              return data;
+            }
+            return data;
+          }]
+        };
+        
+        return api.post<PrayerRequest>('/prayers/with-image', formData, requestConfig);
+      }
+    } catch (formDataError: any) {
+      console.error('❌ FormData creation failed:', {
+        error: formDataError,
+        message: formDataError?.message,
+        stack: formDataError?.stack
+      });
+      throw formDataError;
+    }
   },
 
   // Get a single prayer request by ID
@@ -115,9 +343,10 @@ export const prayerAPI = {
       formData.append('image', imageFile);
     }
     return api.put<PrayerRequest>(`/prayers/${id}/with-image`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
+      // CRITICAL: Do NOT set Content-Type manually - browser must set it with boundary
+      // The request interceptor will automatically delete Content-Type for FormData
+      // The browser will automatically set: multipart/form-data; boundary=----WebKitFormBoundary...
+      timeout: 90000 // 90 second timeout for file uploads (mobile networks can be slow)
     });
   },
 

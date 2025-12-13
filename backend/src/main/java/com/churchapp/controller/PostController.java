@@ -56,6 +56,11 @@ public class PostController {
             @AuthenticationPrincipal User user) {
 
         try {
+            log.info("📝 Creating post - externalUrl: {}, content length: {}, mediaUrls count: {}", 
+                request.getExternalUrl() != null ? request.getExternalUrl() : "null",
+                request.getContent() != null ? request.getContent().length() : 0,
+                request.getMediaUrls() != null ? request.getMediaUrls().size() : 0);
+            
             // Use new multi-tenant createPost method with optional org/group context
             Post post = postService.createPost(
                 user.getUsername(),
@@ -67,15 +72,18 @@ public class PostController {
                 request.getLocation(),
                 request.isAnonymous(),
                 request.getOrganizationId(),  // Multi-tenant: optional org context
-                request.getGroupId()           // Multi-tenant: optional group context
+                request.getGroupId(),          // Multi-tenant: optional group context
+                request.getExternalUrl()       // Social media embed: optional external URL
             );
 
             PostResponse response = postResponseMapper.mapPost(post, resolveUserId(user));
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
         } catch (IllegalArgumentException e) {
+            log.error("Invalid request creating post: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().build();
         } catch (Exception e) {
+            log.error("Error creating post for user {}: {}", user != null ? user.getUsername() : "unknown", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -360,8 +368,10 @@ public class PostController {
         try {
             Post.PostType type = Post.PostType.valueOf(postType.toUpperCase());
             Pageable pageable = PageRequest.of(page, size);
-            Page<Post> posts = feedService.getPostsByType(type, pageable);
-            Page<PostResponse> responses = postResponseMapper.mapPage(posts, resolveUserId(user));
+            UUID currentUserId = resolveUserId(user);
+            // Pass currentUserId so user can see their own anonymous posts
+            Page<Post> posts = feedService.getPostsByType(type, currentUserId, pageable);
+            Page<PostResponse> responses = postResponseMapper.mapPage(posts, currentUserId);
 
             return ResponseEntity.ok(responses);
 
@@ -382,7 +392,8 @@ public class PostController {
             return ResponseEntity.badRequest().build();
         }
 
-        log.info("🔍 Searching posts for query: '{}', postType: '{}', page: {}, size: {}", query, postType, page, size);
+        UUID currentUserId = resolveUserId(user);
+        log.info("🔍 Searching posts for query: '{}', postType: '{}', page: {}, size: {}, user: {}", query, postType, page, size, currentUserId);
         Pageable pageable = PageRequest.of(page, size);
         
         Post.PostType type = null;
@@ -394,9 +405,10 @@ public class PostController {
             }
         }
         
-        Page<Post> posts = feedService.searchPosts(query, type, pageable);
+        // Pass currentUserId so user can see their own anonymous posts in search results
+        Page<Post> posts = feedService.searchPosts(query, type, currentUserId, pageable);
         log.info("📝 Found {} posts (total: {}) for query: '{}'", posts.getContent().size(), posts.getTotalElements(), query);
-        Page<PostResponse> responses = postResponseMapper.mapPage(posts, resolveUserId(user));
+        Page<PostResponse> responses = postResponseMapper.mapPage(posts, currentUserId);
 
         return ResponseEntity.ok(responses);
     }
@@ -451,9 +463,8 @@ public class PostController {
             notificationService.notifyPostLike(postId, UUID.randomUUID()); // Placeholder user ID
             return ResponseEntity.ok().build();
 
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
         } catch (Exception e) {
+            log.error("Error liking post {}: {}", postId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -467,9 +478,8 @@ public class PostController {
             postInteractionService.unlikePost(user.getUsername(), postId);
             return ResponseEntity.ok().build();
 
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
         } catch (Exception e) {
+            log.error("Error unliking post {}: {}", postId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -610,7 +620,77 @@ public class PostController {
 
     // ========== MEDIA UPLOAD ==========
 
+    /**
+     * Generate presigned URL for direct S3 upload (new approach - bypasses Nginx)
+     * POST /api/posts/generate-upload-url
+     */
+    @PostMapping("/generate-upload-url")
+    public ResponseEntity<?> generatePresignedUploadUrl(
+            @RequestBody PresignedUploadRequest request,
+            @AuthenticationPrincipal User user) {
+        
+        try {
+            log.info("Generating presigned URL for user: {}, file: {}, size: {}", 
+                    user.getUsername(), request.getFileName(), request.getFileSize());
+            
+            // Generate presigned URL (validation happens inside)
+            PresignedUploadResponse response = fileUploadService.generatePresignedUploadUrl(
+                    request.getFileName(),
+                    request.getContentType(),
+                    request.getFileSize(),
+                    request.getFolder()
+            );
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid upload request from user {}: {}", user.getUsername(), e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error generating presigned URL for user: {}", user.getUsername(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to generate upload URL"));
+        }
+    }
+    
+    /**
+     * Confirm upload completion after direct S3 upload
+     * POST /api/posts/confirm-upload
+     */
+    @PostMapping("/confirm-upload")
+    public ResponseEntity<?> confirmUpload(
+            @RequestBody UploadCompletionRequest request,
+            @AuthenticationPrincipal User user) {
+        
+        try {
+            log.info("Confirming upload completion for user: {}, key: {}", 
+                    user.getUsername(), request.getS3Key());
+            
+            // Handle upload completion (verify, create MediaFile record, start processing)
+            String fileUrl = fileUploadService.handleUploadCompletion(
+                    request.getS3Key(),
+                    request.getFileName(),
+                    request.getContentType(),
+                    request.getFileSize(),
+                    "posts" // Folder for posts
+            );
+            
+            return ResponseEntity.ok(Map.of("fileUrl", fileUrl, "success", true));
+            
+        } catch (Exception e) {
+            log.error("Error confirming upload for user: {}", user.getUsername(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to confirm upload", "success", false));
+        }
+    }
+
+    /**
+     * Legacy endpoint - upload media through backend (kept for backward compatibility)
+     * POST /api/posts/upload-media
+     * @deprecated Use generate-upload-url + confirm-upload instead
+     */
     @PostMapping("/upload-media")
+    @Deprecated
     public ResponseEntity<List<String>> uploadMedia(
             @RequestParam("files") MultipartFile[] files,
             @AuthenticationPrincipal User user) {

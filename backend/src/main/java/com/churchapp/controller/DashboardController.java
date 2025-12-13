@@ -8,9 +8,12 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import com.churchapp.dto.DashboardResponse.QuickAction;
 
 @RestController
 @RequestMapping("/dashboard")
@@ -87,12 +90,16 @@ public class DashboardController {
             @AuthenticationPrincipal User user,
             @RequestParam(required = false) UUID organizationId) {
         try {
-            DashboardResponse dashboard = dashboardService.getDashboardData(user.getUsername(), organizationId);
+            // 🚀 OPTIMIZED: Use dedicated method that only fetches quick actions
+            // This is much faster than getDashboardData() which builds the entire dashboard
+            List<QuickAction> quickActions = dashboardService.getQuickActionsOnly(user.getUsername(), organizationId);
             Map<String, Object> response = new HashMap<>();
-            response.put("quickActions", dashboard.getQuickActions());
-            response.put("lastUpdated", dashboard.getLastUpdated());
+            response.put("quickActions", quickActions);
+            response.put("lastUpdated", LocalDateTime.now());
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
+            System.err.println("❌ DashboardController.getQuickActions - Error: " + e.getMessage());
+            e.printStackTrace();
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to fetch quick actions");
             return ResponseEntity.badRequest().body(error);

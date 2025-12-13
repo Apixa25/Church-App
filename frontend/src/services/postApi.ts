@@ -243,6 +243,146 @@ export const getUserShareStats = async (
 
 // ========== MEDIA UPLOAD ==========
 
+/**
+ * Generate presigned URL for direct S3 upload (new approach - bypasses Nginx)
+ */
+export interface PresignedUploadRequest {
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  folder: string;
+}
+
+export interface PresignedUploadResponse {
+  presignedUrl: string;
+  s3Key: string;
+  fileUrl: string;
+  expiresInSeconds: number;
+}
+
+export interface UploadCompletionRequest {
+  s3Key: string;
+  fileName: string;
+  contentType: string;
+  fileSize?: number;
+}
+
+/**
+ * Generate presigned URL for a single file upload
+ */
+export const generatePresignedUploadUrl = async (
+  file: File,
+  folder: string = 'posts'
+): Promise<PresignedUploadResponse> => {
+  const request: PresignedUploadRequest = {
+    fileName: file.name,
+    contentType: file.type,
+    fileSize: file.size,
+    folder: folder
+  };
+
+  const response = await api.post<PresignedUploadResponse>(
+    '/posts/generate-upload-url',
+    request
+  );
+
+  return response.data;
+};
+
+/**
+ * Upload file directly to S3 using presigned URL
+ * 
+ * CRITICAL: Only send headers that are included in the presigned URL signature.
+ * S3 will reject the request with "forbidden" if headers don't match exactly.
+ */
+export const uploadFileToS3 = async (
+  file: File,
+  presignedUrl: string
+): Promise<void> => {
+  // CRITICAL: Only send Content-Type header (must match presigned URL signature)
+  // Do NOT send any other headers - Safari/iOS will add headers automatically,
+  // but we must only include what's in the presigned URL signature
+  const contentType = file.type || 'application/octet-stream';
+  
+  const response = await fetch(presignedUrl, {
+    method: 'PUT',
+    body: file,
+    headers: {
+      'Content-Type': contentType
+    },
+    // Don't include credentials - presigned URL handles authentication
+    credentials: 'omit'
+  });
+
+  if (!response.ok) {
+    // Get error details for debugging
+    const errorText = await response.text().catch(() => 'No error details');
+    console.error('S3 upload failed:', {
+      status: response.status,
+      statusText: response.statusText,
+      error: errorText,
+      contentType: contentType,
+      fileName: file.name,
+      fileSize: file.size
+    });
+    
+    throw new Error(`Failed to upload file to S3: ${response.statusText} (${response.status})`);
+  }
+};
+
+/**
+ * Confirm upload completion to backend
+ */
+export const confirmUpload = async (
+  request: UploadCompletionRequest
+): Promise<{ fileUrl: string; success: boolean }> => {
+  const response = await api.post<{ fileUrl: string; success: boolean }>(
+    '/posts/confirm-upload',
+    request
+  );
+
+  return response.data;
+};
+
+/**
+ * Upload multiple files using presigned URLs (new approach)
+ */
+export const uploadMediaDirect = async (
+  files: File[],
+  folder: string = 'posts'
+): Promise<string[]> => {
+  const uploadedUrls: string[] = [];
+
+  for (const file of files) {
+    try {
+      // Step 1: Get presigned URL
+      const presignedResponse = await generatePresignedUploadUrl(file, folder);
+
+      // Step 2: Upload directly to S3
+      await uploadFileToS3(file, presignedResponse.presignedUrl);
+
+      // Step 3: Confirm upload completion
+      const completionResponse = await confirmUpload({
+        s3Key: presignedResponse.s3Key,
+        fileName: file.name,
+        contentType: file.type,
+        fileSize: file.size
+      });
+
+      uploadedUrls.push(completionResponse.fileUrl);
+    } catch (error) {
+      console.error(`Failed to upload file ${file.name}:`, error);
+      throw error;
+    }
+  }
+
+  return uploadedUrls;
+};
+
+/**
+ * Legacy endpoint - upload media through backend (kept for backward compatibility)
+ * @deprecated Use uploadMediaDirect instead
+ */
 export const uploadMedia = async (files: File[]): Promise<string[]> => {
   const formData = new FormData();
 
@@ -362,22 +502,88 @@ export const updateUserProfile = async (userId: string, profileData: ProfileUpda
   return response.data;
 };
 
+/**
+ * Upload profile picture using presigned URL (industry-standard approach)
+ * 
+ * This bypasses Nginx entirely by uploading directly to S3.
+ * Works on all devices including iPhone, no file size limits from Nginx!
+ * 
+ * Flow: Frontend → Backend (get presigned URL) → S3 (direct upload) → Backend (confirm)
+ */
 export const uploadProfilePicture = async (file: File): Promise<string> => {
-  const formData = new FormData();
-  formData.append('file', file);
-  const response = await api.post('/profile/me/upload-picture', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  });
-  return response.data.fileUrl;
+  console.log('📸 Uploading profile picture using presigned URL (bypasses Nginx)');
+  console.log(`   File: ${file.name}, Size: ${(file.size / 1024 / 1024).toFixed(2)}MB, Type: ${file.type}`);
+  
+  try {
+    // Step 1: Get presigned URL from backend (goes through Nginx but tiny request)
+    console.log('🔑 Step 1: Getting presigned URL from backend...');
+    const presignedResponse = await generatePresignedUploadUrl(file, 'profile-pictures');
+    console.log('✅ Got presigned URL:', presignedResponse.s3Key);
+    
+    // Step 2: Upload directly to S3 (bypasses Nginx completely!)
+    console.log('☁️ Step 2: Uploading directly to S3...');
+    await uploadFileToS3(file, presignedResponse.presignedUrl);
+    console.log('✅ File uploaded to S3 successfully');
+    
+    // Step 3: Confirm upload completion to backend
+    console.log('✔️ Step 3: Confirming upload with backend...');
+    const confirmResponse = await confirmUpload({
+      s3Key: presignedResponse.s3Key,
+      fileName: file.name,
+      contentType: file.type,
+      fileSize: file.size
+    });
+    
+    console.log('🎉 Profile picture upload complete!', confirmResponse.fileUrl);
+    return confirmResponse.fileUrl;
+    
+  } catch (error: any) {
+    console.error('❌ Profile picture upload failed:', error);
+    throw error;
+  }
 };
 
+/**
+ * Upload banner image using presigned URL (industry-standard approach)
+ * 
+ * This is how Instagram, X.com, and other major platforms handle uploads:
+ * - Bypasses Nginx completely (no file size limits!)
+ * - Works on all devices including iPhone
+ * - Uploads directly to S3 for better performance
+ * 
+ * Flow: Frontend → Backend (get presigned URL) → S3 (direct upload) → Backend (confirm)
+ */
 export const uploadBannerImage = async (file: File): Promise<string> => {
-  const formData = new FormData();
-  formData.append('file', file);
-  const response = await api.post('/profile/me/upload-banner', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  });
-  return response.data.fileUrl;
+  console.log('🖼️ Uploading banner image using presigned URL (bypasses Nginx)');
+  console.log(`   File: ${file.name}, Size: ${(file.size / 1024 / 1024).toFixed(2)}MB, Type: ${file.type}`);
+  
+  try {
+    // Step 1: Get presigned URL from backend (goes through Nginx but tiny request)
+    console.log('🔑 Step 1: Getting presigned URL from backend...');
+    const presignedResponse = await generatePresignedUploadUrl(file, 'banners');
+    console.log('✅ Got presigned URL:', presignedResponse.s3Key);
+    
+    // Step 2: Upload directly to S3 (bypasses Nginx completely!)
+    console.log('☁️ Step 2: Uploading directly to S3...');
+    await uploadFileToS3(file, presignedResponse.presignedUrl);
+    console.log('✅ File uploaded to S3 successfully');
+    
+    // Step 3: Confirm upload completion to backend
+    console.log('✔️ Step 3: Confirming upload with backend...');
+    const confirmResponse = await confirmUpload({
+      s3Key: presignedResponse.s3Key,
+      fileName: file.name,
+      contentType: file.type,
+      fileSize: file.size
+    });
+    
+    console.log('🎉 Banner image upload complete!', confirmResponse.fileUrl);
+    return confirmResponse.fileUrl;
+    
+  } catch (error: any) {
+    console.error('❌ Banner image upload failed:', error);
+    throw error;
+  }
 };
 
 export const followUser = async (userId: string): Promise<void> => {

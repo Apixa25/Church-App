@@ -2,6 +2,7 @@ package com.churchapp.service;
 
 import com.churchapp.entity.*;
 import com.churchapp.repository.*;
+import com.churchapp.util.SocialMediaUrlUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,36 +35,107 @@ public class PostService {
     private final OrganizationRepository organizationRepository;
     private final UserFollowService userFollowService;
     private final UserBlockService userBlockService;
+    private final OEmbedService oEmbedService;
+    private final MediaFileRepository mediaFileRepository;
 
     @Transactional
     public Post createPost(String userEmail, String content, List<String> mediaUrls,
                           List<String> mediaTypes, Post.PostType postType,
                           String category, String location, boolean isAnonymous) {
-        return createPost(userEmail, content, mediaUrls, mediaTypes, postType, category, location, isAnonymous, null, null);
+        return createPost(userEmail, content, mediaUrls, mediaTypes, postType, category, location, isAnonymous, null, null, null);
     }
 
     @Transactional
     public Post createPost(String userEmail, String content, List<String> mediaUrls,
                           List<String> mediaTypes, Post.PostType postType,
                           String category, String location, boolean isAnonymous,
-                          UUID organizationId, UUID groupId) {
+                          UUID organizationId, UUID groupId, String externalUrl) {
 
         User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Validate content length
-        if (content == null || content.trim().isEmpty()) {
-            throw new IllegalArgumentException("Post content cannot be empty");
+        // Validate that post has either content, media, or external URL
+        boolean hasContent = content != null && !content.trim().isEmpty();
+        boolean hasMedia = mediaUrls != null && !mediaUrls.isEmpty();
+        boolean hasExternalUrl = externalUrl != null && !externalUrl.trim().isEmpty();
+        
+        if (!hasContent && !hasMedia && !hasExternalUrl) {
+            throw new IllegalArgumentException("Post must have either content, media, or external URL");
         }
-        if (content.length() > 2000) {
+
+        // Handle external social media URL
+        String normalizedExternalUrl = null;
+        String externalPlatform = null;
+        String externalEmbedHtml = null;
+
+        if (hasExternalUrl) {
+            log.info("🔗 Processing external URL: {}", externalUrl);
+            
+            // Validate and normalize the external URL
+            if (!SocialMediaUrlUtil.isSupportedSocialMediaUrl(externalUrl)) {
+                log.warn("❌ Unsupported social media URL: {}", externalUrl);
+                throw new IllegalArgumentException("Unsupported social media URL. Supported platforms: X (Twitter), Facebook Reels, Instagram Reels, YouTube");
+            }
+
+            normalizedExternalUrl = SocialMediaUrlUtil.normalizeForStorage(externalUrl);
+            SocialMediaUrlUtil.Platform platform = SocialMediaUrlUtil.detectPlatform(normalizedExternalUrl);
+            externalPlatform = platform.name();
+            
+            log.info("✅ Detected platform: {} for URL: {}", platform, normalizedExternalUrl);
+
+            // Fetch oEmbed HTML for supported platforms (currently X only)
+            if (platform == SocialMediaUrlUtil.Platform.X_POST) {
+                log.info("🎬 Fetching oEmbed for X post: {}", normalizedExternalUrl);
+                OEmbedService.OEmbedResponse oEmbedResponse = oEmbedService.fetchOEmbed(normalizedExternalUrl);
+                if (oEmbedResponse != null && oEmbedResponse.getHtml() != null) {
+                    externalEmbedHtml = oEmbedResponse.getHtml();
+                    log.info("✅ Successfully fetched oEmbed HTML for X post: {} (HTML length: {} chars)", 
+                        normalizedExternalUrl, externalEmbedHtml.length());
+                } else {
+                    log.warn("⚠️ Failed to fetch oEmbed HTML for URL: {}, will store URL only", normalizedExternalUrl);
+                }
+            } else {
+                log.info("ℹ️ oEmbed not yet implemented for platform: {}, storing URL only", platform);
+            }
+        } else {
+            log.debug("No external URL provided for post");
+        }
+
+        // Validate content length if content is provided
+        if (hasContent && content != null && content.length() > 2000) {
             throw new IllegalArgumentException("Post content cannot exceed 2000 characters");
+        }
+
+        // Look up thumbnail URLs for videos from MediaFile records
+        List<String> thumbnailUrls = new ArrayList<>();
+        if (mediaUrls != null && mediaTypes != null) {
+            for (int i = 0; i < mediaUrls.size(); i++) {
+                String mediaUrl = mediaUrls.get(i);
+                String mediaType = i < mediaTypes.size() ? mediaTypes.get(i) : "";
+                
+                // Only videos need thumbnails
+                if (mediaType != null && mediaType.startsWith("video/")) {
+                    // Try to find MediaFile and get thumbnail URL
+                    Optional<MediaFile> mediaFileOpt = mediaFileRepository.findByOriginalUrl(mediaUrl);
+                    if (mediaFileOpt.isPresent() && mediaFileOpt.get().getThumbnailUrl() != null) {
+                        thumbnailUrls.add(mediaFileOpt.get().getThumbnailUrl());
+                    } else {
+                        // No thumbnail yet - will be generated asynchronously
+                        thumbnailUrls.add(null);
+                    }
+                } else {
+                    // Not a video - no thumbnail
+                    thumbnailUrls.add(null);
+                }
+            }
         }
 
         Post post = new Post();
         post.setUser(user);
-        post.setContent(content.trim());
+        post.setContent(hasContent && content != null ? content.trim() : "");
         post.setMediaUrls(mediaUrls != null ? mediaUrls : List.of());
         post.setMediaTypes(mediaTypes != null ? mediaTypes : List.of());
+        post.setThumbnailUrls(thumbnailUrls);
         post.setPostType(postType != null ? postType : Post.PostType.GENERAL);
         post.setCategory(category);
         post.setLocation(location);
@@ -99,15 +172,25 @@ public class PostService {
             post.setUserPrimaryOrgIdSnapshot(user.getPrimaryOrganization().getId());
         }
 
+        // Set external URL fields if provided
+        if (normalizedExternalUrl != null) {
+            post.setExternalUrl(normalizedExternalUrl);
+            post.setExternalPlatform(externalPlatform);
+            post.setExternalEmbedHtml(externalEmbedHtml);
+        }
+
         Post savedPost = postRepository.save(post);
         
         // LOG POST CREATION - Using both log.info and System.out to ensure visibility
         String postOrgId = post.getOrganization() != null ? post.getOrganization().getId().toString() : "null";
         String postOrgName = post.getOrganization() != null ? post.getOrganization().getName() : "null";
         String postGroupId = post.getGroup() != null ? post.getGroup().getId().toString() : "null";
+        String externalUrlLog = savedPost.getExternalUrl() != null ? savedPost.getExternalUrl() : "none";
+        String externalPlatformLog = savedPost.getExternalPlatform() != null ? savedPost.getExternalPlatform() : "none";
+        boolean hasEmbedHtml = savedPost.getExternalEmbedHtml() != null && !savedPost.getExternalEmbedHtml().trim().isEmpty();
         
-        log.info("Created new post with ID: {} by user: {} in org: {} ({}) group: {}",
-            savedPost.getId(), userEmail, postOrgId, postOrgName, postGroupId);
+        log.info("Created new post with ID: {} by user: {} in org: {} ({}) group: {} externalUrl: {} platform: {} hasEmbed: {}",
+            savedPost.getId(), userEmail, postOrgId, postOrgName, postGroupId, externalUrlLog, externalPlatformLog, hasEmbedHtml);
         
         System.out.println("===== POST CREATED =====");
         System.out.println("Post ID: " + savedPost.getId());
@@ -115,6 +198,9 @@ public class PostService {
         System.out.println("Organization ID: " + postOrgId);
         System.out.println("Organization Name: " + postOrgName);
         System.out.println("Group ID: " + postGroupId);
+        System.out.println("External URL: " + externalUrlLog);
+        System.out.println("External Platform: " + externalPlatformLog);
+        System.out.println("Has Embed HTML: " + hasEmbedHtml);
         System.out.println("========================");
 
         // Process hashtags in content
@@ -243,6 +329,7 @@ public class PostService {
     /**
      * Get multi-tenant feed based on user's organizations and groups
      * Excludes posts from blocked users (mutual blocking)
+     * Shows anonymous posts only to their author (userId)
      * 
      * FILTER BEHAVIOR (all logic is in FeedFilterService.getFeedParameters):
      * - EVERYTHING: Church + Family + Groups + Global Feed + Followed Users + Org-as-Groups
@@ -290,6 +377,7 @@ public class PostService {
                 params.getOrgAsGroupIds(),
                 blockedIds,
                 followingIds,
+                userId,  // currentUserId - so user can see their own anonymous posts
                 pageable
             );
         }
@@ -306,6 +394,7 @@ public class PostService {
             params.getOrgAsGroupIds(),
             blockedIds,
             followingIds,  // null for PRIMARY_ONLY and SELECTED_GROUPS
+            userId,  // currentUserId - so user can see their own anonymous posts
             pageable
         );
     }
@@ -340,7 +429,8 @@ public class PostService {
 
         // Get posts from followed users (works globally across all organizations)
         // Excludes posts from blocked users (mutual blocking)
-        return postRepository.findPostsByFollowingUsers(followingIds, blockedIds, pageable);
+        // Shows anonymous posts only to their author (userId)
+        return postRepository.findPostsByFollowingUsers(followingIds, blockedIds, userId, pageable);
     }
 
     public Page<Post> getTrendingFeed(UUID userId, Pageable pageable) {
@@ -355,16 +445,18 @@ public class PostService {
 
         // If user has primary org(s), show trending from first primary org (churchPrimary)
         // Note: For dual-primary system, we use churchPrimary for trending
+        // Shows anonymous posts only to their author (userId)
         if (!params.getPrimaryOrgIds().isEmpty()) {
-            return postRepository.findTrendingPostsByOrganization(params.getPrimaryOrgIds().get(0), since, blockedIds, pageable);
+            return postRepository.findTrendingPostsByOrganization(params.getPrimaryOrgIds().get(0), since, blockedIds, userId, pageable);
         } else {
             // Social-only user - show global trending
-            return postRepository.findTrendingPosts(since, blockedIds, pageable);
+            return postRepository.findTrendingPosts(since, blockedIds, userId, pageable);
         }
     }
 
-    public Page<Post> searchPosts(String searchTerm, Pageable pageable) {
-        return postRepository.findByContentContaining(searchTerm, null, pageable);
+    public Page<Post> searchPosts(String searchTerm, UUID currentUserId, Pageable pageable) {
+        // Shows anonymous posts only to their author (currentUserId)
+        return postRepository.findByContentContaining(searchTerm, null, currentUserId, pageable);
     }
 
     public List<Post> getPostThread(UUID postId) {
@@ -408,9 +500,10 @@ public class PostService {
         Post post = postRepository.findById(postId)
             .orElseThrow(() -> new RuntimeException("Post not found"));
 
-        // Check if already liked
+        // Make operation idempotent: if already liked, just return success
         if (postLikeRepository.existsById_PostIdAndId_UserId(postId, user.getId())) {
-            throw new RuntimeException("Post already liked");
+            log.debug("User {} already liked post {} - idempotent operation", userEmail, postId);
+            return;
         }
 
         // Create like
@@ -437,15 +530,20 @@ public class PostService {
 
         // Find and delete like
         Optional<PostLike> like = postLikeRepository.findById_PostIdAndId_UserId(postId, user.getId());
-        if (like.isPresent()) {
-            postLikeRepository.delete(like.get());
-
-            // Update post like count
-            post.decrementLikesCount();
-            postRepository.save(post);
-
-            log.info("User {} unliked post {}", userEmail, postId);
+        
+        // Make operation idempotent: if not liked, just return success
+        if (like.isEmpty()) {
+            log.debug("User {} hasn't liked post {} - idempotent operation", userEmail, postId);
+            return;
         }
+        
+        postLikeRepository.delete(like.get());
+
+        // Update post like count
+        post.decrementLikesCount();
+        postRepository.save(post);
+
+        log.info("User {} unliked post {}", userEmail, postId);
     }
 
     public boolean isPostLikedByUser(UUID postId, UUID userId) {

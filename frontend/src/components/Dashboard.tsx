@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
-import { useActiveContext } from '../contexts/ActiveContextContext';
+import { useActiveContext, ActiveContextType } from '../contexts/ActiveContextContext';
 import { useFeedFilter } from '../contexts/FeedFilterContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import dashboardApi, { DashboardResponse } from '../services/dashboardApi';
 import ActivityFeed from './ActivityFeed';
 import PostFeed from './PostFeed';
@@ -18,10 +19,10 @@ import ClickableAvatar from './ClickableAvatar';
 import FeedFilterSelector from './FeedFilterSelector';
 import ContextSwitcher from './ContextSwitcher';
 import { FeedType } from '../types/Post';
-import PullToRefresh from './PullToRefresh';
 import { profileAPI } from '../services/api';
 import WarningBanner from './WarningBanner';
 import WarningsSection from './WarningsSection';
+import { getBannerImageUrl, getBannerImageS3Fallback } from '../utils/imageUrlUtils';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -39,23 +40,13 @@ const Dashboard: React.FC = () => {
   } = useActiveContext();
   
   // Feed filter context - to auto-update filter when context changes
-  const { setFilter, activeFilter } = useFeedFilter();
+  const { setFilter, activeFilter, resetFilter } = useFeedFilter();
   
   // Legacy compatibility: primaryMembership maps to the currently active context
   const primaryMembership = activeMembership;
   
-  // Track previous context to detect changes (for filter updates)
-  const prevContextRef = useRef<string | null>(null);
-  const prevOrgIdRef = useRef<string | null>(null);
-  
-  // Track previous context separately for dashboard re-fetch
-  const prevDashboardContextRef = useRef<string | null>(null);
-  const prevDashboardOrgIdRef = useRef<string | null>(null);
-  
   const navigate = useNavigate();
-  const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const location = useLocation();
   // Default to social feed - will be adjusted based on primary org status
   const [feedView, setFeedView] = useState<'activity' | 'social'>('social');
   const [feedType, setFeedType] = useState<FeedType>(FeedType.CHRONOLOGICAL); // Make feedType dynamic
@@ -63,7 +54,25 @@ const Dashboard: React.FC = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [feedRefreshKey, setFeedRefreshKey] = useState(0); // Increment to trigger feed refresh
   const [showWarningsSection, setShowWarningsSection] = useState(false);
-  
+
+  // 🔄 Listen for feedRefresh event from BottomNav double-tap
+  useEffect(() => {
+    const handleFeedRefresh = () => {
+      setFeedRefreshKey(prev => prev + 1);
+    };
+
+    window.addEventListener('feedRefresh', handleFeedRefresh);
+    return () => window.removeEventListener('feedRefresh', handleFeedRefresh);
+  }, []);
+
+  // 🎯 CONSOLIDATED: Single ref to track context changes (prevents duplicate effects)
+  // This replaces multiple overlapping refs and effects
+  const contextStateRef = useRef<{
+    context: string | null;
+    orgId: string | null;
+    initialized: boolean;
+  }>({ context: null, orgId: null, initialized: false });
+
   // Social score - hearts state
   const [heartsCount, setHeartsCount] = useState(0);
   const [isLikedByCurrentUser, setIsLikedByCurrentUser] = useState(false);
@@ -85,39 +94,32 @@ const Dashboard: React.FC = () => {
     loadHeartsData();
   }, [user?.userId]);
 
-  // Refresh user data when component mounts to ensure profile picture is current
+
+  // Refresh user data only when returning from profile page (not on every render!)
+  // This prevents infinite loops while ensuring bannerImageUrl is current
+  const prevPathnameRef = useRef<string>(location.pathname);
+  const hasRefreshedRef = useRef<boolean>(false);
+  
   useEffect(() => {
     const refreshUserData = async () => {
-      if (user && !user.profilePicUrl && updateUser) {
+      if (user?.userId && updateUser && !hasRefreshedRef.current) {
         try {
           // Import profileAPI dynamically to avoid circular dependency
           const { profileAPI } = await import('../services/api');
           const response = await profileAPI.getMyProfile();
           const freshUserData = response.data;
           
-          // Update user data if profilePicUrl is now available
-          if (freshUserData.profilePicUrl && user.userId === freshUserData.userId) {
-            // Update the user context with fresh data
+          // Only update if data actually changed to prevent loops
+          if (user.userId === freshUserData.userId && 
+              user.bannerImageUrl !== freshUserData.bannerImageUrl) {
+            hasRefreshedRef.current = true;
             updateUser({
-              profilePicUrl: freshUserData.profilePicUrl,
-              bio: freshUserData.bio,
-              location: freshUserData.location,
-              website: freshUserData.website,
-              interests: freshUserData.interests,
-              phoneNumber: freshUserData.phoneNumber,
-              addressLine1: freshUserData.addressLine1,
-              addressLine2: freshUserData.addressLine2,
-              city: freshUserData.city,
-              stateProvince: freshUserData.stateProvince,
-              postalCode: freshUserData.postalCode,
-              country: freshUserData.country,
-              latitude: freshUserData.latitude,
-              longitude: freshUserData.longitude,
-              geocodeStatus: freshUserData.geocodeStatus,
-              birthday: freshUserData.birthday,
-              spiritualGift: freshUserData.spiritualGift,
-              equippingGifts: freshUserData.equippingGifts
+              bannerImageUrl: freshUserData.bannerImageUrl
             });
+            // Reset after a delay to allow future refreshes
+            setTimeout(() => {
+              hasRefreshedRef.current = false;
+            }, 1000);
           }
         } catch (error) {
           console.error('Failed to refresh user data in Dashboard:', error);
@@ -125,45 +127,43 @@ const Dashboard: React.FC = () => {
       }
     };
 
-    refreshUserData();
-  }, [user, updateUser]);
+    // Only refresh when pathname changes from profile back to dashboard
+    const wasOnProfile = prevPathnameRef.current.includes('/profile');
+    const isOnDashboard = location.pathname === '/dashboard' || location.pathname === '/';
+    
+    if (wasOnProfile && isOnDashboard) {
+      hasRefreshedRef.current = false; // Reset flag when navigating back
+      refreshUserData();
+    }
+    
+    prevPathnameRef.current = location.pathname;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   // Check if user has any primary organization (Church OR Family) - used to optimize API calls
   const hasPrimaryOrg = hasAnyPrimary;
 
-  const fetchDashboardData = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      // Use enhanced dashboard service that includes all features (prayers, announcements, events)
-      // Pass hasPrimaryOrg to avoid unnecessary 404 errors for users without a primary org
-      // Pass activeOrganizationId to get context-specific data (Church or Family)
-      console.log('📊 Dashboard.fetchDashboardData - activeOrganizationId:', activeOrganizationId);
-      console.log('📊 Dashboard.fetchDashboardData - activeContext:', activeContext);
-      console.log('📊 Dashboard.fetchDashboardData - hasPrimaryOrg:', hasPrimaryOrg);
-      const data = await dashboardApi.getDashboardWithAll(hasPrimaryOrg, activeOrganizationId || undefined);
-      console.log('📊 Dashboard.fetchDashboardData - received stats:', data.stats);
-      console.log('📊 Dashboard.fetchDashboardData - received quickActions count:', data.quickActions?.length);
-      setDashboardData(data);
-    } catch (err) {
-      console.error('Failed to fetch dashboard data:', err);
-      setError('Failed to load dashboard data. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [hasPrimaryOrg, activeOrganizationId]);
+  // 🚀 React Query - Smart caching with stale-while-revalidate
+  const { 
+    data: dashboardData, 
+    isLoading, 
+    error: queryError,
+    refetch: refetchDashboard 
+  } = useQuery({
+    queryKey: ['dashboard', activeOrganizationId, hasPrimaryOrg],
+    queryFn: async () => {
+      return await dashboardApi.getDashboardWithAll(hasPrimaryOrg, activeOrganizationId || undefined);
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes - data is fresh for 5 min
+    gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache
+    // This will:
+    // 1. Check cache first - if data exists and is fresh, use it immediately (no loading!)
+    // 2. Show cached data while fetching fresh data in background
+    // 3. Only show loading if no cached data exists
+  });
 
-  // Auto-refresh every 5 minutes (only after initial load)
-  useEffect(() => {
-    // Only set up auto-refresh if we have dashboard data (meaning initial load completed)
-    if (!dashboardData) return;
-    
-    const interval = setInterval(() => {
-      fetchDashboardData();
-    }, 5 * 60 * 1000);
-
-    return () => clearInterval(interval);
-  }, [dashboardData, fetchDashboardData]);
+  // Convert query error to string for compatibility
+  const error = queryError ? 'Failed to load dashboard data. Please try again.' : null;
 
   const handleLogout = () => {
     logout();
@@ -171,7 +171,7 @@ const Dashboard: React.FC = () => {
   };
 
   const handleRefresh = async () => {
-    await fetchDashboardData();
+    await refetchDashboard();
   };
 
   const handlePostCreated = (newPost: any) => {
@@ -214,118 +214,91 @@ const Dashboard: React.FC = () => {
     }
   }, [hasPrimaryOrg, feedView]);
 
-  // Auto-refresh feed and update filter when context changes
+  // ============================================================================
+  // 🎯 CONSOLIDATED CONTEXT CHANGE HANDLER (replaces 3 separate useEffects)
+  // This single effect handles: filter updates, dashboard refetch, and feed refresh
+  // ============================================================================
   useEffect(() => {
-    // Skip on initial mount (when prevContextRef is null)
-    if (prevContextRef.current === null) {
-      prevContextRef.current = activeContext || 'gathering';
-      prevOrgIdRef.current = activeOrganizationId || null;
-      return;
-    }
-
-    // Check if context or organization actually changed
-    const contextChanged = prevContextRef.current !== (activeContext || 'gathering');
-    const orgChanged = prevOrgIdRef.current !== (activeOrganizationId || null);
-
-    if ((contextChanged || orgChanged) && activeOrganizationId && (activeContext === 'church' || activeContext === 'family')) {
-      // Context changed - automatically set filter to PRIMARY_ONLY for the new organization
-      console.log('🔄 Context changed, auto-updating filter to PRIMARY_ONLY for:', activeOrganizationId);
-      
-      setFilter('PRIMARY_ONLY', [], activeOrganizationId)
-        .then(() => {
-          // Force feed refresh after filter is updated
-          setFeedRefreshKey(prev => prev + 1);
-        })
-        .catch((error) => {
-          console.error('Failed to update filter on context change:', error);
-          // Still refresh the feed even if filter update fails
-          setFeedRefreshKey(prev => prev + 1);
-        });
-    }
-
-    // Update refs for next comparison
-    prevContextRef.current = activeContext || 'gathering';
-    prevOrgIdRef.current = activeOrganizationId || null;
-  }, [activeContext, activeOrganizationId, setFilter]);
-
-  // Re-fetch dashboard data when active context or organization changes
-  // Use activeOrganizationId as the primary trigger since it changes when context switches
-  useEffect(() => {
-    // Allow fetching even without organizationId (for admins or users without primary org)
-    // But only if we're authenticated and not in a transitional state
-    const shouldFetch = user && (
-      // Has valid organizationId with church/family context
-      (activeOrganizationId && (activeContext === 'church' || activeContext === 'family')) ||
-      // Or in gathering context (no primary org) - still fetch for admin actions
-      (activeContext === 'gathering' && !activeOrganizationId)
-    );
-    
-    if (!shouldFetch) {
-      console.log('🔄 Dashboard - Skipping fetch: conditions not met', { 
-        activeOrganizationId, 
-        activeContext, 
-        hasUser: !!user 
-      });
-      // Update refs even when skipping to prevent false change detection on next render
-      prevDashboardContextRef.current = activeContext || 'gathering';
-      prevDashboardOrgIdRef.current = activeOrganizationId || null;
-      return;
-    }
-
     const currentContext = activeContext || 'gathering';
     const currentOrgId = activeOrganizationId || null;
+    const prevState = contextStateRef.current;
     
-    console.log('🔄 Dashboard - Context change useEffect triggered');
-    console.log('🔄 Dashboard - prevDashboardContextRef.current:', prevDashboardContextRef.current);
-    console.log('🔄 Dashboard - currentContext:', currentContext);
-    console.log('🔄 Dashboard - prevDashboardOrgIdRef.current:', prevDashboardOrgIdRef.current);
-    console.log('🔄 Dashboard - currentOrgId:', currentOrgId);
+    // Check if this is initial mount
+    if (!prevState.initialized) {
+      contextStateRef.current = {
+        context: currentContext,
+        orgId: currentOrgId,
+        initialized: true
+      };
+      return; // Skip on initial mount - React Query handles initial fetch
+    }
     
-    // Handle initial mount - fetch data if we have a valid organizationId
-    if (prevDashboardContextRef.current === null) {
-      console.log('🔄 Dashboard - Initial mount, checking if we should fetch');
-      prevDashboardContextRef.current = currentContext;
-      prevDashboardOrgIdRef.current = currentOrgId;
-      
-      // Fetch data on initial mount if conditions are met
-      // This handles the case when user first logs in and contexts are ready
-      if (shouldFetch) {
-        console.log('🔄 Dashboard - Initial mount with valid conditions, fetching dashboard data');
-        fetchDashboardData();
-      } else {
-        console.log('🔄 Dashboard - Initial mount but conditions not met yet, will fetch when ready');
-      }
+    // Check if context or organization actually changed
+    const contextChanged = prevState.context !== currentContext;
+    const orgChanged = prevState.orgId !== currentOrgId;
+    
+    // Exit early if nothing changed (most common case)
+    if (!contextChanged && !orgChanged) {
       return;
     }
-
-    // Check if context or organization actually changed
-    const contextChanged = prevDashboardContextRef.current !== currentContext;
-    const orgChanged = prevDashboardOrgIdRef.current !== currentOrgId;
-
-    console.log('🔄 Dashboard - contextChanged:', contextChanged, 'orgChanged:', orgChanged);
-    console.log('🔄 Dashboard - prevContext:', prevDashboardContextRef.current, 'currentContext:', currentContext);
-    console.log('🔄 Dashboard - prevOrgId:', prevDashboardOrgIdRef.current, 'currentOrgId:', currentOrgId);
-
-    if (contextChanged || orgChanged) {
-      console.log('🔄 Context/Org changed, re-fetching dashboard data for:', activeOrganizationId);
-      // Update refs BEFORE fetching to prevent duplicate calls
-      prevDashboardContextRef.current = currentContext;
-      prevDashboardOrgIdRef.current = currentOrgId;
-      // Force a fresh fetch - clear old data first to show loading state
-      setDashboardData(null);
-      fetchDashboardData();
-      // CRITICAL FIX: Also refresh the feed when context changes
-      // This ensures the feed updates with the new organization's data
-      // This matches the behavior when navigating to Announcements and back
-      setFeedRefreshKey(prev => prev + 1);
-    } else {
-      console.log('🔄 Dashboard - No change detected');
-      // Still update refs even if no fetch
-      prevDashboardContextRef.current = currentContext;
-      prevDashboardOrgIdRef.current = currentOrgId;
+    
+    // Update ref FIRST to prevent duplicate processing
+    contextStateRef.current = {
+      context: currentContext,
+      orgId: currentOrgId,
+      initialized: true
+    };
+    
+    
+    // Handle context change - do all updates in ONE place
+    if (currentOrgId && (currentContext === 'church' || currentContext === 'family')) {
+      // 1. Update filter (this will trigger PostFeed refresh via filter change)
+      setFilter('PRIMARY_ONLY', [], currentOrgId).catch((error) => {
+        console.error('Failed to update filter on context change:', error);
+      });
+      
+      // 2. Dashboard data will auto-refetch via React Query (queryKey includes activeOrganizationId)
+      // No need to call refetchDashboard() - it's redundant!
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeContext, activeOrganizationId]);
+    
+    // Note: We do NOT call setFeedRefreshKey here anymore!
+    // PostFeed will refresh automatically when filter changes OR when queryKey changes
+    // This eliminates the duplicate refresh problem
+    
+  }, [activeContext, activeOrganizationId, setFilter]);
+
+  // Handle reset flag from Home button click - reset dashboard to initial state
+  // NOTE: This is now only triggered by explicit double-tap, not regular navigation
+  useEffect(() => {
+    const resetState = (location.state as any)?.reset === true;
+    if (resetState) {
+      
+      // Reset all dashboard state to initial values (like fresh login)
+      setFeedView('social');
+      setFeedType(FeedType.CHRONOLOGICAL);
+      setShowComposer(false);
+      setShowSearch(false);
+      setShowWarningsSection(false);
+      
+      // Scroll to top of page
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // Reset feed filter to default (EVERYTHING) - optional, can be removed if filters should persist
+      resetFilter().catch(err => {
+        console.error('Failed to reset feed filter:', err);
+        // Continue with reset even if filter reset fails
+      });
+      
+      // Force refresh of dashboard data (React Query will check if stale)
+      refetchDashboard();
+      
+      // Force refresh of feed by incrementing refresh key (explicit user action)
+      setFeedRefreshKey(prev => prev + 1);
+      
+      // Clear the reset flag from location state
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, refetchDashboard, navigate, location.pathname, resetFilter]);
 
   // Determine if this is "The Gathering" global organization (no active context)
   const isGatheringGlobal = activeContext === 'gathering' ||
@@ -333,11 +306,65 @@ const Dashboard: React.FC = () => {
                             activeOrganizationName?.includes('The Gathering') ||
                             activeOrganizationName?.includes('Gathering Community');
   
-  // Use active context's organization logo as background if available and not The Gathering
-  const bannerImageUrl = activeOrganizationLogo && !isGatheringGlobal 
-    ? activeOrganizationLogo 
-    : '/dashboard-banner.jpg';
+  // 🎯 CONTEXT-AWARE banner image priority:
+  // - CHURCH context: Organization controls the banner (church branding)
+  // - FAMILY context: User controls the banner (personal preference)
+  // - GATHERING context: Organization banner if available, else user's, else default
+  const userBannerImage = user?.bannerImageUrl;
+  const hasUserBanner = userBannerImage && typeof userBannerImage === 'string' && userBannerImage.trim() !== '';
+  const hasOrgLogo = activeOrganizationLogo && !isGatheringGlobal;
+  
+  // Determine banner priority based on context type
+  let bannerImageUrl: string;
+  let s3FallbackUrl: string | null;
+  
+  if (activeContext === 'family') {
+    // 🏠 FAMILY CONTEXT: User's personal image takes priority
+    // Each family member sees their own preferred banner for personalization
+    bannerImageUrl = hasUserBanner
+      ? getBannerImageUrl(userBannerImage)
+      : hasOrgLogo
+        ? getBannerImageUrl(activeOrganizationLogo)
+        : '/dashboard-banner.jpg';
     
+    s3FallbackUrl = hasUserBanner
+      ? getBannerImageS3Fallback(userBannerImage)
+      : hasOrgLogo
+        ? getBannerImageS3Fallback(activeOrganizationLogo)
+        : null;
+  } else {
+    // ⛪ CHURCH CONTEXT (or Gathering): Organization image takes priority
+    // Church controls what members see on their dashboard for branding consistency
+    bannerImageUrl = hasOrgLogo
+      ? getBannerImageUrl(activeOrganizationLogo)
+      : hasUserBanner
+        ? getBannerImageUrl(userBannerImage)
+        : '/dashboard-banner.jpg';
+    
+    s3FallbackUrl = hasOrgLogo
+      ? getBannerImageS3Fallback(activeOrganizationLogo)
+      : hasUserBanner
+        ? getBannerImageS3Fallback(userBannerImage)
+        : null;
+  }
+  
+  // Final fallback order: CloudFront -> S3 -> Org Logo -> Default
+  const fallbackUrl = s3FallbackUrl || (hasOrgLogo ? getBannerImageUrl(activeOrganizationLogo) : '/dashboard-banner.jpg');
+  
+  // Debug logging to help diagnose banner issues
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🖼️ Dashboard Banner Selection:', {
+        userBannerImage,
+        hasUserBanner,
+        activeOrganizationLogo,
+        hasOrgLogo,
+        bannerImageUrl,
+        activeContext
+      });
+    }
+  }, [userBannerImage, hasUserBanner, activeOrganizationLogo, hasOrgLogo, bannerImageUrl, activeContext]);
+  
   // Get display name for header - uses active context
   const displayOrgName = activeOrganizationName || 'The Gathering';
 
@@ -347,16 +374,49 @@ const Dashboard: React.FC = () => {
         {/* Banner Image Background */}
         <div className="dashboard-banner-background">
           <img 
-            src={bannerImageUrl} 
+            key={bannerImageUrl} // Force re-render when URL changes
+            src={bannerImageUrl}
             alt={primaryMembership?.organizationName || 'Church banner'} 
             className="banner-bg-image"
             onError={(e) => {
-              // Fallback to default banner if organization logo fails to load
+              // Fallback chain: CloudFront -> S3 -> Org Logo -> Default
               const target = e.target as HTMLImageElement;
-              if (target.src !== '/dashboard-banner.jpg') {
+              const currentSrc = target.src;
+              
+              if (process.env.NODE_ENV === 'development') {
+                console.error('❌ Banner image failed to load:', currentSrc);
+              }
+              
+              // Check which fallback to try
+              const isCloudFront = currentSrc.includes('cloudfront.net');
+              const isS3 = currentSrc.includes('.s3.') && currentSrc.includes('.amazonaws.com');
+              const isDefault = currentSrc.includes('/dashboard-banner.jpg');
+              
+              if (isCloudFront && s3FallbackUrl && !target.dataset.s3FallbackAttempted) {
+                // CloudFront failed, try S3
+                target.dataset.s3FallbackAttempted = 'true';
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('🔄 CloudFront failed, trying S3:', s3FallbackUrl);
+                }
+                target.src = s3FallbackUrl;
+              } else if (isS3 && fallbackUrl && fallbackUrl !== s3FallbackUrl && !target.dataset.orgFallbackAttempted) {
+                // S3 failed, try org logo or default
+                target.dataset.orgFallbackAttempted = 'true';
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('🔄 S3 failed, trying fallback:', fallbackUrl);
+                }
+                target.src = fallbackUrl;
+              } else if (!isDefault) {
+                // Final fallback to default
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('🔄 Falling back to default banner');
+                }
                 target.src = '/dashboard-banner.jpg';
-              } else {
-                target.style.display = 'none';
+              }
+            }}
+            onLoad={() => {
+              if (process.env.NODE_ENV === 'development') {
+                console.log('✅ Banner image loaded successfully:', bannerImageUrl);
               }
             }}
           />
@@ -366,7 +426,18 @@ const Dashboard: React.FC = () => {
         <div className="header-content">
           <div className="header-left">
             <h1>
-              <span className="wheat-emoji">🌾</span>
+              <img 
+                src="/app-logo.png" 
+                alt="The Gathering" 
+                className="app-logo-header"
+                onError={(e) => {
+                  // Fallback to existing logo if app-logo.png doesn't exist
+                  const target = e.target as HTMLImageElement;
+                  if (target.src !== `${window.location.origin}/logo192.png`) {
+                    target.src = '/logo192.png';
+                  }
+                }}
+              />
               {displayOrgName}
             </h1>
           </div>
@@ -409,14 +480,14 @@ const Dashboard: React.FC = () => {
                 className="search-button"
                 title="Search posts and community"
               >
-                🔍 Search
+                🔍
               </button>
               <button
                 onClick={() => navigate('/settings')}
                 className="settings-button"
                 title="App Settings"
               >
-                ⚙️ Settings
+                ⚙️
               </button>
               {/* Only show prayer and event notifications if user has primary org */}
               {hasPrimaryOrg && (
@@ -426,7 +497,7 @@ const Dashboard: React.FC = () => {
                 </>
               )}
               <button onClick={handleLogout} className="logout-button">
-                🚪 Logout
+                🚪
               </button>
             </div>
           </div>
@@ -467,20 +538,33 @@ const Dashboard: React.FC = () => {
                   🌟 Social Feed
                 </button>
               )}
-              {/* Only show Activity Feed button if user has primary org */}
-              {hasPrimaryOrg && (
+              {/* Only show Activity Feed button if user has primary org AND not already on Activity Feed */}
+              {hasPrimaryOrg && feedView !== 'activity' && (
                 <button
-                  className={`feed-toggle-btn ${feedView === 'activity' ? 'active' : ''}`}
+                  className="feed-toggle-btn"
                   onClick={() => handleFeedViewChange('activity')}
                 >
                   📊 Activity Feed
                 </button>
               )}
-              {/* Multi-tenant feed filter */}
-              {feedView === 'social' && <FeedFilterSelector />}
+              {/* Multi-tenant feed filter - available in both feed views */}
+              <FeedFilterSelector />
               {/* Context Switcher - only shows when user has both Church and Family primaries */}
               {showContextSwitcher && <ContextSwitcher />}
             </div>
+
+            {/* Make Post Button - Desktop Only, between feed filter and feed navigation buttons */}
+            {feedView === 'social' && (
+              <div className="make-post-section">
+                <button
+                  className="make-post-btn"
+                  onClick={() => setShowComposer(true)}
+                  disabled={isLoading}
+                >
+                  Make Post
+                </button>
+              </div>
+            )}
 
             {/* Create Post Button */}
             {feedView === 'social' && (
@@ -490,7 +574,7 @@ const Dashboard: React.FC = () => {
                   onClick={() => setShowComposer(true)}
                   disabled={isLoading}
                 >
-                  ✍️ Share Something
+                  ✍️ Post Something
                 </button>
               </div>
             )}
@@ -499,13 +583,6 @@ const Dashboard: React.FC = () => {
             {showComposer && (
               <div className="composer-modal-overlay" onClick={() => setShowComposer(false)}>
                 <div className="composer-modal-content" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    className="composer-close-btn"
-                    onClick={() => setShowComposer(false)}
-                    aria-label="Close composer"
-                  >
-                    ✕
-                  </button>
                   <PostComposer
                     onPostCreated={handlePostCreated}
                     onCancel={() => setShowComposer(false)}
@@ -598,11 +675,6 @@ const Dashboard: React.FC = () => {
           }}
         />
       </main>
-      
-      {/* Pull to Refresh for Dashboard Widgets - Window Level */}
-      <PullToRefresh onRefresh={handleRefresh} disabled={isLoading} useWindow={true}>
-        <div style={{ display: 'none' }}></div>
-      </PullToRefresh>
     </div>
   );
 };

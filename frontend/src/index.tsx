@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -12,6 +13,11 @@ root.render(
     <App />
   </React.StrictMode>
 );
+
+// 🚀 Service Worker enabled for PWA updates!
+// This enables offline caching and automatic update notifications
+// When new code is deployed, users see a friendly "Update Available" banner
+serviceWorkerRegistration.register();
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
