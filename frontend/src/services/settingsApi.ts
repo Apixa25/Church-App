@@ -287,8 +287,12 @@ export const applyStoredSettings = () => {
   const storedTheme = localStorage.getItem('app-theme');
   const storedFontSize = localStorage.getItem('app-font-size');
 
+  // Apply dark theme by default if no theme is stored
   if (storedTheme) {
     applyTheme(storedTheme);
+  } else {
+    // Default to dark theme
+    applyTheme('dark');
   }
 
   if (storedFontSize) {
