@@ -33,6 +33,20 @@ class TokenService {
   }
 
   /**
+   * 🆕 PUBLIC: Check if a token is expired (used for startup validation)
+   * Returns true if token is expired or invalid
+   */
+  isTokenExpired(token: string | null): boolean {
+    if (!token) return true;
+    
+    const expiration = this.getTokenExpiration(token);
+    if (!expiration) return true;
+    
+    // Token is expired if current time is past expiration
+    return Date.now() >= expiration;
+  }
+
+  /**
    * Check if token is expired or will expire soon
    */
   private isTokenExpiringSoon(token: string | null): boolean {
