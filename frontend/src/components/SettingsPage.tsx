@@ -7,8 +7,6 @@ import {
   updateNotificationSettings,
   updatePrivacySettings,
   updateAppearanceSettings,
-  registerFcmToken,
-  testNotification,
   exportUserData,
   requestAccountDeletion,
   createBackup,
@@ -19,8 +17,11 @@ import {
   UserSettings,
   SystemInfo,
   HelpContent,
-  handleApiError
+  handleApiError,
+  applyTheme,
+  applyFontSize
 } from '../services/settingsApi';
+import { checkForUpdates, clearAllCaches } from '../serviceWorkerRegistration';
 import AccountDeletionModal from './AccountDeletionModal';
 import ConfirmationModal from './ConfirmationModal';
 import LoadingSpinner from './LoadingSpinner';
@@ -48,6 +49,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
   const [selectedHelpCategory, setSelectedHelpCategory] = useState<string>('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+  const [updateCheckMessage, setUpdateCheckMessage] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -88,6 +91,15 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 
       setSettings(settingsData);
       setSystemInfo(systemData);
+
+      // Apply theme and font size from loaded settings (syncs localStorage with backend)
+      if (settingsData?.theme) {
+        applyTheme(settingsData.theme);
+      }
+      if (settingsData?.fontSize) {
+        applyFontSize(settingsData.fontSize);
+      }
+
       console.log('🟢 [Settings Debug] State updated with new settings');
 
       if (activeTab === 'help') {
@@ -195,19 +207,14 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
       await updateAppearanceSettings(appearanceSettings);
       await loadData();
 
-      // Apply theme immediately
+      // Apply theme immediately using utility
       if (appearanceSettings.theme) {
-        const theme = appearanceSettings.theme.toLowerCase();
-        if (theme === 'auto') {
-          // Check system preference
-          if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-          } else {
-            document.documentElement.setAttribute('data-theme', 'light');
-          }
-        } else {
-          document.documentElement.setAttribute('data-theme', theme);
-        }
+        applyTheme(appearanceSettings.theme);
+      }
+
+      // Apply font size immediately using utility
+      if (appearanceSettings.fontSize) {
+        applyFontSize(appearanceSettings.fontSize);
       }
 
       setSuccessMessage('Appearance settings updated! 🎨');
@@ -221,26 +228,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
     }
   };
 
-  const handleTestNotification = async () => {
-    try {
-      setError('');
-      setSuccessMessage('');
-      await testNotification();
-      setSuccessMessage('Test notification sent! Check your device 📱');
-      setTimeout(() => setSuccessMessage(''), 5000);
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.response?.data?.error || err.message;
-      
-      if (errorMessage?.toLowerCase().includes('fcm token')) {
-        setError('Push notifications are not set up. Please enable push notifications first, or register your device.');
-      } else if (errorMessage?.toLowerCase().includes('not enabled')) {
-        setError('Push notifications are not enabled. Please enable them in your settings first.');
-      } else {
-        setError(handleApiError(err) || 'Failed to send test notification. Please check your device settings and try again.');
-      }
-      setTimeout(() => setError(''), 7000);
-    }
-  };
 
   const handleExportData = async (format: string) => {
     try {
@@ -371,6 +358,49 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
       setHelpContent(helpData);
     } catch (err: any) {
       setError('Failed to search help content');
+    }
+  };
+
+  // 🔄 Check for app updates
+  const handleCheckForUpdates = async () => {
+    setIsCheckingUpdates(true);
+    setUpdateCheckMessage(null);
+    
+    try {
+      const result = await checkForUpdates();
+      if (result) {
+        setUpdateCheckMessage('✅ Update check complete! If a new version is available, you\'ll see a notification.');
+      } else {
+        setUpdateCheckMessage('⚠️ Could not check for updates. Service worker may not be active.');
+      }
+    } catch (err) {
+      setUpdateCheckMessage('❌ Failed to check for updates. Please try again.');
+    } finally {
+      setIsCheckingUpdates(false);
+      // Clear message after 5 seconds
+      setTimeout(() => setUpdateCheckMessage(null), 5000);
+    }
+  };
+
+  // 🗑️ Clear cache and reload (for troubleshooting)
+  const handleClearCacheAndReload = async () => {
+    setIsCheckingUpdates(true);
+    setUpdateCheckMessage('🔄 Clearing cache...');
+    
+    try {
+      await clearAllCaches();
+      setUpdateCheckMessage('✅ Cache cleared! Reloading app...');
+      // Unregister service worker and reload
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map(r => r.unregister()));
+      }
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (err) {
+      setUpdateCheckMessage('❌ Failed to clear cache. Please try again.');
+      setIsCheckingUpdates(false);
     }
   };
 
@@ -512,16 +542,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                   </div>
                 </div>
 
-                {settings.pushNotifications && (
-                  <div className="test-notification">
-                    <button
-                      onClick={handleTestNotification}
-                      className="test-btn"
-                    >
-                      📱 Send Test Notification
-                    </button>
-                  </div>
-                )}
               </div>
 
               {/* Email Notifications */}
@@ -940,33 +960,28 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 
               {/* Font Settings */}
               <div className="settings-group">
-                <h3>🔤 Font & Text</h3>
+                <h3>🔤 Text Size</h3>
                 <div className="setting-item">
                   <div className="setting-info">
-                    <label>Font Size</label>
+                    <label>Large Text</label>
                     <span className="setting-description">
-                      Choose your preferred text size
+                      Use larger text throughout the app for easier reading
                     </span>
                   </div>
                   <div className="setting-control">
-                    <select
-                      value={settings.fontSize}
+                    <input
+                      type="checkbox"
+                      checked={settings.fontSize === 'LARGE'}
                       onChange={(e) => handleAppearanceUpdate({
-                        fontSize: e.target.value
+                        fontSize: e.target.checked ? 'LARGE' : 'MEDIUM'
                       })}
-                      className="setting-select"
-                    >
-                      <option value="SMALL">Small</option>
-                      <option value="MEDIUM">Medium</option>
-                      <option value="LARGE">Large</option>
-                      <option value="EXTRA_LARGE">Extra Large</option>
-                    </select>
+                      className="toggle-switch"
+                    />
                   </div>
                 </div>
 
                 <div className="font-preview">
                   <div className={`preview-text font-${settings.fontSize.toLowerCase()}`}>
-                    This is how your text will look with the selected font size.
                     📖 "Faith is taking the first step even when you don't see the whole staircase."
                   </div>
                 </div>
@@ -1033,39 +1048,14 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                 </div>
               </div>
 
-              {/* Language & Region */}
+              {/* Timezone */}
               <div className="settings-group">
-                <h3>🌍 Language & Region</h3>
+                <h3>🌍 Timezone</h3>
                 <div className="setting-item">
                   <div className="setting-info">
-                    <label>Language</label>
+                    <label>Your Timezone</label>
                     <span className="setting-description">
-                      Choose your preferred language
-                    </span>
-                  </div>
-                  <div className="setting-control">
-                    <select
-                      value={settings.language}
-                      onChange={(e) => handleAppearanceUpdate({
-                        language: e.target.value
-                      })}
-                      className="setting-select"
-                    >
-                      <option value="en">🇺🇸 English</option>
-                      <option value="es">🇪🇸 Español</option>
-                      <option value="fr">🇫🇷 Français</option>
-                      <option value="de">🇩🇪 Deutsch</option>
-                      <option value="pt">🇧🇷 Português</option>
-                      <option value="zh">🇨🇳 中文</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="setting-item">
-                  <div className="setting-info">
-                    <label>Timezone</label>
-                    <span className="setting-description">
-                      Set your local timezone for events
+                      Set your local timezone for event times
                     </span>
                   </div>
                   <div className="setting-control">
@@ -1416,7 +1406,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
         {activeTab === 'about' && (
           <div className="about-section">
             <div className="section-header">
-              <h2>ℹ️ About Church App</h2>
+              <h2>ℹ️ About The Gathering</h2>
               <p>Version information and app details</p>
             </div>
 
@@ -1427,7 +1417,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                   <div className="logo-placeholder">⛪</div>
                 </div>
                 <div className="app-details">
-                  <h3>Church App</h3>
+                  <h3>The Gathering</h3>
                   <p>Connecting your church community digitally</p>
                   <div className="version-info">
                     <div className="version-item">
@@ -1446,8 +1436,56 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                         {systemInfo?.platform || 'Web/Mobile'}
                       </span>
                     </div>
+                    <div className="version-item">
+                      <span className="version-label">Last Checked:</span>
+                      <span className="version-value">
+                        {new Date().toLocaleString()}
+                      </span>
+                    </div>
                   </div>
                 </div>
+              </div>
+
+              {/* 🔄 App Updates Section - For Mom! */}
+              <div className="settings-group update-section">
+                <h3>🔄 App Updates</h3>
+                <p className="section-description">
+                  Keep your app up to date for the latest features and improvements.
+                </p>
+                
+                {updateCheckMessage && (
+                  <div className={`update-message ${updateCheckMessage.includes('✅') ? 'success' : updateCheckMessage.includes('❌') ? 'error' : 'info'}`}>
+                    {updateCheckMessage}
+                  </div>
+                )}
+                
+                <div className="update-actions">
+                  <button
+                    onClick={handleCheckForUpdates}
+                    disabled={isCheckingUpdates}
+                    className="update-check-btn"
+                  >
+                    {isCheckingUpdates ? (
+                      <>🔄 Checking...</>
+                    ) : (
+                      <>🔍 Check for Updates</>
+                    )}
+                  </button>
+                  
+                  <button
+                    onClick={handleClearCacheAndReload}
+                    disabled={isCheckingUpdates}
+                    className="clear-cache-btn"
+                    title="Use this if the app seems stuck on an old version"
+                  >
+                    🗑️ Force Refresh
+                  </button>
+                </div>
+                
+                <p className="update-hint">
+                  💡 <strong>Tip:</strong> If you see a "New version available" banner at the top of the screen, 
+                  just wait 10 seconds or tap "Refresh Now" to update!
+                </p>
               </div>
 
               {/* Features */}

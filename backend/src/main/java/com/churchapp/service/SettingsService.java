@@ -245,8 +245,12 @@ public class SettingsService {
 
     @Transactional
     public void updateAppearanceSettings(UUID userId, Map<String, Object> appearanceSettings) {
+        log.info("Updating appearance settings for user {}: {}", userId, appearanceSettings);
+        
         UserSettings settings = userSettingsRepository.findByUserId(userId)
             .orElseGet(() -> createDefaultSettings(userId));
+        
+        log.debug("Loaded settings for user: {}, current theme: {}", userId, settings.getTheme());
         
         // The @EntityGraph in repository already eagerly loaded the user relationship
         // Only ensure userId is set if missing
@@ -264,6 +268,7 @@ public class SettingsService {
 
         if (appearanceSettings.containsKey("theme")) {
             String theme = (String) appearanceSettings.get("theme");
+            log.debug("Setting theme to: {} (from value: {})", theme.toUpperCase(), theme);
             settings.setTheme(UserSettings.Theme.valueOf(theme.toUpperCase()));
         }
         if (appearanceSettings.containsKey("language")) {

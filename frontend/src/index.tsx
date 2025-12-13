@@ -14,9 +14,10 @@ root.render(
   </React.StrictMode>
 );
 
-// Service worker disabled for now - enable when PWA features are needed
-// To enable: Create a service-worker.js file and use serviceWorkerRegistration.register()
-serviceWorkerRegistration.unregister();
+// 🚀 Service Worker enabled for PWA updates!
+// This enables offline caching and automatic update notifications
+// When new code is deployed, users see a friendly "Update Available" banner
+serviceWorkerRegistration.register();
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
