@@ -78,7 +78,10 @@
       "Bash(unzip:*)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront get-invalidation:*)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk describe-configuration-settings --environment-name Church-app-backend-prod --application-name Church-app-backend --query \"ConfigurationSettings[0].OptionSettings[?OptionName==''CORS_ORIGINS''].Value\" --output text)",
-      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk create-application-version --application-name Church-app-backend --version-label v1-notifications-fixed --source-bundle S3Bucket=\"elasticbeanstalk-us-west-2-060163370478\",S3Key=\"backend-notifications-fixed.jar\" --description \"Fixed Firebase initialization to not block app startup\")"
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk create-application-version --application-name Church-app-backend --version-label v1-notifications-fixed --source-bundle S3Bucket=\"elasticbeanstalk-us-west-2-060163370478\",S3Key=\"backend-notifications-fixed.jar\" --description \"Fixed Firebase initialization to not block app startup\")",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk update-environment:*)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk describe-environments --environment-name Church-app-backend-prod --query \"Environments[0].{Status:Status,Health:Health,VersionLabel:VersionLabel}\" --output table)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk describe-events --environment-name Church-app-backend-prod --max-items 10 --query \"Events[].{Time:EventDate,Message:Message}\" --output text)"
     ],
     "deny": [],
     "ask": []

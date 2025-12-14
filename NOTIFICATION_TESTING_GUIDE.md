@@ -5,7 +5,9 @@
 ### Backend Deployment ✅
 - Status: **Ready**
 - Health: **Green**
-- Last Updated: 2025-12-14 01:15 UTC
+- Version: **v1-notifications-fixed**
+- Last Updated: 2025-12-14 05:03 UTC
+- **Firebase initialization fixed** - App no longer blocks on startup if credentials missing
 
 ### What's NOT Implemented Yet ⚠️
 **Important:** We built the notification infrastructure, but we haven't connected it to prayer requests yet!
