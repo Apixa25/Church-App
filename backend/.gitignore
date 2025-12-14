@@ -1,0 +1,4 @@
+
+# Firebase credentials - DO NOT COMMIT
+src/main/resources/*firebase*.json
+src/main/resources/firebase-service-account.json

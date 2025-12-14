@@ -180,6 +180,13 @@
 			<version>2.21.29</version>
 		</dependency>
 
+		<!-- Firebase Admin SDK for Push Notifications -->
+		<dependency>
+			<groupId>com.google.firebase</groupId>
+			<artifactId>firebase-admin</artifactId>
+			<version>9.3.0</version>
+		</dependency>
+
 		<!-- Test -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

@@ -1,0 +1,157 @@
+.notification-permission-banner {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px auto;
+  max-width: 800px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideDown 0.4s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.banner-icon {
+  font-size: 48px;
+  flex-shrink: 0;
+}
+
+.banner-text {
+  flex: 1;
+  min-width: 250px;
+}
+
+.banner-text h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.banner-text p {
+  margin: 0;
+  opacity: 0.95;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.banner-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.enable-btn,
+.test-btn {
+  background: white;
+  color: #667eea;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.enable-btn:hover:not(:disabled),
+.test-btn:hover {
+  background: #f0f0f0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.enable-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.dismiss-btn {
+  background: transparent;
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.dismiss-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.success-message {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.banner-error {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(255, 107, 107, 0.2);
+  border-left: 4px solid #ff6b6b;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .notification-permission-banner {
+    margin: 16px;
+    padding: 16px;
+  }
+
+  .banner-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 16px;
+  }
+
+  .banner-icon {
+    font-size: 40px;
+  }
+
+  .banner-text h3 {
+    font-size: 1.1rem;
+  }
+
+  .banner-text p {
+    font-size: 0.9rem;
+  }
+
+  .banner-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .enable-btn,
+  .test-btn,
+  .dismiss-btn {
+    width: 100%;
+  }
+}

@@ -162,6 +162,10 @@ public class User {
 
     // Note: lastOrgSwitchAt removed - no more cooldown! Users can switch freely like real life!
 
+    // Push notification FCM token
+    @Column(name = "fcm_token", length = 500)
+    private String fcmToken; // Firebase Cloud Messaging token for push notifications
+
     // Donation relationships
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Donation> donations = new ArrayList<>();
