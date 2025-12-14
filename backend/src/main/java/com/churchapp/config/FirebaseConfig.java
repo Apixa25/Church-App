@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 
 import jakarta.annotation.PostConstruct;
-import java.io.IOException;
 import java.io.InputStream;
 
 /**
@@ -30,8 +29,9 @@ public class FirebaseConfig {
                 ClassPathResource resource = new ClassPathResource(FIREBASE_CONFIG_PATH);
 
                 if (!resource.exists()) {
-                    logger.error("Firebase configuration file not found: {}", FIREBASE_CONFIG_PATH);
-                    throw new IllegalStateException("Firebase configuration file not found");
+                    logger.warn("Firebase configuration file not found: {}. Push notifications will be disabled.", FIREBASE_CONFIG_PATH);
+                    logger.warn("To enable push notifications, ensure the Firebase credentials file is in the classpath.");
+                    return; // Don't throw - let app start without notifications
                 }
 
                 try (InputStream serviceAccount = resource.getInputStream()) {
@@ -40,14 +40,15 @@ public class FirebaseConfig {
                             .build();
 
                     FirebaseApp.initializeApp(options);
-                    logger.info("Firebase Admin SDK initialized successfully");
+                    logger.info("✅ Firebase Admin SDK initialized successfully - Push notifications enabled");
                 }
             } else {
                 logger.info("Firebase Admin SDK already initialized");
             }
-        } catch (IOException e) {
-            logger.error("Failed to initialize Firebase Admin SDK", e);
-            throw new IllegalStateException("Could not initialize Firebase", e);
+        } catch (Exception e) {
+            logger.error("❌ Failed to initialize Firebase Admin SDK - Push notifications will be disabled", e);
+            logger.error("Error details: {}", e.getMessage());
+            // Don't throw - let the app start without push notifications
         }
     }
 }
