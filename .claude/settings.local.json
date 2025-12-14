@@ -56,7 +56,19 @@
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls s3://thegathrd-app-frontend/static/js/)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 sync frontend/build/ s3://thegathrd-app-frontend/ --exclude \"*\" --include \"*.html\" --include \"service-worker.js\" --include \"manifest.json\" --cache-control \"public, max-age=0, must-revalidate\")",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 sync frontend/build/ s3://thegathrd-app-frontend/ --delete --cache-control \"public, max-age=0, must-revalidate\" --exclude \"*.js\" --exclude \"*.map\")",
-      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 sync frontend/build/ s3://thegathrd-app-frontend/ --delete --cache-control \"public, max-age=0, must-revalidate\")"
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 sync frontend/build/ s3://thegathrd-app-frontend/ --delete --cache-control \"public, max-age=0, must-revalidate\")",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk describe-environments --query \"Environments[?Status==''Ready''].{Name:EnvironmentName,URL:CNAME,Health:Health}\" --output table)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk describe-configuration-settings:*)",
+      "Bash(set:*)",
+      "Bash(set DB_NAME=church_app)",
+      "Bash(set DB_USER=church_user)",
+      "Bash(set DB_PASSWORD=Z.jS~w]fvv[W-TyYhB8TlTD_fEG2)",
+      "Bash(mvnw.cmd clean package:*)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 cp:*)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk create-application-version --application-name Church-app-backend --version-label v1-notifications-20251213 --source-bundle S3Bucket=\"elasticbeanstalk-us-west-2-060163370478\",S3Key=\"backend-notifications.jar\" --description \"Push notifications via Firebase Cloud Messaging\")",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk update-environment --environment-name Church-app-backend-prod --version-label v1-notifications-20251213)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
