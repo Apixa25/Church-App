@@ -124,6 +124,21 @@
   transition: opacity 0.3s ease;
 }
 
+/* 🎯 Pinch-to-zoom enhancements (industry standard) */
+.media-viewer-image {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  will-change: transform;
+}
+
+/* Prevent image dragging on mobile */
+.media-viewer-image:active {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
 /* Video error message in MediaViewer */
 .media-viewer-error {
   max-width: 100%;

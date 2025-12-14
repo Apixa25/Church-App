@@ -74,7 +74,9 @@
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk describe-events --environment-name Church-app-backend-prod --max-items 30 --query \"Events[?Severity==''ERROR''].{Time:EventDate,Message:Message}\" --output table)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk describe-events --environment-name Church-app-backend-prod --max-items 50 --query \"Events[].{Time:EventDate,Message:Message}\" --output text)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" logs tail /aws/elasticbeanstalk/Church-app-backend-prod/var/log/web.stdout.log --since 30m --format short)",
-      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" logs describe-log-groups --query \"logGroups[?contains(logGroupName, ''Church-app-backend'')].logGroupName\" --output text)"
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" logs describe-log-groups --query \"logGroups[?contains(logGroupName, ''Church-app-backend'')].logGroupName\" --output text)",
+      "Bash(unzip:*)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront get-invalidation:*)"
     ],
     "deny": [],
     "ask": []
