@@ -1,73 +1,70 @@
-# Environment variables (IMPORTANT: Never commit sensitive credentials)
-backend/.env
-frontend/.env
-.env
-.env.*
-!.env.example
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# AWS Database and deployment info (contains sensitive data)
-AWS_DATABASE_INFO.md
-AWS_CREDENTIALS.md
-*.credentials
-*.secrets
+# Package lock files (auto-generated)
+package-lock.json
 
-# IMPORTANT: application.properties should only have placeholders, never actual API keys!
-# Always use environment variables for secrets (STRIPE_SECRET_KEY, STRIPE_PUBLIC_KEY, etc.)
+# Build outputs
+build/
+dist/
+target/
 
-# Backend specific
-backend/target/
-backend/.mvn/wrapper/maven-wrapper.jar
-backend/.mvn/wrapper/maven-wrapper.properties
-
-# Frontend specific  
-frontend/node_modules/
-frontend/build/
-frontend/.env.local
-frontend/.env.development.local
-frontend/.env.test.local
-frontend/.env.production.local
-
-# IDE files
+# IDE settings
 .idea/
-*.iml
 .vscode/
 *.swp
 *.swo
+*~
 
-# OS specific
+# OS files
 .DS_Store
 Thumbs.db
-*.log
+nul
 
-# Spring Boot
-*.jar
-*.war
-*.ear
+# Claude Code settings (local only)
+.claude/settings.local.json
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
+.env.backup
+
+# Log files
+*.log
+logs.txt
+latest-logs.txt
+app-logs*.txt
+fresh-logs.txt
+newest-logs.txt
+restart-logs.txt
+latest*.txt
+super-fresh.txt
+
+# Deployment artifacts
+*.zip
+bundle-logs/
+bundle-logs2/
+bundle-logs3/
+deploy-bundle/
+verify-final/
+
+# Config files (may contain secrets)
+eb-env-vars*.json
+env-config.json
+stripe-vars.json
+
+# Maven wrapper (optional - can commit if you want)
+.mvn/
+
+# Compiled classes
 *.class
 
-# H2 Database files
-*.db
-*.trace.db
-*.lock.db
-
-# Temporary files
-*.tmp
-*.temp
-
-# ============================================
-# SECURITY: Sensitive files with secrets
-# ============================================
-backend/stripe-vars.json
-backend/eb-env-vars.json
-backend/eb-env-vars2.json
-backend/env-config.json
-
-# ============================================
-# Debug/Log files (don't commit to repo)
-# ============================================
-backend/*.txt
-backend/*.zip
-backend/bundle-logs/
-backend/bundle-logs2/
-backend/bundle-logs3/
-backend/verify-final/
+# Data directories
+data/
