@@ -666,13 +666,18 @@ public class PostController {
             log.info("Confirming upload completion for user: {}, key: {}", 
                     user.getUsername(), request.getS3Key());
             
+            // Extract folder from S3 key (format: "folder/originals/filename")
+            // This ensures we use the correct folder (profile-pictures, banners, posts, etc.)
+            String folder = extractFolderFromS3Key(request.getS3Key());
+            log.info("Extracted folder '{}' from S3 key: {}", folder, request.getS3Key());
+            
             // Handle upload completion (verify, create MediaFile record, start processing)
             String fileUrl = fileUploadService.handleUploadCompletion(
                     request.getS3Key(),
                     request.getFileName(),
                     request.getContentType(),
                     request.getFileSize(),
-                    "posts" // Folder for posts
+                    folder
             );
             
             return ResponseEntity.ok(Map.of("fileUrl", fileUrl, "success", true));
@@ -682,6 +687,28 @@ public class PostController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to confirm upload", "success", false));
         }
+    }
+    
+    /**
+     * Extract folder name from S3 key
+     * S3 key format: "folder/originals/filename" or "folder/optimized/filename"
+     * Returns the first part (folder name)
+     */
+    private String extractFolderFromS3Key(String s3Key) {
+        if (s3Key == null || s3Key.isEmpty()) {
+            log.warn("Empty S3 key provided, defaulting to 'posts'");
+            return "posts";
+        }
+        
+        // S3 key format: "folder/originals/filename" or "folder/optimized/filename"
+        int firstSlash = s3Key.indexOf('/');
+        if (firstSlash > 0) {
+            return s3Key.substring(0, firstSlash);
+        }
+        
+        // If no slash found, default to posts (shouldn't happen in normal operation)
+        log.warn("Could not extract folder from S3 key '{}', defaulting to 'posts'", s3Key);
+        return "posts";
     }
 
     /**

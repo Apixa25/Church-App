@@ -111,6 +111,7 @@ public class FileUploadService {
             // CRITICAL: Only track files that need processing/compression (posts, chat-media, etc.)
             // DO NOT track final images that should never be deleted:
             // - banner-images: User banner images (final, never compressed)
+            // - banners: User banner images (alternative folder name used by frontend, final, never compressed)
             // - profile-pictures: User profile pictures (final, never compressed)
             // - organizations/logos: Organization logos (final, never compressed)
             // - prayer-requests: Prayer request images (final, never compressed)
@@ -118,6 +119,7 @@ public class FileUploadService {
             // deleted by the cleanup service.
             MediaFile mediaFile = null;
             boolean isFinalImage = folder.equals("banner-images") || 
+                                   folder.equals("banners") ||
                                    folder.equals("profile-pictures") || 
                                    folder.equals("organizations/logos") || 
                                    folder.equals("prayer-requests");
@@ -737,9 +739,26 @@ public class FileUploadService {
                 updateVideoCacheControl(s3Key, contentType);
             }
             
+            // CRITICAL: Only track files that need processing/compression (posts, chat-media, etc.)
+            // DO NOT track final images that should never be deleted:
+            // - banner-images: User banner images (final, never compressed)
+            // - banners: User banner images (alternative folder name, final, never compressed)
+            // - profile-pictures: User profile pictures (final, never compressed)
+            // - organizations/logos: Organization logos (final, never compressed)
+            // - prayer-requests: Prayer request images (final, never compressed)
+            // These are final images that don't need optimization/processing, and shouldn't be
+            // deleted by the cleanup service.
+            boolean isFinalImage = folder.equals("banner-images") || 
+                                   folder.equals("banners") ||
+                                   folder.equals("profile-pictures") || 
+                                   folder.equals("organizations/logos") || 
+                                   folder.equals("prayer-requests");
+            
             // Create MediaFile record for images/videos (for processing tracking)
-            if (isImage || isVideo) {
-                MediaFile mediaFile = createMediaFileRecord(
+            // BUT SKIP final images - they should never be tracked or deleted!
+            MediaFile mediaFile = null;
+            if ((isImage || isVideo) && !isFinalImage) {
+                mediaFile = createMediaFileRecord(
                         fileUrl,
                         contentType,
                         fileName,
@@ -757,6 +776,8 @@ public class FileUploadService {
                         processVideoFromS3Async(s3Key, mediaFile);
                     }
                 }
+            } else if (isFinalImage) {
+                log.info("✅ Skipping MediaFile tracking for final image in folder '{}' - these should never be deleted", folder);
             }
             
             return fileUrl;

@@ -61,15 +61,31 @@ public class FileCleanupService {
             // Only delete original files that have been processed/compressed (posts, chat-media, etc.)
             // DO NOT delete:
             // - banner-images: User banner images (final, never compressed)
+            // - banners: User banner images (alternative folder name used by frontend, final, never compressed)
             // - profile-pictures: User profile pictures (final, never compressed)
             // - organizations/logos: Organization logos (final, never compressed)
             // - prayer-requests: Prayer request images (final, never compressed)
+            // 
+            // NOTE: This is a DOUBLE safety check - these folders should never have MediaFile records
+            // created in the first place (see FileUploadService.handleUploadCompletion), but we check
+            // here as well to be absolutely safe.
             filesToCleanup = filesToCleanup.stream()
                 .filter(mf -> !mf.getFolder().equals("banner-images") && 
+                             !mf.getFolder().equals("banners") &&
                              !mf.getFolder().equals("profile-pictures") &&
                              !mf.getFolder().equals("organizations/logos") &&
                              !mf.getFolder().equals("prayer-requests"))
                 .collect(Collectors.toList());
+            
+            // Additional safety: Log any final image folders that somehow got through
+            // This should never happen, but helps with debugging if it does
+            if (filesToCleanup.stream().anyMatch(mf -> 
+                mf.getFolder().equals("banner-images") || 
+                mf.getFolder().equals("banners") ||
+                mf.getFolder().equals("profile-pictures"))) {
+                log.error("⚠️ CRITICAL: Found MediaFile records for final images that should never exist! " +
+                         "This indicates a bug in FileUploadService.handleUploadCompletion or uploadFile.");
+            }
             
             log.info("Found {} original files ready for cleanup (older than {} hours)", 
                     filesToCleanup.size(), retentionHours);
