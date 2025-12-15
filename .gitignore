@@ -60,6 +60,12 @@ eb-env-vars*.json
 env-config.json
 stripe-vars.json
 
+# Firebase credential files (NEVER commit these!)
+*firebase*creds*.txt
+*firebase*creds*.json
+firebase-credentials*.json
+firebase-credentials*.txt
+
 # Maven wrapper (optional - can commit if you want)
 .mvn/
 

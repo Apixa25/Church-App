@@ -38,11 +38,18 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Global handler to prevent browser viewport zoom
+    // Global handler to prevent browser viewport zoom ONLY outside MediaViewer
     const preventViewportZoom = (e: TouchEvent) => {
       if (e.touches.length === 2) {
-        e.preventDefault();
-        e.stopPropagation();
+        // Check if touch is within our MediaViewer
+        const target = e.target as HTMLElement;
+        const isInMediaViewer = target.closest('.media-viewer-overlay') !== null;
+        
+        // Only prevent if NOT in MediaViewer (let our handlers work)
+        if (!isInMediaViewer) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
       }
     };
 
@@ -67,8 +74,8 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
       document.body.style.width = '100%';
       document.body.style.height = '100%';
       
-      // Prevent HTML element zoom
-      document.documentElement.style.touchAction = 'none';
+      // Prevent HTML element zoom (but allow MediaViewer to handle its own)
+      document.documentElement.style.touchAction = 'manipulation'; // Allow pan/zoom but prevent double-tap zoom
       document.documentElement.style.overflow = 'hidden';
       
       // Prevent viewport zoom when modal is open
@@ -77,12 +84,28 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
         viewport.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
       }
       
-      // Add global touch listeners to prevent browser zoom
+      // Add global touch listeners to prevent browser zoom (but allow MediaViewer)
       document.addEventListener('touchstart', preventViewportZoom, { passive: false, capture: true });
       document.addEventListener('touchmove', preventViewportZoom, { passive: false, capture: true });
-      document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false, capture: true });
-      document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false, capture: true });
-      document.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false, capture: true });
+      // Prevent iOS gesture events globally (these are viewport-level)
+      document.addEventListener('gesturestart', (e) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.media-viewer-overlay')) {
+          e.preventDefault();
+        }
+      }, { passive: false, capture: true });
+      document.addEventListener('gesturechange', (e) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.media-viewer-overlay')) {
+          e.preventDefault();
+        }
+      }, { passive: false, capture: true });
+      document.addEventListener('gestureend', (e) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.media-viewer-overlay')) {
+          e.preventDefault();
+        }
+      }, { passive: false, capture: true });
     } else {
       // Restore body styles
       document.body.style.overflow = '';
