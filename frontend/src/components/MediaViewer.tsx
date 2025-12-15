@@ -26,15 +26,26 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
   // 🎯 Pinch-to-zoom state (industry standard: Instagram/Facebook/X behavior)
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [lastTouchDistance, setLastTouchDistance] = useState<number | null>(null);
-  const [lastTouchCenter, setLastTouchCenter] = useState<{ x: number; y: number } | null>(null);
+  const [lastPinchDistance, setLastPinchDistance] = useState<number | null>(null);
+  const [initialPinchDistance, setInitialPinchDistance] = useState<number | null>(null);
+  const [isPinchActive, setIsPinchActive] = useState(false);
+  const [initialPinchCenter, setInitialPinchCenter] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [lastDragPosition, setLastDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [lastTap, setLastTap] = useState(0);
+  const [debugInfo, setDebugInfo] = useState<string>('');
   const imageRef = useRef<HTMLImageElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Global handler to prevent browser viewport zoom
+    const preventViewportZoom = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
     if (isOpen) {
       setIsLoading(true);
       setImageLoaded(false);
@@ -42,18 +53,66 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
       // Reset zoom state when opening new image
       setScale(1);
       setPosition({ x: 0, y: 0 });
-      setLastTouchDistance(null);
-      setLastTouchCenter(null);
+      setLastPinchDistance(null);
+      setInitialPinchDistance(null);
+      setIsPinchActive(false);
+      setInitialPinchCenter(null);
       setIsDragging(false);
       setLastDragPosition(null);
+      setDebugInfo('');
+      
+      // Prevent body scrolling
       document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+      
+      // Prevent HTML element zoom
+      document.documentElement.style.touchAction = 'none';
+      document.documentElement.style.overflow = 'hidden';
+      
+      // Prevent viewport zoom when modal is open
+      const viewport = document.querySelector('meta[name="viewport"]');
+      if (viewport) {
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
+      }
+      
+      // Add global touch listeners to prevent browser zoom
+      document.addEventListener('touchstart', preventViewportZoom, { passive: false, capture: true });
+      document.addEventListener('touchmove', preventViewportZoom, { passive: false, capture: true });
+      document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false, capture: true });
+      document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false, capture: true });
+      document.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false, capture: true });
     } else {
-      document.body.style.overflow = 'unset';
+      // Restore body styles
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+      
+      // Restore HTML styles
+      document.documentElement.style.touchAction = '';
+      document.documentElement.style.overflow = '';
+      
+      // Restore viewport settings
+      const viewport = document.querySelector('meta[name="viewport"]');
+      if (viewport) {
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
+      }
+      
+      // Remove global touch listeners
+      document.removeEventListener('touchstart', preventViewportZoom, { capture: true } as EventListenerOptions);
+      document.removeEventListener('touchmove', preventViewportZoom, { capture: true } as EventListenerOptions);
     }
 
     // Cleanup on unmount
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+      document.documentElement.style.touchAction = '';
+      document.documentElement.style.overflow = '';
     };
   }, [isOpen, initialIndex]);
 
@@ -105,16 +164,29 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
   // 🎯 Handle touch start for pinch-to-zoom (industry standard)
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
+      // CRITICAL: Prevent default browser zoom behavior
+      e.preventDefault();
+      e.stopPropagation();
+      
       // Two fingers - start pinch gesture
       const distance = getTouchDistance(e.touches[0], e.touches[1]);
       const center = getTouchCenter(e.touches[0], e.touches[1]);
       
-      setLastTouchDistance(distance);
-      setLastTouchCenter(center);
+      // Store initial values - wait for fingers to spread before zooming
+      setInitialPinchDistance(distance);
+      setLastPinchDistance(distance);
+      setInitialPinchCenter(center);
+      setIsPinchActive(false); // Don't zoom until fingers have moved apart
+      
+      // Debug info
+      setDebugInfo(`TouchStart: 2 fingers, dist=${distance.toFixed(0)}px, scale=${scale.toFixed(2)}`);
+      
       setIsDragging(false);
       setLastDragPosition(null);
     } else if (e.touches.length === 1 && scale > 1) {
       // Single finger when zoomed - start panning
+      e.preventDefault();
+      e.stopPropagation();
       setIsDragging(true);
       setLastDragPosition({
         x: e.touches[0].clientX - position.x,
@@ -125,28 +197,98 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
 
   // 🎯 Handle touch move for pinch-to-zoom and panning
   const handleTouchMove = (e: React.TouchEvent) => {
-    e.preventDefault(); // Prevent scrolling while zooming/panning
+    if (e.touches.length === 2) {
+      // Stop event propagation to prevent global handlers from interfering
+      e.stopPropagation();
+      e.preventDefault(); // Prevent scrolling while zooming/panning
+    }
     
-    if (e.touches.length === 2 && lastTouchDistance !== null && lastTouchCenter !== null) {
+    if (e.touches.length === 2 && initialPinchDistance !== null && lastPinchDistance !== null && initialPinchCenter !== null) {
       // Two fingers - pinch gesture
       const currentDistance = getTouchDistance(e.touches[0], e.touches[1]);
-      const currentCenter = getTouchCenter(e.touches[0], e.touches[1]);
       
-      const scaleChange = currentDistance / lastTouchDistance;
-      const newScale = Math.max(1, Math.min(5, scale * scaleChange)); // Limit zoom between 1x and 5x
+      // Use BOTH absolute and percentage thresholds to prevent instant zoom
+      // This ensures fingers must spread a meaningful distance before zoom starts
+      const minAbsoluteChange = 30; // Minimum 30 pixels of movement (increased)
+      const minPercentChange = 20; // Minimum 20% change from initial (increased)
       
-      // Calculate position adjustment based on pinch center
-      const centerDeltaX = currentCenter.x - lastTouchCenter.x;
-      const centerDeltaY = currentCenter.y - lastTouchCenter.y;
+      const absoluteChange = Math.abs(currentDistance - initialPinchDistance);
+      const distanceChangePercent = initialPinchDistance > 0 ? (absoluteChange / initialPinchDistance) * 100 : 0;
       
-      setScale(newScale);
-      setPosition(prev => ({
-        x: prev.x + centerDeltaX,
-        y: prev.y + centerDeltaY
-      }));
+      // Require BOTH thresholds to be met before zooming starts
+      // This prevents instant zoom when fingers first touch (even if close together)
+      if (!isPinchActive) {
+        // Only activate if BOTH thresholds are met
+        if (absoluteChange >= minAbsoluteChange && distanceChangePercent >= minPercentChange) {
+          // Pinch gesture is now active - start zooming
+          setIsPinchActive(true);
+          // Reset last distance to current to start incremental tracking
+          setLastPinchDistance(currentDistance);
+          // Debug info
+          setDebugInfo(`Pinch ACTIVE: abs=${absoluteChange.toFixed(0)}px, pct=${distanceChangePercent.toFixed(1)}%, scale=${scale.toFixed(2)}`);
+          // Don't apply any zoom on this frame - wait for next frame
+          return;
+        } else {
+          // Not enough movement yet - don't do anything
+          setDebugInfo(`Waiting: abs=${absoluteChange.toFixed(0)}px/${minAbsoluteChange}px, pct=${distanceChangePercent.toFixed(1)}%/${minPercentChange}%, scale=${scale.toFixed(2)}`);
+          return;
+        }
+      }
       
-      setLastTouchDistance(currentDistance);
-      setLastTouchCenter(currentCenter);
+      // Only apply zoom if pinch is active (fingers have spread enough)
+      if (isPinchActive && lastPinchDistance > 0) {
+        // Use incremental scale changes for smooth zooming (industry standard)
+        // Calculate change from last frame, not from initial
+        const distanceRatio = currentDistance / lastPinchDistance;
+        // Clamp the ratio to prevent huge jumps (max 1.1x per frame)
+        const clampedRatio = Math.max(0.9, Math.min(1.1, distanceRatio));
+        const newScale = Math.max(1, Math.min(5, scale * clampedRatio));
+        
+        // Debug info
+        setDebugInfo(`Zooming: ratio=${distanceRatio.toFixed(3)}, clamped=${clampedRatio.toFixed(3)}, scale=${scale.toFixed(2)}→${newScale.toFixed(2)}`);
+        
+        // Calculate position to keep the pinch center point fixed
+        if (imageRef.current) {
+          const img = imageRef.current;
+          const viewportWidth = window.innerWidth;
+          const viewportHeight = window.innerHeight;
+          
+          // Get viewport center
+          const viewportCenterX = viewportWidth / 2;
+          const viewportCenterY = viewportHeight / 2;
+          
+          // Calculate offset from viewport center to initial pinch center
+          const offsetX = initialPinchCenter.x - viewportCenterX;
+          const offsetY = initialPinchCenter.y - viewportCenterY;
+          
+          // Calculate scale change
+          const scaleChange = newScale / scale;
+          
+          // Calculate new position to keep pinch center fixed
+          // As we zoom, we need to adjust position so the pinch point stays in the same screen location
+          const newX = position.x - (offsetX * (scaleChange - 1));
+          const newY = position.y - (offsetY * (scaleChange - 1));
+          
+          // Constrain position to image bounds
+          const naturalWidth = img.naturalWidth || img.offsetWidth;
+          const naturalHeight = img.naturalHeight || img.offsetHeight;
+          const scaledWidth = naturalWidth * newScale;
+          const scaledHeight = naturalHeight * newScale;
+          const maxX = Math.max(0, (scaledWidth - viewportWidth) / 2);
+          const maxY = Math.max(0, (scaledHeight - viewportHeight) / 2);
+          
+          setScale(newScale);
+          setPosition({
+            x: Math.max(-maxX, Math.min(maxX, newX)),
+            y: Math.max(-maxY, Math.min(maxY, newY))
+          });
+        } else {
+          setScale(newScale);
+        }
+      }
+      
+      // Always update last distance for next calculation
+      setLastPinchDistance(currentDistance);
     } else if (e.touches.length === 1 && isDragging && lastDragPosition !== null && scale > 1) {
       // Single finger when zoomed - panning
       const newX = e.touches[0].clientX - lastDragPosition.x;
@@ -181,8 +323,14 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
   // 🎯 Handle touch end
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (e.touches.length < 2) {
-      setLastTouchDistance(null);
-      setLastTouchCenter(null);
+      // Stop event propagation
+      e.stopPropagation();
+      
+      // Reset pinch tracking when pinch ends
+      setLastPinchDistance(null);
+      setInitialPinchDistance(null);
+      setIsPinchActive(false);
+      setInitialPinchCenter(null);
     }
     if (e.touches.length === 0) {
       setIsDragging(false);
@@ -258,14 +406,52 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
     <div 
       className="media-viewer-overlay" 
       onClick={handleOverlayClick}
+      onTouchStart={(e) => {
+        // Prevent browser default zoom on overlay
+        if (e.touches.length === 2) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }}
+      onTouchMove={(e) => {
+        // Prevent browser default zoom on overlay
+        if (e.touches.length === 2) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }}
       style={{ display: isOpen ? 'flex' : 'none' }}
     >
       <div className={`media-viewer-container ${isZoomed ? 'media-viewer-zoomed' : ''}`}>
+        {/* Debug Info - Remove after testing */}
+        {debugInfo && (
+          <div style={{
+            position: 'absolute',
+            top: '10px',
+            left: '10px',
+            background: 'rgba(0,0,0,0.8)',
+            color: 'white',
+            padding: '8px 12px',
+            borderRadius: '4px',
+            fontSize: '12px',
+            zIndex: 10000,
+            fontFamily: 'monospace',
+            maxWidth: '90vw'
+          }}>
+            {debugInfo}
+          </div>
+        )}
         {/* Media Content - Pinch to zoom, tap to close when not zoomed */}
         <div 
           className="media-viewer-content"
           ref={contentRef}
           onClick={(e) => e.stopPropagation()} // Prevent overlay click when clicking content area
+          onTouchStart={(e) => {
+            if (e.touches.length === 2) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          }}
         >
           {isLoading && (
             <div className="media-viewer-loading">

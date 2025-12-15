@@ -110,7 +110,12 @@
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" logs tail /aws/elasticbeanstalk/Church-app-backend-prod/var/log/web.stdout.log --since 10m --format short)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront get-invalidation --distribution-id E2SM4EXV57KO8B --id I24A01SKX2NA7PCLM8R3X0U7E6 --query \"Invalidation.Status\" --output text)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk create-application-version --application-name Church-app-backend --version-label v1-phase1b-notifications-20251214 --source-bundle S3Bucket=\"elasticbeanstalk-us-west-2-060163370478\",S3Key=\"backend-phase1b-notifications.jar\" --description \"Phase 1b: Firebase push notifications for prayer requests, chat/DMs, events, and posts\")",
-      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk update-environment --environment-name Church-app-backend-prod --version-label v1-phase1b-notifications-20251214)"
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk update-environment --environment-name Church-app-backend-prod --version-label v1-phase1b-notifications-20251214)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk describe-environments --environment-name Church-app-backend-prod --query \"Environments[0].{Status:Status,Health:Health,Version:VersionLabel}\" --output table)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" logs describe-log-groups --query \"logGroups[?contains(logGroupName, ''''Church'''')].logGroupName\" --output text)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" logs describe-log-groups --log-group-name-prefix \"/aws/elasticbeanstalk/Church\" --query \"logGroups[].logGroupName\" --output text)",
+      "Bash(jar:*)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 cp s3://thegathrd-app-frontend/config.js -)"
     ],
     "deny": [],
     "ask": []
