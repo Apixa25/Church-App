@@ -157,4 +157,8 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
     // Family organization queries
     @Query("SELECT COUNT(u) FROM User u WHERE u.familyPrimaryOrganization.id = :orgId")
     long countByFamilyPrimaryOrganizationId(@Param("orgId") UUID orgId);
+
+    // Find users by church primary organization (for notifications)
+    @Query("SELECT u FROM User u WHERE u.churchPrimaryOrganization = :organization")
+    List<User> findByChurchPrimaryOrganization(@Param("organization") com.churchapp.entity.Organization organization);
 }

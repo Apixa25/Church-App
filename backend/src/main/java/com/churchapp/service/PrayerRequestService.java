@@ -41,6 +41,7 @@ public class PrayerRequestService {
     private final PrayerInteractionRepository prayerInteractionRepository;
     private final FileUploadService fileUploadService;
     private final OrganizationRepository organizationRepository;
+    private final NotificationService notificationService;
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
@@ -610,13 +611,61 @@ public class PrayerRequestService {
                 prayerRequest.getTitle(),
                 prayerRequest.getDescription()
             );
-            
-            // Broadcast to all connected users
+
+            // 1. WebSocket notification (in-app, real-time)
             messagingTemplate.convertAndSend("/topic/prayers", event);
-            log.info("Broadcasted new prayer request notification for prayer: {}", prayerRequest.getId());
-            
+            log.info("Broadcasted WebSocket notification for prayer: {}", prayerRequest.getId());
+
+            // 2. Firebase push notifications (PWA/mobile, persistent)
+            sendFirebasePushNotification(prayerRequest);
+
         } catch (Exception e) {
             log.error("Error sending new prayer request notification: {}", e.getMessage());
+        }
+    }
+
+    private void sendFirebasePushNotification(PrayerRequest prayerRequest) {
+        try {
+            Organization organization = prayerRequest.getOrganization();
+            User requestAuthor = prayerRequest.getUser();
+
+            // Get all users in the same organization
+            List<User> orgUsers = userRepository.findByChurchPrimaryOrganization(organization);
+
+            // Collect FCM tokens (exclude the prayer request author)
+            List<String> tokens = orgUsers.stream()
+                .filter(u -> !u.getId().equals(requestAuthor.getId())) // Don't notify the author
+                .map(User::getFcmToken)
+                .filter(token -> token != null && !token.trim().isEmpty())
+                .collect(Collectors.toList());
+
+            if (tokens.isEmpty()) {
+                log.info("No FCM tokens found for organization: {}", organization.getId());
+                return;
+            }
+
+            // Prepare notification data
+            Map<String, String> data = new HashMap<>();
+            data.put("type", "prayer_request");
+            data.put("prayerId", prayerRequest.getId().toString());
+            data.put("organizationId", organization.getId().toString());
+
+            // Determine display name (respect anonymity)
+            String displayName = prayerRequest.getIsAnonymous() ? "Anonymous" : requestAuthor.getName();
+
+            // Send bulk notification
+            notificationService.sendBulkNotification(
+                tokens,
+                "🙏 New Prayer Request",
+                displayName + " needs your prayers: " + prayerRequest.getTitle(),
+                data
+            );
+
+            log.info("Sent Firebase push notifications to {} users for prayer: {}", tokens.size(), prayerRequest.getId());
+
+        } catch (Exception e) {
+            log.error("Failed to send Firebase push notification for prayer {}: {}", prayerRequest.getId(), e.getMessage());
+            // Don't throw - notification failure shouldn't break prayer request creation
         }
     }
     

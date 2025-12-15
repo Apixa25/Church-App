@@ -102,7 +102,15 @@
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk update-environment --environment-name Church-app-backend-prod --version-label v2-secrets-manager-fixed-20251214)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 cp backend/target/church-app-backend-0.0.1-SNAPSHOT.jar s3://elasticbeanstalk-us-west-2-060163370478/backend-env-var.jar)",
       "Bash(cat:*)",
-      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk create-application-version --application-name Church-app-backend --version-label v1-env-var-20251214 --source-bundle S3Bucket=\"elasticbeanstalk-us-west-2-060163370478\",S3Key=\"backend-env-var.jar\" --description \"Industry-standard environment variable approach for Firebase credentials\")"
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk create-application-version --application-name Church-app-backend --version-label v1-env-var-20251214 --source-bundle S3Bucket=\"elasticbeanstalk-us-west-2-060163370478\",S3Key=\"backend-env-var.jar\" --description \"Industry-standard environment variable approach for Firebase credentials\")",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 cp backend/target/church-app-backend-0.0.1-SNAPSHOT.jar s3://elasticbeanstalk-us-west-2-060163370478/backend-classpath-final.jar)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk create-application-version --application-name Church-app-backend --version-label v1-classpath-20251214 --source-bundle S3Bucket=\"elasticbeanstalk-us-west-2-060163370478\",S3Key=\"backend-classpath-final.jar\" --description \"Simple classpath loading - Industry standard approach with Firebase credentials bundled in JAR\")",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk update-environment --environment-name Church-app-backend-prod --version-label v1-classpath-20251214)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk describe-events --environment-name Church-app-backend-prod --max-items 15 --query \"Events[].{Time:EventDate,Message:Message}\" --output text)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" logs tail /aws/elasticbeanstalk/Church-app-backend-prod/var/log/web.stdout.log --since 10m --format short)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront get-invalidation --distribution-id E2SM4EXV57KO8B --id I24A01SKX2NA7PCLM8R3X0U7E6 --query \"Invalidation.Status\" --output text)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk create-application-version --application-name Church-app-backend --version-label v1-phase1b-notifications-20251214 --source-bundle S3Bucket=\"elasticbeanstalk-us-west-2-060163370478\",S3Key=\"backend-phase1b-notifications.jar\" --description \"Phase 1b: Firebase push notifications for prayer requests, chat/DMs, events, and posts\")",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk update-environment --environment-name Church-app-backend-prod --version-label v1-phase1b-notifications-20251214)"
     ],
     "deny": [],
     "ask": []

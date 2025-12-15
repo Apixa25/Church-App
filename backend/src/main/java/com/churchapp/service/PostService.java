@@ -37,6 +37,7 @@ public class PostService {
     private final UserBlockService userBlockService;
     private final OEmbedService oEmbedService;
     private final MediaFileRepository mediaFileRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public Post createPost(String userEmail, String content, List<String> mediaUrls,
@@ -205,6 +206,9 @@ public class PostService {
 
         // Process hashtags in content
         processHashtags(savedPost);
+
+        // Send Firebase push notifications to organization/group members
+        sendPostPushNotifications(savedPost, user);
 
         return savedPost;
     }
@@ -672,5 +676,94 @@ public class PostService {
 
     public long getUserPostCountSince(UUID userId, LocalDateTime since) {
         return postRepository.countByUserIdSince(userId, since);
+    }
+
+    /**
+     * Send Firebase push notifications when a new post is created
+     * Notifies organization members or group members depending on post context
+     */
+    private void sendPostPushNotifications(Post post, User author) {
+        try {
+            List<User> targetUsers = new ArrayList<>();
+            String notificationContext = "";
+
+            // Determine who to notify based on post context
+            if (post.getGroup() != null) {
+                // Group post - notify group members
+                Group group = post.getGroup();
+                targetUsers = group.getMembers().stream()
+                    .map(GroupMember::getUser)
+                    .collect(java.util.stream.Collectors.toList());
+                notificationContext = "group: " + group.getName();
+            } else if (post.getOrganization() != null) {
+                // Organization post - notify org members
+                Organization organization = post.getOrganization();
+                targetUsers = userRepository.findByChurchPrimaryOrganization(organization);
+                notificationContext = "organization: " + organization.getName();
+            }
+
+            if (targetUsers.isEmpty()) {
+                log.info("No users to notify for post in {}", notificationContext);
+                return;
+            }
+
+            // Collect FCM tokens (exclude the post author)
+            List<String> tokens = targetUsers.stream()
+                .filter(u -> !u.getId().equals(author.getId()))
+                .map(User::getFcmToken)
+                .filter(token -> token != null && !token.trim().isEmpty())
+                .collect(java.util.stream.Collectors.toList());
+
+            if (tokens.isEmpty()) {
+                log.info("No FCM tokens found for post in {}", notificationContext);
+                return;
+            }
+
+            // Prepare notification data
+            java.util.Map<String, String> data = new java.util.HashMap<>();
+            data.put("type", "post");
+            data.put("postId", post.getId().toString());
+            if (post.getOrganization() != null) {
+                data.put("organizationId", post.getOrganization().getId().toString());
+            }
+            if (post.getGroup() != null) {
+                data.put("groupId", post.getGroup().getId().toString());
+            }
+
+            // Create notification message
+            String displayName = post.getIsAnonymous() ? "Anonymous" : author.getName();
+            String contentPreview = post.getContent();
+            if (contentPreview != null && contentPreview.length() > 100) {
+                contentPreview = contentPreview.substring(0, 97) + "...";
+            }
+
+            String notificationBody;
+            if (contentPreview != null && !contentPreview.trim().isEmpty()) {
+                notificationBody = contentPreview;
+            } else if (!post.getMediaUrls().isEmpty()) {
+                notificationBody = "Posted " + post.getMediaUrls().size() + " " +
+                    (post.getMediaUrls().size() == 1 ? "photo" : "photos");
+            } else if (post.getExternalUrl() != null) {
+                notificationBody = "Shared a link";
+            } else {
+                notificationBody = "Created a new post";
+            }
+
+            // Send notification
+            notificationService.sendBulkNotification(
+                tokens,
+                "📝 " + displayName,
+                notificationBody,
+                data
+            );
+
+            log.info("Sent Firebase push notifications to {} users for post {} in {}",
+                tokens.size(), post.getId(), notificationContext);
+
+        } catch (Exception e) {
+            log.error("Failed to send Firebase push notification for post {}: {}",
+                post.getId(), e.getMessage());
+            // Don't throw - notification failure shouldn't break post creation
+        }
     }
 }

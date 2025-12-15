@@ -39,6 +39,7 @@ public class EventService {
     private final OrganizationRepository organizationRepository;
     private final UserOrganizationMembershipRepository membershipRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final NotificationService notificationService;
 
     public Event createEvent(UUID creatorId, Event eventRequest, Boolean bringListEnabled, List<EventBringItemRequest> bringItems, UUID organizationId) {
         User creator = userRepository.findById(creatorId)
@@ -431,9 +432,61 @@ public class EventService {
             // Broadcast to all connected users - frontend will filter by organization
             messagingTemplate.convertAndSend("/topic/events", notificationEvent);
             log.info("Broadcasted event created notification for event: {}", event.getId());
-            
+
+            // Send Firebase push notifications
+            sendEventPushNotifications(event, creator);
+
         } catch (Exception e) {
             log.error("Error sending event created notification: {}", e.getMessage(), e);
+        }
+    }
+
+    private void sendEventPushNotifications(Event event, User creator) {
+        try {
+            Organization organization = event.getOrganization();
+            if (organization == null) {
+                return;
+            }
+
+            // Get all users in the organization
+            List<User> orgUsers = userRepository.findByChurchPrimaryOrganization(organization);
+
+            // Collect FCM tokens (exclude event creator)
+            List<String> tokens = orgUsers.stream()
+                .filter(u -> !u.getId().equals(creator.getId()))
+                .map(User::getFcmToken)
+                .filter(token -> token != null && !token.trim().isEmpty())
+                .collect(java.util.stream.Collectors.toList());
+
+            if (tokens.isEmpty()) {
+                log.info("No FCM tokens found for event notification in organization: {}", organization.getId());
+                return;
+            }
+
+            // Prepare notification data
+            java.util.Map<String, String> data = new java.util.HashMap<>();
+            data.put("type", "event");
+            data.put("eventId", event.getId().toString());
+            data.put("organizationId", organization.getId().toString());
+
+            // Format event time
+            String eventTime = event.getStartTime() != null
+                ? event.getStartTime().format(java.time.format.DateTimeFormatter.ofPattern("MMM d 'at' h:mm a"))
+                : "TBD";
+
+            // Send bulk notification
+            notificationService.sendBulkNotification(
+                tokens,
+                "📅 New Event: " + event.getTitle(),
+                eventTime + (event.getLocation() != null ? " • " + event.getLocation() : ""),
+                data
+            );
+
+            log.info("Sent Firebase push notifications to {} users for event: {}", tokens.size(), event.getId());
+
+        } catch (Exception e) {
+            log.error("Failed to send Firebase push notification for event {}: {}", event.getId(), e.getMessage());
+            // Don't throw - notification failure shouldn't break event creation
         }
     }
     

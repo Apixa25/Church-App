@@ -35,6 +35,7 @@ public class ChatService {
     private final SimpMessagingTemplate messagingTemplate;
     private final FileUploadService fileUploadService;
     private final MediaUrlService mediaUrlService;
+    private final NotificationService notificationService;
     
     // ==================== CHAT GROUP OPERATIONS ====================
     
@@ -574,11 +575,64 @@ public class ChatService {
             // Also broadcast to /topic/events for consistency (frontend can filter)
             // This allows the existing subscription in useEventNotifications to work
             messagingTemplate.convertAndSend("/topic/events", notificationEvent);
-            
+
+            // Send Firebase push notifications to group members
+            sendChatPushNotifications(chatGroup, message, sender, members);
+
         } catch (Exception e) {
             // Log error but don't fail message sending
             // Using System.err since ChatService doesn't have @Slf4j
             System.err.println("Error sending chat notification for message " + message.getId() + ": " + e.getMessage());
+        }
+    }
+
+    private void sendChatPushNotifications(ChatGroup chatGroup, Message message, User sender, List<ChatGroupMember> members) {
+        try {
+            // Collect FCM tokens (exclude sender)
+            List<String> tokens = members.stream()
+                .filter(member -> !member.getUser().getId().equals(sender.getId()))
+                .map(member -> member.getUser().getFcmToken())
+                .filter(token -> token != null && !token.trim().isEmpty())
+                .collect(java.util.stream.Collectors.toList());
+
+            if (tokens.isEmpty()) {
+                return;
+            }
+
+            // Prepare notification data
+            java.util.Map<String, String> data = new java.util.HashMap<>();
+            data.put("type", "chat_message");
+            data.put("messageId", message.getId().toString());
+            data.put("groupId", chatGroup.getId().toString());
+            data.put("senderId", sender.getId().toString());
+
+            // Create notification content
+            String notificationTitle = chatGroup.getType() == ChatGroup.GroupType.DIRECT_MESSAGE
+                ? sender.getName()
+                : chatGroup.getName();
+
+            String messagePreview = message.getContent();
+            if (messagePreview != null && messagePreview.length() > 100) {
+                messagePreview = messagePreview.substring(0, 97) + "...";
+            }
+
+            String notificationBody = chatGroup.getType() == ChatGroup.GroupType.DIRECT_MESSAGE
+                ? messagePreview
+                : sender.getName() + ": " + messagePreview;
+
+            // Send bulk notification
+            notificationService.sendBulkNotification(
+                tokens,
+                "💬 " + notificationTitle,
+                notificationBody,
+                data
+            );
+
+            System.out.println("Sent Firebase push notifications to " + tokens.size() + " users for message: " + message.getId());
+
+        } catch (Exception e) {
+            System.err.println("Failed to send Firebase push notification for message " + message.getId() + ": " + e.getMessage());
+            // Don't throw - notification failure shouldn't break message sending
         }
     }
     
