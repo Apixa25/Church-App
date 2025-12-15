@@ -22,6 +22,7 @@ import { FeedType } from '../types/Post';
 import { profileAPI } from '../services/api';
 import WarningBanner from './WarningBanner';
 import WarningsSection from './WarningsSection';
+import NotificationPermissionBanner from './NotificationPermissionBanner';
 import { getBannerImageUrl, getBannerImageS3Fallback } from '../utils/imageUrlUtils';
 import './Dashboard.css';
 
@@ -507,6 +508,9 @@ const Dashboard: React.FC = () => {
       <main className="dashboard-content">
         {/* Warning Banner - shows at top of dashboard if user has warnings */}
         <WarningBanner onViewWarnings={() => setShowWarningsSection(true)} />
+
+        {/* Notification Permission Banner - prompts user to enable push notifications */}
+        <NotificationPermissionBanner />
 
         {/* Warnings Section Modal */}
         {showWarningsSection && (

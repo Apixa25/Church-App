@@ -48,6 +48,7 @@ import { GlobalSearchProvider } from './components/global-search/GlobalSearchPro
 import { UploadQueueProvider } from './contexts/UploadQueueContext';
 import UploadProgressIndicator from './components/UploadProgressIndicator';
 import UpdateNotification from './components/UpdateNotification';
+import FirebaseInitializer from './components/FirebaseInitializer';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 
 // 🚀 React Query Configuration - Smart Caching
@@ -135,6 +136,8 @@ const App: React.FC = () => {
                   <UploadQueueProvider>
                   <Router>
                   <GlobalSearchProvider>
+                  {/* 🔥 Firebase Initializer - auto-initializes FCM when user is authenticated */}
+                  <FirebaseInitializer />
                   {/* 🚀 Global Upload Progress Indicator - shows at top during background uploads */}
                   <UploadProgressIndicator />
                   {/* 🔄 Update Notification - shows when new version is available */}
