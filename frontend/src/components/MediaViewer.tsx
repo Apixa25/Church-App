@@ -152,11 +152,23 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
       const newX = e.touches[0].clientX - lastDragPosition.x;
       const newY = e.touches[0].clientY - lastDragPosition.y;
       
-      // Constrain panning to image bounds
+      // Constrain panning to image bounds (adjusted for full-screen zoom)
       if (imageRef.current) {
         const img = imageRef.current;
-        const maxX = (img.offsetWidth * (scale - 1)) / 2;
-        const maxY = (img.offsetHeight * (scale - 1)) / 2;
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        // Get the natural image dimensions
+        const naturalWidth = img.naturalWidth || img.offsetWidth;
+        const naturalHeight = img.naturalHeight || img.offsetHeight;
+        
+        // Calculate the scaled dimensions
+        const scaledWidth = naturalWidth * scale;
+        const scaledHeight = naturalHeight * scale;
+        
+        // Calculate max pan distance (half the difference between scaled size and viewport)
+        const maxX = Math.max(0, (scaledWidth - viewportWidth) / 2);
+        const maxY = Math.max(0, (scaledHeight - viewportHeight) / 2);
         
         setPosition({
           x: Math.max(-maxX, Math.min(maxX, newX)),
@@ -239,13 +251,16 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
     WebkitUserSelect: 'none',
   };
 
+  // 🎯 When zoomed, allow image to break out of container constraints (Instagram/X behavior)
+  const isZoomed = scale > 1;
+
   const modalContent = (
     <div 
       className="media-viewer-overlay" 
       onClick={handleOverlayClick}
       style={{ display: isOpen ? 'flex' : 'none' }}
     >
-      <div className="media-viewer-container">
+      <div className={`media-viewer-container ${isZoomed ? 'media-viewer-zoomed' : ''}`}>
         {/* Media Content - Pinch to zoom, tap to close when not zoomed */}
         <div 
           className="media-viewer-content"
