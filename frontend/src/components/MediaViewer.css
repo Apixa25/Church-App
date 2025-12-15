@@ -12,7 +12,7 @@
   justify-content: center;
   z-index: 1000;
   animation: fadeIn 0.2s ease;
-  touch-action: none !important; /* Prevent browser default pinch zoom */
+  touch-action: none !important; /* Prevent browser default zoom */
   -ms-touch-action: none !important;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -32,7 +32,7 @@
   flex-direction: column;
   align-items: center;
   animation: scaleIn 0.2s ease;
-  touch-action: none; /* Prevent browser default pinch zoom */
+  touch-action: none; /* Prevent browser default zoom */
   -ms-touch-action: none;
 }
 
@@ -117,21 +117,10 @@
   justify-content: center;
   background: rgba(0, 0, 0, 0.8);
   border-radius: 8px;
-  overflow: visible; /* Changed to visible for Panzoom */
+  overflow: visible;
   transition: max-width 0.2s ease, max-height 0.2s ease, border-radius 0.2s ease, background 0.2s ease;
-  touch-action: none; /* Prevent browser default pinch zoom */
+  touch-action: none; /* Prevent browser default zoom */
   -ms-touch-action: none;
-}
-
-/* Panzoom handles zoom, so we just need to allow overflow when zoomed */
-.media-viewer-content {
-  overflow: visible !important;
-}
-
-/* When Panzoom is active, image can exceed bounds */
-.media-viewer-image {
-  max-width: none !important;
-  max-height: none !important;
 }
 
 .media-viewer-image,
@@ -145,9 +134,8 @@
   transition: opacity 0.3s ease;
 }
 
-/* 🎯 Pinch-to-zoom enhancements (industry standard) */
+/* Image display styles */
 .media-viewer-image {
-  touch-action: none;
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
