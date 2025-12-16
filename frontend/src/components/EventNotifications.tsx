@@ -48,7 +48,7 @@ const EventNotifications: React.FC = () => {
   };
 
   return (
-    <div className="event-notifications">
+    <div className={`event-notifications ${showNotifications ? 'expanded' : ''}`}>
       <button
         className={`notification-toggle ${unreadCount > 0 ? 'has-unread' : ''}`}
         onClick={() => {

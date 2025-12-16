@@ -115,7 +115,9 @@
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" logs describe-log-groups --query \"logGroups[?contains(logGroupName, ''''Church'''')].logGroupName\" --output text)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" logs describe-log-groups --log-group-name-prefix \"/aws/elasticbeanstalk/Church\" --query \"logGroups[].logGroupName\" --output text)",
       "Bash(jar:*)",
-      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 cp s3://thegathrd-app-frontend/config.js -)"
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 cp s3://thegathrd-app-frontend/config.js -)",
+      "Bash(npm start --prefix frontend)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
