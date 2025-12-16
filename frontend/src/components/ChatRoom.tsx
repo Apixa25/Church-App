@@ -52,14 +52,17 @@ const ChatRoom: React.FC = () => {
 
       // Subscribe to group messages
       const unsubMessages = webSocketService.subscribeToGroupMessages(groupId, (message: ChatMessage) => {
+        console.log('💬 ChatRoom received message via WebSocket:', message);
         setMessages(prev => {
           // Check if message already exists (avoid duplicates)
           if (prev.find(m => m.id === message.id || m.tempId === message.tempId)) {
+            console.log('🔄 Updating existing message:', message.id || message.tempId);
             // Update existing message (for edited messages)
-            return prev.map(m => 
+            return prev.map(m =>
               (m.id === message.id || m.tempId === message.tempId) ? message : m
             );
           }
+          console.log('✨ Adding new message to chat:', message.id || message.tempId);
           return [...prev, message];
         });
 
@@ -69,6 +72,7 @@ const ChatRoom: React.FC = () => {
 
       // Subscribe to typing indicators
       const unsubTyping = webSocketService.subscribeToTyping(groupId, (typing) => {
+        console.log('⌨️ Typing indicator received:', typing);
         if (typing.userId !== user?.email) {
           setTypingUsers(prev => {
             const newSet = new Set(prev);

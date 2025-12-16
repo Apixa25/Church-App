@@ -574,7 +574,9 @@ public class ChatService {
             
             // Also broadcast to /topic/events for consistency (frontend can filter)
             // This allows the existing subscription in useEventNotifications to work
+            System.out.println("📤 Sending chat notification to /topic/events: " + notificationEvent);
             messagingTemplate.convertAndSend("/topic/events", notificationEvent);
+            System.out.println("✅ Chat notification sent to /topic/events successfully");
 
             // Send Firebase push notifications to group members
             sendChatPushNotifications(chatGroup, message, sender, members);

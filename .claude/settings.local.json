@@ -117,7 +117,9 @@
       "Bash(jar:*)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 cp s3://thegathrd-app-frontend/config.js -)",
       "Bash(npm start --prefix frontend)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls s3://thegathrd-app-frontend/static/css/)",
+      "Bash(npx --package=typescript tsc:*)"
     ],
     "deny": [],
     "ask": []

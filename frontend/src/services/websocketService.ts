@@ -766,12 +766,15 @@ class WebSocketService {
     }
 
     const destination = '/topic/events';
+    console.log('🔔 Subscribing to /topic/events for event updates');
     const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      console.log('🔔 RAW WebSocket message received on /topic/events:', message.body);
       try {
         const data = JSON.parse(message.body);
+        console.log('🔔 Parsed event data:', data);
         callback(data);
       } catch (error) {
-        console.error('Error parsing event update:', error);
+        console.error('Error parsing event update:', error, 'Raw message:', message.body);
       }
     });
 
@@ -852,14 +855,14 @@ class WebSocketService {
     };
   }
 
-  // Subscribe to user's personal event notifications
-  subscribeToUserEventNotifications(callback: (notification: WebSocketMessage) => void): () => void {
+  // Subscribe to user's personal event notifications (EventUpdate type for events and chat notifications)
+  subscribeToUserEventNotifications(callback: (notification: EventUpdate) => void): () => void {
     if (!this.isConnected || !this.client) {
       throw new Error('WebSocket not connected');
     }
 
     const subscriptionKey = 'user-event-notifications';
-    
+
     // Clean up existing subscription if it exists
     const existingSubscription = this.subscriptions.get(subscriptionKey);
     if (existingSubscription) {
@@ -868,12 +871,15 @@ class WebSocketService {
     }
 
     const destination = '/user/queue/events';
+    console.log('🔔 Subscribing to /user/queue/events for user-specific event notifications');
     const subscription = this.client.subscribe(destination, (message: IMessage) => {
+      console.log('🔔 RAW WebSocket message received on /user/queue/events:', message.body);
       try {
         const data = JSON.parse(message.body);
+        console.log('🔔 Parsed user event notification:', data);
         callback(data);
       } catch (error) {
-        console.error('Error parsing event notification:', error);
+        console.error('Error parsing event notification:', error, 'Raw message:', message.body);
       }
     });
 

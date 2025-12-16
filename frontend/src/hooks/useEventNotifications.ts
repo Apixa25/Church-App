@@ -202,23 +202,32 @@ export const useEventNotifications = () => {
 
   // Handle event updates - filter by user's organizations
   const handleEventUpdate = useCallback((update: EventUpdate) => {
+    console.log('🔔 handleEventUpdate received:', update);
+
     if (!userRef.current) {
+      console.log('⚠️ No user in ref, ignoring update');
       return;
     }
 
     const eventType = update.eventType || '';
-    
+    console.log('🔔 Event type:', eventType);
+
     // Handle chat message notifications
     if (eventType === 'chat_message_received') {
+      console.log('💬 Processing chat_message_received notification:', update);
       // Don't notify users of their own messages
       if (update.senderId && update.senderId === userRef.current.userId) {
+        console.log('🚫 Ignoring own message (senderId matches userId)');
         return;
       }
-      
+
       // Don't notify if user's email matches sender (additional check)
       if (update.senderEmail && update.senderEmail === userRef.current.email) {
+        console.log('🚫 Ignoring own message (senderEmail matches user email)');
         return;
       }
+
+      console.log('✅ Creating chat notification for message from:', update.senderName);
 
       const notification: EventNotification = {
         id: `chat-${update.messageId || update.chatGroupId}-${Date.now()}`,
@@ -348,10 +357,12 @@ export const useEventNotifications = () => {
           }
         }
 
-        // Subscribe to event updates only (NO RSVP subscriptions)
-        eventUnsubscribe = await webSocketService.subscribeToEventUpdates(handleEventUpdate);
+        // Subscribe to user-specific event notifications (including chat messages)
+        // This subscribes to /user/queue/events which receives personalized notifications
+        eventUnsubscribe = webSocketService.subscribeToUserEventNotifications(handleEventUpdate);
 
         console.log('✅ Event notifications WebSocket subscriptions established');
+        console.log('🔔 Listening for user event notifications on /user/queue/events (including chat_message_received)');
       } catch (error) {
         console.error('❌ Failed to establish event notification subscriptions:', error);
         // Retry after a delay if connection failed
