@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { usePrayerNotifications, PrayerNotification } from '../hooks/usePrayerNotifications';
 import { formatRelativeDate } from '../utils/dateUtils';
@@ -54,8 +55,8 @@ const PrayerNotifications: React.FC = () => {
         )}
       </button>
 
-      {isExpanded && (
-        <div className="notification-dropdown">
+      {isExpanded && createPortal(
+        <div className="notification-dropdown prayer-dropdown">
           <div className="notification-header">
             <h4>Prayer Notifications</h4>
             <div className="notification-actions">
@@ -140,7 +141,8 @@ const PrayerNotifications: React.FC = () => {
               </button>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

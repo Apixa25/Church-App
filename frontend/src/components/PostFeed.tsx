@@ -517,12 +517,13 @@ const PostFeed: React.FC<PostFeedProps> = ({
       } catch (error) {
         console.error('❌ Failed to setup WebSocket subscriptions for PostFeed:', error);
         // Fall back to polling if WebSocket fails
+        // Use longer interval (2 minutes) to reduce server load
         const pollInterval = setInterval(() => {
           // Use ref to avoid dependency issues
           if (loadPostsRef.current) {
             loadPostsRef.current(false);
           }
-        }, 30000); // Poll every 30 seconds
+        }, 120000); // Poll every 2 minutes (only when WebSocket is down)
 
         return () => clearInterval(pollInterval);
       }
@@ -555,17 +556,25 @@ const PostFeed: React.FC<PostFeedProps> = ({
   }, []);
 
   // Check for new content periodically when at top
+  // 🎯 ONLY poll if WebSocket is NOT connected (WebSocket handles real-time updates)
   useEffect(() => {
     if (posts.length === 0) return;
+    
+    // If WebSocket is connected, don't poll - WebSocket handles real-time updates
+    if (isConnected) {
+      return;
+    }
 
+    // Only poll as fallback when WebSocket is disconnected
+    // Use longer interval (2 minutes) to reduce server load
     const interval = setInterval(() => {
       if (window.scrollY < 100) {
         checkForNewContent();
       }
-    }, 30000); // Check every 30 seconds
+    }, 120000); // Check every 2 minutes (only when WebSocket is down)
 
     return () => clearInterval(interval);
-  }, [posts, checkForNewContent]);
+  }, [posts, checkForNewContent, isConnected]);
 
   // 🎯 Pull-to-refresh handler - ONLY works when scrollY === 0
   useEffect(() => {

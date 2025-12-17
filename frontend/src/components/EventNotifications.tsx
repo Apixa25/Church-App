@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useEventNotifications, EventNotification } from '../hooks/useEventNotifications';
 import { formatRelativeDate } from '../utils/dateUtils';
@@ -65,8 +66,8 @@ const EventNotifications: React.FC = () => {
         )}
       </button>
 
-      {showNotifications && (
-        <div className="notification-dropdown">
+      {showNotifications && createPortal(
+        <div className="notification-dropdown event-dropdown">
           <div className="notification-header">
             <h3>Event & Chat Notifications</h3>
             <div className="notification-actions">
@@ -151,7 +152,8 @@ const EventNotifications: React.FC = () => {
               </button>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
