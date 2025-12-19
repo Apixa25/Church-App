@@ -25,6 +25,12 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick, onCameraClick, showC
     return null;
   }
 
+  // Hide bottom nav when in an active chat (e.g., /chats/:chatId)
+  const isInActiveChat = /^\/chats\/[^/]+$/.test(location.pathname);
+  if (isInActiveChat) {
+    return null;
+  }
+
   const isActive = (path: string | null) => {
     if (path === null) return false; // Post button doesn't have a path
     return location.pathname === path || location.pathname.startsWith(path);

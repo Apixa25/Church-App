@@ -13,6 +13,7 @@ interface ClickableAvatarProps {
   disabled?: boolean;
   className?: string;
   showConnectionStatus?: boolean; // Show WebSocket connection status indicator
+  style?: React.CSSProperties; // Inline styles support
 }
 
 const ClickableAvatar: React.FC<ClickableAvatarProps> = ({
@@ -24,6 +25,7 @@ const ClickableAvatar: React.FC<ClickableAvatarProps> = ({
   disabled = false,
   className = '',
   showConnectionStatus = false,
+  style,
 }) => {
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
@@ -86,6 +88,7 @@ const ClickableAvatar: React.FC<ClickableAvatarProps> = ({
       }}
       aria-label={isAnonymous ? 'Anonymous user' : `View ${userName}'s profile`}
       title={isAnonymous ? 'Anonymous' : userName}
+      style={style}
     >
       {imageSrc && !imageError ? (
         <img

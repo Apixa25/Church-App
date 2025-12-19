@@ -2334,6 +2334,7 @@
   transition: all var(--transition-base);
   gap: 16px;
   min-height: 76px;
+  position: relative;
 }
 
 .chat-item:hover {
@@ -2347,6 +2348,39 @@
   background: var(--bg-elevated);
   border: 2px solid var(--accent-primary);
   box-shadow: var(--glow-blue);
+}
+
+/* Chat Delete Button */
+.chat-delete-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-sm);
+  padding: 6px 10px;
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all var(--transition-base);
+  z-index: 10;
+  color: var(--error);
+}
+
+.chat-item:hover .chat-delete-btn {
+  opacity: 1;
+}
+
+.chat-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--error);
+  box-shadow: 0 0 8px var(--error-glow);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.chat-delete-btn:active {
+  transform: translateY(-50%) scale(0.95);
 }
 
 .chat-icon {
@@ -2632,6 +2666,14 @@
     width: 100%;
     justify-content: center;
   }
+
+  /* Mobile: Always show delete button on chat cards */
+  .chat-delete-btn {
+    opacity: 1;
+    font-size: 14px;
+    padding: 4px 8px;
+    right: 8px;
+  }
 }
 
 /* Chat Room Styles */
@@ -2642,10 +2684,10 @@
   background: var(--bg-primary);
 }
 
-/* 📱 Mobile: Account for bottom navigation bar */
+/* 📱 Mobile: Use full viewport (bottom nav is hidden in active chats) */
 @media (max-width: 768px) {
   .chat-room {
-    height: calc(100vh - 60px - env(safe-area-inset-bottom, 0px));
+    height: 100vh;
   }
 }
 
@@ -2759,7 +2801,7 @@
     gap: 6px;
   }
   
-  .members-button, .settings-button, .leave-button, .back-home-button {
+  .members-button, .settings-button, .leave-button, .back-home-button, .back-to-chats-button {
     padding: 5px 10px;
     font-size: 11px;
   }
@@ -2805,21 +2847,22 @@
   color: var(--text-primary);
 }
 
-/* Message Styles */
+/* Message Styles - FORCED LEFT/RIGHT ALIGNMENT */
 .message {
-  display: flex;
-  margin-bottom: 15px;
-  align-items: flex-end;
+  display: flex !important;
+  margin-bottom: 15px !important;
+  align-items: flex-end !important;
+  width: 100% !important;
 }
 
 .message.own-message {
-  justify-content: flex-end;
-  flex-direction: row;
+  justify-content: flex-end !important;
+  flex-direction: row !important;
 }
 
 .message.other-message {
-  justify-content: flex-start;
-  flex-direction: row;
+  justify-content: flex-start !important;
+  flex-direction: row !important;
 }
 
 .message.own-message .message-bubble {
@@ -2839,17 +2882,19 @@
 }
 
 .message-avatar {
-  flex-shrink: 0;
+  flex-shrink: 0 !important;
 }
 
 .message.other-message .message-avatar {
-  margin-right: 10px;
-  margin-left: 0;
+  margin-right: 10px !important;
+  margin-left: 0 !important;
+  order: 0 !important;
 }
 
 .message.own-message .message-avatar.own-avatar {
-  margin-left: 10px;
-  margin-right: 0;
+  margin-left: 10px !important;
+  margin-right: 0 !important;
+  order: 2 !important;
 }
 
 .message-avatar img, .avatar-placeholder {
@@ -2867,7 +2912,19 @@
 }
 
 .message-content {
-  max-width: 70%;
+  max-width: 70% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.message.own-message .message-content {
+  order: 1 !important;
+  align-items: flex-end !important;
+}
+
+.message.other-message .message-content {
+  order: 1 !important;
+  align-items: flex-start !important;
 }
 
 .message-header {
@@ -3293,6 +3350,27 @@
   background: var(--bg-secondary);
 }
 
+/* Emoji button on the left (next to paperclip) */
+.emoji-button-left {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  font-size: 20px;
+  padding: 5px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all var(--transition-fast);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emoji-button-left:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-glow);
+}
+
 .message-input-form {
   display: flex;
   align-items: flex-end;
@@ -3362,6 +3440,37 @@
 }
 
 .send-button:disabled {
+  background: var(--bg-secondary);
+  color: var(--text-disabled);
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Large blue send button - twice the size for better visibility */
+.send-button-large {
+  background: #5B7FFF; /* Blue color */
+  color: white;
+  border: none;
+  width: 56px; /* Twice the original 36px - increased for visibility */
+  height: 56px; /* Twice the original 36px */
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px; /* Twice the original 16px for larger arrow */
+  transition: all var(--transition-base);
+  box-shadow: 0 4px 12px rgba(91, 127, 255, 0.4);
+}
+
+.send-button-large:hover {
+  background: #4A6EEE; /* Darker blue on hover */
+  box-shadow: 0 0 20px rgba(91, 127, 255, 0.6);
+  transform: scale(1.08);
+}
+
+.send-button-large:disabled {
   background: var(--bg-secondary);
   color: var(--text-disabled);
   cursor: not-allowed;
@@ -3653,7 +3762,8 @@
 }
 
 /* Back Home Button Styles */
-.back-home-button {
+.back-home-button,
+.back-to-chats-button {
   background: var(--gradient-primary);
   color: white;
   border: none;
@@ -3670,12 +3780,14 @@
   box-shadow: 0 2px 8px var(--button-primary-glow);
 }
 
-.back-home-button:hover {
+.back-home-button:hover,
+.back-to-chats-button:hover {
   transform: translateY(-1px);
   box-shadow: var(--glow-blue);
 }
 
-.back-home-button:active {
+.back-home-button:active,
+.back-to-chats-button:active {
   transform: translateY(0);
 }
 
@@ -3730,7 +3842,8 @@
 }
 
 /* Chat Room Header Back Home Button */
-.chat-header .header-right .back-home-button {
+.chat-header .header-right .back-home-button,
+.chat-header .header-right .back-to-chats-button {
   margin-right: 10px;
 }
 
@@ -4079,7 +4192,8 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .back-home-button {
+  .back-home-button,
+  .back-to-chats-button {
     padding: 6px 12px;
     font-size: 12px;
   }
@@ -4124,8 +4238,8 @@
   }
 
   .chat-room {
-    /* 📱 Account for bottom navigation (60px + safe area) */
-    height: calc(100vh - 60px - env(safe-area-inset-bottom, 0px));
+    /* 📱 Full viewport height (bottom nav is hidden in active chats) */
+    height: 100vh;
   }
   
   .chat-content {

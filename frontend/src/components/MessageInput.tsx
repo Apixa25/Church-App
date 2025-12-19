@@ -224,6 +224,15 @@ const MessageInput: React.FC<MessageInputProps> = ({
           >
             📎
           </button>
+          <button
+            type="button"
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            className="emoji-button-left"
+            disabled={disabled || uploading}
+            title="Add emoji"
+          >
+            😊
+          </button>
           <input
             ref={fileInputRef}
             type="file"
@@ -248,17 +257,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
         <div className="input-actions-right">
           <button
-            type="button"
-            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className="emoji-button"
-            disabled={disabled || uploading}
-            title="Add emoji"
-          >
-            😊
-          </button>
-          <button
             type="submit"
-            className="send-button"
+            className="send-button-large"
             disabled={disabled || uploading || (!message.trim() && !selectedFile)}
             title="Send message"
           >

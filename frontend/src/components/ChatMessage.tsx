@@ -10,16 +10,15 @@ interface ChatMessageProps {
   onReply: (message: MessageType) => void;
 }
 
-const ChatMessage: React.FC<ChatMessageProps> = ({ 
-  message, 
-  currentUser, 
-  onEdit, 
-  onDelete, 
-  onReply 
+const ChatMessage: React.FC<ChatMessageProps> = ({
+  message,
+  currentUser,
+  onEdit,
+  onDelete,
+  onReply
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
-  const [showActions, setShowActions] = useState(false);
 
   const isOwnMessage = currentUser?.email === message.userId;
   const isSystemMessage = message.messageType === 'SYSTEM';
@@ -81,7 +80,17 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   }
 
   return (
-    <div className={`message ${isOwnMessage ? 'own-message' : 'other-message'}`}>
+    <div
+      className={`message ${isOwnMessage ? 'own-message' : 'other-message'}`}
+      style={{
+        display: 'flex',
+        alignItems: 'flex-end',
+        marginBottom: '15px',
+        justifyContent: isOwnMessage ? 'flex-end' : 'flex-start',
+        flexDirection: 'row',
+        width: '100%'
+      }}
+    >
       {!isOwnMessage && (
         <ClickableAvatar
           userId={message.userId}
@@ -89,10 +98,20 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           userName={message.userName}
           size="small"
           className="message-avatar"
+          style={{ order: 0, marginRight: '10px', marginLeft: 0, flexShrink: 0 }}
         />
       )}
 
-      <div className="message-content">
+      <div
+        className="message-content"
+        style={{
+          maxWidth: '70%',
+          display: 'flex',
+          flexDirection: 'column',
+          order: 1,
+          alignItems: isOwnMessage ? 'flex-end' : 'flex-start'
+        }}
+      >
         {!isOwnMessage && (
           <div className="message-header">
             <span className="message-author">{message.userDisplayName}</span>
@@ -101,11 +120,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           </div>
         )}
         
-        <div 
-          className="message-bubble"
-          onMouseEnter={() => setShowActions(true)}
-          onMouseLeave={() => setShowActions(false)}
-        >
+        <div className="message-bubble">
           {isEditing ? (
             <div className="edit-mode">
               <textarea
@@ -200,31 +215,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
               {message.isEdited && <span className="edited-indicator">(edited)</span>}
             </div>
           )}
-          
-          {showActions && !isEditing && (
-            <div className="message-actions">
-              <button onClick={() => onReply(message)} className="action-btn reply-btn">
-                💬
-              </button>
-              {message.canEdit && (
-                <button onClick={() => setIsEditing(true)} className="action-btn edit-btn">
-                  ✏️
-                </button>
-              )}
-              {message.canDelete && (
-                <button 
-                  onClick={() => {
-                    if (window.confirm('Delete this message?')) {
-                      onDelete(message.id);
-                    }
-                  }} 
-                  className="action-btn delete-btn"
-                >
-                  🗑️
-                </button>
-              )}
-            </div>
-          )}
         </div>
         
         {message.replyCount > 0 && (
@@ -241,6 +231,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           userName={message.userName}
           size="small"
           className="message-avatar own-avatar"
+          style={{ order: 2, marginLeft: '10px', marginRight: 0, flexShrink: 0 }}
         />
       )}
     </div>

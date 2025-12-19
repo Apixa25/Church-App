@@ -342,13 +342,13 @@ const ChatRoom: React.FC = () => {
           </div>
         </div>
         <div className="header-right">
-          <button 
-            onClick={() => navigate('/dashboard')} 
-            className="back-home-button"
+          <button
+            onClick={() => navigate('/chats')}
+            className="back-to-chats-button"
           >
-            🏠 Home
+            ← Back to Chats
           </button>
-          <button 
+          <button
             onClick={() => setShowMembers(!showMembers)}
             className={`members-button ${showMembers ? 'active' : ''}`}
           >
@@ -357,9 +357,12 @@ const ChatRoom: React.FC = () => {
           {group.canModerate && (
             <button className="settings-button">⚙️</button>
           )}
-          <button onClick={handleLeaveGroup} className="leave-button">
-            🚪 Leave
-          </button>
+          {/* Only show Leave button for non-DM groups */}
+          {group.type !== 'DIRECT_MESSAGE' && (
+            <button onClick={handleLeaveGroup} className="leave-button">
+              🚪 Leave
+            </button>
+          )}
         </div>
       </div>
 

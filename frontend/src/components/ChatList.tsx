@@ -73,6 +73,26 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
     }
   };
 
+  const handleDeleteChat = async (groupId: string, groupName: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent navigation to chat
+
+    if (!window.confirm(`Delete this conversation?\n\nThis will remove "${groupName}" from your chats.`)) {
+      return;
+    }
+
+    try {
+      await chatApi.leaveGroup(groupId);
+
+      // Remove from local state immediately for responsive UI
+      setGroups(prev => prev.filter(g => g.id !== groupId));
+
+      console.log(`Successfully deleted chat: ${groupName}`);
+    } catch (err) {
+      console.error('Error deleting chat:', err);
+      alert('Failed to delete conversation. Please try again.');
+    }
+  };
+
   const getGroupIcon = (type: string) => {
     const icons: Record<string, string> = {
       MAIN: '⛪',
@@ -337,6 +357,14 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
                       <span className="unread-count">{group.unreadCount}</span>
                     </div>
                   )}
+                  <button
+                    className="chat-delete-btn"
+                    onClick={(e) => handleDeleteChat(group.id, formatDirectMessageName(group), e)}
+                    title="Delete conversation"
+                    aria-label={`Delete ${formatDirectMessageName(group)}`}
+                  >
+                    🗑️
+                  </button>
                 </div>
               ))}
             </div>
