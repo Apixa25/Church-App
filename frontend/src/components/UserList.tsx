@@ -219,19 +219,6 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
                   {getOnlineStatus(user)}
                 </div>
               </div>
-              
-              <div className="user-actions">
-                <button 
-                  className="message-button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleUserClick(user);
-                  }}
-                  disabled={creatingDM === user.id}
-                >
-                  {creatingDM === user.id ? '⏳' : '💬'}
-                </button>
-              </div>
             </div>
           ))}
         </div>

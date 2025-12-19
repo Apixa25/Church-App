@@ -233,6 +233,16 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           </div>
         )}
       </div>
+
+      {isOwnMessage && (
+        <ClickableAvatar
+          userId={message.userId}
+          profilePicUrl={message.userProfilePicUrl}
+          userName={message.userName}
+          size="small"
+          className="message-avatar own-avatar"
+        />
+      )}
     </div>
   );
 };

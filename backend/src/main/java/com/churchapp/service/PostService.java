@@ -38,6 +38,7 @@ public class PostService {
     private final OEmbedService oEmbedService;
     private final MediaFileRepository mediaFileRepository;
     private final NotificationService notificationService;
+    private final UserGroupMembershipRepository userGroupMembershipRepository;
 
     @Transactional
     public Post createPost(String userEmail, String content, List<String> mediaUrls,
@@ -691,8 +692,8 @@ public class PostService {
             if (post.getGroup() != null) {
                 // Group post - notify group members
                 Group group = post.getGroup();
-                targetUsers = group.getMembers().stream()
-                    .map(GroupMember::getUser)
+                targetUsers = userGroupMembershipRepository.findByGroupId(group.getId()).stream()
+                    .map(UserGroupMembership::getUser)
                     .collect(java.util.stream.Collectors.toList());
                 notificationContext = "group: " + group.getName();
             } else if (post.getOrganization() != null) {
