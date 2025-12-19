@@ -126,7 +126,10 @@
       "Bash(call mvnw.cmd clean compile -q)",
       "Bash(javac:*)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 cp s3://thegathrd-app-frontend/index.html -)",
-      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront get-invalidation --distribution-id E2SM4EXV57KO8B --id I6D0EXLTKGNAERDHJ73RAK61ZB --query \"Invalidation.Status\" --output text)"
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront get-invalidation --distribution-id E2SM4EXV57KO8B --id I6D0EXLTKGNAERDHJ73RAK61ZB --query \"Invalidation.Status\" --output text)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls s3://thegathrd-app-frontend/static/css/ --human-readable)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls s3://thegathrd-app-frontend/static/js/ --human-readable)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront list-distributions --query \"DistributionList.Items[?contains(Origins.Items[0].DomainName, ''thegathrd'')].{ID:Id,Domain:DomainName}\" --output table)"
     ],
     "deny": [],
     "ask": []

@@ -2682,6 +2682,8 @@
   flex-direction: column;
   height: 100vh;
   background: var(--bg-primary);
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 /* 📱 Mobile: Use full viewport (bottom nav is hidden in active chats) */
@@ -2692,6 +2694,9 @@
 }
 
 .chat-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-primary);
   padding: 15px 20px;
@@ -2827,6 +2832,8 @@
   padding: 20px;
   background: var(--bg-primary);
   min-height: 0;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .load-more-button {
@@ -3163,6 +3170,9 @@
 
 /* Message Input Styles */
 .message-input-container {
+  position: sticky;
+  bottom: 0;
+  z-index: 100;
   background: var(--bg-secondary);
   border-top: 1px solid var(--border-primary);
   flex-shrink: 0;
@@ -3373,13 +3383,17 @@
 
 .message-input-form {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   padding: 15px;
   gap: 10px;
+  isolation: isolate;
 }
 
 .input-wrapper {
   flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
 }
 
 .message-textarea {
@@ -3387,7 +3401,7 @@
   min-height: 20px;
   max-height: 120px;
   border: 1px solid var(--border-primary);
-  border-radius: var(--border-radius-pill);
+  border-radius: 12px;
   padding: 10px 15px;
   resize: none;
   outline: none;
@@ -3396,12 +3410,21 @@
   background: var(--bg-tertiary);
   color: var(--text-primary);
   transition: all var(--transition-base);
+  box-sizing: border-box;
+  overflow-y: auto;
+  position: relative;
+  z-index: 10;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.message-textarea::-webkit-scrollbar {
+  display: none;
 }
 
 .message-textarea:focus {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.2),
-              0 0 20px var(--button-primary-glow);
+  box-shadow: 0 0 0 2px rgba(91, 127, 255, 0.3);
 }
 
 .file-button, .send-button {
@@ -3452,16 +3475,17 @@
   background: #5B7FFF; /* Blue color */
   color: white;
   border: none;
-  width: 56px; /* Twice the original 36px - increased for visibility */
-  height: 56px; /* Twice the original 36px */
+  width: 45px; /* Reduced by 20% from 56px */
+  height: 45px; /* Reduced by 20% from 56px */
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px; /* Twice the original 16px for larger arrow */
+  font-size: 26px; /* Reduced by 20% from 32px */
   transition: all var(--transition-base);
   box-shadow: 0 4px 12px rgba(91, 127, 255, 0.4);
+  flex-shrink: 0;
 }
 
 .send-button-large:hover {

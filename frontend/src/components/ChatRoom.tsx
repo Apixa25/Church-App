@@ -155,13 +155,22 @@ const ChatRoom: React.FC = () => {
     }
 
     loadChatRoom();
-    
+
     return () => {
       // Cleanup WebSocket subscriptions
       unsubscribeFunctions.current.forEach(unsub => unsub());
       unsubscribeFunctions.current = [];
     };
   }, [groupId, loadChatRoom, navigate]);
+
+  // Add body class when in chat room to prevent body scroll
+  useEffect(() => {
+    document.body.classList.add('in-chat-room');
+
+    return () => {
+      document.body.classList.remove('in-chat-room');
+    };
+  }, []);
 
   const loadMoreMessages = async () => {
     if (!groupId || !hasMoreMessages) return;
