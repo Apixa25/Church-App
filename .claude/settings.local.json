@@ -120,7 +120,9 @@
       "Bash(git checkout:*)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls s3://thegathrd-app-frontend/static/css/)",
       "Bash(npx --package=typescript tsc:*)",
-      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls s3://thegathrd-app-frontend/ --human-readable)"
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls s3://thegathrd-app-frontend/ --human-readable)",
+      "Bash(npx stylelint:*)",
+      "Bash(if not exist \"C:\\Users\\Admin\\.claude\\plans\" mkdir \"C:\\Users\\Admin\\.claude\\plans\")"
     ],
     "deny": [],
     "ask": []

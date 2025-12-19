@@ -149,7 +149,13 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick, onCameraClick, showC
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            className={`bottom-nav-tab ${tab.path && isActive(tab.path) ? 'active' : ''} ${tab.id === 'post' && showComposer ? 'active' : ''}`}
+            className={`bottom-nav-tab ${
+              tab.id === 'post' ? 'post-elevated' : ''
+            } ${
+              tab.path && isActive(tab.path) ? 'active' : ''
+            } ${
+              tab.id === 'post' && showComposer ? 'active' : ''
+            }`}
             onClick={tab.onClick}
             aria-label={tab.label}
           >

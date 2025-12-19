@@ -1,3 +1,22 @@
+/* ========================================
+   LIGHT BLUE COLOR SYSTEM FOR POST BUTTON
+   ======================================== */
+:root,
+[data-theme="dark"] {
+  --accent-post-blue: #5b7fff;
+  --accent-post-blue-light: #7b9fff;
+  --accent-post-blue-lighter: #9bb5ff;
+  --gradient-post-blue: linear-gradient(135deg, #9bb5ff 0%, #7b9fff 50%, #5b7fff 100%);
+  --glow-post-blue:
+    0 0 20px rgba(91, 127, 255, 0.6),
+    0 0 40px rgba(91, 127, 255, 0.4),
+    0 0 60px rgba(91, 127, 255, 0.2);
+  --glow-post-blue-intense:
+    0 0 30px rgba(91, 127, 255, 0.8),
+    0 0 60px rgba(91, 127, 255, 0.5),
+    0 0 90px rgba(91, 127, 255, 0.3);
+}
+
 .bottom-nav {
   display: none;
   position: fixed;
@@ -89,6 +108,91 @@
   letter-spacing: 0.5px;
 }
 
+/* ========================================
+   QUARTER-CIRCLE ELEVATED POST BUTTON
+   ======================================== */
+.bottom-nav-tab.post-elevated {
+  /* Escape grid layout */
+  position: absolute;
+  right: 0;
+  bottom: 0;
+
+  /* 2x size quarter-circle (reduced by 20%: 120px -> 96px) */
+  width: 96px;
+  height: 96px;
+  border-radius: 96px 0 0 0; /* Top-left corner only */
+
+  /* Light blue gradient */
+  background: var(--gradient-post-blue);
+
+  /* Layering */
+  z-index: 1001;
+
+  /* Shadow for depth (no glow) */
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+
+  /* Smooth transitions */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Center content in quarter-circle */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 20px 40px 40px;
+
+  /* Remove from grid */
+  grid-column: unset;
+  grid-row: unset;
+
+  /* Continuous pulse */
+  animation: postButtonPulse 1.5s ease-in-out infinite;
+}
+
+/* Larger icon for elevated button */
+.bottom-nav-tab.post-elevated .bottom-nav-icon {
+  font-size: 36px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  transform: translateY(10px); /* Move emoji down 10px to center better */
+}
+
+/* Enhanced label */
+.bottom-nav-tab.post-elevated .bottom-nav-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  transform: translateY(8px); /* Move label down from under emoji */
+}
+
+/* Active state (composer open) */
+.bottom-nav-tab.post-elevated.active {
+  background: var(--gradient-post-blue);
+  box-shadow: 0 -6px 30px rgba(0, 0, 0, 0.4);
+  animation: postButtonPulseActive 2s ease-in-out infinite;
+}
+
+/* Remove default active indicator */
+.bottom-nav-tab.post-elevated.active::before {
+  display: none;
+}
+
+/* Hover (desktop) */
+@media (hover: hover) {
+  .bottom-nav-tab.post-elevated:hover {
+    box-shadow: 0 -6px 30px rgba(0, 0, 0, 0.4);
+    transform: translateY(-2px) scale(1.02);
+  }
+}
+
+/* Press animation */
+.bottom-nav-tab.post-elevated:active {
+  animation: postButtonPress 0.3s ease-out;
+  transform: scale(0.95);
+}
+
 .bottom-nav-safe-area {
   height: env(safe-area-inset-bottom, 0px);
   background: var(--bg-tertiary);
@@ -98,5 +202,84 @@
 @media (max-width: 768px) {
   .dashboard-container {
     padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+/* Subtle continuous pulse */
+@keyframes postButtonPulse {
+  0%, 100% {
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 -6px 28px rgba(0, 0, 0, 0.35);
+    transform: scale(1.03);
+  }
+}
+
+/* Active state pulse (when composer open) */
+@keyframes postButtonPulseActive {
+  0%, 100% {
+    box-shadow: 0 -6px 30px rgba(0, 0, 0, 0.4);
+    transform: scale(1.02);
+  }
+  50% {
+    box-shadow: 0 -8px 35px rgba(0, 0, 0, 0.45);
+    transform: scale(1.04);
+  }
+}
+
+/* Button press bounce */
+@keyframes postButtonPress {
+  0% { transform: scale(1); }
+  50% {
+    transform: scale(0.92);
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.3);
+  }
+  100% { transform: scale(0.95); }
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 480px) {
+  .bottom-nav-tab.post-elevated {
+    width: 80px;
+    height: 80px;
+    border-radius: 80px 0 0 0;
+    padding: 14px 14px 28px 28px;
+  }
+
+  .bottom-nav-tab.post-elevated .bottom-nav-icon {
+    font-size: 28px;
+  }
+
+  .bottom-nav-tab.post-elevated .bottom-nav-label {
+    font-size: 9px;
+  }
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .bottom-nav-tab.post-elevated {
+    animation: none !important;
+  }
+  .bottom-nav-tab.post-elevated:active {
+    animation: none !important;
+    transform: scale(0.98);
+  }
+}
+
+@media (prefers-contrast: high) {
+  .bottom-nav-tab.post-elevated {
+    border: 3px solid rgba(0, 0, 0, 0.8);
   }
 }

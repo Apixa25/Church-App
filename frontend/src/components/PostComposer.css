@@ -94,7 +94,7 @@
   width: 100%;
   padding: 10px 12px;
   background: var(--bg-secondary);
-  border: 2px solid var(--border-primary);
+  border: 2px solid var(--accent-primary);
   border-radius: var(--border-radius-md);
   font-family: inherit;
   font-size: 16px;
@@ -103,6 +103,7 @@
   min-height: 80px;
   transition: all var(--transition-base);
   color: var(--text-primary);
+  box-shadow: 0 0 6px var(--button-primary-glow);
 }
 
 .composer-textarea:focus {
@@ -236,19 +237,26 @@
   cursor: not-allowed;
 }
 
-/* Media and Camera buttons - larger emoji */
+/* Media and Camera buttons - larger emoji with blue ring */
 .toolbar-button.media-button,
 .toolbar-button.camera-button {
   font-size: 24px;
   padding: 6px 12px;
+  border: 2px solid var(--accent-primary);
+  background: var(--bg-secondary);
+  box-shadow: 0 0 6px var(--button-primary-glow);
 }
 
-/* More Options button */
+/* More Options button - match organization selector style */
 .toolbar-button.more-options-button {
   font-size: 13px;
-  padding: 6px 12px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
+  padding: 7px 16px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--accent-primary);
+  border-radius: var(--border-radius-pill);
+  font-weight: 600;
+  box-shadow: 0 0 6px var(--button-primary-glow);
+  min-height: 32px;
 }
 
 .toolbar-button.more-options-button:hover:not(:disabled) {
@@ -500,11 +508,12 @@
   cursor: not-allowed;
 }
 
-.submit-button {
+button.submit-button,
+button[type="submit"].submit-button {
   padding: 8px 20px;
   border: none;
-  background: var(--gradient-primary);
-  color: white;
+  background: linear-gradient(135deg, #9bb5ff 0%, #7b9fff 50%, #5b7fff 100%) !important;
+  color: #ffffff !important;
   border-radius: var(--border-radius-pill);
   font-size: 14px;
   font-weight: 600;
@@ -512,14 +521,19 @@
   transition: all var(--transition-base);
   min-width: 70px;
   box-shadow: 0 2px 8px var(--button-primary-glow);
+  text-shadow: none !important;
+  opacity: 1 !important;
 }
 
-.submit-button:hover:not(:disabled) {
+button.submit-button:hover:not(:disabled),
+button[type="submit"].submit-button:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: var(--glow-blue);
+  color: #ffffff !important;
 }
 
-.submit-button:disabled {
+button.submit-button:disabled,
+button[type="submit"].submit-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;

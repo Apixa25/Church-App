@@ -107,6 +107,9 @@
   /* Legacy color mappings for gradual migration */
   --gradient-primary: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
   --gradient-secondary: linear-gradient(135deg, var(--accent-secondary) 0%, var(--accent-tertiary) 100%);
+
+  /* Light blue gradient for POST buttons */
+  --gradient-post-blue: linear-gradient(135deg, #9bb5ff 0%, #7b9fff 50%, #5b7fff 100%);
 }
 
 /* ========================================
