@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChatMessage as MessageType } from '../services/chatApi';
 import ClickableAvatar from './ClickableAvatar';
+import MediaViewer from './MediaViewer';
 
 interface ChatMessageProps {
   message: MessageType;
@@ -19,15 +20,17 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
+  const [showMediaViewer, setShowMediaViewer] = useState(false);
 
-  const isOwnMessage = currentUser?.email === message.userId;
+  // Use userId (not id) from currentUser to match message.userId
+  const isOwnMessage = currentUser?.userId === message.userId;
   const isSystemMessage = message.messageType === 'SYSTEM';
-  
+
   const formatTime = (timestamp: string) => {
     try {
       // Handle different timestamp formats that might come from backend
       let date: Date;
-      
+
       if (Array.isArray(timestamp)) {
         // Handle array format [year, month, day, hour, minute, second, nanosecond]
         const [year, month, day, hour = 0, minute = 0, second = 0] = timestamp as number[];
@@ -36,18 +39,24 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         // Handle string format (ISO-8601 or other)
         date = new Date(timestamp);
       }
-      
+
       // Validate the date
       if (isNaN(date.getTime())) {
         console.warn('Invalid timestamp format:', timestamp);
         return 'Invalid date';
       }
-      
+
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } catch (error) {
       console.error('Error formatting timestamp:', timestamp, error);
       return 'Invalid date';
     }
+  };
+
+  const handleImageClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setShowMediaViewer(true);
   };
 
   const handleEdit = () => {
@@ -112,13 +121,12 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           alignItems: isOwnMessage ? 'flex-end' : 'flex-start'
         }}
       >
-        {!isOwnMessage && (
-          <div className="message-header">
-            <span className="message-author">{message.userDisplayName}</span>
-            <span className="message-time">{formatTime(message.timestamp)}</span>
-            {message.isEdited && <span className="edited-indicator">(edited)</span>}
-          </div>
-        )}
+        {/* Always show header for all messages (both own and others) */}
+        <div className="message-header">
+          <span className="message-author">{message.userDisplayName}</span>
+          <span className="message-time">{formatTime(message.timestamp)}</span>
+          {message.isEdited && <span className="edited-indicator">(edited)</span>}
+        </div>
         
         <div className="message-bubble">
           {isEditing ? (
@@ -150,34 +158,40 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
               
               {message.messageType === 'IMAGE' && message.mediaUrl && (
                 <div className="media-content">
-                  <img 
-                    src={message.mediaUrl} 
-                    alt={message.content || "Shared image"} 
-                    className="message-image"
-                    onError={(e) => {
-                      console.error('Failed to load image:', message.mediaUrl);
-                      const target = e.currentTarget as HTMLImageElement;
-                      target.style.display = 'none';
-                      // Show fallback text
-                      const fallback = document.createElement('div');
-                      fallback.className = 'image-error-fallback';
-                      fallback.innerHTML = `<span>🖼️ Image failed to load</span><br><small>${message.mediaFilename || 'Unknown file'}</small>`;
-                      target.parentNode?.appendChild(fallback);
+                  <div
+                    className="clickable-image-wrapper"
+                    onClick={handleImageClick}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleImageClick(e as any);
+                      }
                     }}
-                  />
+                    aria-label="View full image"
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <img
+                      src={message.mediaUrl}
+                      alt={message.content || "Shared image"}
+                      className="message-image"
+                      onError={(e) => {
+                        console.error('Failed to load image:', message.mediaUrl);
+                        const target = e.currentTarget as HTMLImageElement;
+                        target.style.display = 'none';
+                        // Show fallback text
+                        const fallback = document.createElement('div');
+                        fallback.className = 'image-error-fallback';
+                        fallback.innerHTML = `<span>🖼️ Image failed to load</span><br><small>${message.mediaFilename || 'Unknown file'}</small>`;
+                        target.parentNode?.appendChild(fallback);
+                      }}
+                    />
+                  </div>
                   {message.content && <p className="media-caption">{message.content}</p>}
                 </div>
               )}
-              
-              {message.messageType === 'VIDEO' && message.mediaUrl && (
-                <div className="media-content">
-                  <video controls playsInline crossOrigin="anonymous" className="message-video">
-                    <source src={message.mediaUrl} type={message.mediaType} />
-                  </video>
-                  {message.content && <p className="media-caption">{message.content}</p>}
-                </div>
-              )}
-              
+
               {message.messageType === 'AUDIO' && message.mediaUrl && (
                 <div className="media-content">
                   <audio controls className="message-audio">
@@ -208,13 +222,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
               )}
             </>
           )}
-          
-          {isOwnMessage && (
-            <div className="own-message-footer">
-              <span className="message-time">{formatTime(message.timestamp)}</span>
-              {message.isEdited && <span className="edited-indicator">(edited)</span>}
-            </div>
-          )}
         </div>
         
         {message.replyCount > 0 && (
@@ -232,6 +239,17 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           size="small"
           className="message-avatar own-avatar"
           style={{ order: 2, marginLeft: '10px', marginRight: 0, flexShrink: 0 }}
+        />
+      )}
+
+      {/* MediaViewer for full-screen image viewing */}
+      {message.messageType === 'IMAGE' && message.mediaUrl && (
+        <MediaViewer
+          mediaUrls={[message.mediaUrl]}
+          mediaTypes={[message.mediaType || 'image/jpeg']}
+          isOpen={showMediaViewer}
+          onClose={() => setShowMediaViewer(false)}
+          initialIndex={0}
         />
       )}
     </div>

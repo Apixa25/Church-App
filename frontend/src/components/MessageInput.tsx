@@ -84,16 +84,16 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Check file size (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        alert('File size must be less than 10MB');
+      // Check file size (max 50MB)
+      if (file.size > 50 * 1024 * 1024) {
+        alert('File size must be less than 50MB');
         return;
       }
       
       // Check file type
       const allowedTypes = [
         'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-        'video/mp4', 'video/webm',
+        // Videos removed - use posts for video sharing
         'audio/mp3', 'audio/wav', 'audio/ogg',
         'application/pdf', 'text/plain',
         'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -238,7 +238,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             type="file"
             onChange={handleFileSelect}
             style={{ display: 'none' }}
-            accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
+            accept="image/*,audio/*,.pdf,.doc,.docx,.txt"
           />
         </div>
 

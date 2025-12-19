@@ -124,7 +124,9 @@
       "Bash(npx stylelint:*)",
       "Bash(if not exist \"C:\\Users\\Admin\\.claude\\plans\" mkdir \"C:\\Users\\Admin\\.claude\\plans\")",
       "Bash(call mvnw.cmd clean compile -q)",
-      "Bash(javac:*)"
+      "Bash(javac:*)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 cp s3://thegathrd-app-frontend/index.html -)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront get-invalidation --distribution-id E2SM4EXV57KO8B --id I6D0EXLTKGNAERDHJ73RAK61ZB --query \"Invalidation.Status\" --output text)"
     ],
     "deny": [],
     "ask": []
