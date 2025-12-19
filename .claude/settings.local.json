@@ -122,7 +122,9 @@
       "Bash(npx --package=typescript tsc:*)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls s3://thegathrd-app-frontend/ --human-readable)",
       "Bash(npx stylelint:*)",
-      "Bash(if not exist \"C:\\Users\\Admin\\.claude\\plans\" mkdir \"C:\\Users\\Admin\\.claude\\plans\")"
+      "Bash(if not exist \"C:\\Users\\Admin\\.claude\\plans\" mkdir \"C:\\Users\\Admin\\.claude\\plans\")",
+      "Bash(call mvnw.cmd clean compile -q)",
+      "Bash(javac:*)"
     ],
     "deny": [],
     "ask": []

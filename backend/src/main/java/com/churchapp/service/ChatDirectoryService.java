@@ -28,16 +28,28 @@ public class ChatDirectoryService {
         return userRepository.findOrgMembersForDm(requesterPrimaryOrgId, requesterId, q, pageable);
     }
 
+    /**
+     * Get DM candidates from user's church primary AND family primary organizations.
+     * Returns combined list from BOTH organizations, enabling the Directory feature
+     * to show all relevant contacts across church and family contexts.
+     */
     public Page<User> getDmCandidatesForUser(UUID requesterId,
                                              String query,
                                              Pageable pageable) {
-        // Use church primary org for DM candidate lookup
-        UUID primaryOrgId = userRepository.findChurchPrimaryOrgIdByUserId(requesterId);
-        if (primaryOrgId == null) {
+        // Fetch BOTH organization IDs
+        UUID churchOrgId = userRepository.findChurchPrimaryOrgIdByUserId(requesterId);
+        UUID familyOrgId = userRepository.findFamilyPrimaryOrgIdByUserId(requesterId);
+
+        // If user has no primary organizations, return empty
+        if (churchOrgId == null && familyOrgId == null) {
             return Page.empty(pageable);
         }
+
+        // Prepare search query with wildcard
         String qLike = (query == null || query.isBlank()) ? null : ("%" + query.toLowerCase() + "%");
-        return userRepository.findOrgMembersForDm(primaryOrgId, requesterId, qLike, pageable);
+
+        // Single query fetching from both organizations
+        return userRepository.findDirectoryMembers(churchOrgId, familyOrgId, requesterId, qLike, pageable);
     }
 }
 

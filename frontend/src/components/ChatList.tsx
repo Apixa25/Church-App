@@ -25,7 +25,7 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Removed showJoinable state as we now use activeView for navigation
-  const [activeView, setActiveView] = useState<'myChats' | 'joinGroups' | 'directMessages' | 'createGroup'>('myChats');
+  const [activeView, setActiveView] = useState<'myChats' | 'joinGroups' | 'directory' | 'createGroup'>('myChats');
   const { allMemberships, loading: organizationLoading } = useOrganization();
   const { user } = useAuth();
   const hasAnyOrganization = allMemberships.length > 0;
@@ -185,11 +185,11 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
           >
             👥 My Chats
           </button>
-          <button 
-            onClick={() => setActiveView('directMessages')}
-            className={`nav-btn ${activeView === 'directMessages' ? 'active' : ''}`}
+          <button
+            onClick={() => setActiveView('directory')}
+            className={`nav-btn ${activeView === 'directory' ? 'active' : ''}`}
           >
-            💬 Direct Messages
+            📖 Directory
           </button>
           <button 
             onClick={() => setActiveView('joinGroups')}
@@ -264,7 +264,7 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
             </div>
           )}
         </div>
-      ) : activeView === 'directMessages' ? (
+      ) : activeView === 'directory' ? (
         <UserList />
       ) : activeView === 'createGroup' ? (
         <CreateGroup 

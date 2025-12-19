@@ -81,7 +81,7 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
       setPage((reset ? 0 : page) + 1);
 
     } catch (err) {
-      setError('Failed to load church members');
+      setError('Failed to load directory members');
       console.error('Error loading users:', err);
     } finally {
       setLoading(false);
@@ -158,12 +158,12 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
   return (
     <div className="user-list">
       <div className="user-list-header">
-        <h3>Direct Messages</h3>
+        <h3>Directory</h3>
         <p>Use search to find someone.</p>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
           <input
             type="text"
-            placeholder="Search church members…"
+            placeholder="Search members"
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);

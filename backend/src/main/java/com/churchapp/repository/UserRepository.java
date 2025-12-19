@@ -113,9 +113,37 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
 
     @Query("SELECT u.churchPrimaryOrganization.id FROM User u WHERE u.id = :userId")
     UUID findChurchPrimaryOrgIdByUserId(@Param("userId") UUID userId);
-    
+
     @Query("SELECT u.familyPrimaryOrganization.id FROM User u WHERE u.id = :userId")
     UUID findFamilyPrimaryOrgIdByUserId(@Param("userId") UUID userId);
+
+    /**
+     * Find all users who share either church or family primary organization with the requester.
+     * Handles all permutations: church-to-church, family-to-family, and cross-org matches.
+     * This enables the Directory feature to show members from BOTH church and family organizations.
+     */
+    @Query("""
+        SELECT DISTINCT u
+        FROM User u
+        WHERE u.id <> :excludeUserId
+          AND (
+               (u.churchPrimaryOrganization.id = :churchOrgId AND :churchOrgId IS NOT NULL)
+            OR (u.familyPrimaryOrganization.id = :churchOrgId AND :churchOrgId IS NOT NULL)
+            OR (u.churchPrimaryOrganization.id = :familyOrgId AND :familyOrgId IS NOT NULL)
+            OR (u.familyPrimaryOrganization.id = :familyOrgId AND :familyOrgId IS NOT NULL)
+          )
+          AND (
+               :qLike IS NULL
+            OR LOWER(u.name) LIKE :qLike
+            OR LOWER(u.email) LIKE :qLike
+          )
+        ORDER BY u.name ASC
+        """)
+    Page<User> findDirectoryMembers(@Param("churchOrgId") UUID churchOrgId,
+                                    @Param("familyOrgId") UUID familyOrgId,
+                                    @Param("excludeUserId") UUID excludeUserId,
+                                    @Param("qLike") String qLike,
+                                    Pageable pageable);
 
     // Update users' church primary organization to Global when their org is deleted
     @Modifying(clearAutomatically = true, flushAutomatically = true)
