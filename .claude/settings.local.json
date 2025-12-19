@@ -129,7 +129,15 @@
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront get-invalidation --distribution-id E2SM4EXV57KO8B --id I6D0EXLTKGNAERDHJ73RAK61ZB --query \"Invalidation.Status\" --output text)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls s3://thegathrd-app-frontend/static/css/ --human-readable)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls s3://thegathrd-app-frontend/static/js/ --human-readable)",
-      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront list-distributions --query \"DistributionList.Items[?contains(Origins.Items[0].DomainName, ''thegathrd'')].{ID:Id,Domain:DomainName}\" --output table)"
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront list-distributions --query \"DistributionList.Items[?contains(Origins.Items[0].DomainName, ''thegathrd'')].{ID:Id,Domain:DomainName}\" --output table)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 sync frontend/build/ s3://thegathrd-app-frontend/ --delete)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 sync frontend/build/static/css/ s3://thegathrd-app-frontend/static/css/ --delete --cache-control \"public, max-age=31536000, immutable\")",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 sync frontend/build/static/ s3://thegathrd-app-frontend/static/ --delete)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 sync frontend/build/ s3://thegathrd-app-frontend/ --exclude \"*.html\" --exclude \"service-worker.js\" --exclude \"manifest.json\" --delete)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 cp frontend/build/index.html s3://thegathrd-app-frontend/ --cache-control \"public, max-age=0, must-revalidate\")",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 cp frontend/build/manifest.json s3://thegathrd-app-frontend/ --cache-control \"public, max-age=0, must-revalidate\")",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk create-application-version --application-name Church-app-backend --version-label v1-directory-fix-20251219 --source-bundle S3Bucket=\"elasticbeanstalk-us-west-2-060163370478\",S3Key=\"backend-directory-fix.jar\" --description \"Directory feature now shows users from BOTH church and family organizations\")",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk update-environment --environment-name Church-app-backend-prod --version-label v1-directory-fix-20251219)"
     ],
     "deny": [],
     "ask": []
