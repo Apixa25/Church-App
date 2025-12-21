@@ -816,3 +816,20 @@
     font-size: 13px;
   }
 }
+
+/* Highlighted Comment Animation (for navigation from notifications) */
+.highlighted-comment {
+  background: #fffbea !important;
+  border-left: 3px solid #f59e0b !important;
+  animation: pulse-highlight 0.5s ease-in-out 3;
+  transition: background 0.3s ease, border-left 0.3s ease;
+}
+
+@keyframes pulse-highlight {
+  0%, 100% {
+    background: #fffbea;
+  }
+  50% {
+    background: #fef3c7;
+  }
+}

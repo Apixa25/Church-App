@@ -70,6 +70,7 @@ export interface Post {
   commentsCount: number;
   sharesCount: number;
   bookmarksCount: number;
+  viewsCount?: number;
 
   // Social media embed fields
   externalUrl?: string;         // Original URL of the shared social media content

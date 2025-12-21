@@ -667,8 +667,37 @@
   color: var(--warning);
 }
 
+.comment-button {
+  position: relative;
+}
+
 .comment-button:hover {
   background: none !important;
+}
+
+.new-comments-badge {
+  position: absolute;
+  top: -4px;
+  right: -8px;
+  background: #f59e0b;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 5px;
+  border-radius: 10px;
+  min-width: 16px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  animation: pulse-badge 0.5s ease-in-out 3;
+}
+
+@keyframes pulse-badge {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 .share-button {
@@ -680,6 +709,20 @@
 .share-button:hover {
   background: none !important;
   box-shadow: none !important;
+}
+
+/* Post Views */
+.post-views {
+  margin-top: 8px;
+  padding: 0 16px;
+}
+
+.views-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* Comment Form */

@@ -228,6 +228,7 @@ const CommentThread: React.FC<CommentThreadProps> = ({
     return (
       <div
         key={comment.id}
+        id={`comment-${comment.id}`}
         className={`thing comment ${depthClass} ${isCollapsed ? 'collapsed' : ''}`}
         data-id={`t1_${comment.id}`}
         data-depth={depth}

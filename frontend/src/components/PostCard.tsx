@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback, memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Post, PostType, Comment, SharePostRequest } from '../types/Post';
-import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost, deletePost, recordPostView, blockUser, unblockUser, getBlockStatus, followUser, unfollowUser, getFollowStatus, reportContent } from '../services/postApi';
+import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost, deletePost, recordPostView, blockUser, unblockUser, getBlockStatus, followUser, unfollowUser, getFollowStatus, reportContent, getNewCommentCount, markCommentsAsRead } from '../services/postApi';
 import CommentThread from './CommentThread';
 import { formatRelativeDate } from '../utils/dateUtils';
 import { useAuth } from '../contexts/AuthContext';
@@ -42,6 +42,8 @@ const PostCard: React.FC<PostCardProps> = ({
   const [likesCount, setLikesCount] = useState(post.likesCount);
   const [commentsCount, setCommentsCount] = useState(post.commentsCount);
   const [sharesCount, setSharesCount] = useState(post.sharesCount);
+  const [viewsCount, setViewsCount] = useState(post.viewsCount || 0);
+  const [newCommentsCount, setNewCommentsCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [showCommentForm, setShowCommentForm] = useState(false);
   const [showCommentThread, setShowCommentThread] = useState(false);
@@ -127,6 +129,8 @@ const PostCard: React.FC<PostCardProps> = ({
     const recordView = async () => {
       try {
         await recordPostView(post.id);
+        // Increment local view count optimistically
+        setViewsCount(prev => prev + 1);
       } catch (err) {
         // Silently fail - don't show error for analytics
         console.debug('Error recording post view:', err);
@@ -134,6 +138,22 @@ const PostCard: React.FC<PostCardProps> = ({
     };
     recordView();
   }, [post.id]);
+
+  // Fetch new comment count when post is displayed
+  useEffect(() => {
+    const fetchNewCommentCount = async () => {
+      if (!user) return; // Only show for logged-in users
+
+      try {
+        const count = await getNewCommentCount(post.id);
+        setNewCommentsCount(count);
+      } catch (err) {
+        // Silently fail - don't show error for analytics
+        console.debug('Error fetching new comment count:', err);
+      }
+    };
+    fetchNewCommentCount();
+  }, [post.id, user]);
 
   // Check block/follow status when post changes
   useEffect(() => {
@@ -153,6 +173,34 @@ const PostCard: React.FC<PostCardProps> = ({
     };
     checkStatus();
   }, [post.userId, user]);
+
+  // Handle comment highlighting from URL hash
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.startsWith('#comment-')) {
+      const commentId = hash.replace('#comment-', '');
+
+      // Open comment thread
+      setShowCommentThread(true);
+
+      // Wait for DOM to update, then scroll and highlight
+      setTimeout(() => {
+        const commentElement = document.getElementById(`comment-${commentId}`);
+        if (commentElement) {
+          // Scroll to comment
+          commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+          // Add highlight class
+          commentElement.classList.add('highlighted-comment');
+
+          // Remove highlight after 3 seconds
+          setTimeout(() => {
+            commentElement.classList.remove('highlighted-comment');
+          }, 3000);
+        }
+      }, 500); // Wait for comment thread to render
+    }
+  }, [location]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -986,10 +1034,26 @@ const PostCard: React.FC<PostCardProps> = ({
 
         <button
           className="action-button comment-button"
-          onClick={() => setShowCommentThread(!showCommentThread)}
+          onClick={async () => {
+            const newState = !showCommentThread;
+            setShowCommentThread(newState);
+
+            // Mark comments as read when opening the thread
+            if (newState && newCommentsCount > 0) {
+              try {
+                await markCommentsAsRead(post.id);
+                setNewCommentsCount(0);
+              } catch (err) {
+                console.debug('Error marking comments as read:', err);
+              }
+            }
+          }}
           aria-label="View comments"
         >
           💬 {commentsCount > 0 && commentsCount}
+          {newCommentsCount > 0 && (
+            <span className="new-comments-badge">+{newCommentsCount}</span>
+          )}
         </button>
 
         <button
@@ -1009,6 +1073,18 @@ const PostCard: React.FC<PostCardProps> = ({
           🔄 {sharesCount > 0 && sharesCount}
         </button>
       </div>
+
+      {/* View Count */}
+      {viewsCount > 0 && (
+        <div className="post-views">
+          <span className="views-count">
+            👁️ {viewsCount >= 1000
+              ? `${(viewsCount / 1000).toFixed(1)}k`
+              : viewsCount
+            } {viewsCount === 1 ? 'view' : 'views'}
+          </span>
+        </div>
+      )}
 
       {/* Comment Thread */}
       {showCommentThread && (

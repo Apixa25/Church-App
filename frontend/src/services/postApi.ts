@@ -678,6 +678,16 @@ export const getPostAnalytics = async (postId: string): Promise<any> => {
   return response.data;
 };
 
+// Comment Read Status
+export const getNewCommentCount = async (postId: string): Promise<number> => {
+  const response = await api.get(`/posts/${postId}/new-comments-count`);
+  return response.data;
+};
+
+export const markCommentsAsRead = async (postId: string): Promise<void> => {
+  await api.post(`/posts/${postId}/mark-comments-read`);
+};
+
 // ========== ADMIN & MODERATION OPERATIONS ==========
 
 export interface ReportedContent {

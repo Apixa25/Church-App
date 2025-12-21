@@ -5,6 +5,7 @@ import { getUserProfile, getUserPosts, getBookmarkedPosts, followUser, unfollowU
 import { profileAPI } from '../services/api';
 import FollowersList from './FollowersList';
 import FollowingList from './FollowingList';
+import RepliesList from './RepliesList';
 import { useAuth, User } from '../contexts/AuthContext';
 import PostCard from './PostCard';
 import { parseEventDate } from '../utils/dateUtils';
@@ -28,7 +29,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(false);
   const [error, setError] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'posts' | 'about' | 'activity' | 'bookmarks'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'about' | 'activity' | 'bookmarks' | 'replies'>('posts');
   const [page, setPage] = useState(0);
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -473,6 +474,12 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
           📝 Posts ({profileUser.postsCount || 0})
         </button>
         <button
+          className={`nav-tab ${activeTab === 'replies' ? 'active' : ''}`}
+          onClick={() => setActiveTab('replies')}
+        >
+          💬 Replies
+        </button>
+        <button
           className={`nav-tab ${activeTab === 'bookmarks' ? 'active' : ''}`}
           onClick={() => setActiveTab('bookmarks')}
           disabled={!isOwnProfile}
@@ -539,6 +546,12 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
                 )}
               </>
             )}
+          </div>
+        )}
+
+        {activeTab === 'replies' && (
+          <div className="replies-section">
+            <RepliesList userId={targetUserId || ''} isOwnProfile={isOwnProfile} />
           </div>
         )}
 
