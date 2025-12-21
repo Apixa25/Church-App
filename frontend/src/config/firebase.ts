@@ -5,6 +5,10 @@ import { getMessaging, getToken, onMessage, Messaging, isSupported } from 'fireb
  * Firebase Configuration for TheGathering App
  * Handles push notifications via Firebase Cloud Messaging (FCM)
  */
+
+// VAPID Key for Web Push notifications - exported for use in other components
+export const VAPID_KEY = 'BHjUaZ-epmkEbU-eh5ZZGY2OZdCOSY9PrpmKmICmpYkIXLUU3NpemNslMsdSVW6bgfQgTSFnTZ3vRKKeniAgaUg';
+
 const firebaseConfig = {
   apiKey: "AIzaSyBy6maX_KVzYW4XNdBvFQPqMSW7p9Ua9lU",
   authDomain: "thegathering-42de7.firebaseapp.com",
@@ -73,7 +77,7 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
 
     // Get FCM token
     const token = await getToken(messaging, {
-      vapidKey: 'BHjUaZ-epmkEbU-eh5ZZGY2OZdCOSY9PrpmKmICmpYkIXLUU3NpemNslMsdSVW6bgfQgTSFnTZ3vRKKeniAgaUg'
+      vapidKey: VAPID_KEY
     });
 
     if (token) {
@@ -128,7 +132,7 @@ export const getCurrentToken = async (): Promise<string | null> => {
     }
 
     const token = await getToken(messaging, {
-      vapidKey: 'BHjUaZ-epmkEbU-eh5ZZGY2OZdCOSY9PrpmKmICmpYkIXLUU3NpemNslMsdSVW6bgfQgTSFnTZ3vRKKeniAgaUg'
+      vapidKey: VAPID_KEY
     });
 
     return token || null;

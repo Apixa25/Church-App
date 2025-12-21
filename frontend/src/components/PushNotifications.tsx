@@ -11,6 +11,7 @@ import {
   NotificationPreferences,
   NotificationSubscription
 } from '../services/notificationService';
+import { VAPID_KEY } from '../config/firebase';
 import './PushNotifications.css';
 
 interface PushNotificationsProps {
@@ -110,7 +111,7 @@ const PushNotifications: React.FC<PushNotificationsProps> = ({ isAdmin = false }
       setError('');
 
       // First create a push subscription
-      const pushSubscription = await createPushSubscription('your-vapid-key'); // You'll need to get this from your backend
+      const pushSubscription = await createPushSubscription(VAPID_KEY);
       if (!pushSubscription) {
         throw new Error('Failed to create push subscription');
       }
