@@ -60,6 +60,10 @@ const PostCard: React.FC<PostCardProps> = ({
   const [visibleVideos, setVisibleVideos] = useState<Set<number>>(new Set());
   const videoRefs = useRef<Map<number, HTMLVideoElement>>(new Map());
   const [videoErrors, setVideoErrors] = useState<Map<number, string>>(new Map());
+  
+  // Production-grade: Enhanced video loading states
+  const [videoLoadingStates, setVideoLoadingStates] = useState<Map<number, 'idle' | 'loading' | 'ready' | 'playing' | 'error'>>(new Map());
+  const [thumbnailLoaded, setThumbnailLoaded] = useState<Map<number, boolean>>(new Map());
   const [isBlocked, setIsBlocked] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
@@ -517,9 +521,22 @@ const PostCard: React.FC<PostCardProps> = ({
   };
 
   // Handle video click - load video if not already loaded, then auto-play
-  const handleVideoClick = useCallback((index: number, e: React.MouseEvent) => {
+  // Production-grade: Enhanced video click handler with loading states
+  const handleVideoClick = useCallback((index: number, e: React.MouseEvent | React.TouchEvent | React.KeyboardEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    
+    // Prevent double-clicks
+    if (videoLoadingStates.get(index) === 'loading') {
+      return;
+    }
+    
+    // Set loading state
+    setVideoLoadingStates(prev => {
+      const newMap = new Map(prev);
+      newMap.set(index, 'loading');
+      return newMap;
+    });
     
     // Mark video as loaded (will trigger React to set the src attribute)
     setLoadedVideos(prev => {
@@ -529,17 +546,43 @@ const PostCard: React.FC<PostCardProps> = ({
     });
     
     // Wait for React to re-render with the new src, then play
-    // This small delay allows the video element to receive its src attribute
-    setTimeout(() => {
-      const video = videoRefs.current.get(index);
-      if (video) {
-        // Play the video - single click should start playback
-        video.play().catch(err => {
-          console.log('Video autoplay prevented:', err);
-        });
-      }
-    }, 50); // Small delay for React to update DOM
-  }, []);
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const video = videoRefs.current.get(index);
+        if (video) {
+          const playPromise = video.play();
+          
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => {
+                // Video started playing
+                setVideoLoadingStates(prev => {
+                  const newMap = new Map(prev);
+                  newMap.set(index, 'playing');
+                  return newMap;
+                });
+              })
+              .catch(err => {
+                // Autoplay was prevented or error occurred
+                console.warn('Video autoplay prevented or error:', err);
+                setVideoLoadingStates(prev => {
+                  const newMap = new Map(prev);
+                  newMap.set(index, 'ready');
+                  return newMap;
+                });
+              });
+          }
+        } else {
+          // Video element not found, reset state
+          setVideoLoadingStates(prev => {
+            const newMap = new Map(prev);
+            newMap.set(index, 'idle');
+            return newMap;
+          });
+        }
+      }, 50);
+    });
+  }, [videoLoadingStates]);
 
   // Lazy loading with Intersection Observer for videos
   // Note: We track visibility but don't auto-load - videos only load on user click
@@ -588,6 +631,60 @@ const PostCard: React.FC<PostCardProps> = ({
     };
   }, [post.mediaUrls, visibleVideos]);
 
+  // Production-grade: Cleanup videos on unmount or when post changes
+  useEffect(() => {
+    // Capture current refs in closure
+    const currentVideoRefs = videoRefs.current;
+    
+    return () => {
+      // Cleanup all video elements when component unmounts
+      currentVideoRefs.forEach((video, index) => {
+        if (video) {
+          try {
+            video.pause();
+            video.src = '';
+            video.load(); // Reset video element
+          } catch (error) {
+            console.warn(`Error cleaning up video ${index}:`, error);
+          }
+        }
+      });
+      currentVideoRefs.clear();
+    };
+  }, [post.id]); // Cleanup when post changes
+
+  // Production-grade: Enhanced error handler
+  const handleVideoError = useCallback((index: number, video: HTMLVideoElement, mediaType: string | undefined, url: string) => {
+    const error = video.error;
+    
+    console.error('Video playback error:', {
+      index,
+      url,
+      mediaType,
+      errorCode: error?.code,
+      errorMessage: error?.message,
+      postId: post.id
+    });
+    
+    setVideoLoadingStates(prev => {
+      const newMap = new Map(prev);
+      newMap.set(index, 'error');
+      return newMap;
+    });
+    
+    // Check if it's a WebM format on iOS
+    if (isVideoIncompatibleWithIOS(mediaType, url)) {
+      const errorMsg = getVideoErrorMessage(mediaType, url);
+      setVideoErrors(prev => new Map(prev).set(index, errorMsg));
+    } else if (error) {
+      if (error.code === 4) {
+        setVideoErrors(prev => new Map(prev).set(index, 'Video format not supported on this device'));
+      } else {
+        setVideoErrors(prev => new Map(prev).set(index, 'Unable to play video. Please try again later.'));
+      }
+    }
+  }, [post.id]);
+
   const renderMedia = () => {
     if (!post.mediaUrls || post.mediaUrls.length === 0) {
       return null;
@@ -634,82 +731,150 @@ const PostCard: React.FC<PostCardProps> = ({
                     <small>Video is being processed for iPhone compatibility</small>
                   </div>
                 ) : (
-                  <video
-                    ref={(el) => {
-                      if (el) videoRefs.current.set(0, el);
-                    }}
-                    src={loadedVideos.has(0) ? post.mediaUrls[0] : undefined}
-                    controls={loadedVideos.has(0)}
-                    className="media-video"
-                    preload={loadedVideos.has(0) ? "auto" : "none"}
-                    poster={
-                      post.thumbnailUrls && post.thumbnailUrls[0]
-                        ? post.thumbnailUrls[0]
-                        : DEFAULT_VIDEO_PLACEHOLDER
-                    }
-                    data-video-index="0"
-                    onClick={(e) => {
-                    if (!loadedVideos.has(0)) {
-                      // First click: load the video and start playing
-                      handleVideoClick(0, e);
-                    } else {
-                      // Video already loaded - let native controls handle play/pause
-                      // Don't open media viewer, just stop propagation
-                      e.stopPropagation();
-                    }
-                  }}
-                  onError={(e) => {
-                    const video = e.currentTarget as HTMLVideoElement;
-                    const error = video.error;
-                    const mediaType = post.mediaTypes?.[0];
-                    const url = post.mediaUrls[0];
+                  <>
+                    {/* Production-grade: Thumbnail image (not video poster) for iOS compatibility */}
+                    {!loadedVideos.has(0) ? (
+                      <>
+                        <img
+                          src={
+                            post.thumbnailUrls && post.thumbnailUrls[0]
+                              ? post.thumbnailUrls[0]
+                              : DEFAULT_VIDEO_PLACEHOLDER
+                          }
+                          alt="Video thumbnail"
+                          className="media-video-thumbnail"
+                          loading="lazy"
+                          onLoad={() => {
+                            setThumbnailLoaded(prev => {
+                              const newMap = new Map(prev);
+                              newMap.set(0, true);
+                              return newMap;
+                            });
+                          }}
+                          onError={(e) => {
+                            console.warn('Thumbnail failed to load, using placeholder');
+                            // Fallback to placeholder on error
+                            const img = e.currentTarget;
+                            if (img.src !== DEFAULT_VIDEO_PLACEHOLDER) {
+                              img.src = DEFAULT_VIDEO_PLACEHOLDER;
+                            }
+                          }}
+                          onClick={(e) => handleVideoClick(0, e)}
+                          onTouchStart={(e) => {
+                            // Mobile touch handling
+                            e.stopPropagation();
+                          }}
+                        />
+                        {/* Loading overlay for thumbnail */}
+                        {!thumbnailLoaded.has(0) && (
+                          <div className="video-thumbnail-loading">
+                            <LoadingSpinner type="multi-ring" size="small" />
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <video
+                        ref={(el) => {
+                          if (el) {
+                            videoRefs.current.set(0, el);
+                            
+                            // Set ready state when video metadata loads
+                            const handleLoadedMetadata = () => {
+                              setVideoLoadingStates(prev => {
+                                const newMap = new Map(prev);
+                                newMap.set(0, 'ready');
+                                return newMap;
+                              });
+                              el.removeEventListener('loadedmetadata', handleLoadedMetadata);
+                            };
+                            el.addEventListener('loadedmetadata', handleLoadedMetadata);
+                          } else {
+                            videoRefs.current.delete(0);
+                          }
+                        }}
+                        src={post.mediaUrls[0]}
+                        controls={true}
+                        className="media-video"
+                        preload="auto"
+                        playsInline
+                        crossOrigin="anonymous"
+                        data-video-index="0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                        onError={(e) => {
+                          const video = e.currentTarget as HTMLVideoElement;
+                          handleVideoError(0, video, post.mediaTypes?.[0], post.mediaUrls[0]);
+                        }}
+                        onLoadStart={() => {
+                          setVideoLoadingStates(prev => {
+                            const newMap = new Map(prev);
+                            newMap.set(0, 'loading');
+                            return newMap;
+                          });
+                        }}
+                        onLoadedData={() => {
+                          setVideoLoadingStates(prev => {
+                            const newMap = new Map(prev);
+                            newMap.set(0, 'ready');
+                            return newMap;
+                          });
+                        }}
+                        onPlay={() => {
+                          setVideoLoadingStates(prev => {
+                            const newMap = new Map(prev);
+                            newMap.set(0, 'playing');
+                            return newMap;
+                          });
+                        }}
+                        onPause={() => {
+                          setVideoLoadingStates(prev => {
+                            const newMap = new Map(prev);
+                            const state = newMap.get(0);
+                            if (state === 'playing') {
+                              newMap.set(0, 'ready');
+                            }
+                            return newMap;
+                          });
+                        }}
+                      />
+                    )}
                     
-                    console.error('Video playback error:', {
-                      index: 0,
-                      url,
-                      mediaType,
-                      errorCode: error?.code,
-                      errorMessage: error?.message
-                    });
+                    {/* Production-grade: Play button overlay - only show when video not loaded */}
+                    {!loadedVideos.has(0) && (
+                      <div 
+                        className="video-play-overlay"
+                        onClick={(e) => handleVideoClick(0, e)}
+                        onTouchStart={(e) => {
+                          e.stopPropagation();
+                          handleVideoClick(0, e);
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Play video"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleVideoClick(0, e);
+                          }
+                        }}
+                      >
+                        <div className="video-play-button">
+                          <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="32" cy="32" r="32" fill="rgba(0, 0, 0, 0.6)"/>
+                            <path d="M24 20L44 32L24 44V20Z" fill="white"/>
+                          </svg>
+                        </div>
+                      </div>
+                    )}
                     
-                    // Check if it's a WebM format on iOS
-                    if (isVideoIncompatibleWithIOS(mediaType, url)) {
-                      const errorMsg = getVideoErrorMessage(mediaType, url);
-                      setVideoErrors(prev => new Map(prev).set(0, errorMsg));
-                    } else if (error) {
-                      // Other video errors
-                      if (error.code === 4) {
-                        setVideoErrors(prev => new Map(prev).set(0, 'Video format not supported on this device'));
-                      } else {
-                        setVideoErrors(prev => new Map(prev).set(0, 'Unable to play video. Please try again later.'));
-                      }
-                    }
-                  }}
-                  playsInline
-                  crossOrigin="anonymous"
-                />
-                )}
-                {!loadedVideos.has(0) && (
-                  <div 
-                    className="video-play-overlay"
-                    onClick={(e) => handleVideoClick(0, e)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleVideoClick(0, e as any);
-                      }
-                    }}
-                    aria-label="Play video"
-                  >
-                    <div className="video-play-button">
-                      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="32" cy="32" r="32" fill="rgba(0, 0, 0, 0.6)"/>
-                        <path d="M24 20L44 32L24 44V20Z" fill="white"/>
-                      </svg>
-                    </div>
-                  </div>
+                    {/* Loading state overlay when video is loading */}
+                    {loadedVideos.has(0) && videoLoadingStates.get(0) === 'loading' && (
+                      <div className="video-loading-overlay">
+                        <LoadingSpinner type="multi-ring" size="medium" text="Loading video..." />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -758,79 +923,151 @@ const PostCard: React.FC<PostCardProps> = ({
                         <small>Video is being processed for iPhone compatibility</small>
                       </div>
                     ) : (
-                      <video
-                        ref={(el) => {
-                          if (el) videoRefs.current.set(index, el);
-                        }}
-                        src={loadedVideos.has(index) ? url : undefined}
-                        controls={false}
-                        className="media-video"
-                        preload={loadedVideos.has(index) ? "auto" : "none"}
-                        poster={
-                          post.thumbnailUrls && post.thumbnailUrls[index]
-                            ? post.thumbnailUrls[index]
-                            : DEFAULT_VIDEO_PLACEHOLDER
-                        }
-                        data-video-index={index.toString()}
-                        onClick={(e) => {
-                          if (!loadedVideos.has(index)) {
-                            handleVideoClick(index, e);
-                          } else {
-                            e.stopPropagation();
-                            handleMediaClick(index, e);
-                          }
-                        }}
-                        onError={(e) => {
-                          const video = e.currentTarget as HTMLVideoElement;
-                          const error = video.error;
-                          const mediaType = post.mediaTypes?.[index];
-                          
-                          console.error('Video playback error:', {
-                            index,
-                            url,
-                            mediaType,
-                            errorCode: error?.code,
-                            errorMessage: error?.message
-                          });
-                          
-                          // Check if it's a WebM format on iOS
-                          if (isVideoIncompatibleWithIOS(mediaType, url)) {
-                            const errorMsg = getVideoErrorMessage(mediaType, url);
-                            setVideoErrors(prev => new Map(prev).set(index, errorMsg));
-                          } else if (error) {
-                            // Other video errors
-                            if (error.code === 4) {
-                              setVideoErrors(prev => new Map(prev).set(index, 'Video format not supported on this device'));
-                            } else {
-                              setVideoErrors(prev => new Map(prev).set(index, 'Unable to play video. Please try again later.'));
-                            }
-                          }
-                        }}
-                        playsInline
-                        crossOrigin="anonymous"
-                      />
-                    )}
-                    {!loadedVideos.has(index) && (
-                      <div 
-                        className="video-play-overlay video-grid-overlay"
-                        onClick={(e) => handleVideoClick(index, e)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            handleVideoClick(index, e as any);
-                          }
-                        }}
-                        aria-label="Play video"
-                      >
-                        <div className="video-play-button video-grid-play-button">
-                          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="24" cy="24" r="24" fill="rgba(0, 0, 0, 0.6)"/>
-                            <path d="M18 15L30 24L18 33V15Z" fill="white"/>
-                          </svg>
-                        </div>
-                      </div>
+                      <>
+                        {/* Production-grade: Thumbnail image (not video poster) for iOS compatibility */}
+                        {!loadedVideos.has(index) ? (
+                          <>
+                            <img
+                              src={
+                                post.thumbnailUrls && post.thumbnailUrls[index]
+                                  ? post.thumbnailUrls[index]
+                                  : DEFAULT_VIDEO_PLACEHOLDER
+                              }
+                              alt="Video thumbnail"
+                              className="media-video-thumbnail"
+                              loading="lazy"
+                              onLoad={() => {
+                                setThumbnailLoaded(prev => {
+                                  const newMap = new Map(prev);
+                                  newMap.set(index, true);
+                                  return newMap;
+                                });
+                              }}
+                              onError={(e) => {
+                                console.warn('Thumbnail failed to load, using placeholder');
+                                // Fallback to placeholder on error
+                                const img = e.currentTarget;
+                                if (img.src !== DEFAULT_VIDEO_PLACEHOLDER) {
+                                  img.src = DEFAULT_VIDEO_PLACEHOLDER;
+                                }
+                              }}
+                              onClick={(e) => handleVideoClick(index, e)}
+                              onTouchStart={(e) => {
+                                // Mobile touch handling
+                                e.stopPropagation();
+                              }}
+                            />
+                            {/* Loading overlay for thumbnail */}
+                            {!thumbnailLoaded.has(index) && (
+                              <div className="video-thumbnail-loading">
+                                <LoadingSpinner type="multi-ring" size="small" />
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <video
+                            ref={(el) => {
+                              if (el) {
+                                videoRefs.current.set(index, el);
+                                
+                                // Set ready state when video metadata loads
+                                const handleLoadedMetadata = () => {
+                                  setVideoLoadingStates(prev => {
+                                    const newMap = new Map(prev);
+                                    newMap.set(index, 'ready');
+                                    return newMap;
+                                  });
+                                  el.removeEventListener('loadedmetadata', handleLoadedMetadata);
+                                };
+                                el.addEventListener('loadedmetadata', handleLoadedMetadata);
+                              } else {
+                                videoRefs.current.delete(index);
+                              }
+                            }}
+                            src={url}
+                            controls={true}
+                            className="media-video"
+                            preload="auto"
+                            playsInline
+                            crossOrigin="anonymous"
+                            data-video-index={index.toString()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMediaClick(index, e);
+                            }}
+                            onError={(e) => {
+                              const video = e.currentTarget as HTMLVideoElement;
+                              handleVideoError(index, video, post.mediaTypes?.[index], url);
+                            }}
+                            onLoadStart={() => {
+                              setVideoLoadingStates(prev => {
+                                const newMap = new Map(prev);
+                                newMap.set(index, 'loading');
+                                return newMap;
+                              });
+                            }}
+                            onLoadedData={() => {
+                              setVideoLoadingStates(prev => {
+                                const newMap = new Map(prev);
+                                newMap.set(index, 'ready');
+                                return newMap;
+                              });
+                            }}
+                            onPlay={() => {
+                              setVideoLoadingStates(prev => {
+                                const newMap = new Map(prev);
+                                newMap.set(index, 'playing');
+                                return newMap;
+                              });
+                            }}
+                            onPause={() => {
+                              setVideoLoadingStates(prev => {
+                                const newMap = new Map(prev);
+                                const state = newMap.get(index);
+                                if (state === 'playing') {
+                                  newMap.set(index, 'ready');
+                                }
+                                return newMap;
+                              });
+                            }}
+                          />
+                        )}
+                        
+                        {/* Production-grade: Play button overlay - only show when video not loaded */}
+                        {!loadedVideos.has(index) && (
+                          <div 
+                            className="video-play-overlay video-grid-overlay"
+                            onClick={(e) => handleVideoClick(index, e)}
+                            onTouchStart={(e) => {
+                              e.stopPropagation();
+                              handleVideoClick(index, e);
+                            }}
+                            role="button"
+                            tabIndex={0}
+                            aria-label="Play video"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleVideoClick(index, e);
+                              }
+                            }}
+                          >
+                            <div className="video-play-button video-grid-play-button">
+                              <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="24" cy="24" r="24" fill="rgba(0, 0, 0, 0.6)"/>
+                                <path d="M18 15L30 24L18 33V15Z" fill="white"/>
+                              </svg>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Loading state overlay when video is loading */}
+                        {loadedVideos.has(index) && videoLoadingStates.get(index) === 'loading' && (
+                          <div className="video-loading-overlay">
+                            <LoadingSpinner type="multi-ring" size="small" text="Loading..." />
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
@@ -1083,19 +1320,22 @@ const PostCard: React.FC<PostCardProps> = ({
         >
           🔄 {sharesCount > 0 && sharesCount}
         </button>
-      </div>
 
-      {/* View Count */}
-      {viewsCount > 0 && (
-        <div className="post-views">
-          <span className="views-count">
+        {/* View Count */}
+        {viewsCount > 0 && (
+          <button
+            className="action-button views-button"
+            aria-label={`${viewsCount} views`}
+            disabled
+            style={{ cursor: 'default' }}
+          >
             👁️ {viewsCount >= 1000
               ? `${(viewsCount / 1000).toFixed(1)}k`
               : viewsCount
-            } {viewsCount === 1 ? 'view' : 'views'}
-          </span>
-        </div>
-      )}
+            }
+          </button>
+        )}
+      </div>
 
       {/* Comment Thread */}
       {showCommentThread && (
