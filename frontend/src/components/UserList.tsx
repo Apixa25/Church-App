@@ -67,7 +67,7 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
       const realUsers = resp.content || [];
 
       const formattedUsers: User[] = realUsers.map((user: any) => ({
-        id: user.id,
+        id: user.userId || user.id, // Backend returns userId, fallback to id for compatibility
         name: user.name,
         email: user.email,
         profilePicUrl: user.profilePicUrl,
@@ -124,6 +124,11 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
     } finally {
       setCreatingDM(null);
     }
+  };
+
+  const handleProfilePictureClick = (e: React.MouseEvent, user: User) => {
+    e.stopPropagation(); // Prevent triggering the user card click (DM creation)
+    navigate(`/profile/${user.id}`);
   };
 
   const getRoleIcon = (role: string) => {
@@ -197,7 +202,11 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
               className="user-item"
               onClick={() => handleUserClick(user)}
             >
-              <div className="user-avatar">
+              <div 
+                className="user-avatar"
+                onClick={(e) => handleProfilePictureClick(e, user)}
+                style={{ cursor: 'pointer' }}
+              >
                 {user.profilePicUrl ? (
                   <img src={user.profilePicUrl} alt={user.name} />
                 ) : (
