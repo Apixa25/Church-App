@@ -121,14 +121,17 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
      * Find all users who share either church or family primary organization with the requester.
      * Returns users from the requester's church org (if they have one) AND family org (if they have one).
      * This enables the Directory feature to show all relevant contacts across church and family contexts.
+     * 
+     * Note: Uses native query. Parameters are checked for null in the service layer before calling this method.
+     * When a UUID parameter is null, the comparison will return NULL (falsy), so only non-null orgs are matched.
      */
-    @Query("""
-        SELECT DISTINCT u
-        FROM User u
-        WHERE u.id <> :excludeUserId
+    @Query(value = """
+        SELECT DISTINCT u.*
+        FROM users u
+        WHERE u.id != :excludeUserId
           AND (
-               (:churchOrgId IS NOT NULL AND u.churchPrimaryOrganization.id = :churchOrgId)
-            OR (:familyOrgId IS NOT NULL AND u.familyPrimaryOrganization.id = :familyOrgId)
+               (u.church_primary_organization_id IS NOT NULL AND u.church_primary_organization_id = :churchOrgId)
+            OR (u.family_primary_organization_id IS NOT NULL AND u.family_primary_organization_id = :familyOrgId)
           )
           AND (
                :qLike IS NULL
@@ -136,7 +139,7 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
             OR LOWER(u.email) LIKE :qLike
           )
         ORDER BY u.name ASC
-        """)
+        """, nativeQuery = true)
     Page<User> findDirectoryMembers(@Param("churchOrgId") UUID churchOrgId,
                                     @Param("familyOrgId") UUID familyOrgId,
                                     @Param("excludeUserId") UUID excludeUserId,
