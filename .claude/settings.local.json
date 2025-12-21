@@ -7,7 +7,8 @@
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls s3://thegathrd-app-frontend/static/css/)",
       "Bash(npm run build:*)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 sync c:/Users/Admin/Church-App/Church-App/frontend/build s3://thegathrd-app-frontend --delete)",
-      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront create-invalidation --distribution-id E2SM4EXV57KO8B --paths \"/*\")"
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront create-invalidation --distribution-id E2SM4EXV57KO8B --paths \"/*\")",
+      "Bash(./mvnw:*)"
     ],
     "deny": [],
     "ask": []

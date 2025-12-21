@@ -61,12 +61,27 @@ public class NotificationService {
                 messageBuilder.putAllData(data);
             }
 
+            // Generate a unique tag based on notification type and ID to prevent duplicates
+            String notificationTag = "thegathering";
+            if (data != null) {
+                String type = data.get("type");
+                String id = data.get("messageId") != null ? data.get("messageId")
+                          : data.get("postId") != null ? data.get("postId")
+                          : data.get("eventId") != null ? data.get("eventId")
+                          : data.get("prayerId");
+                if (type != null && id != null) {
+                    notificationTag = type + "_" + id;
+                }
+            }
+
             // Configure platform-specific options
             messageBuilder.setAndroidConfig(AndroidConfig.builder()
                     .setPriority(AndroidConfig.Priority.HIGH)
+                    .setCollapseKey(notificationTag) // Collapse duplicate notifications
                     .setNotification(AndroidNotification.builder()
                             .setColor("#4A90E2") // TheGathering brand color
                             .setSound("default")
+                            .setTag(notificationTag) // Tag to replace duplicate notifications
                             .build())
                     .build());
 
@@ -75,6 +90,7 @@ public class NotificationService {
                             .setBadge(1)
                             .setSound("default")
                             .build())
+                    .putHeader("apns-collapse-id", notificationTag) // iOS collapse ID
                     .build());
 
             Message message = messageBuilder.build();
@@ -133,12 +149,27 @@ public class NotificationService {
                 messageBuilder.putAllData(data);
             }
 
+            // Generate a unique tag based on notification type and ID to prevent duplicates
+            String notificationTag = "thegathering";
+            if (data != null) {
+                String type = data.get("type");
+                String id = data.get("messageId") != null ? data.get("messageId")
+                          : data.get("postId") != null ? data.get("postId")
+                          : data.get("eventId") != null ? data.get("eventId")
+                          : data.get("prayerId");
+                if (type != null && id != null) {
+                    notificationTag = type + "_" + id;
+                }
+            }
+
             // Configure platform-specific options
             messageBuilder.setAndroidConfig(AndroidConfig.builder()
                     .setPriority(AndroidConfig.Priority.HIGH)
+                    .setCollapseKey(notificationTag) // Collapse duplicate notifications
                     .setNotification(AndroidNotification.builder()
                             .setColor("#4A90E2")
                             .setSound("default")
+                            .setTag(notificationTag) // Tag to replace duplicate notifications
                             .build())
                     .build());
 
@@ -147,6 +178,7 @@ public class NotificationService {
                             .setBadge(1)
                             .setSound("default")
                             .build())
+                    .putHeader("apns-collapse-id", notificationTag) // iOS collapse ID
                     .build());
 
             MulticastMessage message = messageBuilder.build();
