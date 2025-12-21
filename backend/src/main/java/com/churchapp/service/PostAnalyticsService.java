@@ -54,6 +54,10 @@ public class PostAnalyticsService {
             try {
                 postViewRepository.insertPostViewIfNotExists(postId, viewerId, 0);
                 log.debug("Recorded post view: post={}, viewer={}", postId, viewerId);
+
+                // Increment denormalized views_count on Post entity (for fast display)
+                incrementPostViewsCount(postId);
+
             } catch (Exception e) {
                 // Fallback: if native query fails, try the old method with exception handling
                 // This shouldn't happen, but provides a safety net
@@ -65,6 +69,10 @@ public class PostAnalyticsService {
                     postView.setTimeSpentSeconds(0);
                     postViewRepository.save(postView);
                     log.debug("Recorded post view (fallback): post={}, viewer={}", postId, viewerId);
+
+                    // Increment denormalized views_count on Post entity (for fast display)
+                    incrementPostViewsCount(postId);
+
                 } catch (DataIntegrityViolationException ex) {
                     // Race condition: another thread already inserted this view
                     // This is expected and can be safely ignored
@@ -171,6 +179,26 @@ public class PostAnalyticsService {
      */
     public Page<PostView> getPostViews(UUID postId, Pageable pageable) {
         return postViewRepository.findByPostIdOrderByViewedAtDesc(postId, pageable);
+    }
+
+    /**
+     * Increment the denormalized views_count on Post entity
+     * Called when a view is successfully recorded
+     * This provides fast view count display without querying post_views table
+     */
+    private void incrementPostViewsCount(UUID postId) {
+        try {
+            Post post = postRepository.findById(postId).orElse(null);
+            if (post != null) {
+                Integer currentCount = post.getViewsCount() != null ? post.getViewsCount() : 0;
+                post.setViewsCount(currentCount + 1);
+                postRepository.save(post);
+                log.debug("Incremented views_count for post {} to {}", postId, post.getViewsCount());
+            }
+        } catch (Exception e) {
+            // Don't throw - view count increment failure shouldn't break the experience
+            log.error("Error incrementing views_count for post {}: {}", postId, e.getMessage());
+        }
     }
 }
 

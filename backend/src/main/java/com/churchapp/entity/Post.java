@@ -107,6 +107,9 @@ public class Post {
     @Column(name = "bookmarks_count", nullable = false)
     private Integer bookmarksCount = 0;
 
+    @Column(name = "views_count", nullable = false)
+    private Integer viewsCount = 0;
+
     // Multi-tenant organization/group fields
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organization_id")

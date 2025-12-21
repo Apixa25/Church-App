@@ -47,6 +47,7 @@ public class PostController {
     private final PostAnalyticsService postAnalyticsService;
     private final UserRepository userRepository;
     private final MediaUrlService mediaUrlService;
+    private final com.churchapp.service.PostCommentReadStatusService postCommentReadStatusService;
 
     // ========== POST CRUD OPERATIONS ==========
 
@@ -506,7 +507,12 @@ public class PostController {
             if (response.getMediaUrls() != null && !response.getMediaUrls().isEmpty()) {
                 response.setMediaUrls(mediaUrlService.getBestUrls(response.getMediaUrls()));
             }
-            notificationService.notifyPostComment(postId, UUID.randomUUID(), request.getContent());
+
+            // Send notification to post author (FIXED: use actual user ID)
+            UUID userId = resolveUserId(user);
+            if (userId != null) {
+                notificationService.notifyPostComment(postId, userId, request.getContent());
+            }
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
@@ -560,6 +566,79 @@ public class PostController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    // ========== COMMENT READ STATUS ENDPOINTS (for inline "new comments" indicators) ==========
+
+    /**
+     * Get count of new comments on a post since user last viewed it
+     * Used for inline "3 new comments" badges on post cards
+     */
+    @GetMapping("/{postId}/new-comments-count")
+    public ResponseEntity<Map<String, Integer>> getNewCommentsCount(
+            @PathVariable UUID postId,
+            @AuthenticationPrincipal User user) {
+
+        UUID userId = resolveUserId(user);
+        if (userId == null) {
+            return ResponseEntity.ok(Map.of("newCount", 0));
+        }
+
+        try {
+            int newCount = postCommentReadStatusService.getNewCommentCount(userId, postId);
+            return ResponseEntity.ok(Map.of("newCount", newCount));
+        } catch (Exception e) {
+            log.error("Error getting new comment count for post {}: {}", postId, e.getMessage());
+            return ResponseEntity.ok(Map.of("newCount", 0));
+        }
+    }
+
+    /**
+     * Mark all comments on a post as read
+     * Called when user opens the post's comment thread
+     */
+    @PostMapping("/{postId}/mark-comments-read")
+    public ResponseEntity<Void> markCommentsAsRead(
+            @PathVariable UUID postId,
+            @AuthenticationPrincipal User user) {
+
+        UUID userId = resolveUserId(user);
+        if (userId == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        try {
+            postCommentReadStatusService.markPostAsRead(userId, postId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("Error marking comments as read for post {}: {}", postId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Get new comment counts for multiple posts (batch operation)
+     * Used when loading feed to efficiently get counts for all posts at once
+     */
+    @PostMapping("/batch/new-comments-count")
+    public ResponseEntity<Map<String, Integer>> getNewCommentsCountBatch(
+            @RequestBody List<UUID> postIds,
+            @AuthenticationPrincipal User user) {
+
+        UUID userId = resolveUserId(user);
+        if (userId == null) {
+            return ResponseEntity.ok(Map.of());
+        }
+
+        try {
+            Map<String, Integer> counts = postCommentReadStatusService.getNewCommentCounts(userId, postIds);
+            return ResponseEntity.ok(counts);
+        } catch (Exception e) {
+            log.error("Error getting batch comment counts: {}", e.getMessage());
+            return ResponseEntity.ok(Map.of());
+        }
+    }
+
+    // ========== POST SHARING ==========
 
     @PostMapping("/{postId}/share")
     public ResponseEntity<Void> sharePost(

@@ -41,7 +41,7 @@ export interface PrayerInteractionUpdate {
 }
 
 export interface EventUpdate {
-  eventType: string; // "event_created", "event_updated", "event_cancelled", "chat_message_received"
+  eventType: string; // "event_created", "event_updated", "event_cancelled", "chat_message_received", "post_comment_received"
   eventId?: string; // Optional for chat notifications
   creatorId?: string; // Optional for chat notifications
   creatorName?: string;
@@ -55,6 +55,7 @@ export interface EventUpdate {
   groupId?: string;
   actionUrl?: string;
   metadata?: any;
+
   // Chat notification fields
   messageId?: string;
   chatGroupId?: string;
@@ -64,6 +65,16 @@ export interface EventUpdate {
   senderEmail?: string;
   messageContent?: string;
   messageType?: string;
+
+  // Post comment notification fields (NEW)
+  commentId?: string;
+  postId?: string;
+  postContent?: string;
+  commenterId?: string;
+  commenterName?: string;
+  commenterEmail?: string;
+  commentContent?: string;
+  parentCommentId?: string;
 }
 
 export interface EventRsvpUpdate {

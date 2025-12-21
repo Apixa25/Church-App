@@ -43,7 +43,8 @@ const EventNotifications: React.FC = () => {
       event_created: '📅',
       event_updated: '✏️',
       event_cancelled: '❌',
-      chat_message_received: '💬'
+      chat_message_received: '💬',
+      post_comment_received: '💬' // Same icon as chat
     };
     return iconMap[type] || '🔔';
   };

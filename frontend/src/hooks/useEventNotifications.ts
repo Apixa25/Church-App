@@ -6,15 +6,27 @@ import webSocketService, { EventUpdate } from '../services/websocketService';
 
 export interface EventNotification {
   id: string;
-  type: 'event_created' | 'event_updated' | 'event_cancelled' | 'chat_message_received';
+  type: 'event_created' | 'event_updated' | 'event_cancelled' | 'chat_message_received' | 'post_comment_received';
   title: string;
   message: string;
-  eventId?: string; // Optional for chat notifications
-  chatGroupId?: string; // For chat notifications
-  chatGroupName?: string; // For chat notifications
-  senderId?: string; // For chat notifications
-  senderName?: string; // For chat notifications
-  messageId?: string; // For chat notifications
+
+  // Event fields
+  eventId?: string;
+
+  // Chat fields
+  chatGroupId?: string;
+  chatGroupName?: string;
+  senderId?: string;
+  senderName?: string;
+  messageId?: string;
+
+  // Post comment fields (NEW)
+  postId?: string;
+  commentId?: string;
+  commenterId?: string;
+  commenterName?: string;
+  commenterEmail?: string;
+
   timestamp: string;
   read: boolean;
   actionUrl?: string;
@@ -248,6 +260,43 @@ export const useEventNotifications = () => {
       return;
     }
 
+    // Handle post comment notifications (NEW)
+    if (eventType === 'post_comment_received') {
+      console.log('💬 Processing post_comment_received notification:', update);
+
+      // Don't notify users of their own comments
+      if (update.commenterId && update.commenterId === userRef.current.userId) {
+        console.log('🚫 Ignoring own comment (commenterId matches userId)');
+        return;
+      }
+
+      // Don't notify if user's email matches commenter (additional check)
+      if (update.commenterEmail && update.commenterEmail === userRef.current.email) {
+        console.log('🚫 Ignoring own comment (commenterEmail matches user email)');
+        return;
+      }
+
+      console.log('✅ Creating comment notification from:', update.commenterName);
+
+      const notification: EventNotification = {
+        id: `comment-${update.commentId || update.postId}-${Date.now()}`,
+        type: 'post_comment_received',
+        title: getCommentNotificationTitle(update),
+        message: getCommentNotificationMessage(update),
+        postId: update.postId,
+        commentId: update.commentId,
+        commenterId: update.commenterId,
+        commenterName: update.commenterName,
+        commenterEmail: update.commenterEmail,
+        timestamp: update.timestamp || new Date().toISOString(),
+        read: false,
+        actionUrl: update.actionUrl || `/posts/${update.postId}#comment-${update.commentId}`
+      };
+
+      addNotificationRef.current(notification);
+      return;
+    }
+
     // Handle event notifications (event_created, event_updated, event_cancelled)
     if (!eventType || !['event_created', 'event_updated', 'event_cancelled'].includes(eventType)) {
       return;
@@ -319,17 +368,31 @@ export const useEventNotifications = () => {
     const senderName = update.senderName || 'Someone';
     const groupName = update.chatGroupName || 'a chat';
     const messageContent = update.messageContent || '';
-    
+
     // Truncate long messages
-    const truncatedContent = messageContent.length > 50 
-      ? messageContent.substring(0, 50) + '...' 
+    const truncatedContent = messageContent.length > 50
+      ? messageContent.substring(0, 50) + '...'
       : messageContent;
-    
+
     if (update.messageType === 'IMAGE' || update.messageType === 'VIDEO') {
       return `${senderName} sent a ${update.messageType.toLowerCase()} in ${groupName}`;
     }
-    
+
     return truncatedContent || `${senderName} sent a message in ${groupName}`;
+  };
+
+  // Helper functions for post comment notifications (NEW)
+  const getCommentNotificationTitle = (update: EventUpdate): string => {
+    const commenterName = update.commenterName || 'Someone';
+    return `💬 ${commenterName} commented on your post`;
+  };
+
+  const getCommentNotificationMessage = (update: EventUpdate): string => {
+    const commentContent = update.commentContent || update.metadata?.commentContent || '';
+    const truncated = commentContent.length > 100
+      ? commentContent.substring(0, 100) + '...'
+      : commentContent;
+    return truncated || 'Tap to view comment';
   };
 
   // Set up WebSocket subscriptions
