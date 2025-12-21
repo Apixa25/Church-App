@@ -16,6 +16,9 @@ import SocialMediaEmbedCard from './SocialMediaEmbedCard';
 import { isVideoIncompatibleWithIOS, getVideoErrorMessage } from '../utils/videoUtils';
 import './PostCard.css';
 
+// Default placeholder for videos without thumbnails (iOS Safari fix)
+const DEFAULT_VIDEO_PLACEHOLDER = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQ1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxYTFhMWE7c3RvcC1vcGFjaXR5OjEiIC8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMmQyZDJkO3N0b3Atb3BhY2l0eToxIiAvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNDUwIiBmaWxsPSJ1cmwoI2dyYWQpIi8+PHBhdGggZD0iTTQwMCAxNTBMMzAwIDI1MCA1MDAgMjUwIFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIgLz48L3N2Zz4=';
+
 interface PostCardProps {
   post: Post;
   onPostUpdate?: (updatedPost: Post) => void;
@@ -638,8 +641,12 @@ const PostCard: React.FC<PostCardProps> = ({
                     src={loadedVideos.has(0) ? post.mediaUrls[0] : undefined}
                     controls={loadedVideos.has(0)}
                     className="media-video"
-                    preload={loadedVideos.has(0) ? "auto" : (post.thumbnailUrls && post.thumbnailUrls[0] ? "none" : "metadata")}
-                    poster={post.thumbnailUrls && post.thumbnailUrls[0] ? post.thumbnailUrls[0] : undefined}
+                    preload={loadedVideos.has(0) ? "auto" : "none"}
+                    poster={
+                      post.thumbnailUrls && post.thumbnailUrls[0]
+                        ? post.thumbnailUrls[0]
+                        : DEFAULT_VIDEO_PLACEHOLDER
+                    }
                     data-video-index="0"
                     onClick={(e) => {
                     if (!loadedVideos.has(0)) {
@@ -758,8 +765,12 @@ const PostCard: React.FC<PostCardProps> = ({
                         src={loadedVideos.has(index) ? url : undefined}
                         controls={false}
                         className="media-video"
-                        preload={loadedVideos.has(index) ? "auto" : (post.thumbnailUrls && post.thumbnailUrls[index] ? "none" : "metadata")}
-                        poster={post.thumbnailUrls && post.thumbnailUrls[index] ? post.thumbnailUrls[index] : undefined}
+                        preload={loadedVideos.has(index) ? "auto" : "none"}
+                        poster={
+                          post.thumbnailUrls && post.thumbnailUrls[index]
+                            ? post.thumbnailUrls[index]
+                            : DEFAULT_VIDEO_PLACEHOLDER
+                        }
                         data-video-index={index.toString()}
                         onClick={(e) => {
                           if (!loadedVideos.has(index)) {

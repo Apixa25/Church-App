@@ -11,9 +11,13 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  z-index: 2000;
+  z-index: 10100; /* Changed from 2000 - must be above notifications (10005) */
   padding: 20px;
   animation: fadeIn 0.2s ease;
+  /* iOS-specific fixes for stacking context */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  isolation: isolate;
 }
 
 @keyframes fadeIn {
@@ -33,6 +37,8 @@
   animation: slideDown 0.3s ease;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 1;
 }
 
 @keyframes slideDown {

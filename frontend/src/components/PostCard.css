@@ -405,11 +405,25 @@
   justify-content: center;
   transition: transform 0.2s ease, opacity 0.2s ease;
   opacity: 0.9;
+  /* Subtle pulsing animation for better visibility */
+  animation: pulse-play-button 2s ease-in-out infinite;
+}
+
+@keyframes pulse-play-button {
+  0%, 100% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
 }
 
 .video-play-overlay:hover .video-play-button {
   transform: scale(1.1);
   opacity: 1;
+  animation: none; /* Stop pulsing on hover */
 }
 
 .video-play-button svg {

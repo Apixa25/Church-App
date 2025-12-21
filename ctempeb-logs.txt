@@ -1,0 +1,425 @@
+----------------------------------------
+/var/log/nginx/access.log
+----------------------------------------
+172.31.23.39 - - [21/Dec/2025:04:37:34 +0000] "OPTIONS /api/posts/feed?feedType=community&page=0&size=5 HTTP/1.1" 200 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:34 +0000] "OPTIONS /api/profile/91035c8f-200c-4037-9430-211d74beb6ac HTTP/1.1" 200 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:34 +0000] "OPTIONS /api/dashboard HTTP/1.1" 200 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "OPTIONS /api/api/notifications/status HTTP/1.1" 200 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/feed-preferences HTTP/1.1" 200 254 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/feed-preferences/feed-parameters HTTP/1.1" 200 101 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/profile/me HTTP/1.1" 200 1167 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/groups/my-groups HTTP/1.1" 200 12 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/groups/my-groups/unmuted HTTP/1.1" 200 12 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/feed-preferences/visible-group-ids HTTP/1.1" 200 12 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "OPTIONS /api/api/notifications/register-token HTTP/1.1" 200 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/groups/my-groups/muted HTTP/1.1" 200 12 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/organizations/my-memberships/church-primary HTTP/1.1" 200 678 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/organizations/my-memberships/family-primary HTTP/1.1" 200 684 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/organizations/my-memberships/groups HTTP/1.1" 200 12 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/profile/me/warnings HTTP/1.1" 200 65 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/organizations/my-memberships HTTP/1.1" 200 1353 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/posts/feed?feedType=community&page=0&size=5 HTTP/1.1" 500 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/profile/91035c8f-200c-4037-9430-211d74beb6ac HTTP/1.1" 200 1167 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "OPTIONS /api/profile/me/warnings HTTP/1.1" 200 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "OPTIONS /api/posts/feed?feedType=community&page=0&size=5 HTTP/1.1" 200 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/api/notifications/status HTTP/1.1" 200 73 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/dashboard HTTP/1.1" 200 7479 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "OPTIONS /api/feed-preferences HTTP/1.1" 200 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "OPTIONS /api/posts/feed?feedType=community&page=0&size=5 HTTP/1.1" 200 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/ws/info?t=1766291857025 HTTP/1.1" 200 79 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "OPTIONS /api/dashboard?organizationId=33305d22-a624-44a7-a97a-305983c7c8da HTTP/1.1" 200 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "POST /api/api/notifications/register-token HTTP/1.1" 200 76 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/profile/me/warnings HTTP/1.1" 200 65 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "POST /api/feed-preferences HTTP/1.1" 200 254 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/posts/feed?feedType=community&page=0&size=5 HTTP/1.1" 500 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/posts/feed?feedType=community&page=0&size=5 HTTP/1.1" 500 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/dashboard?organizationId=33305d22-a624-44a7-a97a-305983c7c8da HTTP/1.1" 200 3650 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "OPTIONS /api/events/my-upcoming-rsvps HTTP/1.1" 200 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "OPTIONS /api/prayers?page=0&size=5 HTTP/1.1" 200 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "OPTIONS /api/events/recent?page=0&size=5 HTTP/1.1" 200 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "OPTIONS /api/resources/feed/recent?limit=3 HTTP/1.1" 200 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "OPTIONS /api/announcements/feed?limit=5 HTTP/1.1" 200 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "OPTIONS /api/donations/history?page=0&size=3 HTTP/1.1" 200 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/ws/014/khtq1snq/websocket HTTP/1.1" 400 34 "-" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/announcements/feed?limit=5 HTTP/1.1" 200 12 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/resources/feed/recent?limit=3 HTTP/1.1" 200 12 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/donations/history?page=0&size=3 HTTP/1.1" 200 327 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/events/my-upcoming-rsvps HTTP/1.1" 200 12 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/prayers?page=0&size=5 HTTP/1.1" 200 325 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "GET /api/events/recent?page=0&size=5 HTTP/1.1" 200 2768 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "POST /api/ws/014/40eu5lpr/xhr_send?t=1766291857361 HTTP/1.1" 204 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "POST /api/ws/014/40eu5lpr/xhr_send?t=1766291857548 HTTP/1.1" 204 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "OPTIONS /api/api/notifications/register-token HTTP/1.1" 200 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:35 +0000] "POST /api/api/notifications/register-token HTTP/1.1" 200 76 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:45 +0000] "POST /api/ws/014/40eu5lpr/xhr_send?t=1766291866795 HTTP/1.1" 204 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:45 +0000] "POST /api/ws/014/40eu5lpr/xhr_send?t=1766291866913 HTTP/1.1" 204 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:46 +0000] "GET /api/oauth2/authorization/google HTTP/1.1" 302 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:50 +0000] "GET /api/oauth2/callback/google?state=rwYDttjSHcRFnrnS3kz6IXTSsVhoPev4vRxr32vek_I%3D&code=4%2F0ATX87lMZs_JmLHCK-9MHjed7l8jqeFZoKcYHMotOKX7vsraTrEYPop6Z6DfUb-1JkkwoZg&scope=email+profile+openid+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&authuser=0&prompt=none HTTP/1.1" 302 0 "https://accounts.google.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:50 +0000] "GET /api/auth/oauth2/success HTTP/1.1" 302 0 "https://accounts.google.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:52 +0000] "GET /api/groups/my-groups HTTP/1.1" 200 12 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:52 +0000] "GET /api/groups/my-groups/unmuted HTTP/1.1" 200 12 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:52 +0000] "GET /api/groups/my-groups/muted HTTP/1.1" 200 12 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:52 +0000] "GET /api/organizations/my-memberships/church-primary HTTP/1.1" 200 678 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:52 +0000] "GET /api/organizations/my-memberships/groups HTTP/1.1" 200 12 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:52 +0000] "GET /api/organizations/my-memberships/family-primary HTTP/1.1" 200 684 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:52 +0000] "GET /api/profile/me HTTP/1.1" 200 1167 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:52 +0000] "GET /api/organizations/my-memberships HTTP/1.1" 200 1353 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:53 +0000] "GET /api/ws/info?t=1766291874934 HTTP/1.1" 200 78 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:53 +0000] "GET /api/ws/633/yy1rxo2h/websocket HTTP/1.1" 400 34 "-" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:53 +0000] "POST /api/ws/633/rcpzlxuu/xhr_send?t=1766291875142 HTTP/1.1" 204 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:53 +0000] "POST /api/api/notifications/register-token HTTP/1.1" 200 76 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/profile/me HTTP/1.1" 200 1167 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/feed-preferences HTTP/1.1" 200 254 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/feed-preferences/feed-parameters HTTP/1.1" 200 101 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/groups/my-groups HTTP/1.1" 200 12 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/groups/my-groups/unmuted HTTP/1.1" 200 12 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/feed-preferences/visible-group-ids HTTP/1.1" 200 12 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/groups/my-groups/muted HTTP/1.1" 200 12 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/organizations/my-memberships/family-primary HTTP/1.1" 200 684 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/organizations/my-memberships/church-primary HTTP/1.1" 200 678 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/profile/me/warnings HTTP/1.1" 200 65 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/organizations/my-memberships/groups HTTP/1.1" 200 12 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/organizations/my-memberships HTTP/1.1" 200 1353 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/posts/feed?feedType=community&page=0&size=5 HTTP/1.1" 500 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/profile/me/warnings HTTP/1.1" 200 65 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/api/notifications/status HTTP/1.1" 200 73 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "POST /api/api/notifications/register-token HTTP/1.1" 200 76 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/profile/91035c8f-200c-4037-9430-211d74beb6ac HTTP/1.1" 200 1167 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/ws/info?t=1766291877271 HTTP/1.1" 200 78 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "POST /api/feed-preferences HTTP/1.1" 200 254 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/dashboard HTTP/1.1" 200 7479 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/posts/feed?feedType=community&page=0&size=5 HTTP/1.1" 500 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/dashboard?organizationId=33305d22-a624-44a7-a97a-305983c7c8da HTTP/1.1" 200 3650 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/ws/160/xwyhghwz/websocket HTTP/1.1" 400 34 "-" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/donations/history?page=0&size=3 HTTP/1.1" 200 327 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/announcements/feed?limit=5 HTTP/1.1" 200 12 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/prayers?page=0&size=5 HTTP/1.1" 200 325 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/events/my-upcoming-rsvps HTTP/1.1" 200 12 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/posts/feed?feedType=community&page=0&size=5 HTTP/1.1" 500 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/resources/feed/recent?limit=3 HTTP/1.1" 200 12 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "GET /api/events/recent?page=0&size=5 HTTP/1.1" 200 2768 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "POST /api/ws/160/dzs5rena/xhr_send?t=1766291877487 HTTP/1.1" 204 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:55 +0000] "POST /api/ws/160/dzs5rena/xhr_send?t=1766291877638 HTTP/1.1" 204 0 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+172.31.23.39 - - [21/Dec/2025:04:37:56 +0000] "POST /api/api/notifications/register-token HTTP/1.1" 200 76 "https://www.thegathrd.com/" "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36" "66.189.187.105"
+
+
+----------------------------------------
+/var/log/nginx/error.log
+----------------------------------------
+2025/12/19 16:11:08 [warn] 357719#357719: *444 using uninitialized "hour" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/19 17:14:19 [warn] 357719#357719: *2042 using uninitialized "year" variable while logging request, client: 172.31.47.34, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/19 17:14:19 [warn] 357719#357719: *2042 using uninitialized "month" variable while logging request, client: 172.31.47.34, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/19 17:14:19 [warn] 357719#357719: *2042 using uninitialized "day" variable while logging request, client: 172.31.47.34, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/19 17:14:19 [warn] 357719#357719: *2042 using uninitialized "hour" variable while logging request, client: 172.31.47.34, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/19 17:14:20 [warn] 357719#357719: *2047 using uninitialized "year" variable while logging request, client: 172.31.47.34, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/19 17:14:20 [warn] 357719#357719: *2047 using uninitialized "month" variable while logging request, client: 172.31.47.34, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/19 17:14:20 [warn] 357719#357719: *2047 using uninitialized "day" variable while logging request, client: 172.31.47.34, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/19 17:14:20 [warn] 357719#357719: *2047 using uninitialized "hour" variable while logging request, client: 172.31.47.34, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 00:50:21 [warn] 357719#357719: *10168 using uninitialized "year" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 00:50:21 [warn] 357719#357719: *10168 using uninitialized "month" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 00:50:21 [warn] 357719#357719: *10168 using uninitialized "day" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 00:50:21 [warn] 357719#357719: *10168 using uninitialized "hour" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 00:50:21 [warn] 357718#357718: *10176 using uninitialized "year" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 00:50:21 [warn] 357718#357718: *10176 using uninitialized "month" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 00:50:21 [warn] 357718#357718: *10176 using uninitialized "day" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 00:50:21 [warn] 357718#357718: *10176 using uninitialized "hour" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 07:39:12 [warn] 357718#357718: *19174 using uninitialized "year" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 07:39:12 [warn] 357718#357718: *19174 using uninitialized "month" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 07:39:12 [warn] 357718#357718: *19174 using uninitialized "day" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 07:39:12 [warn] 357718#357718: *19174 using uninitialized "hour" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 07:39:12 [warn] 357719#357719: *19184 using uninitialized "year" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 07:39:12 [warn] 357719#357719: *19184 using uninitialized "month" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 07:39:12 [warn] 357719#357719: *19184 using uninitialized "day" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 07:39:12 [warn] 357719#357719: *19184 using uninitialized "hour" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 09:40:29 [warn] 357718#357718: *21142 using uninitialized "year" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 09:40:29 [warn] 357718#357718: *21142 using uninitialized "month" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 09:40:29 [warn] 357718#357718: *21142 using uninitialized "day" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 09:40:29 [warn] 357718#357718: *21142 using uninitialized "hour" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 09:40:30 [warn] 357719#357719: *21150 using uninitialized "year" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 09:40:30 [warn] 357719#357719: *21150 using uninitialized "month" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 09:40:30 [warn] 357719#357719: *21150 using uninitialized "day" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 09:40:30 [warn] 357719#357719: *21150 using uninitialized "hour" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 10:37:13 [warn] 357719#357719: *22014 using uninitialized "year" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 10:37:13 [warn] 357719#357719: *22014 using uninitialized "month" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 10:37:13 [warn] 357719#357719: *22014 using uninitialized "day" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 10:37:13 [warn] 357719#357719: *22014 using uninitialized "hour" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 10:37:13 [warn] 357718#357718: *22032 using uninitialized "year" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 10:37:13 [warn] 357718#357718: *22032 using uninitialized "month" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 10:37:13 [warn] 357718#357718: *22032 using uninitialized "day" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 10:37:13 [warn] 357718#357718: *22032 using uninitialized "hour" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 13:31:18 [warn] 357718#357718: *24806 using uninitialized "year" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 13:31:18 [warn] 357718#357718: *24806 using uninitialized "month" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 13:31:18 [warn] 357718#357718: *24806 using uninitialized "day" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 13:31:18 [warn] 357718#357718: *24806 using uninitialized "hour" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 13:31:19 [warn] 357719#357719: *24825 using uninitialized "year" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 13:31:19 [warn] 357719#357719: *24825 using uninitialized "month" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 13:31:19 [warn] 357719#357719: *24825 using uninitialized "day" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 13:31:19 [warn] 357719#357719: *24825 using uninitialized "hour" variable while logging request, client: 172.31.17.104, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 17:27:14 [warn] 357719#357719: *30041 using uninitialized "year" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 17:27:14 [warn] 357719#357719: *30041 using uninitialized "month" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 17:27:14 [warn] 357719#357719: *30041 using uninitialized "day" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 17:27:14 [warn] 357719#357719: *30041 using uninitialized "hour" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 17:27:14 [warn] 357718#357718: *30063 using uninitialized "year" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 17:27:14 [warn] 357718#357718: *30063 using uninitialized "month" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 17:27:14 [warn] 357718#357718: *30063 using uninitialized "day" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 17:27:14 [warn] 357718#357718: *30063 using uninitialized "hour" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 19:04:26 [warn] 357718#357718: *31744 using uninitialized "year" variable while logging request, client: 172.31.47.187, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 19:04:26 [warn] 357718#357718: *31744 using uninitialized "month" variable while logging request, client: 172.31.47.187, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 19:04:26 [warn] 357718#357718: *31744 using uninitialized "day" variable while logging request, client: 172.31.47.187, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 19:04:26 [warn] 357718#357718: *31744 using uninitialized "hour" variable while logging request, client: 172.31.47.187, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 19:04:27 [warn] 357719#357719: *31757 using uninitialized "year" variable while logging request, client: 172.31.47.187, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 19:04:27 [warn] 357719#357719: *31757 using uninitialized "month" variable while logging request, client: 172.31.47.187, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 19:04:27 [warn] 357719#357719: *31757 using uninitialized "day" variable while logging request, client: 172.31.47.187, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 19:04:27 [warn] 357719#357719: *31757 using uninitialized "hour" variable while logging request, client: 172.31.47.187, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 21:18:43 [warn] 357719#357719: *34498 using uninitialized "year" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 21:18:43 [warn] 357719#357719: *34498 using uninitialized "month" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 21:18:43 [warn] 357719#357719: *34498 using uninitialized "day" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 21:18:43 [warn] 357719#357719: *34498 using uninitialized "hour" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 21:18:43 [warn] 357718#357718: *34513 using uninitialized "year" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 21:18:43 [warn] 357718#357718: *34513 using uninitialized "month" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 21:18:43 [warn] 357718#357718: *34513 using uninitialized "day" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 21:18:43 [warn] 357718#357718: *34513 using uninitialized "hour" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 21:49:32 [warn] 357718#357718: *35046 using uninitialized "year" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 21:49:32 [warn] 357718#357718: *35046 using uninitialized "month" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 21:49:32 [warn] 357718#357718: *35046 using uninitialized "day" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 21:49:32 [warn] 357718#357718: *35046 using uninitialized "hour" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 21:49:32 [warn] 357718#357718: *35055 using uninitialized "year" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 21:49:32 [warn] 357718#357718: *35055 using uninitialized "month" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 21:49:32 [warn] 357718#357718: *35055 using uninitialized "day" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 21:49:32 [warn] 357718#357718: *35055 using uninitialized "hour" variable while logging request, client: 172.31.23.39, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 22:13:09 [warn] 357718#357718: *35551 using uninitialized "year" variable while logging request, client: 172.31.47.187, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 22:13:09 [warn] 357718#357718: *35551 using uninitialized "month" variable while logging request, client: 172.31.47.187, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 22:13:09 [warn] 357718#357718: *35551 using uninitialized "day" variable while logging request, client: 172.31.47.187, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 22:13:09 [warn] 357718#357718: *35551 using uninitialized "hour" variable while logging request, client: 172.31.47.187, server: , request: "POST /cgi-bin/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/.%2e/bin/sh HTTP/1.1"
+2025/12/20 22:13:09 [warn] 357718#357718: *35556 using uninitialized "year" variable while logging request, client: 172.31.47.187, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 22:13:09 [warn] 357718#357718: *35556 using uninitialized "month" variable while logging request, client: 172.31.47.187, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 22:13:09 [warn] 357718#357718: *35556 using uninitialized "day" variable while logging request, client: 172.31.47.187, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/20 22:13:09 [warn] 357718#357718: *35556 using uninitialized "hour" variable while logging request, client: 172.31.47.187, server: , request: "POST /cgi-bin/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/%%32%65%%32%65/bin/sh HTTP/1.1"
+2025/12/21 00:08:30 [warn] 357719#357719: *38285 a client request body is buffered to a temporary file /var/lib/nginx/tmp/client_body/0000000001, client: 172.31.47.187, server: , request: "POST / HTTP/1.1", host: "api.thegathrd.com"
+2025/12/21 04:25:25 [warn] 432906#432906: could not build optimal types_hash, you should increase either types_hash_max_size: 1024 or types_hash_bucket_size: 64; ignoring types_hash_bucket_size
+2025/12/21 04:25:26 [warn] 432952#432952: could not build optimal types_hash, you should increase either types_hash_max_size: 1024 or types_hash_bucket_size: 64; ignoring types_hash_bucket_size
+2025/12/21 04:25:26 [warn] 432954#432954: could not build optimal types_hash, you should increase either types_hash_max_size: 1024 or types_hash_bucket_size: 64; ignoring types_hash_bucket_size
+2025/12/21 04:25:28 [error] 432956#432956: *3 connect() failed (111: Connection refused) while connecting to upstream, client: 172.31.47.187, server: , request: "GET /api/ws/info?t=1766291130126 HTTP/1.1", upstream: "http://127.0.0.1:5000/api/ws/info?t=1766291130126", host: "api.thegathrd.com", referrer: "https://www.thegathrd.com/"
+2025/12/21 04:25:34 [error] 432956#432956: *3 connect() failed (111: Connection refused) while connecting to upstream, client: 172.31.47.187, server: , request: "GET /api/ws/info?t=1766291136131 HTTP/1.1", upstream: "http://127.0.0.1:5000/api/ws/info?t=1766291136131", host: "api.thegathrd.com", referrer: "https://www.thegathrd.com/"
+2025/12/21 04:25:40 [error] 432956#432956: *3 connect() failed (111: Connection refused) while connecting to upstream, client: 172.31.47.187, server: , request: "GET /api/ws/info?t=1766291142126 HTTP/1.1", upstream: "http://127.0.0.1:5000/api/ws/info?t=1766291142126", host: "api.thegathrd.com", referrer: "https://www.thegathrd.com/"
+2025/12/21 04:25:41 [error] 432956#432956: *1 connect() failed (111: Connection refused) while connecting to upstream, client: 172.31.23.39, server: , request: "GET /?XDEBUG_SESSION_START=phpstorm HTTP/1.1", upstream: "http://127.0.0.1:5000/?XDEBUG_SESSION_START=phpstorm", host: "35.167.174.50"
+2025/12/21 04:25:46 [error] 432956#432956: *3 connect() failed (111: Connection refused) while connecting to upstream, client: 172.31.47.187, server: , request: "GET /api/ws/info?t=1766291148125 HTTP/1.1", upstream: "http://127.0.0.1:5000/api/ws/info?t=1766291148125", host: "api.thegathrd.com", referrer: "https://www.thegathrd.com/"
+2025/12/21 04:25:52 [error] 432956#432956: *3 connect() failed (111: Connection refused) while connecting to upstream, client: 172.31.47.187, server: , request: "GET /api/ws/info?t=1766291154129 HTTP/1.1", upstream: "http://127.0.0.1:5000/api/ws/info?t=1766291154129", host: "api.thegathrd.com", referrer: "https://www.thegathrd.com/"
+2025/12/21 04:25:58 [error] 432956#432956: *3 connect() failed (111: Connection refused) while connecting to upstream, client: 172.31.47.187, server: , request: "GET /api/ws/info?t=1766291160126 HTTP/1.1", upstream: "http://127.0.0.1:5000/api/ws/info?t=1766291160126", host: "api.thegathrd.com", referrer: "https://www.thegathrd.com/"
+
+
+----------------------------------------
+/var/log/web.stdout.log
+----------------------------------------
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:35.352Z  INFO 432896 --- [nio-5000-exec-2] c.c.controller.FeedPreferenceController  : User 91035c8f-200c-4037-9430-211d74beb6ac updating feed preference to filter: PRIMARY_ONLY
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:35.352Z  INFO 432896 --- [nio-5000-exec-2] c.churchapp.service.FeedFilterService    : 🔧 updateFeedPreference called: userId=91035c8f-200c-4037-9430-211d74beb6ac, filter=PRIMARY_ONLY, selectedGroupIds=null, selectedOrganizationId=33305d22-a624-44a7-a97a-305983c7c8da
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:35.354Z  INFO 432896 --- [nio-5000-exec-2] c.churchapp.service.FeedFilterService    : ✅ Saved feed preference for user 91035c8f-200c-4037-9430-211d74beb6ac: filter=PRIMARY_ONLY, selectedOrgId=33305d22-a624-44a7-a97a-305983c7c8da, selectedGroupIds=[]
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:35.356Z  INFO 432896 --- [nio-5000-exec-6] c.churchapp.service.FeedFilterService    : 📊 getFeedParameters for user 91035c8f-200c-4037-9430-211d74beb6ac: filter=PRIMARY_ONLY, selectedOrgId=33305d22-a624-44a7-a97a-305983c7c8da, selectedGroupIds=[]
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:35.356Z  INFO 432896 --- [nio-5000-exec-6] c.churchapp.service.FeedFilterService    : 🎯 PRIMARY_ONLY filter - returning only org: [33305d22-a624-44a7-a97a-305983c7c8da]
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:35.365Z  INFO 432896 --- [nio-5000-exec-6] com.churchapp.service.PostService        : 📰 getMultiTenantFeed for user 91035c8f-200c-4037-9430-211d74beb6ac: filter=PRIMARY_ONLY, primaryOrgs=1, secondaryOrgs=0, groups=0, orgAsGroups=0, followingUsers=0
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:35.369Z  WARN 432896 --- [nio-5000-exec-6] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 0, SQLState: 42703
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:35.369Z ERROR 432896 --- [nio-5000-exec-6] o.h.engine.jdbc.spi.SqlExceptionHelper   : ERROR: column p1_0.views_count does not exist
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]:  Hint: Perhaps you meant to reference the column "p1_0.likes_count".
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]:  Position: 468
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:35.378Z  INFO 432896 --- [nio-5000-exec-7] c.churchapp.service.FeedFilterService    : 📊 getFeedParameters for user 91035c8f-200c-4037-9430-211d74beb6ac: filter=PRIMARY_ONLY, selectedOrgId=33305d22-a624-44a7-a97a-305983c7c8da, selectedGroupIds=[]
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:35.379Z  INFO 432896 --- [nio-5000-exec-7] c.churchapp.service.FeedFilterService    : 🎯 PRIMARY_ONLY filter - returning only org: [33305d22-a624-44a7-a97a-305983c7c8da]
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:35.385Z  INFO 432896 --- [nio-5000-exec-7] com.churchapp.service.PostService        : 📰 getMultiTenantFeed for user 91035c8f-200c-4037-9430-211d74beb6ac: filter=PRIMARY_ONLY, primaryOrgs=1, secondaryOrgs=0, groups=0, orgAsGroups=0, followingUsers=0
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 🎯 DashboardController.getDashboard - Received organizationId: 33305d22-a624-44a7-a97a-305983c7c8da
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 🎯 DashboardController.getDashboard - User: stevensills2@gmail.com
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:35.396Z  WARN 432896 --- [nio-5000-exec-7] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 0, SQLState: 42703
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:35.401Z ERROR 432896 --- [nio-5000-exec-7] o.h.engine.jdbc.spi.SqlExceptionHelper   : ERROR: column p1_0.views_count does not exist
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]:  Hint: Perhaps you meant to reference the column "p1_0.likes_count".
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]:  Position: 468
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 📊 DashboardService.getDashboardData - organizationId param: 33305d22-a624-44a7-a97a-305983c7c8da
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 📊 DashboardService.getDashboardData - resolved orgId: 33305d22-a624-44a7-a97a-305983c7c8da
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 📊 DashboardService.getDashboardData - user: stevensills2@gmail.com
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 📈 getDashboardStats called with organizationId: 33305d22-a624-44a7-a97a-305983c7c8da
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 📈 Total members for org 33305d22-a624-44a7-a97a-305983c7c8da: 17
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 📈 New members this week for org 33305d22-a624-44a7-a97a-305983c7c8da: 3
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 📈 Active prayer requests for org 33305d22-a624-44a7-a97a-305983c7c8da: 0
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 📈 Answered prayer requests for org 33305d22-a624-44a7-a97a-305983c7c8da: 0
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 📈 Returning DashboardStats - activePrayerRequests: 0
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 📈 Returning DashboardStats - totalMembers: 17
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: ⚡ getQuickActions called for user: stevensills2@gmail.com, organizationId: 33305d22-a624-44a7-a97a-305983c7c8da
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: ⚡ User membership check for org 33305d22-a624-44a7-a97a-305983c7c8da: true
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:35.526Z ERROR 432896 --- [nio-5000-exec-2] o.s.w.s.s.s.DefaultHandshakeHandler      : "Handshake failed due to invalid Upgrade header: null"
+Dec 21 04:37:35 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:35.960Z  INFO 432896 --- [nio-5000-exec-1] c.c.controller.NotificationController    : FCM token registered for user: stevensills2@gmail.com
+Dec 21 04:37:52 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:52.642Z  INFO 432896 --- [nio-5000-exec-5] c.c.controller.OrganizationController    : 🔍 DEBUG: User stevensills2@gmail.com requesting ALL memberships
+Dec 21 04:37:52 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:52.649Z  INFO 432896 --- [nio-5000-exec-5] c.c.controller.OrganizationController    : 🔍 DEBUG: Found 2 memberships for user stevensills2@gmail.com
+Dec 21 04:37:52 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:52.654Z  INFO 432896 --- [nio-5000-exec-5] c.c.controller.OrganizationController    : 🔍 DEBUG: - Org: The River, a Vineyard Fellowship Church, Role: MEMBER, IsPrimary: true
+Dec 21 04:37:52 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:52.654Z  INFO 432896 --- [nio-5000-exec-5] c.c.controller.OrganizationController    : 🔍 DEBUG: - Org: ❤️🤍💙🏠, Role: ORG_ADMIN, IsPrimary: true
+Dec 21 04:37:53 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:53.325Z ERROR 432896 --- [io-5000-exec-10] o.s.w.s.s.s.DefaultHandshakeHandler      : "Handshake failed due to invalid Upgrade header: null"
+Dec 21 04:37:53 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:53.526Z  INFO 432896 --- [nio-5000-exec-3] c.c.controller.NotificationController    : FCM token registered for user: stevensills2@gmail.com
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.358Z  INFO 432896 --- [nio-5000-exec-6] c.churchapp.service.FeedFilterService    : 📊 getFeedParameters for user 91035c8f-200c-4037-9430-211d74beb6ac: filter=PRIMARY_ONLY, selectedOrgId=33305d22-a624-44a7-a97a-305983c7c8da, selectedGroupIds=[]
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.358Z  INFO 432896 --- [nio-5000-exec-6] c.churchapp.service.FeedFilterService    : 🎯 PRIMARY_ONLY filter - returning only org: [33305d22-a624-44a7-a97a-305983c7c8da]
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.445Z  INFO 432896 --- [nio-5000-exec-1] c.c.controller.OrganizationController    : 🔍 DEBUG: User stevensills2@gmail.com requesting ALL memberships
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.448Z  INFO 432896 --- [nio-5000-exec-1] c.c.controller.OrganizationController    : 🔍 DEBUG: Found 2 memberships for user stevensills2@gmail.com
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.451Z  INFO 432896 --- [nio-5000-exec-1] c.c.controller.OrganizationController    : 🔍 DEBUG: - Org: The River, a Vineyard Fellowship Church, Role: MEMBER, IsPrimary: true
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.451Z  INFO 432896 --- [nio-5000-exec-1] c.c.controller.OrganizationController    : 🔍 DEBUG: - Org: ❤️🤍💙🏠, Role: ORG_ADMIN, IsPrimary: true
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.464Z  INFO 432896 --- [nio-5000-exec-6] c.churchapp.service.FeedFilterService    : 📊 getFeedParameters for user 91035c8f-200c-4037-9430-211d74beb6ac: filter=PRIMARY_ONLY, selectedOrgId=33305d22-a624-44a7-a97a-305983c7c8da, selectedGroupIds=[]
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.465Z  INFO 432896 --- [nio-5000-exec-6] c.churchapp.service.FeedFilterService    : 🎯 PRIMARY_ONLY filter - returning only org: [33305d22-a624-44a7-a97a-305983c7c8da]
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.470Z  INFO 432896 --- [nio-5000-exec-6] com.churchapp.service.PostService        : 📰 getMultiTenantFeed for user 91035c8f-200c-4037-9430-211d74beb6ac: filter=PRIMARY_ONLY, primaryOrgs=1, secondaryOrgs=0, groups=0, orgAsGroups=0, followingUsers=0
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.477Z  WARN 432896 --- [nio-5000-exec-6] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 0, SQLState: 42703
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.477Z ERROR 432896 --- [nio-5000-exec-6] o.h.engine.jdbc.spi.SqlExceptionHelper   : ERROR: column p1_0.views_count does not exist
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]:  Hint: Perhaps you meant to reference the column "p1_0.likes_count".
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]:  Position: 468
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 🎯 DashboardController.getDashboard - Received organizationId: null
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 🎯 DashboardController.getDashboard - User: stevensills2@gmail.com
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 📊 DashboardService.getDashboardData - organizationId param: null
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 📊 DashboardService.getDashboardData - resolved orgId: 009d12bc-310e-4077-9933-0ac5af94078d
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 📊 DashboardService.getDashboardData - user: stevensills2@gmail.com
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.517Z  INFO 432896 --- [io-5000-exec-10] c.c.controller.NotificationController    : FCM token registered for user: stevensills2@gmail.com
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 📈 getDashboardStats called with organizationId: 009d12bc-310e-4077-9933-0ac5af94078d
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.532Z  INFO 432896 --- [nio-5000-exec-9] c.c.controller.FeedPreferenceController  : User 91035c8f-200c-4037-9430-211d74beb6ac updating feed preference to filter: PRIMARY_ONLY
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.533Z  INFO 432896 --- [nio-5000-exec-9] c.churchapp.service.FeedFilterService    : 🔧 updateFeedPreference called: userId=91035c8f-200c-4037-9430-211d74beb6ac, filter=PRIMARY_ONLY, selectedGroupIds=null, selectedOrganizationId=33305d22-a624-44a7-a97a-305983c7c8da
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.534Z  INFO 432896 --- [nio-5000-exec-9] c.churchapp.service.FeedFilterService    : ✅ Saved feed preference for user 91035c8f-200c-4037-9430-211d74beb6ac: filter=PRIMARY_ONLY, selectedOrgId=33305d22-a624-44a7-a97a-305983c7c8da, selectedGroupIds=[]
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 📈 Total members for org 009d12bc-310e-4077-9933-0ac5af94078d: 6
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 📈 New members this week for org 009d12bc-310e-4077-9933-0ac5af94078d: 0
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 📈 Active prayer requests for org 009d12bc-310e-4077-9933-0ac5af94078d: 0
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 📈 Answered prayer requests for org 009d12bc-310e-4077-9933-0ac5af94078d: 0
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 📈 Returning DashboardStats - activePrayerRequests: 0
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 🎯 DashboardController.getDashboard - Received organizationId: 33305d22-a624-44a7-a97a-305983c7c8da
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 🎯 DashboardController.getDashboard - User: stevensills2@gmail.com
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 📈 Returning DashboardStats - totalMembers: 6
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: ⚡ getQuickActions called for user: stevensills2@gmail.com, organizationId: 009d12bc-310e-4077-9933-0ac5af94078d
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 📊 DashboardService.getDashboardData - organizationId param: 33305d22-a624-44a7-a97a-305983c7c8da
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 📊 DashboardService.getDashboardData - resolved orgId: 33305d22-a624-44a7-a97a-305983c7c8da
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 📊 DashboardService.getDashboardData - user: stevensills2@gmail.com
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: ⚡ User membership check for org 009d12bc-310e-4077-9933-0ac5af94078d: true
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 📈 getDashboardStats called with organizationId: 33305d22-a624-44a7-a97a-305983c7c8da
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 📈 Total members for org 33305d22-a624-44a7-a97a-305983c7c8da: 17
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 📈 New members this week for org 33305d22-a624-44a7-a97a-305983c7c8da: 3
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.574Z  INFO 432896 --- [nio-5000-exec-1] c.churchapp.service.FeedFilterService    : 📊 getFeedParameters for user 91035c8f-200c-4037-9430-211d74beb6ac: filter=PRIMARY_ONLY, selectedOrgId=33305d22-a624-44a7-a97a-305983c7c8da, selectedGroupIds=[]
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.581Z  INFO 432896 --- [nio-5000-exec-1] c.churchapp.service.FeedFilterService    : 🎯 PRIMARY_ONLY filter - returning only org: [33305d22-a624-44a7-a97a-305983c7c8da]
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.586Z  INFO 432896 --- [nio-5000-exec-1] com.churchapp.service.PostService        : 📰 getMultiTenantFeed for user 91035c8f-200c-4037-9430-211d74beb6ac: filter=PRIMARY_ONLY, primaryOrgs=1, secondaryOrgs=0, groups=0, orgAsGroups=0, followingUsers=0
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.588Z  WARN 432896 --- [nio-5000-exec-1] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 0, SQLState: 42703
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.588Z ERROR 432896 --- [nio-5000-exec-1] o.h.engine.jdbc.spi.SqlExceptionHelper   : ERROR: column p1_0.views_count does not exist
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]:  Hint: Perhaps you meant to reference the column "p1_0.likes_count".
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]:  Position: 468
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 📈 Active prayer requests for org 33305d22-a624-44a7-a97a-305983c7c8da: 0
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 📈 Answered prayer requests for org 33305d22-a624-44a7-a97a-305983c7c8da: 0
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 📈 Returning DashboardStats - activePrayerRequests: 0
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 📈 Returning DashboardStats - totalMembers: 17
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: ⚡ getQuickActions called for user: stevensills2@gmail.com, organizationId: 33305d22-a624-44a7-a97a-305983c7c8da
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: ⚡ User membership check for org 33305d22-a624-44a7-a97a-305983c7c8da: true
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.656Z  INFO 432896 --- [nio-5000-exec-6] c.churchapp.service.FeedFilterService    : 📊 getFeedParameters for user 91035c8f-200c-4037-9430-211d74beb6ac: filter=PRIMARY_ONLY, selectedOrgId=33305d22-a624-44a7-a97a-305983c7c8da, selectedGroupIds=[]
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.656Z  INFO 432896 --- [nio-5000-exec-6] c.churchapp.service.FeedFilterService    : 🎯 PRIMARY_ONLY filter - returning only org: [33305d22-a624-44a7-a97a-305983c7c8da]
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.668Z ERROR 432896 --- [nio-5000-exec-2] o.s.w.s.s.s.DefaultHandshakeHandler      : "Handshake failed due to invalid Upgrade header: null"
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.688Z  INFO 432896 --- [nio-5000-exec-6] com.churchapp.service.PostService        : 📰 getMultiTenantFeed for user 91035c8f-200c-4037-9430-211d74beb6ac: filter=PRIMARY_ONLY, primaryOrgs=1, secondaryOrgs=0, groups=0, orgAsGroups=0, followingUsers=0
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.709Z  WARN 432896 --- [nio-5000-exec-6] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 0, SQLState: 42703
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:55.711Z ERROR 432896 --- [nio-5000-exec-6] o.h.engine.jdbc.spi.SqlExceptionHelper   : ERROR: column p1_0.views_count does not exist
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]:  Hint: Perhaps you meant to reference the column "p1_0.likes_count".
+Dec 21 04:37:55 ip-172-31-17-226 web[432896]:  Position: 468
+Dec 21 04:37:56 ip-172-31-17-226 web[432896]: 2025-12-21T04:37:56.341Z  INFO 432896 --- [nio-5000-exec-7] c.c.controller.NotificationController    : FCM token registered for user: stevensills2@gmail.com
+
+
+----------------------------------------
+/var/log/eb-engine.log
+----------------------------------------
+2025/12/21 04:25:17.929078 [INFO] Running command: systemctl is-active nginx.service
+2025/12/21 04:25:17.937327 [INFO] Running command: systemctl show -p PartOf nginx.service
+2025/12/21 04:25:17.948067 [INFO] Running command: systemctl stop nginx.service
+2025/12/21 04:25:23.244738 [INFO] Running command: systemctl disable nginx.service
+2025/12/21 04:25:23.533202 [INFO] Running command: systemctl daemon-reload
+2025/12/21 04:25:23.774535 [INFO] Running command: systemctl reset-failed
+2025/12/21 04:25:23.785051 [INFO] Executing instruction: FlipApplication
+2025/12/21 04:25:23.785076 [INFO] Fetching environment variables...
+2025/12/21 04:25:23.785098 [INFO] Running command: uname -m
+2025/12/21 04:25:23.787316 [INFO] x86_64
+
+2025/12/21 04:25:23.787501 [INFO] Purge old process...
+2025/12/21 04:25:23.787518 [INFO] Running command: systemctl stop eb-app.target
+2025/12/21 04:25:23.801780 [INFO] Running command: systemctl show -p ConsistsOf eb-app.target | cut -d= -f2
+2025/12/21 04:25:23.816796 [INFO] web.service
+
+2025/12/21 04:25:23.816826 [INFO] deregistering process: web
+2025/12/21 04:25:23.816838 [INFO] Running command: systemctl show -p PartOf web.service
+2025/12/21 04:25:23.837021 [INFO] Running command: systemctl is-active web.service
+2025/12/21 04:25:23.858752 [INFO] Running command: systemctl disable web.service
+2025/12/21 04:25:24.189726 [INFO] Removed "/etc/systemd/system/multi-user.target.wants/web.service".
+
+2025/12/21 04:25:24.189820 [INFO] Running command: systemctl daemon-reload
+2025/12/21 04:25:24.468313 [INFO] Running command: systemctl reset-failed
+2025/12/21 04:25:24.517313 [INFO] Running command: systemctl is-active web.service
+2025/12/21 04:25:24.526515 [INFO] Process web has been fully terminated
+2025/12/21 04:25:24.526540 [INFO] All processes have been fully terminated
+2025/12/21 04:25:24.526544 [INFO] Removing /var/app/current/ if it exists
+2025/12/21 04:25:24.534042 [INFO] Renaming /var/app/staging/ to /var/app/current/
+2025/12/21 04:25:24.534087 [INFO] Register application processes...
+2025/12/21 04:25:24.534092 [INFO] Registering the proc: web
+
+2025/12/21 04:25:24.534103 [INFO] Running command: systemctl show -p PartOf web.service
+2025/12/21 04:25:24.547363 [INFO] Running command: systemctl daemon-reload
+2025/12/21 04:25:24.803578 [INFO] Running command: systemctl reset-failed
+2025/12/21 04:25:24.813591 [INFO] Running command: systemctl is-enabled eb-app.target
+2025/12/21 04:25:24.821974 [INFO] Running command: systemctl enable eb-app.target
+2025/12/21 04:25:25.073911 [INFO] Running command: systemctl start eb-app.target
+2025/12/21 04:25:25.084509 [INFO] Running command: systemctl enable web.service
+2025/12/21 04:25:25.344705 [INFO] Created symlink /etc/systemd/system/multi-user.target.wants/web.service → /etc/systemd/system/web.service.
+
+2025/12/21 04:25:25.344738 [INFO] Running command: systemctl show -p PartOf web.service
+2025/12/21 04:25:25.356992 [INFO] Running command: systemctl is-active web.service
+2025/12/21 04:25:25.366144 [INFO] Running command: systemctl start web.service
+2025/12/21 04:25:25.455602 [INFO] Executing instruction: start X-Ray
+2025/12/21 04:25:25.455626 [INFO] X-Ray is not enabled.
+2025/12/21 04:25:25.455630 [INFO] Executing instruction: start proxy with new configuration
+2025/12/21 04:25:25.455659 [INFO] Running command: /usr/sbin/nginx -t -c /var/proxy/staging/nginx/nginx.conf
+2025/12/21 04:25:25.487881 [INFO] nginx: [warn] could not build optimal types_hash, you should increase either types_hash_max_size: 1024 or types_hash_bucket_size: 64; ignoring types_hash_bucket_size
+nginx: the configuration file /var/proxy/staging/nginx/nginx.conf syntax is ok
+nginx: configuration file /var/proxy/staging/nginx/nginx.conf test is successful
+
+2025/12/21 04:25:25.488104 [INFO] Running command: cp -rp /var/proxy/staging/nginx/* /etc/nginx
+2025/12/21 04:25:25.492367 [INFO] Running command: systemctl show -p PartOf nginx.service
+2025/12/21 04:25:25.516322 [INFO] Running command: systemctl daemon-reload
+2025/12/21 04:25:25.940816 [INFO] Running command: systemctl reset-failed
+2025/12/21 04:25:25.956931 [INFO] Running command: systemctl show -p PartOf nginx.service
+2025/12/21 04:25:25.975797 [INFO] Running command: systemctl is-active nginx.service
+2025/12/21 04:25:25.991688 [INFO] Running command: systemctl start nginx.service
+2025/12/21 04:25:26.158421 [INFO] Executing instruction: configureSqsd
+2025/12/21 04:25:26.158440 [INFO] This is a web server environment instance, skip configure sqsd daemon ...
+2025/12/21 04:25:26.158444 [INFO] Executing instruction: startSqsd
+2025/12/21 04:25:26.158447 [INFO] This is a web server environment instance, skip start sqsd daemon ...
+2025/12/21 04:25:26.158451 [INFO] Executing instruction: Track pids in healthd
+2025/12/21 04:25:26.158454 [INFO] This is an enhanced health env...
+2025/12/21 04:25:26.158466 [INFO] Running command: systemctl show -p ConsistsOf aws-eb.target | cut -d= -f2
+2025/12/21 04:25:26.174822 [INFO] nginx.service cfn-hup.service healthd.service
+
+2025/12/21 04:25:26.174859 [INFO] Running command: systemctl show -p ConsistsOf eb-app.target | cut -d= -f2
+2025/12/21 04:25:26.192341 [INFO] web.service
+
+2025/12/21 04:25:26.192683 [INFO] Executing instruction: RunAppDeployPostDeployHooks
+2025/12/21 04:25:26.192710 [INFO] Running command: uname -m
+2025/12/21 04:25:26.196428 [INFO] x86_64
+
+2025/12/21 04:25:26.196543 [INFO] Executing platform hooks in .platform/hooks/postdeploy/
+2025/12/21 04:25:26.196570 [INFO] The dir .platform/hooks/postdeploy/ does not exist
+2025/12/21 04:25:26.196574 [INFO] Finished running scripts in /var/app/current/.platform/hooks/postdeploy
+2025/12/21 04:25:26.196581 [INFO] Executing cleanup logic
+2025/12/21 04:25:26.196700 [INFO] CommandService Response: {"status":"SUCCESS","api_version":"1.0","results":[{"status":"SUCCESS","msg":"Engine execution has succeeded.","returncode":0,"events":[{"msg":"Instance deployment successfully detected a JAR file in your source bundle.","timestamp":1766291114832,"severity":"INFO"},{"msg":"Instance deployment successfully generated a 'Procfile'.","timestamp":1766291114836,"severity":"INFO"},{"msg":"Instance deployment completed successfully.","timestamp":1766291126196,"severity":"INFO"}]}]}
+
+2025/12/21 04:25:26.198763 [INFO] Platform Engine finished execution on command: app-deploy
+
+2025/12/21 04:40:40.461065 [INFO] Starting...
+2025/12/21 04:40:40.461146 [INFO] Starting EBPlatform-PlatformEngine
+2025/12/21 04:40:40.461177 [INFO] reading event message file
+2025/12/21 04:40:40.461615 [INFO] Engine received EB command cfn-hup-exec
+
+2025/12/21 04:40:40.534584 [INFO] Running command: /opt/aws/bin/cfn-get-metadata -s arn:aws:cloudformation:us-west-2:060163370478:stack/awseb-e-vb4m3papus-stack/847d16f0-d719-11f0-8af4-029b39dd20c3 -r AWSEBAutoScalingGroup --region us-west-2
+2025/12/21 04:40:40.820824 [INFO] Running command: /opt/aws/bin/cfn-get-metadata -s arn:aws:cloudformation:us-west-2:060163370478:stack/awseb-e-vb4m3papus-stack/847d16f0-d719-11f0-8af4-029b39dd20c3 -r AWSEBBeanstalkMetadata --region us-west-2
+2025/12/21 04:40:41.124031 [INFO] checking whether command tail-log is applicable to this instance...
+2025/12/21 04:40:41.124049 [INFO] this command is applicable to the instance, thus instance should execute command
+2025/12/21 04:40:41.124052 [INFO] Engine command: (tail-log)
+
+2025/12/21 04:40:41.124134 [INFO] Executing instruction: GetTailLogs
+2025/12/21 04:40:41.124137 [INFO] Tail Logs...
+2025/12/21 04:40:41.124753 [INFO] Running command: tail -n 100 /var/log/nginx/access.log
+2025/12/21 04:40:41.127862 [INFO] Running command: tail -n 100 /var/log/nginx/error.log
+2025/12/21 04:40:41.130060 [INFO] Running command: tail -n 100 /var/log/web.stdout.log
+2025/12/21 04:40:41.132435 [INFO] Running command: tail -n 100 /var/log/eb-engine.log
+
+
+----------------------------------------
+/var/log/eb-hooks.log
+----------------------------------------
+
+

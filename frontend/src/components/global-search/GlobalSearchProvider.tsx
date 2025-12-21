@@ -40,7 +40,10 @@ export const GlobalSearchProvider: React.FC<{ children: ReactNode }> = ({ childr
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              zIndex: 2000
+              zIndex: 10100, // Changed from 2000
+              WebkitTransform: 'translateZ(0)', // iOS fix
+              transform: 'translateZ(0)', // iOS fix
+              isolation: 'isolate' // iOS fix
             }}
             onClick={close}
           >
