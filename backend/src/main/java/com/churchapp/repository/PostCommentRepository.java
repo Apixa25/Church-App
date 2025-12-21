@@ -39,6 +39,14 @@ public interface PostCommentRepository extends JpaRepository<PostComment, UUID> 
     // Count replies to a comment
     long countByParentCommentId(UUID parentCommentId);
 
+    // Count comments created after a specific timestamp (for "new comments" feature)
+    @Query("SELECT COUNT(c) FROM PostComment c WHERE c.post.id = :postId AND c.createdAt > :since")
+    long countByPostIdAndCreatedAtAfter(@Param("postId") UUID postId, @Param("since") LocalDateTime since);
+
+    // Find most recent comment by user on a post (for notifications)
+    @Query("SELECT pc FROM PostComment pc WHERE pc.post.id = :postId AND pc.user.id = :userId ORDER BY pc.createdAt DESC")
+    List<PostComment> findTopByPostIdAndUserIdOrderByCreatedAtDesc(@Param("postId") UUID postId, @Param("userId") UUID userId);
+
     // Find comments with media
     @Query("SELECT pc FROM PostComment pc WHERE pc.mediaUrls IS NOT EMPTY ORDER BY pc.createdAt DESC")
     Page<PostComment> findCommentsWithMedia(Pageable pageable);
