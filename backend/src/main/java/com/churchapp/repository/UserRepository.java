@@ -119,18 +119,16 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
 
     /**
      * Find all users who share either church or family primary organization with the requester.
-     * Handles all permutations: church-to-church, family-to-family, and cross-org matches.
-     * This enables the Directory feature to show members from BOTH church and family organizations.
+     * Returns users from the requester's church org (if they have one) AND family org (if they have one).
+     * This enables the Directory feature to show all relevant contacts across church and family contexts.
      */
     @Query("""
         SELECT DISTINCT u
         FROM User u
         WHERE u.id <> :excludeUserId
           AND (
-               (u.churchPrimaryOrganization.id = :churchOrgId AND :churchOrgId IS NOT NULL)
-            OR (u.familyPrimaryOrganization.id = :churchOrgId AND :churchOrgId IS NOT NULL)
-            OR (u.churchPrimaryOrganization.id = :familyOrgId AND :familyOrgId IS NOT NULL)
-            OR (u.familyPrimaryOrganization.id = :familyOrgId AND :familyOrgId IS NOT NULL)
+               (:churchOrgId IS NOT NULL AND u.churchPrimaryOrganization.id = :churchOrgId)
+            OR (:familyOrgId IS NOT NULL AND u.familyPrimaryOrganization.id = :familyOrgId)
           )
           AND (
                :qLike IS NULL
