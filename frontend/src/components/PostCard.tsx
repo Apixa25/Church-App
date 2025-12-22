@@ -682,6 +682,64 @@ const PostCard: React.FC<PostCardProps> = ({
     };
   }, [post.id]); // Cleanup when post changes
 
+  // AUTO-PAUSE VIDEOS ON SCROLL OUT OF VIEW
+  // Production-grade: Pause playing videos when user scrolls past them
+  useEffect(() => {
+    // Skip if MediaViewer is open - user explicitly opened full-screen view
+    if (showMediaViewer) return;
+
+    // Skip if no videos are currently loaded (nothing to observe)
+    if (loadedVideos.size === 0) return;
+
+    const pauseObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          // Get video index from data attribute
+          const indexAttr = entry.target.getAttribute('data-video-index');
+          if (!indexAttr) return;
+
+          const index = parseInt(indexAttr, 10);
+          const video = videoRefs.current.get(index);
+
+          if (!video) return;
+
+          // Auto-pause when video scrolls OUT of view AND is currently playing
+          if (!entry.isIntersecting) {
+            const currentState = videoLoadingStates.get(index);
+            if (currentState === 'playing') {
+              try {
+                video.pause();
+                // Note: onPause event handler will update state to 'ready'
+              } catch (error) {
+                console.warn(`[PostCard] Error auto-pausing video ${index}:`, error);
+              }
+            }
+          }
+          // IMPORTANT: Do NOT auto-play when scrolling back into view
+          // Per requirements, user must manually click to resume playback
+        });
+      },
+      {
+        // 50% threshold: pause when less than half the video is visible
+        threshold: 0.5,
+        // Slight margin to avoid edge cases during fast scrolling
+        rootMargin: '-10% 0px -10% 0px'
+      }
+    );
+
+    // Observe all currently loaded video elements
+    videoRefs.current.forEach((video, index) => {
+      if (video && loadedVideos.has(index)) {
+        pauseObserver.observe(video);
+      }
+    });
+
+    // Cleanup: disconnect observer when effect re-runs or component unmounts
+    return () => {
+      pauseObserver.disconnect();
+    };
+  }, [loadedVideos, showMediaViewer, videoLoadingStates]);
+
   // Production-grade: Enhanced error handler
   const handleVideoError = useCallback((index: number, video: HTMLVideoElement, mediaType: string | undefined, url: string) => {
     const error = video.error;
