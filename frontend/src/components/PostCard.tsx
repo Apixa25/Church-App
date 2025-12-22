@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef, useCallback, memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Post, PostType, Comment, SharePostRequest } from '../types/Post';
-import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost, deletePost, recordPostView, blockUser, unblockUser, getBlockStatus, followUser, unfollowUser, getFollowStatus, reportContent, getNewCommentCount, markCommentsAsRead } from '../services/postApi';
+import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost, deletePost, blockUser, unblockUser, getBlockStatus, followUser, unfollowUser, getFollowStatus, reportContent, getNewCommentCount, markCommentsAsRead } from '../services/postApi';
+import { impressionTracker } from '../services/impressionTracker';
 import CommentThread from './CommentThread';
 import { formatRelativeDate } from '../utils/dateUtils';
 import { useAuth } from '../contexts/AuthContext';
@@ -77,6 +78,10 @@ const PostCard: React.FC<PostCardProps> = ({
   // Track if we've done an optimistic update to prevent props from overwriting it
   const optimisticUpdateRef = useRef<{ type: 'like' | 'bookmark' | 'comment' | 'share'; timestamp: number } | null>(null);
 
+  // Ref for impression tracking via IntersectionObserver
+  const postCardRef = useRef<HTMLDivElement>(null);
+  const impressionTrackedRef = useRef(false);
+
   useEffect(() => {
     // Only sync from props if not currently loading (to avoid overriding optimistic updates)
     if (!isLoading) {
@@ -131,19 +136,37 @@ const PostCard: React.FC<PostCardProps> = ({
     isLoading // Include isLoading to prevent sync during operations
   ]);
 
-  // Record post view when post is displayed
+  // Track impression when post enters viewport (like early Twitter - every view counts)
   useEffect(() => {
-    const recordView = async () => {
-      try {
-        await recordPostView(post.id);
-        // Increment local view count optimistically
-        setViewsCount(prev => prev + 1);
-      } catch (err) {
-        // Silently fail - don't show error for analytics
-        console.debug('Error recording post view:', err);
+    const element = postCardRef.current;
+    if (!element) return;
+
+    // Reset impression tracking when post.id changes
+    impressionTrackedRef.current = false;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !impressionTrackedRef.current) {
+            // Post is visible - track the impression
+            impressionTrackedRef.current = true;
+            impressionTracker.trackImpression(post.id);
+            // Increment local view count optimistically
+            setViewsCount(prev => prev + 1);
+          }
+        });
+      },
+      {
+        rootMargin: '0px',
+        threshold: 0.5 // At least 50% of post must be visible
       }
+    );
+
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
     };
-    recordView();
   }, [post.id]);
 
   // Fetch new comment count when post is displayed
@@ -1085,7 +1108,7 @@ const PostCard: React.FC<PostCardProps> = ({
   };
 
   return (
-    <div className={`post-card ${compact ? 'compact' : ''}`}>
+    <div ref={postCardRef} className={`post-card ${compact ? 'compact' : ''}`}>
       {/* Post Header - X-style layout */}
       <div className="post-header">
         <ClickableAvatar

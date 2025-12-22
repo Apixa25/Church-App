@@ -1,14 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 sync /c/Users/Admin/Church-App/Church-App/frontend/build s3://thegathrd-app-frontend --delete)",
-      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront list-invalidations --distribution-id E2SM4EXV57KO8B --query \"InvalidationList.Items[0]\" --output json)",
-      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls s3://thegathrd-app-frontend/static/js/)",
-      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls s3://thegathrd-app-frontend/static/css/)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk update-environment --application-name church-app-backend --environment-name Church-app-backend-prod --version-label notification-fix-20251221 --region us-west-2)",
+      "Bash(find:*)",
+      "Bash(./mvnw clean package:*)",
       "Bash(npm run build:*)",
-      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 sync c:/Users/Admin/Church-App/Church-App/frontend/build s3://thegathrd-app-frontend --delete)",
-      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront create-invalidation --distribution-id E2SM4EXV57KO8B --paths \"/*\")",
-      "Bash(./mvnw:*)"
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 sync:*)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 cp:*)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" s3 ls --region us-west-2)"
     ],
     "deny": [],
     "ask": []

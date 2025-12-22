@@ -3,6 +3,7 @@ package com.churchapp.controller;
 import com.churchapp.dto.*;
 import com.churchapp.entity.Post;
 import com.churchapp.entity.PostComment;
+import com.churchapp.repository.PostRepository;
 import com.churchapp.repository.UserRepository;
 import com.churchapp.service.FeedService;
 import com.churchapp.service.FileUploadService;
@@ -46,6 +47,7 @@ public class PostController {
     private final PostResponseMapper postResponseMapper;
     private final PostAnalyticsService postAnalyticsService;
     private final UserRepository userRepository;
+    private final PostRepository postRepository;
     private final MediaUrlService mediaUrlService;
     private final com.churchapp.service.PostCommentReadStatusService postCommentReadStatusService;
 
@@ -919,5 +921,48 @@ public class PostController {
     public ResponseEntity<FeedService.FeedStats> getFeedStats() {
         FeedService.FeedStats stats = feedService.getFeedStats();
         return ResponseEntity.ok(stats);
+    }
+
+    // ========== BATCH IMPRESSIONS (Scalable view counting) ==========
+
+    /**
+     * Record multiple post impressions in a single batch request.
+     * Designed for high-volume, low-latency impression tracking.
+     * No deduplication - every impression counts (like early Twitter).
+     *
+     * POST /api/posts/impressions
+     * Body: { "postIds": ["uuid1", "uuid2", ...] }
+     */
+    @PostMapping("/impressions")
+    public ResponseEntity<Void> recordImpressions(@RequestBody Map<String, List<String>> request) {
+        try {
+            List<String> postIdStrings = request.get("postIds");
+            if (postIdStrings == null || postIdStrings.isEmpty()) {
+                return ResponseEntity.accepted().build(); // Nothing to do, but don't error
+            }
+
+            // Convert strings to UUIDs, filtering out invalid ones
+            List<UUID> postIds = new ArrayList<>();
+            for (String idStr : postIdStrings) {
+                try {
+                    postIds.add(UUID.fromString(idStr));
+                } catch (IllegalArgumentException e) {
+                    log.debug("Invalid UUID in impressions batch: {}", idStr);
+                }
+            }
+
+            if (!postIds.isEmpty()) {
+                // Single batch UPDATE query - highly efficient
+                postRepository.incrementViewsCounts(postIds);
+                log.debug("Recorded {} impressions in batch", postIds.size());
+            }
+
+            // Return 202 Accepted immediately (fire-and-forget semantics)
+            return ResponseEntity.accepted().build();
+        } catch (Exception e) {
+            log.error("Error recording batch impressions: {}", e.getMessage());
+            // Still return 202 - impression tracking failures shouldn't affect UX
+            return ResponseEntity.accepted().build();
+        }
     }
 }

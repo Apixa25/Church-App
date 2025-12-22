@@ -673,6 +673,20 @@ export const recordPostView = async (postId: string): Promise<void> => {
   await api.post(`/posts/${postId}/view`);
 };
 
+/**
+ * Record multiple post impressions in a single batch request.
+ * Fire-and-forget - does not await response for optimal performance.
+ * Used by ImpressionTracker for high-volume, low-latency view counting.
+ */
+export const recordImpressions = (postIds: string[]): void => {
+  if (postIds.length === 0) return;
+  // Fire and forget - don't await, don't handle errors
+  // This is intentional for performance - impression tracking shouldn't block UI
+  api.post('/posts/impressions', { postIds }).catch(() => {
+    // Silently ignore errors - impression tracking is non-critical
+  });
+};
+
 export const getPostAnalytics = async (postId: string): Promise<any> => {
   const response = await api.get(`/posts/${postId}/analytics`);
   return response.data;

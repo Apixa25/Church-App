@@ -309,4 +309,15 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     
     @Query("SELECT COUNT(p) FROM Post p WHERE p.organization.id IN :orgIds AND p.createdAt >= :since")
     long countByOrganizationIdInAndCreatedAtAfter(@Param("orgIds") List<UUID> orgIds, @Param("since") LocalDateTime since);
+
+    // ========== IMPRESSION TRACKING (Batched view counter) ==========
+
+    /**
+     * Batch increment views_count for multiple posts in a single query.
+     * Used for high-volume impression tracking with minimal server load.
+     * No deduplication - every impression counts (like early Twitter).
+     */
+    @Modifying
+    @Query("UPDATE Post p SET p.viewsCount = p.viewsCount + 1 WHERE p.id IN :postIds")
+    void incrementViewsCounts(@Param("postIds") List<UUID> postIds);
 }
