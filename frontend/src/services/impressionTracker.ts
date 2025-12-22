@@ -17,6 +17,7 @@
  */
 
 import { recordImpressions } from './postApi';
+import { getApiUrl } from '../config/runtimeConfig';
 
 class ImpressionTracker {
   // Use array instead of Set - we want duplicates! Every view counts.
@@ -103,25 +104,10 @@ class ImpressionTracker {
   }
 
   /**
-   * Get the API base URL from environment or default
+   * Get the API base URL - uses the same runtime config as the rest of the app
    */
   private getApiBaseUrl(): string {
-    // Try to get from environment variables
-    const envUrl = typeof process !== 'undefined' && process.env?.REACT_APP_API_URL;
-    if (envUrl) return envUrl;
-
-    // Default to relative API path (works with proxy)
-    // For production, this should be the full API URL
-    if (typeof window !== 'undefined') {
-      // Check if we're in development (localhost)
-      if (window.location.hostname === 'localhost') {
-        return 'http://localhost:8080/api';
-      }
-      // Production - API is at api.thegathrd.com
-      return 'https://api.thegathrd.com/api';
-    }
-
-    return '/api';
+    return getApiUrl();
   }
 
   /**
