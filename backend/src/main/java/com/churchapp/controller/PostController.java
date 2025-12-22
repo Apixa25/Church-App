@@ -935,11 +935,15 @@ public class PostController {
      */
     @PostMapping("/impressions")
     public ResponseEntity<Void> recordImpressions(@RequestBody Map<String, List<String>> request) {
+        log.info("👁️ [Impressions] Received batch impression request: {}", request);
         try {
             List<String> postIdStrings = request.get("postIds");
             if (postIdStrings == null || postIdStrings.isEmpty()) {
+                log.info("👁️ [Impressions] Empty postIds list, returning 202");
                 return ResponseEntity.accepted().build(); // Nothing to do, but don't error
             }
+
+            log.info("👁️ [Impressions] Processing {} post IDs", postIdStrings.size());
 
             // Convert strings to UUIDs, filtering out invalid ones
             List<UUID> postIds = new ArrayList<>();
@@ -947,20 +951,21 @@ public class PostController {
                 try {
                     postIds.add(UUID.fromString(idStr));
                 } catch (IllegalArgumentException e) {
-                    log.debug("Invalid UUID in impressions batch: {}", idStr);
+                    log.warn("👁️ [Impressions] Invalid UUID in impressions batch: {}", idStr);
                 }
             }
 
             if (!postIds.isEmpty()) {
                 // Single batch UPDATE query - highly efficient
+                log.info("👁️ [Impressions] Incrementing views_count for {} posts: {}", postIds.size(), postIds);
                 postRepository.incrementViewsCounts(postIds);
-                log.debug("Recorded {} impressions in batch", postIds.size());
+                log.info("👁️ [Impressions] Successfully recorded {} impressions", postIds.size());
             }
 
             // Return 202 Accepted immediately (fire-and-forget semantics)
             return ResponseEntity.accepted().build();
         } catch (Exception e) {
-            log.error("Error recording batch impressions: {}", e.getMessage());
+            log.error("👁️ [Impressions] Error recording batch impressions: {}", e.getMessage(), e);
             // Still return 202 - impression tracking failures shouldn't affect UX
             return ResponseEntity.accepted().build();
         }

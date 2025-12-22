@@ -15,7 +15,12 @@
       "Bash(curl:*)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk describe-environments --environment-names Church-app-backend-prod --region us-west-2 --query \"Environments[0].[Status,Health,VersionLabel]\" --output text)",
       "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk create-application-version --application-name church-app-backend --version-label impression-fix-20251221b --source-bundle S3Bucket=elasticbeanstalk-us-west-2-060163370478,S3Key=church-app-backend-0.0.1-SNAPSHOT.jar --region us-west-2)",
-      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk update-environment --application-name church-app-backend --environment-name Church-app-backend-prod --version-label impression-fix-20251221b --region us-west-2)"
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk update-environment --application-name church-app-backend --environment-name Church-app-backend-prod --version-label impression-fix-20251221b --region us-west-2)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk update-environment --application-name church-app-backend --environment-name Church-app-backend-prod --version-label impression-debug-20251221 --region us-west-2)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" elasticbeanstalk update-environment --application-name church-app-backend --environment-name Church-app-backend-prod --version-label viewscount-fix-20251221 --region us-west-2)",
+      "Bash(\"C:\\Program Files\\Amazon\\AWSCLIV2\\aws.exe\" cloudfront create-invalidation --distribution-id E2IXLEHOB1P3BZ --paths \"/*\" --region us-east-1)"
     ],
     "deny": [],
     "ask": []

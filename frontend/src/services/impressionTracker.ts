@@ -47,6 +47,7 @@ class ImpressionTracker {
   trackImpression(postId: string): void {
     if (!postId) return;
 
+    console.log('[ImpressionTracker] trackImpression called for:', postId);
     this.pendingImpressions.push(postId);
 
     // If we've hit batch size, flush immediately
@@ -80,11 +81,17 @@ class ImpressionTracker {
     }
 
     // Nothing to flush
-    if (this.pendingImpressions.length === 0) return;
+    if (this.pendingImpressions.length === 0) {
+      console.log('[ImpressionTracker] flush called but no pending impressions');
+      return;
+    }
 
     // Get the post IDs and clear the pending array
     const postIds = [...this.pendingImpressions];
     this.pendingImpressions = [];
+
+    console.log('[ImpressionTracker] Flushing', postIds.length, 'impressions:', postIds);
+    console.log('[ImpressionTracker] API URL:', `${this.getApiBaseUrl()}/posts/impressions`);
 
     // Try sendBeacon first (works during page unload)
     // Fall back to regular API call
@@ -92,13 +99,16 @@ class ImpressionTracker {
       const url = `${this.getApiBaseUrl()}/posts/impressions`;
       const blob = new Blob([JSON.stringify({ postIds })], { type: 'application/json' });
       const sent = navigator.sendBeacon(url, blob);
+      console.log('[ImpressionTracker] sendBeacon result:', sent);
 
       if (!sent) {
         // sendBeacon failed, fall back to regular API
+        console.log('[ImpressionTracker] sendBeacon failed, using fetch API');
         recordImpressions(postIds);
       }
     } else {
       // No sendBeacon support, use regular API
+      console.log('[ImpressionTracker] No sendBeacon, using fetch API');
       recordImpressions(postIds);
     }
   }

@@ -36,6 +36,7 @@ public class PostResponse {
     private int commentsCount;
     private int sharesCount;
     private int bookmarksCount;
+    private int viewsCount;
 
     // Social media embed fields
     private String externalUrl;         // Original URL of the shared social media content
@@ -97,6 +98,7 @@ public class PostResponse {
         response.setCommentsCount(post.getCommentsCount());
         response.setSharesCount(post.getSharesCount());
         response.setBookmarksCount(post.getBookmarksCount());
+        response.setViewsCount(post.getViewsCount() != null ? post.getViewsCount() : 0);
 
         // Map social media embed fields if present
         response.setExternalUrl(post.getExternalUrl());

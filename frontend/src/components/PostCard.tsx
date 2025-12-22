@@ -147,8 +147,14 @@ const PostCard: React.FC<PostCardProps> = ({
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
+          console.log('[PostCard] IntersectionObserver:', {
+            postId: post.id,
+            isIntersecting: entry.isIntersecting,
+            alreadyTracked: impressionTrackedRef.current
+          });
           if (entry.isIntersecting && !impressionTrackedRef.current) {
             // Post is visible - track the impression
+            console.log('[PostCard] Tracking impression for post:', post.id);
             impressionTrackedRef.current = true;
             impressionTracker.trackImpression(post.id);
             // Increment local view count optimistically
