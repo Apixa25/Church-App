@@ -19,7 +19,8 @@
 import { recordImpressions } from './postApi';
 
 class ImpressionTracker {
-  private pendingImpressions: Set<string> = new Set();
+  // Use array instead of Set - we want duplicates! Every view counts.
+  private pendingImpressions: string[] = [];
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly BATCH_SIZE = 10;
   private readonly FLUSH_INTERVAL_MS = 5000; // 5 seconds
@@ -45,10 +46,10 @@ class ImpressionTracker {
   trackImpression(postId: string): void {
     if (!postId) return;
 
-    this.pendingImpressions.add(postId);
+    this.pendingImpressions.push(postId);
 
     // If we've hit batch size, flush immediately
-    if (this.pendingImpressions.size >= this.BATCH_SIZE) {
+    if (this.pendingImpressions.length >= this.BATCH_SIZE) {
       this.flush();
     } else {
       // Otherwise, schedule a flush if not already scheduled
@@ -78,11 +79,11 @@ class ImpressionTracker {
     }
 
     // Nothing to flush
-    if (this.pendingImpressions.size === 0) return;
+    if (this.pendingImpressions.length === 0) return;
 
-    // Get the post IDs and clear the pending set
-    const postIds = Array.from(this.pendingImpressions);
-    this.pendingImpressions.clear();
+    // Get the post IDs and clear the pending array
+    const postIds = [...this.pendingImpressions];
+    this.pendingImpressions = [];
 
     // Try sendBeacon first (works during page unload)
     // Fall back to regular API call
@@ -116,8 +117,8 @@ class ImpressionTracker {
       if (window.location.hostname === 'localhost') {
         return 'http://localhost:8080/api';
       }
-      // Production - use same origin with /api path
-      return `${window.location.origin}/api`;
+      // Production - API is at api.thegathrd.com
+      return 'https://api.thegathrd.com/api';
     }
 
     return '/api';
@@ -127,7 +128,7 @@ class ImpressionTracker {
    * Get the current count of pending impressions (for debugging)
    */
   getPendingCount(): number {
-    return this.pendingImpressions.size;
+    return this.pendingImpressions.length;
   }
 }
 

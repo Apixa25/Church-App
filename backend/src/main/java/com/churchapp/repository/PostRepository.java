@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -318,6 +319,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
      * No deduplication - every impression counts (like early Twitter).
      */
     @Modifying
+    @Transactional
     @Query("UPDATE Post p SET p.viewsCount = p.viewsCount + 1 WHERE p.id IN :postIds")
     void incrementViewsCounts(@Param("postIds") List<UUID> postIds);
 }

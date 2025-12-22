@@ -82,6 +82,7 @@ public class SecurityConfig {
                 .requestMatchers("/announcements/**").permitAll()  // Allow public access to announcements for now
                 .requestMatchers("/media/webhook/mediaconvert").permitAll()  // MediaConvert SNS webhook (context-path=/api, so full URL is /api/media/...)
                 .requestMatchers("/donations/webhook/stripe").permitAll()  // Stripe webhook (context-path=/api, so full URL is /api/donations/...)
+                .requestMatchers("/posts/impressions").permitAll()  // Public endpoint for view counting (fire-and-forget, no auth needed)
                 .requestMatchers("/chat/**").authenticated()  // JWT authentication for chat APIs
                 .requestMatchers("/profile/**").authenticated()
                 .requestMatchers("/dashboard/**").authenticated()  // Explicitly protect dashboard
