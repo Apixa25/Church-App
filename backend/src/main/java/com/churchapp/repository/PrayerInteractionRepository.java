@@ -125,4 +125,12 @@ public interface PrayerInteractionRepository extends JpaRepository<PrayerInterac
     @Query("SELECT DISTINCT new com.churchapp.dto.PrayerParticipantResponse(pi.user.id, pi.user.name, pi.user.profilePicUrl) " +
            "FROM PrayerInteraction pi WHERE pi.prayerRequest.id = :prayerRequestId AND pi.type != 'COMMENT'")
     List<PrayerParticipantResponse> findDistinctParticipantsByPrayerRequestId(@Param("prayerRequestId") UUID prayerRequestId);
+
+    // Find comments received on prayers owned by a user (comments others made on your prayers)
+    @Query("SELECT pi FROM PrayerInteraction pi WHERE pi.prayerRequest.user.id = :userId AND pi.user.id != :userId AND pi.type = 'COMMENT' ORDER BY pi.prayerRequest.id, pi.timestamp DESC")
+    Page<PrayerInteraction> findCommentsReceivedByUserId(@Param("userId") UUID userId, Pageable pageable);
+
+    // Count comments received on prayers owned by a user
+    @Query("SELECT COUNT(pi) FROM PrayerInteraction pi WHERE pi.prayerRequest.user.id = :userId AND pi.user.id != :userId AND pi.type = 'COMMENT'")
+    long countCommentsReceivedByUserId(@Param("userId") UUID userId);
 }

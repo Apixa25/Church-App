@@ -455,6 +455,17 @@ export const prayerInteractionAPI = {
   // Get unique participants who have interacted with a prayer
   getParticipants: (prayerRequestId: string) =>
     api.get<PrayerParticipant[]>(`/prayer-interactions/prayer/${prayerRequestId}/participants`),
+
+  // Get comments that others have made on prayers owned by a specific user
+  // This is for the "Comments on my content" tab in user profiles
+  getCommentsReceivedByUser: (userId: string, page: number = 0, size: number = 20) =>
+    api.get<PrayerInteractionListResponse>(`/prayer-interactions/user/${userId}/comments-received`, {
+      params: { page, size }
+    }),
+
+  // Get count of comments received on prayers owned by a specific user
+  getCommentsReceivedCount: (userId: string) =>
+    api.get<{ count: number }>(`/prayer-interactions/user/${userId}/comments-received-count`),
 };
 
 // Utility functions for API responses

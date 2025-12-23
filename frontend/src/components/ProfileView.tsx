@@ -5,12 +5,13 @@ import { UserProfile, ProfileCompletionStatus } from '../types/Profile';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileEdit from './ProfileEdit';
 import { Post } from '../types/Post';
-import { getUserPosts, getBookmarkedPosts, getUserShareStats, followUser, unfollowUser, getFollowStatus, blockUser, unblockUser, getBlockStatus, recordProfileView } from '../services/postApi';
+import { getUserPosts, getBookmarkedPosts, getUserShareStats, followUser, unfollowUser, getFollowStatus, blockUser, unblockUser, getBlockStatus, recordProfileView, getUnreadCommentsCount } from '../services/postApi';
 import FollowersList from './FollowersList';
 import FollowingList from './FollowingList';
 import ProfileAnalytics from './ProfileAnalytics';
 import PostCard from './PostCard';
 import RepliesList from './RepliesList';
+import CommentsReceivedList from './CommentsReceivedList';
 import MediaGrid from './MediaGrid';
 import { parseEventDate, formatBirthdayDate } from '../utils/dateUtils';
 import chatApi from '../services/chatApi';
@@ -44,7 +45,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [postsError, setPostsError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'posts' | 'replies' | 'media' | 'bookmarks' | 'analytics'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'comments' | 'replies' | 'media' | 'bookmarks' | 'analytics'>('posts');
+  const [unreadCommentsCount, setUnreadCommentsCount] = useState(0);
   const [page, setPage] = useState(0);
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [postsCount, setPostsCount] = useState(0);
@@ -106,6 +108,16 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
     }
   }, []);
 
+  const loadUnreadCommentsCount = useCallback(async (targetId: string) => {
+    try {
+      const count = await getUnreadCommentsCount(targetId);
+      setUnreadCommentsCount(count);
+    } catch (err) {
+      console.error('Error loading unread comments count:', err);
+      setUnreadCommentsCount(0);
+    }
+  }, []);
+
   const fetchProfile = useCallback(async () => {
     try {
       setLoading(true);
@@ -146,6 +158,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
 
       if (targetUserId) {
         await loadShareStats(targetUserId);
+        // Load unread comments count for own profile
+        if (isOwnProfile) {
+          await loadUnreadCommentsCount(targetUserId);
+        }
       }
 
       // Check follow status if viewing another user's profile
@@ -1031,10 +1047,19 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
             Posts
           </button>
           <button
+            className={`nav-tab-x ${activeTab === 'comments' ? 'active' : ''}`}
+            onClick={() => setActiveTab('comments')}
+          >
+            Comments
+            {isOwnProfile && unreadCommentsCount > 0 && (
+              <span className="unread-badge">{unreadCommentsCount}</span>
+            )}
+          </button>
+          <button
             className={`nav-tab-x ${activeTab === 'replies' ? 'active' : ''}`}
             onClick={() => setActiveTab('replies')}
           >
-            Replies
+            My Replies
           </button>
           <button
             className={`nav-tab-x ${activeTab === 'media' ? 'active' : ''}`}
@@ -1184,6 +1209,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
         {activeTab === 'analytics' && isOwnProfile && (
           <div className="profile-analytics-container">
             <ProfileAnalytics userId={targetUserId} isOwnProfile={isOwnProfile} />
+          </div>
+        )}
+
+        {activeTab === 'comments' && (
+          <div className="profile-tab-content">
+            <CommentsReceivedList userId={targetUserId} isOwnProfile={isOwnProfile} />
           </div>
         )}
 

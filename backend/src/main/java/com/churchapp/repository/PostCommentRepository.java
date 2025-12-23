@@ -92,6 +92,17 @@ public interface PostCommentRepository extends JpaRepository<PostComment, UUID> 
            "ORDER BY pc.createdAt ASC")
     List<PostComment> findCommentThread(@Param("commentId") UUID commentId);
 
+    // Find comments received on posts owned by a user (comments others made on your posts)
+    @Query("SELECT pc FROM PostComment pc WHERE pc.post.user.id = :userId AND pc.user.id != :userId ORDER BY pc.post.id, pc.createdAt DESC")
+    Page<PostComment> findCommentsReceivedByUserId(@Param("userId") UUID userId, Pageable pageable);
+
+    // Count unread comments received on posts owned by a user
+    @Query("SELECT COUNT(pc) FROM PostComment pc " +
+           "WHERE pc.post.user.id = :userId AND pc.user.id != :userId " +
+           "AND NOT EXISTS (SELECT 1 FROM PostCommentReadStatus pcrs " +
+           "WHERE pcrs.userId = :userId AND pcrs.postId = pc.post.id AND pc.createdAt <= pcrs.lastReadAt)")
+    long countUnreadCommentsReceivedByUserId(@Param("userId") UUID userId);
+
     // Bulk operations
     @Modifying
     @Query("DELETE FROM PostComment pc WHERE pc.post.id IN :postIds")

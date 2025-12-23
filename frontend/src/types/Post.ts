@@ -112,6 +112,10 @@ export interface Comment {
   isLikedByCurrentUser?: boolean;
   repliesCount?: number;
   replies?: Comment[];
+
+  // Post preview info (for comments received view)
+  postContent?: string;
+  postType?: string;
 }
 
 export interface PostLike {

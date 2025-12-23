@@ -206,4 +206,33 @@ public class PrayerInteractionController {
             return ResponseEntity.badRequest().body(error);
         }
     }
+
+    /**
+     * Get comments that others have made on prayers owned by a specific user
+     * This is for the "Comments on my content" tab in user profiles
+     */
+    @GetMapping("/user/{userId}/comments-received")
+    public ResponseEntity<?> getCommentsReceivedByUser(
+            @PathVariable UUID userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        try {
+            Page<PrayerInteractionResponse> comments = prayerInteractionService
+                .getCommentsReceivedByUser(userId, page, size);
+            return ResponseEntity.ok(comments);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    /**
+     * Get count of comments received on prayers owned by a specific user
+     */
+    @GetMapping("/user/{userId}/comments-received-count")
+    public ResponseEntity<Map<String, Long>> getCommentsReceivedCount(@PathVariable UUID userId) {
+        long count = prayerInteractionService.getCommentsReceivedCount(userId);
+        return ResponseEntity.ok(Map.of("count", count));
+    }
 }

@@ -240,6 +240,43 @@ public class PostInteractionService {
         return allComments;
     }
 
+    /**
+     * Get comments that others have made on posts owned by a specific user
+     * This is for the "Comments on my content" feature
+     */
+    public Page<PostComment> getCommentsReceivedByUser(UUID userId, UUID viewerUserId, Pageable pageable) {
+        Page<PostComment> allComments = postCommentRepository.findCommentsReceivedByUserId(userId, pageable);
+
+        // If no viewer user ID provided, return all comments
+        if (viewerUserId == null) {
+            return allComments;
+        }
+
+        // Filter out comments from blocked users (mutual blocking)
+        List<UUID> blockedUserIds = userBlockService.getMutuallyBlockedUserIds(viewerUserId);
+        if (blockedUserIds.isEmpty()) {
+            return allComments;
+        }
+
+        // Filter comments in memory (since we already have the page)
+        List<PostComment> filteredComments = allComments.getContent().stream()
+            .filter(comment -> !blockedUserIds.contains(comment.getUser().getId()))
+            .collect(java.util.stream.Collectors.toList());
+
+        return new org.springframework.data.domain.PageImpl<>(
+            filteredComments,
+            pageable,
+            filteredComments.size()
+        );
+    }
+
+    /**
+     * Get count of unread comments received on posts owned by a specific user
+     */
+    public long getUnreadCommentsReceivedCount(UUID userId) {
+        return postCommentRepository.countUnreadCommentsReceivedByUserId(userId);
+    }
+
     // ========== SHARE OPERATIONS ==========
 
     @Transactional

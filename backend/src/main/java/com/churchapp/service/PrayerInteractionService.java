@@ -302,4 +302,21 @@ public class PrayerInteractionService {
             log.error("Error sending prayer interaction notification: {}", e.getMessage());
         }
     }
+
+    /**
+     * Get comments that others have made on prayers owned by a specific user
+     * This is for the "Comments on my content" feature
+     */
+    public Page<PrayerInteractionResponse> getCommentsReceivedByUser(UUID userId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<PrayerInteraction> interactions = prayerInteractionRepository.findCommentsReceivedByUserId(userId, pageable);
+        return interactions.map(PrayerInteractionResponse::fromPrayerInteraction);
+    }
+
+    /**
+     * Get count of comments received on prayers owned by a specific user
+     */
+    public long getCommentsReceivedCount(UUID userId) {
+        return prayerInteractionRepository.countCommentsReceivedByUserId(userId);
+    }
 }

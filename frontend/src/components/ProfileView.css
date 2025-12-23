@@ -742,6 +742,21 @@
   border-radius: 2px 2px 0 0;
 }
 
+.nav-tab-x .unread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 6px;
+  background: rgb(29, 155, 240);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 9px;
+}
+
 /* Posts Feed */
 .profile-posts-feed {
   max-width: 600px;

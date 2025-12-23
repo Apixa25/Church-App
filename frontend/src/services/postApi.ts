@@ -68,6 +68,38 @@ export const getUserComments = async (
   };
 };
 
+/**
+ * Get comments that others have made on posts owned by a specific user
+ * This is for the "Comments on my content" tab in user profiles
+ */
+export const getCommentsReceivedOnPosts = async (
+  userId: string,
+  page: number = 0,
+  size: number = 20
+): Promise<CommentsResponse> => {
+  const response = await api.get(`/posts/user/${userId}/comments-received`, {
+    params: { page, size }
+  });
+  return {
+    content: response.data.content || [],
+    totalElements: response.data.totalElements || 0,
+    totalPages: response.data.totalPages || 0,
+    size: response.data.size || size,
+    number: response.data.number || page,
+    first: response.data.first !== undefined ? response.data.first : page === 0,
+    last: response.data.last !== undefined ? response.data.last : false
+  };
+};
+
+/**
+ * Get count of unread comments received on posts owned by a specific user
+ * Used for badge count on "Comments" tab
+ */
+export const getUnreadCommentsCount = async (userId: string): Promise<number> => {
+  const response = await api.get(`/posts/user/${userId}/unread-comments-count`);
+  return response.data.unreadCount || 0;
+};
+
 export const getUserMediaPosts = async (
   userId: string,
   page: number = 0,

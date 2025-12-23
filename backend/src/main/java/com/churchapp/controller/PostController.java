@@ -216,6 +216,59 @@ public class PostController {
         return ResponseEntity.ok(responses);
     }
 
+    /**
+     * Get comments that others have made on posts owned by a specific user
+     * This is for the "Comments on my content" tab in user profiles
+     */
+    @GetMapping("/user/{userId}/comments-received")
+    public ResponseEntity<Page<CommentResponse>> getCommentsReceivedByUser(
+            @PathVariable UUID userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal User user) {
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        // Get viewer's user ID to filter blocked users
+        UUID viewerUserId = resolveUserId(user);
+
+        Page<PostComment> comments = postInteractionService.getCommentsReceivedByUser(userId, viewerUserId, pageable);
+        Page<CommentResponse> responses = comments.map(comment -> {
+            CommentResponse response = CommentResponse.fromEntity(comment);
+            // Resolve optimized URLs if available
+            if (response.getMediaUrls() != null && !response.getMediaUrls().isEmpty()) {
+                response.setMediaUrls(mediaUrlService.getBestUrls(response.getMediaUrls()));
+            }
+            return response;
+        });
+
+        return ResponseEntity.ok(responses);
+    }
+
+    /**
+     * Get count of unread comments received on posts owned by a specific user
+     * Used for badge count on "Comments" tab
+     */
+    @GetMapping("/user/{userId}/unread-comments-count")
+    public ResponseEntity<Map<String, Long>> getUnreadCommentsReceivedCount(
+            @PathVariable UUID userId,
+            @AuthenticationPrincipal User user) {
+
+        // Only allow users to check their own unread count
+        UUID viewerUserId = resolveUserId(user);
+        if (viewerUserId == null || !viewerUserId.equals(userId)) {
+            return ResponseEntity.ok(Map.of("unreadCount", 0L));
+        }
+
+        try {
+            long unreadCount = postInteractionService.getUnreadCommentsReceivedCount(userId);
+            return ResponseEntity.ok(Map.of("unreadCount", unreadCount));
+        } catch (Exception e) {
+            log.error("Error getting unread comments count for user {}: {}", userId, e.getMessage());
+            return ResponseEntity.ok(Map.of("unreadCount", 0L));
+        }
+    }
+
     @GetMapping("/user/{userId}/media")
     public ResponseEntity<Page<PostResponse>> getUserMediaPosts(
             @PathVariable UUID userId,

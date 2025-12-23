@@ -32,6 +32,10 @@ public class CommentResponse {
     private boolean isLikedByCurrentUser;
     private int repliesCount;
 
+    // Post preview info (for comments received view)
+    private String postContent;
+    private String postType;
+
     public static CommentResponse fromEntity(PostComment comment) {
         CommentResponse response = new CommentResponse();
         response.setId(comment.getId());
@@ -48,6 +52,18 @@ public class CommentResponse {
         response.setUpdatedAt(comment.getUpdatedAt());
         response.setAnonymous(comment.getIsAnonymous());
         response.setLikesCount(comment.getLikesCount());
+
+        // Add post preview info
+        if (comment.getPost() != null) {
+            String content = comment.getPost().getContent();
+            // Truncate to 100 chars for preview
+            response.setPostContent(content != null && content.length() > 100
+                ? content.substring(0, 100) + "..."
+                : content);
+            response.setPostType(comment.getPost().getPostType() != null
+                ? comment.getPost().getPostType().name()
+                : "GENERAL");
+        }
 
         return response;
     }
