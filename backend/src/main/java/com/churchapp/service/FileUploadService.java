@@ -568,7 +568,7 @@ public class FileUploadService {
      * - Optimized range request handling for video streaming
      * - Lower latency worldwide
      */
-    private String generateAccessibleUrl(String key) {
+    public String generateAccessibleUrl(String key) {
         try {
             // Use CloudFront CDN if configured (preferred for performance)
             if (cloudFrontDistributionUrl != null && !cloudFrontDistributionUrl.trim().isEmpty()) {

@@ -166,6 +166,93 @@ public class ChatController {
         }
     }
     
+    // ==================== PRESIGNED URL UPLOAD (Modern Approach - Like X.com/Facebook) ====================
+
+    /**
+     * Generate presigned URL for direct S3 upload (bypasses nginx completely)
+     * Step 1: Frontend calls this to get a presigned URL
+     * Step 2: Frontend uploads directly to S3 using the presigned URL
+     * Step 3: Frontend calls /messages/media/confirm to create the message
+     */
+    @PostMapping("/messages/media/presign")
+    public ResponseEntity<?> generateChatMediaUploadUrl(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam("groupId") UUID groupId,
+            @RequestParam("filename") String filename,
+            @RequestParam("contentType") String contentType,
+            @RequestParam("size") Long size) {
+        try {
+            // Verify user has access to this group
+            chatService.verifyGroupAccess(userDetails.getUsername(), groupId);
+
+            log.info("Generating presigned URL for chat media: user={}, group={}, file={}, size={}",
+                    userDetails.getUsername(), groupId, filename, size);
+
+            // Generate presigned URL using existing service
+            PresignedUploadResponse response = fileUploadService.generatePresignedUploadUrl(
+                    filename, contentType, size, "chat-media");
+
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid chat media upload request: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (RuntimeException e) {
+            log.error("Error generating presigned URL for chat media", e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Confirm upload and create message after direct S3 upload completes
+     * Called by frontend after successfully uploading to S3 using presigned URL
+     */
+    @PostMapping("/messages/media/confirm")
+    public ResponseEntity<?> confirmChatMediaUpload(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody ChatMediaConfirmRequest request) {
+        try {
+            // Verify user has access to this group
+            chatService.verifyGroupAccess(userDetails.getUsername(), request.getGroupId());
+
+            log.info("Confirming chat media upload: user={}, group={}, s3Key={}",
+                    userDetails.getUsername(), request.getGroupId(), request.getS3Key());
+
+            // Build the final URL from S3 key
+            String mediaUrl = fileUploadService.generateAccessibleUrl(request.getS3Key());
+
+            // Create message request
+            MessageRequest messageRequest = new MessageRequest();
+            messageRequest.setChatGroupId(request.getGroupId());
+            messageRequest.setContent(request.getContent());
+            messageRequest.setParentMessageId(request.getParentMessageId());
+            messageRequest.setTempId(request.getTempId());
+            messageRequest.setMediaUrl(mediaUrl);
+            messageRequest.setMediaType(request.getContentType());
+            messageRequest.setMediaFilename(request.getFilename());
+            messageRequest.setMediaSize(request.getFileSize());
+
+            // Determine message type from content type
+            String contentType = request.getContentType();
+            if (contentType != null && contentType.startsWith("image/")) {
+                messageRequest.setMessageType(com.churchapp.entity.Message.MessageType.IMAGE);
+            } else if (contentType != null && contentType.startsWith("video/")) {
+                messageRequest.setMessageType(com.churchapp.entity.Message.MessageType.VIDEO);
+            } else if (contentType != null && contentType.startsWith("audio/")) {
+                messageRequest.setMessageType(com.churchapp.entity.Message.MessageType.AUDIO);
+            } else {
+                messageRequest.setMessageType(com.churchapp.entity.Message.MessageType.DOCUMENT);
+            }
+
+            MessageResponse message = chatService.sendMessage(userDetails.getUsername(), messageRequest);
+            return ResponseEntity.ok(message);
+        } catch (RuntimeException e) {
+            log.error("Error confirming chat media upload", e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // ==================== LEGACY MEDIA UPLOAD (Kept for backward compatibility) ====================
+
     @PostMapping("/messages/media")
     public ResponseEntity<?> sendMediaMessage(@AuthenticationPrincipal UserDetails userDetails,
                                             @RequestParam("groupId") UUID groupId,

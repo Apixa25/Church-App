@@ -459,7 +459,20 @@ public class ChatService {
             user.getName() + " changed " + targetMember.getUser().getName() + "'s role to " + role.getDisplayName(),
             null);
     }
-    
+
+    /**
+     * Verify that a user has access to a chat group (is an active member)
+     * Throws RuntimeException if user is not a member
+     */
+    public void verifyGroupAccess(String userEmail, UUID groupId) {
+        User user = getUserByEmail(userEmail);
+        ChatGroup chatGroup = getChatGroupById(groupId);
+
+        if (!chatGroupMemberRepository.existsByUserAndChatGroupAndIsActiveTrue(user, chatGroup)) {
+            throw new RuntimeException("User is not a member of this group");
+        }
+    }
+
     // ==================== SEARCH OPERATIONS ====================
     
     public ChatSearchResponse searchMessages(String userEmail, ChatSearchRequest request) {

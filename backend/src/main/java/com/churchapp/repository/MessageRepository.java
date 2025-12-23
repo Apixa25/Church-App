@@ -128,4 +128,23 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
     @Modifying
     @Query("DELETE FROM Message m WHERE m.isDeleted = true AND m.deletedAt < :before")
     void hardDeleteOldMessages(@Param("before") LocalDateTime before);
+
+    // ==================== CHAT CLEANUP QUERIES ====================
+
+    // Find old messages for cleanup (returns media URLs for S3 deletion)
+    @Query("SELECT m FROM Message m WHERE m.timestamp < :before AND m.mediaUrl IS NOT NULL")
+    List<Message> findOldMessagesWithMedia(@Param("before") LocalDateTime before);
+
+    // Count old messages for reporting
+    @Query("SELECT COUNT(m) FROM Message m WHERE m.timestamp < :before")
+    long countOldMessages(@Param("before") LocalDateTime before);
+
+    // Hard delete all old messages (both deleted and non-deleted)
+    @Modifying
+    @Query("DELETE FROM Message m WHERE m.timestamp < :before")
+    int deleteMessagesOlderThan(@Param("before") LocalDateTime before);
+
+    // Find messages by IDs (for batch processing)
+    @Query("SELECT m FROM Message m WHERE m.id IN :ids")
+    List<Message> findByIds(@Param("ids") List<UUID> ids);
 }

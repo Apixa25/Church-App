@@ -404,6 +404,7 @@ const ChatRoom: React.FC = () => {
                 onEdit={handleEditMessage}
                 onDelete={handleDeleteMessage}
                 onReply={(msg: ChatMessage) => {/* Handle reply */}}
+                onMediaLoad={scrollToBottom}
               />
             ))}
             

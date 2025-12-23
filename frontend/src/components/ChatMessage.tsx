@@ -9,6 +9,7 @@ interface ChatMessageProps {
   onEdit: (messageId: string, content: string) => void;
   onDelete: (messageId: string) => void;
   onReply: (message: MessageType) => void;
+  onMediaLoad?: () => void;
 }
 
 const ChatMessage: React.FC<ChatMessageProps> = ({
@@ -16,7 +17,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   currentUser,
   onEdit,
   onDelete,
-  onReply
+  onReply,
+  onMediaLoad
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
@@ -176,6 +178,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                       src={message.mediaUrl}
                       alt={message.content || "Shared image"}
                       className="message-image"
+                      onLoad={() => onMediaLoad?.()}
                       onError={(e) => {
                         console.error('Failed to load image:', message.mediaUrl);
                         const target = e.currentTarget as HTMLImageElement;
@@ -185,6 +188,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                         fallback.className = 'image-error-fallback';
                         fallback.innerHTML = `<span>🖼️ Image failed to load</span><br><small>${message.mediaFilename || 'Unknown file'}</small>`;
                         target.parentNode?.appendChild(fallback);
+                        // Still trigger scroll even on error
+                        onMediaLoad?.();
                       }}
                     />
                   </div>

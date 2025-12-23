@@ -206,6 +206,10 @@ const chatApi = {
     return response.data;
   },
 
+  /**
+   * Send media message using presigned URL (modern approach - like X.com/Facebook)
+   * This bypasses nginx completely by uploading directly to S3
+   */
   sendMediaMessage: async (
     groupId: string,
     file: File,
@@ -213,19 +217,40 @@ const chatApi = {
     parentMessageId?: string,
     tempId?: string
   ): Promise<ChatMessage> => {
-    const formData = new FormData();
-    formData.append('groupId', groupId);
-    formData.append('file', file);
-    if (content) formData.append('content', content);
-    if (parentMessageId) formData.append('parentMessageId', parentMessageId);
-    if (tempId) formData.append('tempId', tempId);
-
-    const response = await api.post('/chat/messages/media', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
+    // Step 1: Get presigned URL from backend
+    const presignResponse = await api.post('/chat/messages/media/presign', null, {
+      params: {
+        groupId,
+        filename: file.name,
+        contentType: file.type,
+        size: file.size,
       },
     });
-    return response.data;
+
+    const { presignedUrl, s3Key } = presignResponse.data;
+
+    // Step 2: Upload file directly to S3 using presigned URL
+    await fetch(presignedUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      },
+    });
+
+    // Step 3: Confirm upload and create message
+    const confirmResponse = await api.post('/chat/messages/media/confirm', {
+      groupId,
+      s3Key,
+      filename: file.name,
+      contentType: file.type,
+      fileSize: file.size,
+      content,
+      parentMessageId,
+      tempId,
+    });
+
+    return confirmResponse.data;
   },
 
   editMessage: async (messageId: string, content: string): Promise<ChatMessage> => {
