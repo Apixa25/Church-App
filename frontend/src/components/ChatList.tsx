@@ -326,9 +326,6 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
                     ) : (
                       <span>{getGroupIcon(group.type)}</span>
                     )}
-                    {group.unreadCount > 0 && (
-                      <span className="unread-badge">{group.unreadCount}</span>
-                    )}
                   </div>
                   <div className="chat-content">
                     <div className="chat-header">

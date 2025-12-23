@@ -199,7 +199,9 @@ const ChatRoom: React.FC = () => {
   };
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   }, []);
 
   // 📱 Scroll to bottom when chat initially loads to show message input
