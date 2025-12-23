@@ -14,6 +14,7 @@ export const useNotifications = () => {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isRegistered, setIsRegistered] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(true); // Start true to prevent banner flash
   const [error, setError] = useState<string | null>(null);
 
   /**
@@ -107,16 +108,22 @@ export const useNotifications = () => {
    */
   useEffect(() => {
     const checkRegistrationStatus = async () => {
+      setIsCheckingStatus(true);
       try {
         const response = await api.get('/api/notifications/status');
         setIsRegistered(response.data.registered);
       } catch (err) {
         console.error('Failed to check notification status:', err);
+      } finally {
+        setIsCheckingStatus(false);
       }
     };
 
     if (permission === 'granted') {
       checkRegistrationStatus();
+    } else {
+      // If permission is not granted, we're done checking
+      setIsCheckingStatus(false);
     }
   }, [permission]);
 
@@ -173,6 +180,7 @@ export const useNotifications = () => {
     permission,
     isRegistered,
     isLoading,
+    isCheckingStatus,
     error,
     requestPermission,
     unregister,

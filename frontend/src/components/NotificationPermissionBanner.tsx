@@ -11,6 +11,7 @@ const NotificationPermissionBanner: React.FC = () => {
     permission,
     isRegistered,
     isLoading,
+    isCheckingStatus,
     error,
     requestPermission,
     sendTestNotification,
@@ -23,11 +24,13 @@ const NotificationPermissionBanner: React.FC = () => {
   // Don't show banner if:
   // - Not supported
   // - Already dismissed
+  // - Still checking registration status (prevents flash on page load)
   // - Permission already granted and registered
   // - Permission explicitly denied
   const shouldShowBanner =
     isSupported &&
     !isDismissed &&
+    !isCheckingStatus &&
     !(permission === 'granted' && isRegistered) &&
     permission !== 'denied';
 
