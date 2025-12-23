@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  PrayerRequest, 
+import {
+  PrayerRequest,
   InteractionType,
+  PrayerParticipant,
   PRAYER_CATEGORY_LABELS,
   PRAYER_CATEGORY_COLORS,
   PRAYER_STATUS_LABELS,
@@ -12,6 +13,7 @@ import { formatRelativeDate } from '../utils/dateUtils';
 import { prayerInteractionAPI, handleApiError } from '../services/prayerApi';
 import { useAuth } from '../contexts/AuthContext';
 import ClickableAvatar from './ClickableAvatar';
+import AvatarStack from './AvatarStack';
 import { getImageUrlWithFallback } from '../utils/imageUrlUtils';
 
 interface PrayerRequestCardProps {
@@ -33,6 +35,7 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
 }) => {
   const { user } = useAuth();
   const [userInteractions, setUserInteractions] = useState<Record<InteractionType, boolean>>({} as Record<InteractionType, boolean>);
+  const [participants, setParticipants] = useState<PrayerParticipant[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,6 +77,20 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
 
     loadUserInteractions();
   }, [prayer.id, user]);
+
+  // Load participants for avatar stack
+  useEffect(() => {
+    const loadParticipants = async () => {
+      try {
+        const response = await prayerInteractionAPI.getParticipants(prayer.id);
+        setParticipants(response.data);
+      } catch (err) {
+        console.error('Error loading participants:', err);
+      }
+    };
+
+    loadParticipants();
+  }, [prayer.id]);
 
   const handleInteraction = async (type: InteractionType) => {
     if (!user || loading) return;
@@ -269,18 +286,30 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
 
         <div className="prayer-stats">
           {prayer.interactionSummary && (
-            <>
-              <span className="stat">
-                💬 {prayer.interactionSummary.totalComments} comments
-              </span>
-              <span className="stat">
-                👥 {prayer.interactionSummary.uniqueParticipants} people
-              </span>
-            </>
+            <span className="stat">
+              💬 {prayer.interactionSummary.totalComments} comments
+            </span>
           )}
-          
+
+          <div
+            className="participants-preview"
+            onClick={() => onViewDetails?.(prayer)}
+            title="Click to see who's praying"
+          >
+            <AvatarStack
+              participants={participants}
+              maxDisplay={4}
+              size="small"
+            />
+            {prayer.interactionSummary && prayer.interactionSummary.uniqueParticipants > 0 && (
+              <span className="participant-count">
+                {prayer.interactionSummary.uniqueParticipants} praying
+              </span>
+            )}
+          </div>
+
           {onViewDetails && (
-            <button 
+            <button
               className="view-details-btn"
               onClick={() => onViewDetails(prayer)}
             >
@@ -522,6 +551,26 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
           display: flex;
           align-items: center;
           gap: 0.25rem;
+        }
+
+        .participants-preview {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          cursor: pointer;
+          padding: 0.25rem 0.5rem;
+          border-radius: var(--border-radius-sm);
+          transition: background var(--transition-base);
+        }
+
+        .participants-preview:hover {
+          background: var(--bg-secondary);
+        }
+
+        .participant-count {
+          font-size: 0.8rem;
+          color: var(--text-tertiary);
+          font-weight: 500;
         }
 
         .view-details-btn {

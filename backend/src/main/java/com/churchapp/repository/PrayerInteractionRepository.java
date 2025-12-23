@@ -11,6 +11,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.churchapp.dto.PrayerParticipantResponse;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -118,4 +120,9 @@ public interface PrayerInteractionRepository extends JpaRepository<PrayerInterac
     @Modifying(clearAutomatically = true)
     @Query("DELETE FROM PrayerInteraction pi WHERE pi.prayerRequest.organization.id = :orgId AND pi.parentInteraction IS NULL")
     void deleteTopLevelInteractionsByOrganizationId(@Param("orgId") UUID orgId);
+
+    // Get unique participants (users who have interacted with a prayer, excluding comments)
+    @Query("SELECT DISTINCT new com.churchapp.dto.PrayerParticipantResponse(pi.user.id, pi.user.name, pi.user.profilePicUrl) " +
+           "FROM PrayerInteraction pi WHERE pi.prayerRequest.id = :prayerRequestId AND pi.type != 'COMMENT'")
+    List<PrayerParticipantResponse> findDistinctParticipantsByPrayerRequestId(@Param("prayerRequestId") UUID prayerRequestId);
 }

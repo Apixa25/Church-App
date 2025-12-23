@@ -5,6 +5,7 @@ import {
   PrayerInteraction,
   InteractionType,
   PrayerStatus,
+  PrayerParticipant,
   PrayerRequestUpdateRequest,
   PRAYER_CATEGORY_LABELS,
   PRAYER_CATEGORY_COLORS,
@@ -17,6 +18,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatFullDate } from '../utils/dateUtils';
 import { usePrayerNotifications } from '../hooks/usePrayerNotifications';
 import PrayerCommentThread from './PrayerCommentThread';
+import ClickableAvatar from './ClickableAvatar';
 import { getImageUrlWithFallback } from '../utils/imageUrlUtils';
 
 interface PrayerRequestDetailProps {
@@ -41,6 +43,7 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
 
   const [prayer, setPrayer] = useState<PrayerRequest | null>(null);
   const [interactions, setInteractions] = useState<PrayerInteraction[]>([]);
+  const [participants, setParticipants] = useState<PrayerParticipant[]>([]);
   const [userInteractions, setUserInteractions] = useState<Record<InteractionType, boolean>>({} as Record<InteractionType, boolean>);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +94,9 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
       const interactionsResponse = await prayerInteractionAPI.getReactionsByPrayer(prayerId);
       setInteractions(interactionsResponse.data);
 
-      // Seed comment count from summary if available
+      // Load participants
+      const participantsResponse = await prayerInteractionAPI.getParticipants(prayerId);
+      setParticipants(participantsResponse.data);
 
       // Load user interactions if logged in
       if (user) {
@@ -406,6 +411,27 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
         </div>
       </div>
 
+      {participants.length > 0 && (
+        <div className="prayer-supporters">
+          <h3 className="supporters-title">
+            People Supporting This Prayer ({participants.length})
+          </h3>
+          <div className="supporters-grid">
+            {participants.map((participant) => (
+              <div key={participant.userId} className="supporter">
+                <ClickableAvatar
+                  userId={participant.userId}
+                  profilePicUrl={participant.userProfilePicUrl || undefined}
+                  userName={participant.userName}
+                  size="medium"
+                />
+                <span className="supporter-name">{participant.userName}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="comments-section">
         <PrayerCommentThread
           prayerId={prayer.id}
@@ -670,6 +696,56 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
 
         .interaction-btn.active .interaction-count {
           background: rgba(255, 255, 255, 0.3);
+        }
+
+        .prayer-supporters {
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-primary);
+          border-radius: var(--border-radius-md);
+          padding: 1.5rem;
+          margin-top: 2rem;
+        }
+
+        .supporters-title {
+          color: var(--text-primary);
+          margin: 0 0 1rem 0;
+          font-size: 1.1rem;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .supporters-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+          gap: 1rem;
+        }
+
+        .supporter {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.75rem;
+          background: var(--bg-tertiary);
+          border-radius: var(--border-radius-md);
+          border: 1px solid var(--border-primary);
+          transition: all var(--transition-base);
+        }
+
+        .supporter:hover {
+          border-color: var(--border-glow);
+          transform: translateY(-2px);
+          box-shadow: var(--shadow-sm);
+        }
+
+        .supporter-name {
+          font-size: 0.85rem;
+          color: var(--text-secondary);
+          font-weight: 500;
+          text-align: center;
+          word-break: break-word;
         }
 
         .comments-section {

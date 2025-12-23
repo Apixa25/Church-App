@@ -3,6 +3,7 @@ package com.churchapp.controller;
 import com.churchapp.dto.PrayerInteractionRequest;
 import com.churchapp.dto.PrayerInteractionResponse;
 import com.churchapp.dto.PrayerInteractionSummary;
+import com.churchapp.dto.PrayerParticipantResponse;
 import com.churchapp.dto.UserProfileResponse;
 import com.churchapp.entity.PrayerInteraction;
 import com.churchapp.service.PrayerInteractionService;
@@ -134,6 +135,18 @@ public class PrayerInteractionController {
         try {
             PrayerInteractionSummary summary = prayerInteractionService.getInteractionSummary(prayerRequestId);
             return ResponseEntity.ok(summary);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    @GetMapping("/prayer/{prayerRequestId}/participants")
+    public ResponseEntity<?> getParticipants(@PathVariable UUID prayerRequestId) {
+        try {
+            List<PrayerParticipantResponse> participants = prayerInteractionService.getParticipants(prayerRequestId);
+            return ResponseEntity.ok(participants);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());

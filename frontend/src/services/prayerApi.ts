@@ -10,7 +10,8 @@ import {
   PrayerStatus,
   PrayerInteraction,
   PrayerInteractionCreateRequest,
-  PrayerInteractionSummary
+  PrayerInteractionSummary,
+  PrayerParticipant
 } from '../types/Prayer';
 
 import { getApiUrl } from '../config/runtimeConfig';
@@ -450,6 +451,10 @@ export const prayerInteractionAPI = {
     api.get<PrayerInteraction[]>('/prayer-interactions/recent', {
       params: { limit }
     }),
+
+  // Get unique participants who have interacted with a prayer
+  getParticipants: (prayerRequestId: string) =>
+    api.get<PrayerParticipant[]>(`/prayer-interactions/prayer/${prayerRequestId}/participants`),
 };
 
 // Utility functions for API responses

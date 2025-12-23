@@ -119,6 +119,12 @@ export interface PrayerStats {
   answeredPrayerCount: number;
 }
 
+export interface PrayerParticipant {
+  userId: string;
+  userName: string;
+  userProfilePicUrl: string | null;
+}
+
 // Category labels for UI display
 export const PRAYER_CATEGORY_LABELS: Record<PrayerCategory, string> = {
   HEALTH: 'Health',

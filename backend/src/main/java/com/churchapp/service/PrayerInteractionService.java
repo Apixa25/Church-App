@@ -4,6 +4,7 @@ import com.churchapp.dto.PrayerInteractionRequest;
 import com.churchapp.dto.PrayerInteractionResponse;
 import com.churchapp.dto.PrayerInteractionSummary;
 import com.churchapp.dto.PrayerNotificationEvent;
+import com.churchapp.dto.PrayerParticipantResponse;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.churchapp.entity.PrayerInteraction;
 import com.churchapp.entity.PrayerRequest;
@@ -247,10 +248,22 @@ public class PrayerInteractionService {
     public List<PrayerInteractionResponse> getRecentActivityForPrayer(UUID prayerRequestId, LocalDateTime since) {
         List<PrayerInteraction> recentActivity = prayerInteractionRepository
             .findRecentActivityByPrayerRequestId(prayerRequestId, since);
-        
+
         return recentActivity.stream()
             .map(PrayerInteractionResponse::fromPrayerInteraction)
             .collect(Collectors.toList());
+    }
+
+    /**
+     * Get unique participants who have interacted with a prayer request (excluding comments).
+     * Returns user details for displaying avatar stacks and supporter lists.
+     */
+    public List<PrayerParticipantResponse> getParticipants(UUID prayerRequestId) {
+        // Verify prayer request exists
+        prayerRequestRepository.findById(prayerRequestId)
+            .orElseThrow(() -> new RuntimeException("Prayer request not found with id: " + prayerRequestId));
+
+        return prayerInteractionRepository.findDistinctParticipantsByPrayerRequestId(prayerRequestId);
     }
     
     /**
