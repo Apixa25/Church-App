@@ -162,6 +162,18 @@
   border-color: var(--accent-primary);
 }
 
+.original-post-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.view-post-text {
+  color: var(--accent-primary);
+  font-size: 14px;
+  font-weight: 500;
+}
+
 .original-post-header {
   display: flex;
   align-items: center;

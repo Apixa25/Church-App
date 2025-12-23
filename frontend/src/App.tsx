@@ -17,6 +17,7 @@ import AuthError from './components/AuthError';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import PublicPostPreview from './components/PublicPostPreview';
+import PostDetailPage from './components/PostDetailPage';
 import ProfileView from './components/ProfileView';
 import ProfileEdit from './components/ProfileEdit';
 import ChatList from './components/ChatList';
@@ -160,13 +161,23 @@ const App: React.FC = () => {
             <Route path="/posts/:postId" element={<PublicPostPreview />} />
             
             {/* Protected routes */}
-            <Route 
-              path="/dashboard" 
+            <Route
+              path="/dashboard"
               element={
                 <ProtectedRoute>
                   <Dashboard />
                 </ProtectedRoute>
-              } 
+              }
+            />
+
+            {/* Authenticated post detail page (for viewing and commenting) */}
+            <Route
+              path="/app/posts/:postId"
+              element={
+                <ProtectedRoute>
+                  <PostDetailPage />
+                </ProtectedRoute>
+              }
             />
             
             <Route 

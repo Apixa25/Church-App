@@ -5,7 +5,7 @@ import { UserProfile, ProfileCompletionStatus } from '../types/Profile';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileEdit from './ProfileEdit';
 import { Post } from '../types/Post';
-import { getUserPosts, getBookmarkedPosts, getUserShareStats, followUser, unfollowUser, getFollowStatus, blockUser, unblockUser, getBlockStatus, recordProfileView, getUnreadCommentsCount } from '../services/postApi';
+import { getUserPosts, getBookmarkedPosts, getUserShareStats, followUser, unfollowUser, getFollowStatus, blockUser, unblockUser, getBlockStatus, recordProfileView, hasNewCommentsReceived, markCommentsTabViewed } from '../services/postApi';
 import FollowersList from './FollowersList';
 import FollowingList from './FollowingList';
 import ProfileAnalytics from './ProfileAnalytics';
@@ -46,7 +46,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const [postsLoading, setPostsLoading] = useState(false);
   const [postsError, setPostsError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'posts' | 'comments' | 'replies' | 'media' | 'bookmarks' | 'analytics'>('posts');
-  const [unreadCommentsCount, setUnreadCommentsCount] = useState(0);
+  const [hasNewComments, setHasNewComments] = useState(false);
   const [page, setPage] = useState(0);
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [postsCount, setPostsCount] = useState(0);
@@ -108,13 +108,13 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
     }
   }, []);
 
-  const loadUnreadCommentsCount = useCallback(async (targetId: string) => {
+  const checkNewComments = useCallback(async (targetId: string) => {
     try {
-      const count = await getUnreadCommentsCount(targetId);
-      setUnreadCommentsCount(count);
+      const hasNew = await hasNewCommentsReceived(targetId);
+      setHasNewComments(hasNew);
     } catch (err) {
-      console.error('Error loading unread comments count:', err);
-      setUnreadCommentsCount(0);
+      console.error('Error checking for new comments:', err);
+      setHasNewComments(false);
     }
   }, []);
 
@@ -158,9 +158,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
 
       if (targetUserId) {
         await loadShareStats(targetUserId);
-        // Load unread comments count for own profile
+        // Check for new comments for own profile
         if (isOwnProfile) {
-          await loadUnreadCommentsCount(targetUserId);
+          await checkNewComments(targetUserId);
         }
       }
 
@@ -213,7 +213,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
     } finally {
       setLoading(false);
     }
-  }, [userId, user?.userId, loadShareStats, targetUserId, isOwnProfile]);
+  }, [userId, user?.userId, loadShareStats, checkNewComments, targetUserId, isOwnProfile]);
 
   const loadUserPosts = useCallback(async (reset: boolean = false) => {
     if (!targetUserId) return;
@@ -313,6 +313,18 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
       }, 500);
       // Clear the state to prevent scrolling on subsequent renders
       navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, location.pathname]);
+
+  // Handle navigation with activeTab state (e.g., "Back to Comments" from PostDetailPage)
+  useEffect(() => {
+    if (location.state && (location.state as any).activeTab) {
+      const tab = (location.state as any).activeTab;
+      if (['posts', 'comments', 'replies', 'media', 'bookmarks', 'analytics'].includes(tab)) {
+        setActiveTab(tab);
+        // Clear the state to prevent re-setting tab on subsequent renders
+        navigate(location.pathname, { replace: true, state: {} });
+      }
     }
   }, [location.state, navigate, location.pathname]);
 
@@ -471,6 +483,20 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const loadMoreBookmarks = () => {
     if (!bookmarksLoading && hasMoreBookmarks) {
       loadBookmarkedPosts(false);
+    }
+  };
+
+  const handleCommentsTabClick = async () => {
+    setActiveTab('comments');
+    // Clear "New" badge when viewing comments on own profile
+    if (isOwnProfile && hasNewComments && targetUserId) {
+      try {
+        await markCommentsTabViewed(targetUserId);
+        setHasNewComments(false);
+      } catch (err) {
+        console.error('Error marking comments tab viewed:', err);
+        // Don't show error to user, just log it
+      }
     }
   };
 
@@ -1048,11 +1074,11 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
           </button>
           <button
             className={`nav-tab-x ${activeTab === 'comments' ? 'active' : ''}`}
-            onClick={() => setActiveTab('comments')}
+            onClick={handleCommentsTabClick}
           >
             Comments
-            {isOwnProfile && unreadCommentsCount > 0 && (
-              <span className="unread-badge">{unreadCommentsCount}</span>
+            {isOwnProfile && hasNewComments && (
+              <span className="unread-badge">New</span>
             )}
           </button>
           <button

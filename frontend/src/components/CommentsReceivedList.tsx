@@ -1,11 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Comment } from '../types/Post';
-import { PrayerInteraction } from '../types/Prayer';
-import { getCommentsReceivedOnPosts } from '../services/postApi';
-import { prayerInteractionAPI } from '../services/prayerApi';
+import React from 'react';
 import { formatRelativeDate } from '../utils/dateUtils';
 import { useNavigate } from 'react-router-dom';
 import ClickableAvatar from './ClickableAvatar';
+import { useCommentsReceived, CommentGroup } from '../hooks/useProfileData';
 import './CommentsReceivedList.css';
 
 interface CommentsReceivedListProps {
@@ -13,164 +10,23 @@ interface CommentsReceivedListProps {
   isOwnProfile?: boolean;
 }
 
-// Unified comment item that can represent both post comments and prayer comments
-interface UnifiedCommentItem {
-  id: string;
-  type: 'post' | 'prayer';
-  contentId: string; // postId or prayerRequestId
-  contentPreview: string; // preview of the original content
-  userId: string;
-  userName: string;
-  userProfilePicUrl?: string;
-  content: string;
-  createdAt: string;
-  isAnonymous?: boolean;
-  likesCount?: number;
-}
-
-// Group comments by the content they were made on
-interface CommentGroup {
-  contentId: string;
-  contentType: 'post' | 'prayer';
-  contentPreview: string;
-  comments: UnifiedCommentItem[];
-}
-
 const CommentsReceivedList: React.FC<CommentsReceivedListProps> = ({ userId, isOwnProfile = false }) => {
   const navigate = useNavigate();
-  const [commentGroups, setCommentGroups] = useState<CommentGroup[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
 
-  const loadComments = useCallback(async (reset: boolean = false) => {
-    if (!userId) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-      const pageToLoad = reset ? 0 : page;
-
-      // Fetch both post comments and prayer comments in parallel
-      const [postCommentsResponse, prayerCommentsResponse] = await Promise.all([
-        getCommentsReceivedOnPosts(userId, pageToLoad, 20),
-        prayerInteractionAPI.getCommentsReceivedByUser(userId, pageToLoad, 20)
-          .then(res => res.data)
-          .catch(() => ({ content: [], totalPages: 0 }))
-      ]);
-
-      // Convert post comments to unified format
-      const postCommentItems: UnifiedCommentItem[] = postCommentsResponse.content.map((comment: Comment) => ({
-        id: comment.id,
-        type: 'post' as const,
-        contentId: comment.postId,
-        contentPreview: comment.postContent || 'View post',
-        userId: comment.userId,
-        userName: comment.userName,
-        userProfilePicUrl: comment.userProfilePicUrl,
-        content: comment.content,
-        createdAt: comment.createdAt,
-        isAnonymous: comment.isAnonymous,
-        likesCount: comment.likesCount
-      }));
-
-      // Convert prayer comments to unified format
-      const prayerCommentItems: UnifiedCommentItem[] = (prayerCommentsResponse.content || []).map((interaction: PrayerInteraction) => ({
-        id: interaction.id,
-        type: 'prayer' as const,
-        contentId: interaction.prayerRequestId,
-        contentPreview: 'View prayer request',
-        userId: interaction.userId,
-        userName: interaction.userName,
-        userProfilePicUrl: interaction.userProfilePicUrl,
-        content: interaction.content || '',
-        createdAt: Array.isArray(interaction.timestamp)
-          ? new Date(interaction.timestamp[0], interaction.timestamp[1] - 1, interaction.timestamp[2],
-              interaction.timestamp[3] || 0, interaction.timestamp[4] || 0).toISOString()
-          : String(interaction.timestamp),
-        isAnonymous: false
-      }));
-
-      // Combine all comments
-      const allComments = [...postCommentItems, ...prayerCommentItems];
-
-      // Group comments by content (post or prayer)
-      const groupsMap = new Map<string, CommentGroup>();
-
-      allComments.forEach(comment => {
-        const key = `${comment.type}-${comment.contentId}`;
-        if (!groupsMap.has(key)) {
-          groupsMap.set(key, {
-            contentId: comment.contentId,
-            contentType: comment.type,
-            contentPreview: comment.contentPreview,
-            comments: []
-          });
-        }
-        groupsMap.get(key)!.comments.push(comment);
-      });
-
-      // Sort comments within each group by date (newest first)
-      groupsMap.forEach(group => {
-        group.comments.sort((a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-      });
-
-      // Convert to array and sort groups by most recent comment
-      const groups = Array.from(groupsMap.values()).sort((a, b) => {
-        const aLatest = new Date(a.comments[0]?.createdAt || 0).getTime();
-        const bLatest = new Date(b.comments[0]?.createdAt || 0).getTime();
-        return bLatest - aLatest;
-      });
-
-      if (reset) {
-        setCommentGroups(groups);
-        setPage(1);
-      } else {
-        setCommentGroups(prev => {
-          // Merge new groups with existing, avoiding duplicates
-          const existingKeys = new Set(prev.map(g => `${g.contentType}-${g.contentId}`));
-          const newGroups = groups.filter(g => !existingKeys.has(`${g.contentType}-${g.contentId}`));
-          return [...prev, ...newGroups];
-        });
-        setPage(prev => prev + 1);
-      }
-
-      // Check if there's more data
-      const maxPages = Math.max(
-        postCommentsResponse.totalPages || 0,
-        prayerCommentsResponse.totalPages || 0
-      );
-      setHasMore(pageToLoad + 1 < maxPages);
-    } catch (err: any) {
-      console.error('Error loading comments received:', err);
-      setError(err?.response?.data?.error || 'Failed to load comments');
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, page]);
-
-  useEffect(() => {
-    loadComments(true);
-  }, [userId]);
+  // Use React Query hook - data is cached for 5 minutes
+  const { data, isLoading, error, refetch } = useCommentsReceived(userId, !!userId);
 
   const handleContentClick = (contentType: 'post' | 'prayer', contentId: string) => {
     if (contentType === 'post') {
-      navigate(`/posts/${contentId}`);
+      // Navigate to authenticated post detail page (not the public share preview)
+      // Pass state so we can show "Back to Comments" button
+      navigate(`/app/posts/${contentId}`, { state: { fromComments: true } });
     } else {
-      navigate(`/prayers/${contentId}`);
+      navigate(`/prayers/${contentId}`, { state: { fromComments: true } });
     }
   };
 
-  const handleLoadMore = () => {
-    if (!loading && hasMore) {
-      loadComments(false);
-    }
-  };
-
-  if (loading && commentGroups.length === 0) {
+  if (isLoading) {
     return (
       <div className="comments-received-loading">
         <div className="loading-spinner"></div>
@@ -179,16 +35,18 @@ const CommentsReceivedList: React.FC<CommentsReceivedListProps> = ({ userId, isO
     );
   }
 
-  if (error && commentGroups.length === 0) {
+  if (error) {
     return (
       <div className="comments-received-error">
-        <p>{error}</p>
-        <button onClick={() => loadComments(true)} className="retry-button">
+        <p>Failed to load comments</p>
+        <button onClick={() => refetch()} className="retry-button">
           Try Again
         </button>
       </div>
     );
   }
+
+  const commentGroups = data?.groups || [];
 
   if (commentGroups.length === 0) {
     return (
@@ -207,7 +65,7 @@ const CommentsReceivedList: React.FC<CommentsReceivedListProps> = ({ userId, isO
   return (
     <div className="comments-received-container">
       <div className="comments-received-list">
-        {commentGroups.map((group) => (
+        {commentGroups.map((group: CommentGroup) => (
           <div key={`${group.contentType}-${group.contentId}`} className="comment-group">
             {/* Content header - what was commented on */}
             <div
@@ -267,24 +125,9 @@ const CommentsReceivedList: React.FC<CommentsReceivedListProps> = ({ userId, isO
         ))}
       </div>
 
-      {hasMore && (
-        <div className="load-more-section">
-          <button
-            onClick={handleLoadMore}
-            disabled={loading}
-            className="load-more-btn"
-          >
-            {loading ? (
-              <>
-                <div className="load-spinner"></div>
-                Loading...
-              </>
-            ) : (
-              'Load More Comments'
-            )}
-          </button>
-        </div>
-      )}
+      {/* Note: Load More pagination removed for simplicity.
+          With React Query caching, initial page loads quickly and is cached.
+          Can add infinite scroll later if needed. */}
     </div>
   );
 };

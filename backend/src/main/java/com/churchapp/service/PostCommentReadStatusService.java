@@ -136,4 +136,34 @@ public class PostCommentReadStatusService {
             log.error("Error cleaning up old read statuses: {}", e.getMessage(), e);
         }
     }
+
+    /**
+     * Mark all received comments as read
+     * This is called when user clicks on "Comments" tab in their profile
+     * It marks all posts where the user received comments as read
+     *
+     * @param userId User ID (the post owner)
+     */
+    @Transactional
+    public void markAllReceivedCommentsAsRead(UUID userId) {
+        try {
+            // Get all post IDs where the user has received comments from others
+            List<UUID> postIds = commentRepository.findPostIdsWithCommentsReceivedByUserId(userId);
+
+            if (postIds.isEmpty()) {
+                log.debug("No posts with received comments for user {}", userId);
+                return;
+            }
+
+            LocalDateTime now = LocalDateTime.now();
+            for (UUID postId : postIds) {
+                readStatusRepository.markPostAsRead(userId, postId, now);
+            }
+
+            log.info("Marked {} posts as read for user {} (received comments)", postIds.size(), userId);
+        } catch (Exception e) {
+            log.error("Error marking all received comments as read for user {}: {}", userId, e.getMessage(), e);
+            throw e;
+        }
+    }
 }

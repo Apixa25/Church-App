@@ -190,4 +190,9 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
     // Find users by church primary organization (for notifications)
     @Query("SELECT u FROM User u WHERE u.churchPrimaryOrganization = :organization")
     List<User> findByChurchPrimaryOrganization(@Param("organization") com.churchapp.entity.Organization organization);
+
+    // Update last comments tab viewed timestamp
+    @Modifying
+    @Query("UPDATE User u SET u.lastCommentsTabViewedAt = :timestamp WHERE u.id = :userId")
+    void updateLastCommentsTabViewedAt(@Param("userId") UUID userId, @Param("timestamp") LocalDateTime timestamp);
 }

@@ -5,7 +5,10 @@
       "Bash(.mvnw.cmd clean package:*)",
       "Bash(cmd /c \"cd /d c:\\Users\\Admin\\Church-App\\Church-App\\backend && mvnw.cmd clean package -DskipTests\")",
       "Bash(cmd /c \"cd /d c:\\Users\\Admin\\Church-App\\Church-App\\backend && call mvnw.cmd clean package -DskipTests\")",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(mvn clean package:*)",
+      "Bash(./mvnw clean package:*)",
+      "Bash(.mvnw clean package:*)"
     ],
     "deny": [],
     "ask": []

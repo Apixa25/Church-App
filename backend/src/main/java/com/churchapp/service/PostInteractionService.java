@@ -271,10 +271,30 @@ public class PostInteractionService {
     }
 
     /**
-     * Get count of unread comments received on posts owned by a specific user
+     * Check if user has new comments received since they last viewed the Comments tab
      */
-    public long getUnreadCommentsReceivedCount(UUID userId) {
-        return postCommentRepository.countUnreadCommentsReceivedByUserId(userId);
+    public boolean hasNewCommentsReceived(UUID userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return false;
+        }
+
+        // If user has never viewed Comments tab, check if they have ANY comments received
+        if (user.getLastCommentsTabViewedAt() == null) {
+            return postCommentRepository.hasAnyCommentsReceived(userId);
+        }
+
+        // Check if there are comments received since they last viewed
+        return postCommentRepository.hasNewCommentsReceivedSince(userId, user.getLastCommentsTabViewedAt());
+    }
+
+    /**
+     * Mark the Comments tab as viewed - updates the user's lastCommentsTabViewedAt timestamp
+     */
+    @Transactional
+    public void markCommentsTabViewed(UUID userId) {
+        userRepository.updateLastCommentsTabViewedAt(userId, java.time.LocalDateTime.now());
+        log.debug("Marked comments tab as viewed for user {}", userId);
     }
 
     // ========== SHARE OPERATIONS ==========

@@ -92,12 +92,21 @@ export const getCommentsReceivedOnPosts = async (
 };
 
 /**
- * Get count of unread comments received on posts owned by a specific user
- * Used for badge count on "Comments" tab
+ * Check if user has new comments received since they last viewed the Comments tab
+ * Returns true/false for the "New" badge on Comments tab
  */
-export const getUnreadCommentsCount = async (userId: string): Promise<number> => {
-  const response = await api.get(`/posts/user/${userId}/unread-comments-count`);
-  return response.data.unreadCount || 0;
+export const hasNewCommentsReceived = async (userId: string): Promise<boolean> => {
+  const response = await api.get(`/posts/user/${userId}/has-new-comments`);
+  return response.data.hasNew || false;
+};
+
+/**
+ * Mark the Comments tab as viewed
+ * Called when user clicks on "Comments" tab in their profile
+ * This clears the "New" badge
+ */
+export const markCommentsTabViewed = async (userId: string): Promise<void> => {
+  await api.post(`/posts/user/${userId}/mark-comments-tab-viewed`);
 };
 
 export const getUserMediaPosts = async (

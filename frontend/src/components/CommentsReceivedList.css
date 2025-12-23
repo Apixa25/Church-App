@@ -1,5 +1,5 @@
 .comments-received-container {
-  padding: 16px;
+  padding: 8px 0;
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -74,21 +74,21 @@
 .comments-received-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
 }
 
 /* Comment Group - grouped by post/prayer */
 .comment-group {
   background: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--border-radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--border-radius-md);
+  margin: 0 8px;
   overflow: hidden;
   transition: all var(--transition-base);
 }
 
 .comment-group:hover {
-  border-color: var(--accent-primary);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
 /* Content header - the post/prayer being commented on */
@@ -253,14 +253,18 @@
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .comments-received-container {
-    padding: 12px;
+    padding: 4px 0;
+  }
+
+  .comments-received-list {
+    gap: 8px;
   }
 
   .content-header {
-    padding: 12px;
+    padding: 10px 12px;
   }
 
   .comment-item {
-    padding: 12px;
+    padding: 10px 12px;
   }
 }

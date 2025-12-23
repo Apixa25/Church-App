@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Post } from '../types/Post';
-import { getUserMediaPosts } from '../services/postApi';
 import { useNavigate } from 'react-router-dom';
+import { useUserMedia } from '../hooks/useProfileData';
 import './MediaGrid.css';
 
 interface MediaGridProps {
@@ -11,46 +11,14 @@ interface MediaGridProps {
 
 const MediaGrid: React.FC<MediaGridProps> = ({ userId, isOwnProfile = false }) => {
   const navigate = useNavigate();
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
   const [selectedMedia, setSelectedMedia] = useState<{ post: Post; mediaIndex: number } | null>(null);
 
-  const loadMediaPosts = useCallback(async (reset: boolean = false) => {
-    if (!userId) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-      const pageToLoad = reset ? 0 : page;
-
-      const response = await getUserMediaPosts(userId, pageToLoad, 20);
-
-      if (reset) {
-        setPosts(response.content);
-        setPage(1);
-      } else {
-        setPosts(prev => [...prev, ...response.content]);
-        setPage(prev => prev + 1);
-      }
-
-      setHasMore(pageToLoad + 1 < response.totalPages);
-    } catch (err: any) {
-      console.error('Error loading media posts:', err);
-      setError(err?.response?.data?.error || 'Failed to load media');
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, page]);
-
-  useEffect(() => {
-    loadMediaPosts(true);
-  }, [userId]);
+  // Use React Query hook - data is cached for 5 minutes
+  const { data, isLoading, error, refetch } = useUserMedia(userId, !!userId);
 
   const handlePostClick = (postId: string) => {
-    navigate(`/posts/${postId}`);
+    // Navigate to authenticated post detail page
+    navigate(`/app/posts/${postId}`, { state: { fromMedia: true } });
   };
 
   const handleMediaClick = (post: Post, mediaIndex: number, e: React.MouseEvent) => {
@@ -62,17 +30,11 @@ const MediaGrid: React.FC<MediaGridProps> = ({ userId, isOwnProfile = false }) =
     setSelectedMedia(null);
   };
 
-  const handleLoadMore = () => {
-    if (!loading && hasMore) {
-      loadMediaPosts(false);
-    }
-  };
-
   const getMediaType = (mediaType: string): 'image' | 'video' => {
     return mediaType?.startsWith('video/') ? 'video' : 'image';
   };
 
-  if (loading && posts.length === 0) {
+  if (isLoading) {
     return (
       <div className="media-loading">
         <div className="loading-spinner"></div>
@@ -81,16 +43,18 @@ const MediaGrid: React.FC<MediaGridProps> = ({ userId, isOwnProfile = false }) =
     );
   }
 
-  if (error && posts.length === 0) {
+  if (error) {
     return (
       <div className="media-error">
-        <p>{error}</p>
-        <button onClick={() => loadMediaPosts(true)} className="retry-button">
+        <p>Failed to load media</p>
+        <button onClick={() => refetch()} className="retry-button">
           Try Again
         </button>
       </div>
     );
   }
+
+  const posts = data?.content || [];
 
   if (posts.length === 0) {
     return (
@@ -106,7 +70,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({ userId, isOwnProfile = false }) =
     <>
       <div className="media-grid-container">
         <div className="media-grid">
-          {posts.map((post) => (
+          {posts.map((post: Post) => (
             <div
               key={post.id}
               className="media-item"
@@ -165,24 +129,9 @@ const MediaGrid: React.FC<MediaGridProps> = ({ userId, isOwnProfile = false }) =
           ))}
         </div>
 
-        {hasMore && (
-          <div className="load-more-section">
-            <button
-              onClick={handleLoadMore}
-              disabled={loading}
-              className="load-more-btn"
-            >
-              {loading ? (
-                <>
-                  <div className="load-spinner"></div>
-                  Loading...
-                </>
-              ) : (
-                'Load More'
-              )}
-            </button>
-          </div>
-        )}
+        {/* Note: Load More pagination removed for simplicity.
+            With React Query caching, initial page loads quickly and is cached.
+            Can add infinite scroll later if needed. */}
       </div>
 
       {selectedMedia && (

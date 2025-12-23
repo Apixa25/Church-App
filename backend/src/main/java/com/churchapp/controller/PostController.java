@@ -246,26 +246,26 @@ public class PostController {
     }
 
     /**
-     * Get count of unread comments received on posts owned by a specific user
-     * Used for badge count on "Comments" tab
+     * Check if user has new comments received since they last viewed the Comments tab
+     * Returns { "hasNew": true/false } for the "New" badge on Comments tab
      */
-    @GetMapping("/user/{userId}/unread-comments-count")
-    public ResponseEntity<Map<String, Long>> getUnreadCommentsReceivedCount(
+    @GetMapping("/user/{userId}/has-new-comments")
+    public ResponseEntity<Map<String, Boolean>> hasNewCommentsReceived(
             @PathVariable UUID userId,
             @AuthenticationPrincipal User user) {
 
-        // Only allow users to check their own unread count
+        // Only allow users to check their own status
         UUID viewerUserId = resolveUserId(user);
         if (viewerUserId == null || !viewerUserId.equals(userId)) {
-            return ResponseEntity.ok(Map.of("unreadCount", 0L));
+            return ResponseEntity.ok(Map.of("hasNew", false));
         }
 
         try {
-            long unreadCount = postInteractionService.getUnreadCommentsReceivedCount(userId);
-            return ResponseEntity.ok(Map.of("unreadCount", unreadCount));
+            boolean hasNew = postInteractionService.hasNewCommentsReceived(userId);
+            return ResponseEntity.ok(Map.of("hasNew", hasNew));
         } catch (Exception e) {
-            log.error("Error getting unread comments count for user {}: {}", userId, e.getMessage());
-            return ResponseEntity.ok(Map.of("unreadCount", 0L));
+            log.error("Error checking for new comments for user {}: {}", userId, e.getMessage());
+            return ResponseEntity.ok(Map.of("hasNew", false));
         }
     }
 
@@ -666,6 +666,31 @@ public class PostController {
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error("Error marking comments as read for post {}: {}", postId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Mark comments tab as viewed - updates the lastCommentsTabViewedAt timestamp
+     * Called when user clicks on "Comments" tab in their profile
+     * This clears the "New" badge
+     */
+    @PostMapping("/user/{userId}/mark-comments-tab-viewed")
+    public ResponseEntity<Void> markCommentsTabViewed(
+            @PathVariable UUID userId,
+            @AuthenticationPrincipal User user) {
+
+        // Only allow users to mark their own tab as viewed
+        UUID viewerUserId = resolveUserId(user);
+        if (viewerUserId == null || !viewerUserId.equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        try {
+            postInteractionService.markCommentsTabViewed(userId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("Error marking comments tab viewed for user {}: {}", userId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

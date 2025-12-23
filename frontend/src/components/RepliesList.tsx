@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Comment, Post } from '../types/Post';
-import { getUserComments, getPost } from '../services/postApi';
+import React from 'react';
+import { Comment } from '../types/Post';
 import { formatRelativeDate } from '../utils/dateUtils';
 import { useNavigate } from 'react-router-dom';
 import ClickableAvatar from './ClickableAvatar';
+import { useUserReplies } from '../hooks/useProfileData';
 import './RepliesList.css';
 
 interface RepliesListProps {
@@ -11,92 +11,18 @@ interface RepliesListProps {
   isOwnProfile?: boolean;
 }
 
-interface CommentWithPost extends Comment {
-  originalPost?: Post;
-}
-
 const RepliesList: React.FC<RepliesListProps> = ({ userId, isOwnProfile = false }) => {
   const navigate = useNavigate();
-  const [comments, setComments] = useState<CommentWithPost[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const [loadingPosts, setLoadingPosts] = useState<Set<string>>(new Set());
 
-  const loadComments = useCallback(async (reset: boolean = false) => {
-    if (!userId) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-      const pageToLoad = reset ? 0 : page;
-
-      const response = await getUserComments(userId, pageToLoad, 20);
-
-      // Fetch original posts for each comment
-      const commentsWithPosts: CommentWithPost[] = [];
-      const postIds = new Set<string>();
-      
-      response.content.forEach((comment: Comment) => {
-        postIds.add(comment.postId);
-        commentsWithPosts.push({ ...comment, originalPost: undefined });
-      });
-
-      // Fetch all unique posts in parallel
-      const postPromises = Array.from(postIds).map(async (postId) => {
-        try {
-          const post = await getPost(postId);
-          return { postId, post };
-        } catch (err) {
-          console.error(`Error fetching post ${postId}:`, err);
-          return { postId, post: null };
-        }
-      });
-
-      const postResults = await Promise.all(postPromises);
-      const postMap = new Map<string, Post>();
-      postResults.forEach(({ postId, post }) => {
-        if (post) postMap.set(postId, post);
-      });
-
-      // Attach posts to comments
-      commentsWithPosts.forEach((comment) => {
-        comment.originalPost = postMap.get(comment.postId);
-      });
-
-      if (reset) {
-        setComments(commentsWithPosts);
-        setPage(1);
-      } else {
-        setComments(prev => [...prev, ...commentsWithPosts]);
-        setPage(prev => prev + 1);
-      }
-
-      setHasMore(pageToLoad + 1 < response.totalPages);
-    } catch (err: any) {
-      console.error('Error loading comments:', err);
-      setError(err?.response?.data?.error || 'Failed to load replies');
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, page]);
-
-  useEffect(() => {
-    loadComments(true);
-  }, [userId]);
+  // Use React Query hook - data is cached for 5 minutes
+  const { data, isLoading, error, refetch } = useUserReplies(userId, !!userId);
 
   const handlePostClick = (postId: string) => {
-    navigate(`/posts/${postId}`);
+    // Navigate to authenticated post detail page
+    navigate(`/app/posts/${postId}`, { state: { fromReplies: true } });
   };
 
-  const handleLoadMore = () => {
-    if (!loading && hasMore) {
-      loadComments(false);
-    }
-  };
-
-  if (loading && comments.length === 0) {
+  if (isLoading) {
     return (
       <div className="replies-loading">
         <div className="loading-spinner"></div>
@@ -105,16 +31,18 @@ const RepliesList: React.FC<RepliesListProps> = ({ userId, isOwnProfile = false 
     );
   }
 
-  if (error && comments.length === 0) {
+  if (error) {
     return (
       <div className="replies-error">
-        <p>{error}</p>
-        <button onClick={() => loadComments(true)} className="retry-button">
+        <p>Failed to load replies</p>
+        <button onClick={() => refetch()} className="retry-button">
           Try Again
         </button>
       </div>
     );
   }
+
+  const comments = data?.content || [];
 
   if (comments.length === 0) {
     return (
@@ -129,7 +57,7 @@ const RepliesList: React.FC<RepliesListProps> = ({ userId, isOwnProfile = false 
   return (
     <div className="replies-list-container">
       <div className="replies-list">
-        {comments.map((comment) => (
+        {comments.map((comment: Comment) => (
           <div key={comment.id} className="reply-item">
             <div className="reply-header">
               <ClickableAvatar
@@ -164,45 +92,15 @@ const RepliesList: React.FC<RepliesListProps> = ({ userId, isOwnProfile = false 
               )}
             </div>
 
-            {comment.originalPost && (
-              <div 
-                className="original-post-preview"
-                onClick={() => handlePostClick(comment.postId)}
-              >
-                <div className="original-post-header">
-                  <ClickableAvatar
-                    userId={comment.originalPost.userId}
-                    userName={comment.originalPost.userName}
-                    profilePicUrl={comment.originalPost.userProfilePicUrl}
-                    size="small"
-                  />
-                  <div className="original-post-info">
-                    <span className="original-post-author">
-                      {comment.originalPost.isAnonymous 
-                        ? 'Anonymous' 
-                        : comment.originalPost.userName}
-                    </span>
-                    <span className="original-post-time">
-                      {formatRelativeDate(comment.originalPost.createdAt)}
-                    </span>
-                  </div>
-                </div>
-                <p className="original-post-content">
-                  {comment.originalPost.content.length > 150
-                    ? `${comment.originalPost.content.substring(0, 150)}...`
-                    : comment.originalPost.content}
-                </p>
-                {comment.originalPost.mediaUrls && comment.originalPost.mediaUrls.length > 0 && (
-                  <div className="original-post-media-preview">
-                    <img
-                      src={comment.originalPost.mediaUrls[0]}
-                      alt="Post media"
-                      className="original-post-media-thumbnail"
-                    />
-                  </div>
-                )}
+            {/* Clickable link to view the original post */}
+            <div
+              className="original-post-preview"
+              onClick={() => handlePostClick(comment.postId)}
+            >
+              <div className="original-post-link">
+                <span className="view-post-text">View original post →</span>
               </div>
-            )}
+            </div>
 
             <div className="reply-engagement">
               <span className="reply-likes">
@@ -218,27 +116,11 @@ const RepliesList: React.FC<RepliesListProps> = ({ userId, isOwnProfile = false 
         ))}
       </div>
 
-      {hasMore && (
-        <div className="load-more-section">
-          <button
-            onClick={handleLoadMore}
-            disabled={loading}
-            className="load-more-btn"
-          >
-            {loading ? (
-              <>
-                <div className="load-spinner"></div>
-                Loading...
-              </>
-            ) : (
-              'Load More Replies'
-            )}
-          </button>
-        </div>
-      )}
+      {/* Note: Load More pagination removed for simplicity.
+          With React Query caching, initial page loads quickly and is cached.
+          Can add infinite scroll later if needed. */}
     </div>
   );
 };
 
 export default RepliesList;
-

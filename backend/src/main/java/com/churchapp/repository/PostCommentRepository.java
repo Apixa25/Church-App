@@ -96,12 +96,20 @@ public interface PostCommentRepository extends JpaRepository<PostComment, UUID> 
     @Query("SELECT pc FROM PostComment pc WHERE pc.post.user.id = :userId AND pc.user.id != :userId ORDER BY pc.post.id, pc.createdAt DESC")
     Page<PostComment> findCommentsReceivedByUserId(@Param("userId") UUID userId, Pageable pageable);
 
-    // Count unread comments received on posts owned by a user
-    @Query("SELECT COUNT(pc) FROM PostComment pc " +
+    // Check if user has any new comments received since a timestamp (for "New" badge)
+    @Query("SELECT CASE WHEN COUNT(pc) > 0 THEN true ELSE false END FROM PostComment pc " +
            "WHERE pc.post.user.id = :userId AND pc.user.id != :userId " +
-           "AND NOT EXISTS (SELECT 1 FROM PostCommentReadStatus pcrs " +
-           "WHERE pcrs.userId = :userId AND pcrs.postId = pc.post.id AND pc.createdAt <= pcrs.lastReadAt)")
-    long countUnreadCommentsReceivedByUserId(@Param("userId") UUID userId);
+           "AND pc.createdAt > :since")
+    boolean hasNewCommentsReceivedSince(@Param("userId") UUID userId, @Param("since") LocalDateTime since);
+
+    // Check if user has ANY comments received (for users who never viewed Comments tab)
+    @Query("SELECT CASE WHEN COUNT(pc) > 0 THEN true ELSE false END FROM PostComment pc " +
+           "WHERE pc.post.user.id = :userId AND pc.user.id != :userId")
+    boolean hasAnyCommentsReceived(@Param("userId") UUID userId);
+
+    // Find distinct post IDs where user has received comments from others
+    @Query("SELECT DISTINCT pc.post.id FROM PostComment pc WHERE pc.post.user.id = :userId AND pc.user.id != :userId")
+    List<UUID> findPostIdsWithCommentsReceivedByUserId(@Param("userId") UUID userId);
 
     // Bulk operations
     @Modifying

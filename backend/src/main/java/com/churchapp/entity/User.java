@@ -166,6 +166,10 @@ public class User {
     @Column(name = "fcm_token", length = 500)
     private String fcmToken; // Firebase Cloud Messaging token for push notifications
 
+    // Timestamp of when user last viewed their Comments tab (for "New" badge)
+    @Column(name = "last_comments_tab_viewed_at")
+    private LocalDateTime lastCommentsTabViewedAt;
+
     // Donation relationships
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Donation> donations = new ArrayList<>();
