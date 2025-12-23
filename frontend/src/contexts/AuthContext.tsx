@@ -156,7 +156,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           
           // Update localStorage with fresh user data
           localStorage.setItem('user', JSON.stringify(updatedUser));
-          console.log('💾 AuthContext - Saved user profilePicUrl to localStorage:', updatedUser.profilePicUrl);
           return updatedUser;
         }
         return null;
@@ -164,9 +163,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error: any) {
       console.error('Failed to fetch fresh user data:', error);
       
-      // 🆕 FIX: If backend returns 401, session is invalid - logout immediately
+      // If backend returns 401, session is invalid - logout immediately
       if (error.response?.status === 401) {
-        console.error('❌ Backend rejected token - session invalid, redirecting to login');
         logout();
       }
       // For other errors (network issues, etc.), user can continue with cached data
@@ -183,7 +181,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // No saved session - user needs to login
       if (!savedToken || !savedUser) {
-        console.log('📭 No saved session found');
         setLoading(false);
         return;
       }
@@ -193,22 +190,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const isAccessTokenExpired = tokenService.isTokenExpired(savedToken);
         
         if (isAccessTokenExpired) {
-          console.log('🔄 Access token expired, attempting silent refresh...');
-          
           // Check if refresh token exists and is not expired
           if (savedRefreshToken && !tokenService.isTokenExpired(savedRefreshToken)) {
             // Try to refresh the token BEFORE restoring session
             const refreshed = await tokenService.refreshTokenSilently();
-            
+
             if (refreshed?.token) {
               // Refresh successful - restore session with new token
-              console.log('✅ Token refreshed successfully - restoring session');
               setToken(refreshed.token);
               const userData = JSON.parse(savedUser);
               setUser(userData);
               webSocketService.updateToken(refreshed.token);
               tokenService.scheduleTokenRefresh();
-              
+
               // Fetch fresh user data in background
               fetchFreshUserData(refreshed.token);
             } else {
@@ -217,22 +211,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
           } else {
             // Refresh token is also expired or missing
-            console.log('❌ Refresh token expired or missing - session dead');
             throw new Error('Refresh token expired');
           }
         } else {
           // Access token is still valid - restore session immediately
-          console.log('✅ Access token valid - restoring session');
           setToken(savedToken);
           setUser(JSON.parse(savedUser));
           webSocketService.updateToken(savedToken);
           tokenService.scheduleTokenRefresh();
-          
+
           // Fetch fresh user data to verify with backend
           fetchFreshUserData(savedToken);
         }
       } catch (error) {
-        console.error('❌ Session validation failed:', error);
         // Clear invalid session data
         localStorage.removeItem('authToken');
         localStorage.removeItem('refreshToken');
@@ -255,23 +246,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const handleVisibilityChange = async () => {
       // Only check when app becomes visible AND user appears to be logged in
       if (document.visibilityState === 'visible' && token && user) {
-        console.log('👁️ App became visible, checking token validity...');
-        
         // Check if access token expired while app was backgrounded
         if (tokenService.isTokenExpired(token)) {
-          console.log('🔄 Token expired while backgrounded, attempting refresh...');
-          
           try {
             const refreshed = await tokenService.refreshTokenSilently();
             if (refreshed?.token) {
               setToken(refreshed.token);
               webSocketService.updateToken(refreshed.token);
-              console.log('✅ Token refreshed after visibility change');
             } else {
               throw new Error('Refresh failed');
             }
           } catch (error) {
-            console.error('❌ Session expired while backgrounded - redirecting to login');
             logout();
           }
         }

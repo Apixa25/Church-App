@@ -165,11 +165,7 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
 
   // Fetch user's memberships - Updated for dual primary system
   const fetchMemberships = async () => {
-    console.log('🔥 OrganizationContext v3.0 - DUAL PRIMARY SYSTEM - fetchMemberships called');
-    console.log('🔥 isAuthenticated:', isAuthenticated, 'token:', token ? 'Present' : 'Missing');
-    
     if (!isAuthenticated) {
-      console.log('🔥 Not authenticated, clearing memberships');
       setChurchPrimaryState(null);
       setFamilyPrimaryState(null);
       setGroups([]);
@@ -179,7 +175,6 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
 
     try {
       setLoading(true);
-      console.log('🔥 Fetching dual-primary memberships from API...');
 
       // Fetch all membership types in parallel
       const [churchPrimaryRes, familyPrimaryRes, groupsRes, allRes] = await Promise.all([
@@ -188,11 +183,6 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
         api.get('/organizations/my-memberships/groups').catch(() => ({ data: [] })),
         api.get('/organizations/my-memberships'),
       ]);
-
-      console.log('🔥 API Response - churchPrimary:', churchPrimaryRes.data);
-      console.log('🔥 API Response - familyPrimary:', familyPrimaryRes.data);
-      console.log('🔥 API Response - groups:', groupsRes.data?.length || 0);
-      console.log('🔥 API Response - allMemberships:', allRes.data?.length || 0);
 
       setChurchPrimaryState(churchPrimaryRes.data || null);
       setFamilyPrimaryState(familyPrimaryRes.data || null);
@@ -218,7 +208,6 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   // Set Church Primary
   const setChurchPrimary = async (orgId: string): Promise<Membership> => {
     try {
-      console.log('🏛️ Setting Church Primary to:', orgId);
       const response = await api.post(`/organizations/${orgId}/set-church-primary`);
       await refreshMemberships();
       return response.data;
@@ -231,7 +220,6 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   // Set Family Primary
   const setFamilyPrimary = async (orgId: string): Promise<Membership> => {
     try {
-      console.log('🏠 Setting Family Primary to:', orgId);
       const response = await api.post(`/organizations/${orgId}/set-family-primary`);
       await refreshMemberships();
       return response.data;
@@ -244,7 +232,6 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   // Join as Group (social feed only)
   const joinAsGroup = async (orgId: string): Promise<Membership> => {
     try {
-      console.log('👥 Joining as Group:', orgId);
       const response = await api.post(`/organizations/${orgId}/join-as-group`);
       await refreshMemberships();
       return response.data;
@@ -257,7 +244,6 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   // Clear Church Primary
   const clearChurchPrimary = async (): Promise<void> => {
     try {
-      console.log('🏛️ Clearing Church Primary');
       await api.delete('/organizations/my-church-primary');
       await refreshMemberships();
     } catch (error: any) {
@@ -269,7 +255,6 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   // Clear Family Primary
   const clearFamilyPrimary = async (): Promise<void> => {
     try {
-      console.log('🏠 Clearing Family Primary');
       await api.delete('/organizations/my-family-primary');
       await refreshMemberships();
     } catch (error: any) {
@@ -309,7 +294,6 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
 
   // Switch primary organization (legacy - now maps to setChurchPrimary)
   const switchPrimaryOrganization = async (orgId: string): Promise<Membership> => {
-    console.log('⚠️ Using legacy switchPrimaryOrganization - this now maps to setChurchPrimary');
     return setChurchPrimary(orgId);
   };
 

@@ -89,7 +89,6 @@ class TokenService {
     }
 
     // Schedule refresh before expiration
-    console.log(`🔄 Token refresh scheduled in ${Math.round(timeUntilRefresh / 1000 / 60)} minutes`);
     this.refreshTimer = setTimeout(() => {
       this.refreshTokenSilently();
     }, timeUntilRefresh);
@@ -106,13 +105,11 @@ class TokenService {
 
     const refreshToken = localStorage.getItem('refreshToken');
     if (!refreshToken) {
-      console.warn('⚠️ No refresh token available');
       return null;
     }
 
     // Check if refresh token is expired
     if (this.isTokenExpiringSoon(refreshToken)) {
-      console.warn('⚠️ Refresh token is expired or expiring soon');
       this.handleRefreshFailure();
       return null;
     }
@@ -156,17 +153,14 @@ class TokenService {
           const webSocketService = (await import('./websocketService')).default;
           webSocketService.updateToken(data.token);
         } catch (error) {
-          console.warn('Failed to update WebSocket token:', error);
+          // Failed to update WebSocket token
         }
 
-        console.log('✅ Token refreshed successfully');
-        
         // Schedule next refresh
         this.scheduleTokenRefresh();
         
         return data;
       } catch (error) {
-        console.error('❌ Token refresh failed:', error);
         this.handleRefreshFailure();
         throw error;
       } finally {

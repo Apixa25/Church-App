@@ -8,7 +8,15 @@
       "Bash(powershell -Command:*)",
       "Bash(mvn clean package:*)",
       "Bash(./mvnw clean package:*)",
-      "Bash(.mvnw clean package:*)"
+      "Bash(.mvnw clean package:*)",
+      "Bash(cat:*)",
+      "Bash(psql:*)",
+      "Bash(PGPASSWORD='Z.jS~w]fvv[W-TyYhB8TlTD_fEG2' psql:*)",
+      "Bash(npm run build:*)",
+      "Bash(aws s3 sync:*)",
+      "Bash(aws s3 ls:*)",
+      "Bash(findstr:*)",
+      "Bash(mvnw.cmd clean package:*)"
     ],
     "deny": [],
     "ask": []

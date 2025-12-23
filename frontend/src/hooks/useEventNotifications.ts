@@ -214,32 +214,23 @@ export const useEventNotifications = () => {
 
   // Handle event updates - filter by user's organizations
   const handleEventUpdate = useCallback((update: EventUpdate) => {
-    console.log('🔔 handleEventUpdate received:', update);
-
     if (!userRef.current) {
-      console.log('⚠️ No user in ref, ignoring update');
       return;
     }
 
     const eventType = update.eventType || '';
-    console.log('🔔 Event type:', eventType);
 
     // Handle chat message notifications
     if (eventType === 'chat_message_received') {
-      console.log('💬 Processing chat_message_received notification:', update);
       // Don't notify users of their own messages
       if (update.senderId && update.senderId === userRef.current.userId) {
-        console.log('🚫 Ignoring own message (senderId matches userId)');
         return;
       }
 
       // Don't notify if user's email matches sender (additional check)
       if (update.senderEmail && update.senderEmail === userRef.current.email) {
-        console.log('🚫 Ignoring own message (senderEmail matches user email)');
         return;
       }
-
-      console.log('✅ Creating chat notification for message from:', update.senderName);
 
       const notification: EventNotification = {
         id: `chat-${update.messageId || update.chatGroupId}-${Date.now()}`,
@@ -260,23 +251,17 @@ export const useEventNotifications = () => {
       return;
     }
 
-    // Handle post comment notifications (NEW)
+    // Handle post comment notifications
     if (eventType === 'post_comment_received') {
-      console.log('💬 Processing post_comment_received notification:', update);
-
       // Don't notify users of their own comments
       if (update.commenterId && update.commenterId === userRef.current.userId) {
-        console.log('🚫 Ignoring own comment (commenterId matches userId)');
         return;
       }
 
       // Don't notify if user's email matches commenter (additional check)
       if (update.commenterEmail && update.commenterEmail === userRef.current.email) {
-        console.log('🚫 Ignoring own comment (commenterEmail matches user email)');
         return;
       }
-
-      console.log('✅ Creating comment notification from:', update.commenterName);
 
       const notification: EventNotification = {
         id: `comment-${update.commentId || update.postId}-${Date.now()}`,
@@ -411,11 +396,9 @@ export const useEventNotifications = () => {
 
         // Double-check connection is ready before subscribing
         if (!webSocketService.isWebSocketConnected()) {
-          console.warn('⚠️ WebSocket not connected after ensureConnection, retrying...');
           // Wait a bit and try again
           await new Promise(resolve => setTimeout(resolve, 500));
           if (!webSocketService.isWebSocketConnected()) {
-            console.error('❌ WebSocket still not connected after retry');
             return;
           }
         }
@@ -423,11 +406,8 @@ export const useEventNotifications = () => {
         // Subscribe to user-specific event notifications (including chat messages)
         // This subscribes to /user/queue/events which receives personalized notifications
         eventUnsubscribe = webSocketService.subscribeToUserEventNotifications(handleEventUpdate);
-
-        console.log('✅ Event notifications WebSocket subscriptions established');
-        console.log('🔔 Listening for user event notifications on /user/queue/events (including chat_message_received)');
       } catch (error) {
-        console.error('❌ Failed to establish event notification subscriptions:', error);
+        console.error('Failed to establish event notification subscriptions:', error);
         // Retry after a delay if connection failed
         if (setupTimeout) clearTimeout(setupTimeout);
         setupTimeout = setTimeout(() => {
@@ -447,8 +427,8 @@ export const useEventNotifications = () => {
         .then(() => {
           setupSubscriptions();
         })
-        .catch((error) => {
-          console.error('❌ Failed to ensure connection for event notifications:', error);
+        .catch(() => {
+          // Failed to ensure connection for event notifications
         });
     }
 

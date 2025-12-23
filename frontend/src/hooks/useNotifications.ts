@@ -32,9 +32,7 @@ export const useNotifications = () => {
     try {
       await api.post('/api/notifications/register-token', { token });
       setIsRegistered(true);
-      console.log('FCM token registered with backend');
     } catch (err: any) {
-      console.error('Failed to register FCM token:', err);
       throw new Error('Failed to register notification token');
     }
   };
@@ -131,8 +129,6 @@ export const useNotifications = () => {
     }
 
     const unsubscribe = setupForegroundMessageListener((payload) => {
-      console.log('Foreground notification received:', payload);
-
       // Show browser notification for foreground messages
       const { title, body } = payload.notification || {};
 

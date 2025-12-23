@@ -5,7 +5,6 @@ class StatusBarService {
   async initialize() {
     // Only run on native platforms (iOS/Android)
     if (!Capacitor.isNativePlatform()) {
-      console.log('Status bar service: Running in web mode, skipping native configuration');
       return;
     }
 
@@ -18,8 +17,6 @@ class StatusBarService {
 
       // Show the status bar (in case it was hidden)
       await StatusBar.show();
-
-      console.log('Status bar configured successfully');
     } catch (error) {
       console.error('Failed to configure status bar:', error);
     }

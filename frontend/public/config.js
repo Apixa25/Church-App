@@ -27,10 +27,5 @@
   
   // Set API URL (can be overridden by setting window.config.API_URL before this script runs)
   window.config.API_URL = window.config.API_URL || apiUrl;
-  
-  console.log('🔧 Runtime Config Loaded:', {
-    hostname: hostname,
-    apiUrl: window.config.API_URL
-  });
 })();
 

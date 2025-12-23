@@ -33,10 +33,8 @@ const initializeMessaging = async (): Promise<Messaging | null> => {
     const supported = await isSupported();
     if (supported) {
       messaging = getMessaging(app);
-      console.log('Firebase Messaging initialized successfully');
       return messaging;
     } else {
-      console.warn('Firebase Messaging is not supported in this browser');
       return null;
     }
   } catch (error) {
@@ -61,7 +59,6 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
     const permission = await Notification.requestPermission();
 
     if (permission !== 'granted') {
-      console.log('Notification permission denied');
       return null;
     }
 
@@ -81,10 +78,8 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
     });
 
     if (token) {
-      console.log('FCM token obtained:', token.substring(0, 20) + '...');
       return token;
     } else {
-      console.log('No registration token available');
       return null;
     }
 
@@ -107,7 +102,6 @@ export const setupForegroundMessageListener = (
   }
 
   const unsubscribe = onMessage(messaging, (payload: any) => {
-    console.log('Message received in foreground:', payload);
     callback(payload);
   });
 

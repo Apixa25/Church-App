@@ -31,18 +31,14 @@ export function setUpdateHandler(handler: (registration: ServiceWorkerRegistrati
 export function checkForUpdates(): Promise<boolean> {
   return new Promise((resolve) => {
     if (swRegistration) {
-      console.log('🔍 Checking for service worker updates...');
       swRegistration.update()
         .then(() => {
-          console.log('✅ Update check complete');
           resolve(true);
         })
-        .catch((error) => {
-          console.error('❌ Update check failed:', error);
+        .catch(() => {
           resolve(false);
         });
     } else {
-      console.log('⚠️ No service worker registration found');
       resolve(false);
     }
   });
@@ -59,11 +55,9 @@ export function clearAllCaches(): Promise<boolean> {
           );
         })
         .then(() => {
-          console.log('🗑️ All caches cleared');
           resolve(true);
         })
-        .catch((error) => {
-          console.error('❌ Failed to clear caches:', error);
+        .catch(() => {
           resolve(false);
         });
     } else {
@@ -76,9 +70,8 @@ export function clearAllCaches(): Promise<boolean> {
 function startPeriodicUpdateCheck(registration: ServiceWorkerRegistration) {
   // Check for updates periodically while the app is open
   setInterval(() => {
-    console.log('🔄 Periodic update check...');
-    registration.update().catch((error) => {
-      console.log('Update check failed (may be offline):', error);
+    registration.update().catch(() => {
+      // Update check failed (may be offline)
     });
   }, UPDATE_CHECK_INTERVAL);
 
@@ -86,18 +79,16 @@ function startPeriodicUpdateCheck(registration: ServiceWorkerRegistration) {
   // This catches updates when user switches back to the app
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      console.log('👁️ App became visible, checking for updates...');
-      registration.update().catch((error) => {
-        console.log('Update check failed (may be offline):', error);
+      registration.update().catch(() => {
+        // Update check failed (may be offline)
       });
     }
   });
 
   // Check for updates when coming back online
   window.addEventListener('online', () => {
-    console.log('🌐 Back online, checking for updates...');
-    registration.update().catch((error) => {
-      console.log('Update check failed:', error);
+    registration.update().catch(() => {
+      // Update check failed
     });
   });
 }
@@ -115,7 +106,7 @@ export function register(config?: Config) {
       if (isLocalhost) {
         checkValidServiceWorker(swUrl, config);
         navigator.serviceWorker.ready.then(() => {
-          console.log('Service worker is ready for offline use.');
+          // Service worker is ready for offline use
         });
       } else {
         registerValidSW(swUrl, config);
@@ -133,13 +124,10 @@ function registerValidSW(swUrl: string, config?: Config) {
       
       // Start periodic update checks
       startPeriodicUpdateCheck(registration);
-      
-      console.log('✅ Service Worker registered successfully');
-      
+
       // Check if there's already a waiting service worker
       // (This can happen if the user opened multiple tabs)
       if (registration.waiting) {
-        console.log('📦 Update already waiting, triggering notification');
         if (config && config.onUpdate) {
           config.onUpdate(registration);
         }
@@ -153,14 +141,11 @@ function registerValidSW(swUrl: string, config?: Config) {
         if (installingWorker == null) {
           return;
         }
-        
-        console.log('🔄 New service worker installing...');
-        
+
         installingWorker.onstatechange = () => {
           if (installingWorker.state === 'installed') {
             if (navigator.serviceWorker.controller) {
-              console.log('🎉 New content available! Showing update notification.');
-              // Call both config callback and global handler
+              // New content available - call both config callback and global handler
               if (config && config.onUpdate) {
                 config.onUpdate(registration);
               }
@@ -168,7 +153,7 @@ function registerValidSW(swUrl: string, config?: Config) {
                 globalUpdateHandler(registration);
               }
             } else {
-              console.log('📦 Content cached for offline use.');
+              // Content cached for offline use
               if (config && config.onSuccess) {
                 config.onSuccess(registration);
               }
@@ -178,7 +163,7 @@ function registerValidSW(swUrl: string, config?: Config) {
       };
     })
     .catch((error) => {
-      console.error('❌ Error registering service worker:', error);
+      console.error('Error registering service worker:', error);
     });
 }
 

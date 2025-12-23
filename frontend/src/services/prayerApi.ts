@@ -54,43 +54,22 @@ api.interceptors.request.use(
       delete config.headers['content-type'];
       delete config.headers['Content-type'];
       delete config.headers['CONTENT-TYPE'];
-      
+
       // Also set to undefined to ensure it's not added back
       if (config.headers) {
         config.headers['Content-Type'] = undefined as any;
         config.headers['content-type'] = undefined as any;
       }
-      
-      // Log for debugging
-      console.log('🔧 Axios Interceptor: FormData detected, removed Content-Type header', {
-        url: config.url,
-        method: config.method,
-        hasImage: config.data?.has ? config.data.has('image') : 'unknown',
-        formDataKeys: config.data instanceof FormData ? Array.from(config.data.keys()) : 'not FormData',
-        isFormDataCheck: isFormData,
-        dataType: typeof config.data,
-        dataConstructor: config.data?.constructor?.name,
-        userAgent: navigator.userAgent,
-        headersAfter: Object.keys(config.headers || {})
-      });
     } else {
       // Not FormData - keep Content-Type as is (or set to JSON if not set)
       if (!config.headers['Content-Type'] && !config.headers['content-type']) {
         config.headers['Content-Type'] = 'application/json';
       }
-      console.log('🔧 Axios Interceptor: Regular request (not FormData)', {
-        url: config.url,
-        method: config.method,
-        contentType: config.headers['Content-Type'] || config.headers['content-type'],
-        dataType: typeof config.data,
-        dataConstructor: config.data?.constructor?.name
-      });
     }
     
     return config;
   },
   (error) => {
-    console.error('❌ Axios Request Interceptor Error:', error);
     return Promise.reject(error);
   }
 );
@@ -149,22 +128,11 @@ export const prayerAPI = {
     // Validate file before creating FormData
     if (imageFile) {
       if (!(imageFile instanceof File)) {
-        console.error('❌ imageFile is not a File object:', imageFile);
         throw new Error('Invalid image file object');
       }
       if (imageFile.size === 0) {
-        console.error('❌ imageFile has zero size');
         throw new Error('Image file is empty');
       }
-      console.log('📦 Creating FormData with image:', {
-        fileName: imageFile.name,
-        fileSize: (imageFile.size / 1024 / 1024).toFixed(2) + 'MB',
-        fileType: imageFile.type,
-        isFile: imageFile instanceof File,
-        constructor: imageFile.constructor.name,
-        lastModified: imageFile.lastModified,
-        userAgent: navigator.userAgent
-      });
     }
     
     try {
@@ -191,50 +159,25 @@ export const prayerAPI = {
           formData.append('image', imageFile, imageFile.name); // Include filename explicitly
           // Verify it was appended
           const hasImage = formData.has('image');
-          console.log('✅ Image appended to FormData:', hasImage);
-          
+
           if (!hasImage) {
             throw new Error('Failed to append image to FormData');
           }
         } catch (appendError) {
-          console.error('❌ Failed to append image to FormData:', appendError);
           throw new Error('Failed to prepare image for upload. Please try again.');
         }
       }
-      
-      // Final validation before sending
-      console.log('📤 Final FormData validation before API call:', {
-        isFormData: formData instanceof FormData,
-        hasImage: formData.has('image'),
-        formDataKeys: Array.from(formData.keys()),
-        imageFile: imageFile ? {
-          name: imageFile.name,
-          size: imageFile.size,
-          type: imageFile.type,
-          isFile: imageFile instanceof File
-        } : 'no image',
-        userAgent: navigator.userAgent
-      });
-      
+
       // Verify FormData is actually a FormData object
       if (!(formData instanceof FormData)) {
-        const formDataAny = formData as any;
-        console.error('❌ CRITICAL: formData is not a FormData instance!', {
-          type: typeof formData,
-          constructor: formDataAny?.constructor?.name,
-          hasAppend: typeof formDataAny?.append === 'function'
-        });
         throw new Error('FormData creation failed - invalid FormData object');
       }
-      
-      console.log('📤 Sending multipart request to /prayers/with-image');
       
       // iPhone Safari workaround: Use native fetch for FormData to avoid Axios issues
       const userAgent = navigator.userAgent;
       const isIPhone = /iPhone|iPod/.test(userAgent);
-      
+
       if (isIPhone) {
-        console.log('📱 iPhone detected - using native fetch for FormData upload');
         
         // Get auth token
         const { tokenService } = await import('./tokenService');
@@ -302,11 +245,6 @@ export const prayerAPI = {
         return api.post<PrayerRequest>('/prayers/with-image', formData, requestConfig);
       }
     } catch (formDataError: any) {
-      console.error('❌ FormData creation failed:', {
-        error: formDataError,
-        message: formDataError?.message,
-        stack: formDataError?.stack
-      });
       throw formDataError;
     }
   },

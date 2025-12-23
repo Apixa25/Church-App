@@ -97,28 +97,16 @@ const PostCard: React.FC<PostCardProps> = ({
       // 2. We don't have a recent optimistic like update
       // 3. OR the prop value is actually higher (meaning it's a real update from server, not stale data)
       if (post.likesCount !== likesCount) {
-        const shouldSync = !hasRecentOptimisticUpdate || 
+        const shouldSync = !hasRecentOptimisticUpdate ||
                           optimisticUpdateRef.current?.type !== 'like' ||
                           post.likesCount > likesCount; // Only sync if prop is higher (real update)
-        
+
         if (shouldSync) {
-          console.log('❤️ useEffect syncing likesCount from props:', {
-            postId: post.id,
-            propLikesCount: post.likesCount,
-            stateLikesCount: likesCount,
-            hasRecentOptimisticUpdate: hasRecentOptimisticUpdate && optimisticUpdateRef.current?.type === 'like'
-          });
           setLikesCount(post.likesCount);
           // Clear optimistic update ref if we're syncing (means server caught up)
           if (optimisticUpdateRef.current?.type === 'like') {
             optimisticUpdateRef.current = null;
           }
-        } else {
-          console.log('❤️ useEffect SKIPPING sync (optimistic update in progress):', {
-            postId: post.id,
-            propLikesCount: post.likesCount,
-            stateLikesCount: likesCount
-          });
         }
       }
       
@@ -147,14 +135,8 @@ const PostCard: React.FC<PostCardProps> = ({
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          console.log('[PostCard] IntersectionObserver:', {
-            postId: post.id,
-            isIntersecting: entry.isIntersecting,
-            alreadyTracked: impressionTrackedRef.current
-          });
           if (entry.isIntersecting && !impressionTrackedRef.current) {
             // Post is visible - track the impression
-            console.log('[PostCard] Tracking impression for post:', post.id);
             impressionTrackedRef.current = true;
             impressionTracker.trackImpression(post.id);
             // Increment local view count optimistically
@@ -270,13 +252,6 @@ const PostCard: React.FC<PostCardProps> = ({
     // Calculate new count before state updates (to avoid stale closure)
     const newLikesCount = wasLiked ? likesCount - 1 : likesCount + 1;
 
-    console.log('❤️ handleLike called:', {
-      postId: post.id,
-      wasLiked,
-      originalLikesCount,
-      newLikesCount
-    });
-
     try {
       // Mark optimistic update
       optimisticUpdateRef.current = { type: 'like', timestamp: Date.now() };
@@ -299,11 +274,6 @@ const PostCard: React.FC<PostCardProps> = ({
           likesCount: newLikesCount,
           isLikedByCurrentUser: !wasLiked
         };
-        console.log('❤️ Calling onPostUpdate with:', {
-          postId: updatedPost.id,
-          likesCount: updatedPost.likesCount,
-          isLikedByCurrentUser: updatedPost.isLikedByCurrentUser
-        });
         onPostUpdate(updatedPost);
       }
       
@@ -315,7 +285,6 @@ const PostCard: React.FC<PostCardProps> = ({
       }, 3000); // 3 second window
     } catch (error) {
       // Revert optimistic update on error
-      console.error('❤️ Error toggling like, reverting:', error);
       setIsLiked(wasLiked);
       setLikesCount(originalLikesCount); // Revert to original count
       optimisticUpdateRef.current = null; // Clear on error

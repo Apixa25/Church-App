@@ -304,24 +304,20 @@ export const usePrayerNotifications = () => {
 
         // Double-check connection is ready before subscribing
         if (!webSocketService.isWebSocketConnected()) {
-          console.warn('⚠️ WebSocket not connected after ensureConnection, retrying...');
           // Wait a bit and try again
           await new Promise(resolve => setTimeout(resolve, 500));
           if (!webSocketService.isWebSocketConnected()) {
-            console.error('❌ WebSocket still not connected after retry');
             return;
           }
         }
 
         // Subscribe to general prayer request updates
         unsubscribePrayerRequests = webSocketService.subscribeToPrayerRequests(handlePrayerRequestUpdate);
-        
+
         // Subscribe to user-specific prayer notifications
         unsubscribeUserNotifications = webSocketService.subscribeToUserPrayerNotifications(handleUserPrayerNotification);
-
-        console.log('✅ Prayer notifications WebSocket subscriptions established');
       } catch (error) {
-        console.error('❌ Failed to establish prayer notification subscriptions:', error);
+        console.error('Failed to establish prayer notification subscriptions:', error);
         // Retry after a delay if connection failed
         if (setupTimeout) clearTimeout(setupTimeout);
         setupTimeout = setTimeout(() => {
@@ -341,8 +337,8 @@ export const usePrayerNotifications = () => {
         .then(() => {
           setupSubscriptions();
         })
-        .catch((error) => {
-          console.error('❌ Failed to ensure connection for prayer notifications:', error);
+        .catch(() => {
+          // Failed to ensure connection for prayer notifications
         });
     }
 

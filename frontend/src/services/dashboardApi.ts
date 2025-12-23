@@ -491,12 +491,8 @@ const dashboardApi = {
     try {
       // Get the main dashboard data with organizationId if provided
       const params = organizationId ? { organizationId } : {};
-      console.log('🌐 dashboardApi.getDashboardWithAll - Calling /dashboard with params:', params);
-      console.log('🌐 dashboardApi.getDashboardWithAll - organizationId:', organizationId);
       const dashboardResponse = await api.get('/dashboard', { params });
       const dashboardData = dashboardResponse.data;
-      console.log('🌐 dashboardApi.getDashboardWithAll - Received dashboard data, stats:', dashboardData.stats);
-      console.log('🌐 dashboardApi.getDashboardWithAll - Received quickActions count:', dashboardData.quickActions?.length);
 
       // Check if user has primary organization
       // If caller already knows (from OrganizationContext), use that to avoid 404 errors

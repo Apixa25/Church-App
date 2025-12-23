@@ -47,21 +47,18 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   // Connect to WebSocket
   const connect = useCallback(async () => {
     if (!isAuthenticated || !user) {
-      console.warn('⚠️ Cannot connect WebSocket: user not authenticated');
       return;
     }
 
     try {
       if (!webSocketService.isWebSocketConnected()) {
-        console.log('🔄 Connecting WebSocket via context...');
         await webSocketService.connect();
         updateConnectionStatus();
       } else {
-        console.log('✅ WebSocket already connected, reusing connection');
         updateConnectionStatus();
       }
     } catch (error) {
-      console.error('❌ Failed to connect WebSocket:', error);
+      console.error('Failed to connect WebSocket:', error);
       updateConnectionStatus();
       throw error;
     }
@@ -69,7 +66,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
   // Disconnect from WebSocket
   const disconnect = useCallback(() => {
-    console.log('🔌 Disconnecting WebSocket via context...');
     webSocketService.disconnect();
     updateConnectionStatus();
   }, [updateConnectionStatus]);
@@ -77,7 +73,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   // Ensure connection is ready (with retry logic)
   const ensureConnection = useCallback(async () => {
     if (!isAuthenticated || !user) {
-      console.warn('⚠️ Cannot ensure WebSocket connection: user not authenticated');
       return;
     }
 
@@ -102,7 +97,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
       updateConnectionStatus();
     } catch (error) {
-      console.error('❌ Failed to ensure WebSocket connection:', error);
+      console.error('Failed to ensure WebSocket connection:', error);
       updateConnectionStatus();
       throw error;
     }
@@ -133,8 +128,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
             // Immediately update connection status after successful connection
             updateConnectionStatus();
           })
-          .catch((error) => {
-            console.error('❌ Auto-connect WebSocket failed:', error);
+          .catch(() => {
             // Still update status even on failure
             updateConnectionStatus();
           });

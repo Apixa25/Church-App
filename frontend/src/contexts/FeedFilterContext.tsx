@@ -151,8 +151,7 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
       // Handle feed preference
       if (preferenceRes.status === 'fulfilled') {
         const prefData = preferenceRes.value.data;
-        console.log('📋 FeedFilterContext: Fetched preference:', prefData);
-        
+
         // If we have an optimistic update in progress, only update if the server data differs
         if (optimisticUpdateRef.current) {
           const optimistic = optimisticUpdateRef.current;
@@ -166,7 +165,6 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
             serverOrgId === optimistic.selectedOrganizationId;
           
           if (matches) {
-            console.log('✅ FeedFilterContext: Server data matches optimistic update, keeping optimistic state');
             // Server matches optimistic, so we can keep the optimistic state (it's already set)
             // Just ensure selectedGroupIds is a new array reference
             setPreference(prev => prev ? {
@@ -177,7 +175,6 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
               selectedGroupIds: prefData.selectedGroupIds ? [...prefData.selectedGroupIds] : [],
             });
           } else {
-            console.log('⚠️ FeedFilterContext: Server data differs from optimistic update, using server data');
             // Server differs, use server data
             setPreference({
               ...prefData,
@@ -193,7 +190,6 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
         }
       } else {
         // Default preference if none exists
-        console.log('📋 FeedFilterContext: No preference found, using defaults');
         setPreference({
           id: '',
           userId: '',
@@ -275,7 +271,7 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
       // 🎯 NO refreshPreference() call - we already have the correct state from optimistic update
       optimisticUpdateRef.current = null;
     } catch (error: any) {
-      console.error('❌ FeedFilterContext: Error setting feed filter:', error);
+      console.error('Error setting feed filter:', error);
       // Revert optimistic update on error by refreshing from server
       optimisticUpdateRef.current = null;
       await refreshPreference();
@@ -319,11 +315,6 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
       preference.selectedOrganizationId !== activeOrganizationId &&
       lastSyncedOrgIdRef.current !== activeOrganizationId
     ) {
-      console.log('🔄 FeedFilterContext: Syncing selectedOrganizationId with active context', {
-        from: preference.selectedOrganizationId,
-        to: activeOrganizationId
-      });
-      
       lastSyncedOrgIdRef.current = activeOrganizationId;
       
       // Update preference optimistically

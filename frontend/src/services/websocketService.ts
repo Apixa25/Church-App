@@ -138,20 +138,16 @@ class WebSocketService {
     const apiUrl = getApiUrl();
     // Remove trailing slash and append /ws endpoint
     this.wsUrl = apiUrl.replace(/\/$/, '') + '/ws';
-    
-    console.log('🔌 WebSocket Service initialized with URL:', this.wsUrl);
   }
 
   connect(): Promise<void> {
     // If already connected, return immediately
     if (this.isConnected && this.client?.connected) {
-      console.log('WebSocket already connected, reusing existing connection');
       return Promise.resolve();
     }
 
     // If already connecting, return the existing promise
     if (this.connectionPromise) {
-      console.log('WebSocket connection already in progress, waiting for existing connection...');
       return this.connectionPromise;
     }
 
@@ -159,7 +155,6 @@ class WebSocketService {
     this.connectionPromise = new Promise<void>((resolve, reject) => {
       // If already connecting, wait for that connection
       if (this.client && this.client.state === 1) { // 1 = CONNECTING state
-        console.log('WebSocket connection already in progress, waiting...');
         const checkConnection = () => {
           if (this.isConnected && this.client?.connected) {
             resolve();
@@ -176,9 +171,8 @@ class WebSocketService {
 
       // Refresh token before connecting
       this.token = localStorage.getItem('authToken');
-      
+
       if (!this.token) {
-        console.warn('⚠️ No JWT token found for WebSocket connection - user may need to log in');
         this.connectionPromise = null; // Clear the promise on auth failure
         reject(new Error('Authentication required - no token found'));
         return;
@@ -186,35 +180,15 @@ class WebSocketService {
 
       this.client = new Client({
         webSocketFactory: () => {
-          console.log('🔌 Creating WebSocket connection to:', this.wsUrl);
           return new SockJS(this.wsUrl);
         },
         connectHeaders: {
           Authorization: `Bearer ${this.token}`,
         },
-        debug: (str: string) => {
-          // Only log important debug messages in development
-          // Filter out verbose STOMP protocol messages
-          if (process.env.NODE_ENV === 'development') {
-            // Only log connection state changes, not every protocol message
-            if (str.includes('Opening') || 
-                str.includes('Opened') || 
-                str.includes('Closing') || 
-                str.includes('Closed') ||
-                str.includes('CONNECTED') ||
-                str.includes('ERROR')) {
-              console.log('🔌 WebSocket:', str);
-            }
-            // Suppress verbose SUBSCRIBE, CONNECT, and heartbeat messages
-          }
+        debug: () => {
+          // Suppress all STOMP debug messages
         },
         onConnect: (frame: any) => {
-          console.log('✅ WebSocket Connected Successfully');
-          console.log('✅ Connection frame:', {
-            command: frame.command,
-            headers: Object.keys(frame.headers || {}),
-            connected: true
-          });
           this.isConnected = true;
           this.reconnectAttempts = 0;
           this.connectionPromise = null;
@@ -222,40 +196,29 @@ class WebSocketService {
           resolve();
         },
         onStompError: (frame: any) => {
-          console.error('❌ WebSocket STOMP Error:', frame);
-          console.error('❌ Error details:', {
-            command: frame.command,
-            headers: frame.headers,
-            body: frame.body,
-            message: frame.headers?.message || 'Unknown error'
-          });
+          console.error('WebSocket STOMP Error:', frame.headers?.message || 'Unknown error');
           this.isConnected = false;
           this.connectionPromise = null;
           this.notifyConnectionListeners(false);
           
           // Check if it's an authentication error
           const errorMessage = frame.headers?.message || '';
-          if (errorMessage.includes('401') || 
+          if (errorMessage.includes('401') ||
               errorMessage.includes('Unauthorized') ||
               errorMessage.includes('authentication')) {
-            console.error('🔒 WebSocket authentication failed - token may be invalid or expired');
             reject(new Error('Authentication failed - please login again'));
           } else {
             reject(new Error(`WebSocket connection failed: ${errorMessage || 'Unknown error'}`));
           }
         },
         onWebSocketError: (error: any) => {
-          console.error('❌ WebSocket Connection Error:', error);
-          console.error('❌ Error type:', error.type);
-          console.error('❌ Error message:', error.message);
-          console.error('❌ Error target:', error.target?.url || 'Unknown');
+          console.error('WebSocket Connection Error:', error.message || error.type);
           this.isConnected = false;
           this.connectionPromise = null;
           this.notifyConnectionListeners(false);
           reject(error);
         },
         onDisconnect: () => {
-          console.log('⚠️ WebSocket Disconnected');
           this.isConnected = false;
           this.notifyConnectionListeners(false);
           this.attemptReconnect();
@@ -286,15 +249,13 @@ class WebSocketService {
       this.reconnectAttempts++;
       // Exponential backoff: 1s, 2s, 4s, 8s, 16s
       const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), 30000);
-      console.log(`🔄 Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts}) in ${delay}ms`);
-      
+
       setTimeout(() => {
-        this.connect().catch((error) => {
-          console.error(`❌ Reconnection attempt ${this.reconnectAttempts} failed:`, error);
+        this.connect().catch(() => {
+          // Reconnection attempt failed
         });
       }, delay);
     } else {
-      console.error(`❌ Max reconnection attempts (${this.maxReconnectAttempts}) reached. Manual reconnection required.`);
       this.notifyConnectionListeners(false);
     }
   }
@@ -343,7 +304,6 @@ class WebSocketService {
     // Clean up existing subscription if it exists to prevent duplicates
     const existingSubscription = this.subscriptions.get(subscriptionKey);
     if (existingSubscription) {
-      console.log('Cleaning up existing subscription for:', subscriptionKey);
       existingSubscription.unsubscribe();
       this.subscriptions.delete(subscriptionKey);
     }
@@ -380,7 +340,6 @@ class WebSocketService {
     // Clean up existing subscription if it exists to prevent duplicates
     const existingSubscription = this.subscriptions.get(subscriptionKey);
     if (existingSubscription) {
-      console.log('Cleaning up existing subscription for:', subscriptionKey);
       existingSubscription.unsubscribe();
       this.subscriptions.delete(subscriptionKey);
     }
@@ -417,7 +376,6 @@ class WebSocketService {
     // Clean up existing subscription if it exists to prevent duplicates
     const existingSubscription = this.subscriptions.get(subscriptionKey);
     if (existingSubscription) {
-      console.log('Cleaning up existing subscription for:', subscriptionKey);
       existingSubscription.unsubscribe();
       this.subscriptions.delete(subscriptionKey);
     }
@@ -454,7 +412,6 @@ class WebSocketService {
     // Clean up existing subscription if it exists to prevent duplicates
     const existingSubscription = this.subscriptions.get(subscriptionKey);
     if (existingSubscription) {
-      console.log('Cleaning up existing subscription for:', subscriptionKey);
       existingSubscription.unsubscribe();
       this.subscriptions.delete(subscriptionKey);
     }
@@ -488,7 +445,6 @@ class WebSocketService {
     // Clean up existing subscription if it exists to prevent duplicates
     const existingSubscription = this.subscriptions.get(subscriptionKey);
     if (existingSubscription) {
-      console.log('Cleaning up existing subscription for:', subscriptionKey);
       existingSubscription.unsubscribe();
       this.subscriptions.delete(subscriptionKey);
     }
@@ -522,7 +478,6 @@ class WebSocketService {
     // Clean up existing subscription if it exists to prevent duplicates
     const existingSubscription = this.subscriptions.get(subscriptionKey);
     if (existingSubscription) {
-      console.log('Cleaning up existing subscription for:', subscriptionKey);
       existingSubscription.unsubscribe();
       this.subscriptions.delete(subscriptionKey);
     }
@@ -659,9 +614,7 @@ class WebSocketService {
     const destination = '/topic/prayers';
     const subscription = this.client.subscribe(destination, (message: IMessage) => {
       try {
-        console.log('🔥 WebSocket received message on /topic/prayers:', message.body);
         const data = JSON.parse(message.body);
-        console.log('🔥 Parsed prayer data:', data);
         callback(data);
       } catch (error) {
         console.error('Error parsing prayer request update:', error);
@@ -730,9 +683,7 @@ class WebSocketService {
     const destination = '/user/queue/prayers';
     const subscription = this.client.subscribe(destination, (message: IMessage) => {
       try {
-        console.log('🔥 WebSocket received message on /user/queue/prayers:', message.body);
         const data = JSON.parse(message.body);
-        console.log('🔥 Parsed user prayer notification:', data);
         callback(data);
       } catch (error) {
         console.error('Error parsing prayer notification:', error);
@@ -777,15 +728,12 @@ class WebSocketService {
     }
 
     const destination = '/topic/events';
-    console.log('🔔 Subscribing to /topic/events for event updates');
     const subscription = this.client.subscribe(destination, (message: IMessage) => {
-      console.log('🔔 RAW WebSocket message received on /topic/events:', message.body);
       try {
         const data = JSON.parse(message.body);
-        console.log('🔔 Parsed event data:', data);
         callback(data);
       } catch (error) {
-        console.error('Error parsing event update:', error, 'Raw message:', message.body);
+        console.error('Error parsing event update:', error);
       }
     });
 
@@ -882,15 +830,12 @@ class WebSocketService {
     }
 
     const destination = '/user/queue/events';
-    console.log('🔔 Subscribing to /user/queue/events for user-specific event notifications');
     const subscription = this.client.subscribe(destination, (message: IMessage) => {
-      console.log('🔔 RAW WebSocket message received on /user/queue/events:', message.body);
       try {
         const data = JSON.parse(message.body);
-        console.log('🔔 Parsed user event notification:', data);
         callback(data);
       } catch (error) {
-        console.error('Error parsing event notification:', error, 'Raw message:', message.body);
+        console.error('Error parsing event notification:', error);
       }
     });
 
@@ -1234,7 +1179,6 @@ class WebSocketService {
     // Clean up existing subscription if it exists
     const existingSubscription = this.subscriptions.get(subscriptionKey);
     if (existingSubscription) {
-      console.log('Cleaning up existing subscription for:', subscriptionKey);
       existingSubscription.unsubscribe();
       this.subscriptions.delete(subscriptionKey);
     }
@@ -1270,7 +1214,6 @@ class WebSocketService {
 
     const existingSubscription = this.subscriptions.get(subscriptionKey);
     if (existingSubscription) {
-      console.log('Cleaning up existing subscription for:', subscriptionKey);
       existingSubscription.unsubscribe();
       this.subscriptions.delete(subscriptionKey);
     }
@@ -1306,7 +1249,6 @@ class WebSocketService {
 
     const existingSubscription = this.subscriptions.get(subscriptionKey);
     if (existingSubscription) {
-      console.log('Cleaning up existing subscription for:', subscriptionKey);
       existingSubscription.unsubscribe();
       this.subscriptions.delete(subscriptionKey);
     }
@@ -1342,7 +1284,6 @@ class WebSocketService {
 
     const existingSubscription = this.subscriptions.get(subscriptionKey);
     if (existingSubscription) {
-      console.log('Cleaning up existing subscription for:', subscriptionKey);
       existingSubscription.unsubscribe();
       this.subscriptions.delete(subscriptionKey);
     }
@@ -1378,7 +1319,6 @@ class WebSocketService {
 
     const existingSubscription = this.subscriptions.get(subscriptionKey);
     if (existingSubscription) {
-      console.log('Cleaning up existing subscription for:', subscriptionKey);
       existingSubscription.unsubscribe();
       this.subscriptions.delete(subscriptionKey);
     }
@@ -1413,7 +1353,6 @@ class WebSocketService {
 
     const existingSubscription = this.subscriptions.get(subscriptionKey);
     if (existingSubscription) {
-      console.log('Cleaning up existing subscription for:', subscriptionKey);
       existingSubscription.unsubscribe();
       this.subscriptions.delete(subscriptionKey);
     }

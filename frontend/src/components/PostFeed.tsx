@@ -119,15 +119,8 @@ const PostFeed: React.FC<PostFeedProps> = ({
           INITIAL_BATCH_SIZE
         );
         
-        // 🎯 Show first batch immediately - don't wait for all 20!
+        // Show first batch immediately - don't wait for all 20!
         if (initialResponse.content.length > 0) {
-          // 🐛 DEBUG: Log posts with media for troubleshooting
-          const postsWithMedia = initialResponse.content.filter((p: Post) => p.mediaUrls && p.mediaUrls.length > 0);
-          const postsWithVideos = initialResponse.content.filter((p: Post) => 
-            p.mediaTypes && p.mediaTypes.some((type: string) => type.startsWith('video/'))
-          );
-          console.log('🖼️ PostFeed: Loaded', initialResponse.content.length, 'initial posts,', postsWithMedia.length, 'with media,', postsWithVideos.length, 'with videos');
-          
           setPosts(initialResponse.content);
           queryClient.setQueryData(queryKey, initialResponse.content);
           setLoading(false); // ✅ Stop showing spinner - user can see posts now!
@@ -144,7 +137,6 @@ const PostFeed: React.FC<PostFeedProps> = ({
             ).then((fullResponse: FeedResponse) => {
               // Only update if we got more posts than the initial batch
               if (fullResponse.content.length > initialResponse.content.length) {
-                console.log('🚀 PostFeed: Loaded remaining', fullResponse.content.length - initialResponse.content.length, 'posts in background');
                 setPosts(fullResponse.content);
                 queryClient.setQueryData(queryKey, fullResponse.content);
                 lastFetchTimeRef.current = Date.now();
@@ -203,8 +195,6 @@ const PostFeed: React.FC<PostFeedProps> = ({
 
   // Real-time update handlers
   const handleRealTimePostUpdate = useCallback((update: PostUpdate) => {
-    console.log('Real-time post update:', update);
-
     if (update.type === 'post_created') {
       // Add new post to the beginning of the feed
       const newPost: Post = {
@@ -240,8 +230,6 @@ const PostFeed: React.FC<PostFeedProps> = ({
   }, []);
 
   const handleRealTimeInteractionUpdate = useCallback((update: PostInteractionUpdate) => {
-    console.log('Real-time interaction update:', update);
-
     setPosts(prevPosts =>
       prevPosts.map(post => {
         if (post.id === update.postId) {
@@ -276,8 +264,6 @@ const PostFeed: React.FC<PostFeedProps> = ({
   }, []);
 
   const handleRealTimeCommentUpdate = useCallback((update: CommentUpdate) => {
-    console.log('Real-time comment update:', update);
-
     // Update comment count for the post
     setPosts(prevPosts =>
       prevPosts.map(post => {
@@ -310,20 +296,9 @@ const PostFeed: React.FC<PostFeedProps> = ({
   };
 
   const handlePostUpdate = (updatedPost: Post) => {
-    console.log('📦 PostFeed handlePostUpdate called:', {
-      postId: updatedPost.id,
-      likesCount: updatedPost.likesCount,
-      isLikedByCurrentUser: updatedPost.isLikedByCurrentUser
-    });
-    
     setPosts(prevPosts => {
       const updated = prevPosts.map(post => {
         if (post.id === updatedPost.id) {
-          console.log('📦 PostFeed updating post:', {
-            postId: post.id,
-            oldLikesCount: post.likesCount,
-            newLikesCount: updatedPost.likesCount
-          });
           return updatedPost;
         }
         return post;
@@ -362,7 +337,6 @@ const PostFeed: React.FC<PostFeedProps> = ({
         const cachedNewestPost = posts[0];
         
         if (newestPost.id !== cachedNewestPost.id) {
-          console.log('🆕 New content detected!');
           setHasNewContent(true);
         }
       }
@@ -404,14 +378,6 @@ const PostFeed: React.FC<PostFeedProps> = ({
     // Skip if nothing changed (and already initialized)
     if (!feedTypeChanged && !filterChanged && !queryKeyChanged && state.initialized) {
       return;
-    }
-    
-    // 🐛 DEBUG: Log when feed type, filter, or context changes (helps verify fix is working)
-    if (feedTypeChanged && state.initialized) {
-      console.log('🔄 PostFeed: Feed type changed from', state.lastFeedType, 'to', feedTypeString);
-    }
-    if (queryKeyChanged && state.initialized) {
-      console.log('🔄 PostFeed: Query key changed (context/organization changed) from', state.lastQueryKey, 'to', queryKeyString);
     }
     
     // Update state FIRST to prevent re-entry
@@ -511,11 +477,8 @@ const PostFeed: React.FC<PostFeedProps> = ({
         });
 
         wsSubscriptionsRef.current = [unsubscribePosts, unsubscribeInteractions, unsubscribeComments];
-
-        console.log('✅ PostFeed WebSocket subscriptions established');
-
       } catch (error) {
-        console.error('❌ Failed to setup WebSocket subscriptions for PostFeed:', error);
+        console.error('Failed to setup WebSocket subscriptions for PostFeed:', error);
         // Fall back to polling if WebSocket fails
         // Use longer interval (2 minutes) to reduce server load
         const pollInterval = setInterval(() => {
@@ -616,7 +579,6 @@ const PostFeed: React.FC<PostFeedProps> = ({
 
     const handleTouchEnd = async () => {
       if (isPulling && pullDistance >= PULL_THRESHOLD && isAtTopRef.current && window.scrollY === 0) {
-        console.log('🔄 Pull-to-refresh triggered!');
         // Trigger refresh
         await loadPosts(true);
       }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { profileAPI } from '../services/api';
 import { UserProfile, ProfileCompletionStatus } from '../types/Profile';
@@ -97,6 +97,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   
   // Family group creation state
   const [showCreateFamilyGroup, setShowCreateFamilyGroup] = useState(false);
+
+  // Ref for scrolling to analytics content
+  const analyticsRef = useRef<HTMLDivElement>(null);
 
   const loadShareStats = useCallback(async (targetId: string) => {
     try {
@@ -661,13 +664,29 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
           </div>
           <div className="profile-top-nav-actions">
             {isOwnProfile && (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="edit-profile-button-x"
-                aria-label="Edit profile"
-              >
-                Edit profile
-              </button>
+              <>
+                <button
+                  onClick={() => {
+                    setActiveTab('analytics');
+                    // Scroll to analytics content after a brief delay for render
+                    setTimeout(() => {
+                      analyticsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 100);
+                  }}
+                  className={`analytics-button-x ${activeTab === 'analytics' ? 'active' : ''}`}
+                  aria-label="View analytics"
+                  title="View your profile analytics"
+                >
+                  📊 Analytics
+                </button>
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="edit-profile-button-x"
+                  aria-label="Edit profile"
+                >
+                  Edit profile
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -1101,14 +1120,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
           >
             Bookmarks
           </button>
-          {isOwnProfile && (
-            <button
-              className={`nav-tab-x ${activeTab === 'analytics' ? 'active' : ''}`}
-              onClick={() => setActiveTab('analytics')}
-            >
-              📊 Analytics
-            </button>
-          )}
         </div>
 
         {/* Posts Feed */}
@@ -1233,7 +1244,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
         )}
 
         {activeTab === 'analytics' && isOwnProfile && (
-          <div className="profile-analytics-container">
+          <div className="profile-analytics-container" ref={analyticsRef}>
             <ProfileAnalytics userId={targetUserId} isOwnProfile={isOwnProfile} />
           </div>
         )}

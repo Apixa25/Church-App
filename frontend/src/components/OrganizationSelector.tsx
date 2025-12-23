@@ -45,16 +45,16 @@ const OrgName = styled.span`
   white-space: nowrap;
 `;
 
-const DropdownIcon = styled.span<{ isOpen: boolean }>`
+const DropdownIcon = styled.span<{ $isOpen: boolean }>`
   font-size: 12px;
   transition: transform 0.2s;
-  transform: ${props => props.isOpen ? 'rotate(180deg)' : 'rotate(0deg)'};
+  transform: ${props => props.$isOpen ? 'rotate(180deg)' : 'rotate(0deg)'};
 `;
 
-const DropdownPortal = styled.div<{ isOpen: boolean; top: number; left: number }>`
+const DropdownPortal = styled.div<{ $isOpen: boolean; $top: number; $left: number }>`
   position: fixed;
-  top: ${props => props.top}px;
-  left: ${props => props.left}px;
+  top: ${props => props.$top}px;
+  left: ${props => props.$left}px;
   min-width: 280px;
   max-width: 400px;
   width: calc(100vw - 32px);
@@ -63,11 +63,11 @@ const DropdownPortal = styled.div<{ isOpen: boolean; top: number; left: number }
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   z-index: 99999;
-  opacity: ${props => props.isOpen ? 1 : 0};
-  visibility: ${props => props.isOpen ? 'visible' : 'hidden'};
-  transform: ${props => props.isOpen ? 'translateY(0)' : 'translateY(-10px)'};
+  opacity: ${props => props.$isOpen ? 1 : 0};
+  visibility: ${props => props.$isOpen ? 'visible' : 'hidden'};
+  transform: ${props => props.$isOpen ? 'translateY(0)' : 'translateY(-10px)'};
   transition: all 0.2s;
-  
+
   @media (min-width: 769px) {
     width: auto;
   }
@@ -443,7 +443,7 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
     : '🔍';
 
   const dropdownContent = isOpen && (
-    <DropdownPortal ref={dropdownRef} isOpen={isOpen} top={dropdownPosition.top} left={dropdownPosition.left}>
+    <DropdownPortal ref={dropdownRef} $isOpen={isOpen} $top={dropdownPosition.top} $left={dropdownPosition.left}>
         {primaryMembership ? (
           <>
             <DropdownHeader>
@@ -577,7 +577,7 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
         <SelectorButton ref={buttonRef} onClick={() => setIsOpen(!isOpen)}>
           <OrgIcon>{displayIcon}</OrgIcon>
           <OrgName>{displayName}</OrgName>
-          <DropdownIcon isOpen={isOpen}>▼</DropdownIcon>
+          <DropdownIcon $isOpen={isOpen}>▼</DropdownIcon>
         </SelectorButton>
       </SelectorContainer>
       {isOpen && createPortal(dropdownContent, document.body)}
