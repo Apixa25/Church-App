@@ -1,6 +1,7 @@
 package com.churchapp.dto;
 
 import com.churchapp.entity.ChatGroup;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -93,11 +94,20 @@ public class ChatGroupResponse {
         if (imageUrl != null && !imageUrl.trim().isEmpty()) {
             return imageUrl;
         }
-        
+
         if (type == ChatGroup.GroupType.DIRECT_MESSAGE && recentMembers != null && recentMembers.size() == 1) {
             return recentMembers.get(0).getProfilePicUrl();
         }
-        
+
+        return null;
+    }
+
+    // Expose other user's profile pic for DMs in JSON response
+    @JsonProperty("otherUserProfilePic")
+    public String getOtherUserProfilePic() {
+        if (type == ChatGroup.GroupType.DIRECT_MESSAGE && recentMembers != null && !recentMembers.isEmpty()) {
+            return recentMembers.get(0).getProfilePicUrl();
+        }
         return null;
     }
     

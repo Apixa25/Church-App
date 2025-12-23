@@ -128,7 +128,17 @@ public class ChatService {
                         response.setLastMessageBy(lastMessage.getUser().getName());
                     }
                 });
-                
+
+                // For direct messages, populate recentMembers with the OTHER user's info
+                if (group.getType() == ChatGroup.GroupType.DIRECT_MESSAGE) {
+                    List<ChatGroupMember> members = chatGroupMemberRepository.findByChatGroupAndIsActiveTrueOrderByJoinedAtAsc(group);
+                    List<ChatGroupMemberResponse> otherMembers = members.stream()
+                        .filter(m -> !m.getUser().getEmail().equals(userEmail))
+                        .map(ChatGroupMemberResponse::new)
+                        .collect(Collectors.toList());
+                    response.setRecentMembers(otherMembers);
+                }
+
                 return response;
             })
             .collect(Collectors.toList());

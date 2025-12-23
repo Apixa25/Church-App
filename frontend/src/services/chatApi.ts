@@ -23,6 +23,7 @@ export interface ChatGroup {
   canModerate: boolean;
   userRole?: string;
   unreadCount: number;
+  otherUserProfilePic?: string;  // For DMs: the other user's profile picture
 }
 
 export interface ChatMessage {

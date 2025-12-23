@@ -2350,22 +2350,19 @@
   box-shadow: var(--glow-blue);
 }
 
-/* Chat Delete Button */
+/* Chat Delete Button - Inline in header row */
 .chat-delete-btn {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-primary);
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
   border-radius: var(--border-radius-sm);
-  padding: 6px 10px;
-  font-size: 16px;
+  padding: 4px 8px;
+  font-size: 14px;
   cursor: pointer;
   opacity: 0;
   transition: all var(--transition-base);
-  z-index: 10;
-  color: var(--error);
+  color: var(--text-tertiary);
+  margin-left: 8px;
 }
 
 .chat-item:hover .chat-delete-btn {
@@ -2373,14 +2370,12 @@
 }
 
 .chat-delete-btn:hover {
+  color: var(--error);
   background: rgba(239, 68, 68, 0.1);
-  border-color: var(--error);
-  box-shadow: 0 0 8px var(--error-glow);
-  transform: translateY(-50%) scale(1.1);
 }
 
 .chat-delete-btn:active {
-  transform: translateY(-50%) scale(0.95);
+  transform: scale(0.95);
 }
 
 .chat-icon {
@@ -2399,6 +2394,10 @@
   background: var(--bg-secondary);
   border: 2px solid var(--border-primary);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chat-icon img {
+  object-fit: cover;
 }
 
 .unread-badge {
@@ -2670,9 +2669,8 @@
   /* Mobile: Always show delete button on chat cards */
   .chat-delete-btn {
     opacity: 1;
-    font-size: 14px;
-    padding: 4px 8px;
-    right: 8px;
+    font-size: 12px;
+    padding: 3px 6px;
   }
 }
 

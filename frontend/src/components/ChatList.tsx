@@ -319,7 +319,9 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
                   onClick={() => handleGroupClick(group)}
                 >
                   <div className="chat-icon">
-                    {group.imageUrl ? (
+                    {group.type === 'DIRECT_MESSAGE' && group.otherUserProfilePic ? (
+                      <img src={group.otherUserProfilePic} alt={group.name} className="user-avatar" />
+                    ) : group.imageUrl ? (
                       <img src={group.imageUrl} alt={group.name} />
                     ) : (
                       <span>{getGroupIcon(group.type)}</span>
@@ -336,6 +338,14 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
                           {formatLastMessageTime(group.lastMessageTime)}
                         </span>
                       )}
+                      <button
+                        className="chat-delete-btn"
+                        onClick={(e) => handleDeleteChat(group.id, formatDirectMessageName(group), e)}
+                        title="Delete conversation"
+                        aria-label={`Delete ${formatDirectMessageName(group)}`}
+                      >
+                        🗑️
+                      </button>
                     </div>
                     {group.lastMessageTime ? (
                       group.lastMessage ? (
@@ -357,14 +367,6 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
                       <span className="unread-count">{group.unreadCount}</span>
                     </div>
                   )}
-                  <button
-                    className="chat-delete-btn"
-                    onClick={(e) => handleDeleteChat(group.id, formatDirectMessageName(group), e)}
-                    title="Delete conversation"
-                    aria-label={`Delete ${formatDirectMessageName(group)}`}
-                  >
-                    🗑️
-                  </button>
                 </div>
               ))}
             </div>
