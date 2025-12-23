@@ -36,7 +36,6 @@ import java.util.UUID;
 @RequestMapping("/posts")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8100", "capacitor://localhost"})
 public class PostController {
 
     private final PostService postService;

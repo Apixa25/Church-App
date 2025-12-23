@@ -37,7 +37,6 @@ import java.util.stream.Collectors;
 @RequestMapping("/events")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8100", "capacitor://localhost"})
 public class EventController {
     
     private final EventService eventService;

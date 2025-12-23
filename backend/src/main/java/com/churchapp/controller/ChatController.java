@@ -26,7 +26,6 @@ import com.churchapp.entity.User;
 @RequestMapping("/chat")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8100", "capacitor://localhost"})
 public class ChatController {
     
     private final ChatService chatService;

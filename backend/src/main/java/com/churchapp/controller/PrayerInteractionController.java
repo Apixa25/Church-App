@@ -24,7 +24,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/prayer-interactions")
 @RequiredArgsConstructor
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8100", "capacitor://localhost"})
 public class PrayerInteractionController {
     
     private final PrayerInteractionService prayerInteractionService;

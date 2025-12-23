@@ -22,7 +22,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/chats")
 @RequiredArgsConstructor
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8100", "capacitor://localhost"})
 public class ChatDirectoryController {
 
     private final UserRepository userRepository;

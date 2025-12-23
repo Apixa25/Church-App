@@ -21,7 +21,6 @@ import java.util.UUID;
 @RequestMapping("/feed-preferences")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
 public class FeedPreferenceController {
 
     private final FeedFilterService feedFilterService;

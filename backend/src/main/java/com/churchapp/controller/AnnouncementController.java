@@ -26,7 +26,6 @@ import java.util.UUID;
 @RequestMapping("/announcements")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8100", "capacitor://localhost"})
 public class AnnouncementController {
     
     private final AnnouncementService announcementService;

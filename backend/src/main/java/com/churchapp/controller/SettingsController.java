@@ -21,7 +21,6 @@ import java.util.UUID;
 @RequestMapping("/settings")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8100", "capacitor://localhost"})
 public class SettingsController {
 
     private final SettingsService settingsService;

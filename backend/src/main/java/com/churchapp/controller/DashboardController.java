@@ -18,7 +18,6 @@ import com.churchapp.dto.DashboardResponse.QuickAction;
 @RestController
 @RequestMapping("/dashboard")
 @RequiredArgsConstructor
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8100", "capacitor://localhost"})
 public class DashboardController {
     
     private final DashboardService dashboardService;

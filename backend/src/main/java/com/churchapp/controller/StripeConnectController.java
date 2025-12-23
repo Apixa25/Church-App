@@ -28,7 +28,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/stripe-connect")
 @RequiredArgsConstructor
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8100", "capacitor://localhost"})
 public class StripeConnectController {
 
     private final OrganizationRepository organizationRepository;

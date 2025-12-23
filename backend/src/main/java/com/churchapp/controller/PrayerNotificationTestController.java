@@ -21,7 +21,6 @@ import java.util.UUID;
 @RequestMapping("/test/prayer-notifications")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8100", "capacitor://localhost"})
 public class PrayerNotificationTestController {
     
     private final WebSocketPrayerController webSocketPrayerController;

@@ -33,7 +33,6 @@ import java.util.stream.Collectors;
 @RequestMapping("/organizations")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
 public class OrganizationController {
 
     private final OrganizationService organizationService;

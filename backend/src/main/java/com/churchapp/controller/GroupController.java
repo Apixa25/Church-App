@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 @RequestMapping("/groups")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")
 public class GroupController {
 
     private final GroupService groupService;

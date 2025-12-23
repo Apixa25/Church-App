@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 @RequestMapping("/resources")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8100", "capacitor://localhost"})
 public class ResourceController {
     
     private final ResourceService resourceService;
