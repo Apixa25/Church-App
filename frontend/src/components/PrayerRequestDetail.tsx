@@ -995,6 +995,15 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
             align-items: flex-start;
           }
 
+          .back-btn {
+            display: flex !important;
+            align-items: center;
+            width: auto;
+            margin-bottom: 0.5rem;
+            padding: 0.6rem 1.2rem;
+            font-size: 0.95rem;
+          }
+
           .prayer-meta {
             flex-direction: column;
             align-items: flex-start;

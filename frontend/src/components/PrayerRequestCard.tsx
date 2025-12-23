@@ -574,18 +574,26 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
         }
 
         .view-details-btn {
-          background: none;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
           border: none;
-          color: var(--accent-primary);
+          color: white;
           font-size: 0.85rem;
           cursor: pointer;
-          font-weight: 500;
+          font-weight: 600;
+          padding: 0.5rem 1rem;
+          border-radius: var(--border-radius-pill);
           transition: all var(--transition-base);
+          box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
         }
 
         .view-details-btn:hover {
-          color: var(--accent-primary-light);
-          text-decoration: underline;
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .view-details-btn:active {
+          transform: translateY(0);
         }
 
         @media (max-width: 768px) {
