@@ -232,20 +232,13 @@ const SocialMediaEmbedCard: React.FC<SocialMediaEmbedCardProps> = ({
                 }
               }}
               aria-label={`Play ${title}`}
+              style={{
+                backgroundImage: `url(${thumbnailUrl}), url(https://img.youtube.com/vi/${videoId}/hqdefault.jpg)`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+              }}
             >
-              <img
-                src={thumbnailUrl}
-                alt={title}
-                className="youtube-thumbnail"
-                loading="lazy"
-                onError={(e) => {
-                  // Fallback to hqdefault if maxresdefault doesn't exist
-                  const img = e.currentTarget;
-                  if (img.src.includes('maxresdefault')) {
-                    img.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-                  }
-                }}
-              />
               <div className="youtube-play-button">
                 <svg viewBox="0 0 68 48" className="youtube-play-icon">
                   <path

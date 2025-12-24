@@ -21,7 +21,9 @@
       "Bash(aws ec2 describe-instances:*)",
       "Bash(aws ssm send-command --instance-ids \"i-02b681f75cbc04a3d\" --document-name \"AWS-RunShellScript\" --parameters 'commands=[\"\"sudo bash -c ''''cat > /etc/nginx/conf.d/client_max_body.conf << EOF\\nclient_max_body_size 100M;\\nproxy_read_timeout 600s;\\nproxy_connect_timeout 600s;\\nproxy_send_timeout 600s;\\nEOF''''\"\",\"\"sudo systemctl reload nginx\"\",\"\"echo SUCCESS\"\"]' --region us-west-2 --output json)",
       "Bash(aws ssm get-command-invocation:*)",
-      "Bash(aws ssm send-command:*)"
+      "Bash(aws ssm send-command:*)",
+      "Bash(aws s3 cp:*)",
+      "Bash(aws elasticbeanstalk create-application-version:*)"
     ],
     "deny": [],
     "ask": []
