@@ -85,16 +85,26 @@ public class PostService {
             
             log.info("✅ Detected platform: {} for URL: {}", platform, normalizedExternalUrl);
 
-            // Fetch oEmbed HTML for supported platforms (currently X only)
+            // Fetch oEmbed HTML for supported platforms (X and YouTube)
             if (platform == SocialMediaUrlUtil.Platform.X_POST) {
                 log.info("🎬 Fetching oEmbed for X post: {}", normalizedExternalUrl);
                 OEmbedService.OEmbedResponse oEmbedResponse = oEmbedService.fetchOEmbed(normalizedExternalUrl);
                 if (oEmbedResponse != null && oEmbedResponse.getHtml() != null) {
                     externalEmbedHtml = oEmbedResponse.getHtml();
-                    log.info("✅ Successfully fetched oEmbed HTML for X post: {} (HTML length: {} chars)", 
+                    log.info("✅ Successfully fetched oEmbed HTML for X post: {} (HTML length: {} chars)",
                         normalizedExternalUrl, externalEmbedHtml.length());
                 } else {
                     log.warn("⚠️ Failed to fetch oEmbed HTML for URL: {}, will store URL only", normalizedExternalUrl);
+                }
+            } else if (platform == SocialMediaUrlUtil.Platform.YOUTUBE) {
+                log.info("🎬 Fetching oEmbed for YouTube video: {}", normalizedExternalUrl);
+                OEmbedService.OEmbedResponse oEmbedResponse = oEmbedService.fetchOEmbed(normalizedExternalUrl);
+                if (oEmbedResponse != null && oEmbedResponse.getHtml() != null) {
+                    externalEmbedHtml = oEmbedResponse.getHtml();
+                    log.info("✅ Successfully fetched oEmbed data for YouTube video: {} (title: {})",
+                        normalizedExternalUrl, oEmbedResponse.getTitle());
+                } else {
+                    log.warn("⚠️ Failed to fetch oEmbed data for YouTube URL: {}, will store URL only", normalizedExternalUrl);
                 }
             } else {
                 log.info("ℹ️ oEmbed not yet implemented for platform: {}, storing URL only", platform);

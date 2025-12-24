@@ -1,6 +1,7 @@
 package com.churchapp.service;
 
 import com.churchapp.util.SocialMediaUrlUtil;
+import com.churchapp.util.YouTubeUtil;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,6 +35,7 @@ public class OEmbedService {
 
     // oEmbed endpoints
     private static final String X_OEMBED_ENDPOINT = "https://publish.twitter.com/oembed";
+    private static final String YOUTUBE_OEMBED_ENDPOINT = "https://www.youtube.com/oembed";
     private static final String FACEBOOK_OEMBED_ENDPOINT = "https://graph.facebook.com/v19.0/oembed_post";
     private static final String INSTAGRAM_OEMBED_ENDPOINT = "https://graph.facebook.com/v19.0/instagram_oembed";
 
@@ -69,9 +71,7 @@ public class OEmbedService {
                     log.info("Instagram Reel oEmbed requires App Access Token (Phase 2)");
                     return null; // Will implement in Phase 2
                 case YOUTUBE:
-                    // YouTube uses iframe embeds, not oEmbed API
-                    // Can generate embed URL directly
-                    return null;
+                    return fetchYouTubeOEmbed(url);
                 default:
                     log.warn("Unsupported platform for oEmbed: {}", platform);
                     return null;
@@ -153,6 +153,110 @@ public class OEmbedService {
     }
 
     /**
+     * Fetches oEmbed data from YouTube
+     * No authentication required
+     *
+     * API Documentation: https://oembed.com/
+     * YouTube returns: title, author_name, author_url, thumbnail_url, html (iframe), type, etc.
+     */
+    private OEmbedResponse fetchYouTubeOEmbed(String youtubeUrl) {
+        try {
+            // Use YouTubeUtil to extract video ID
+            String videoId = YouTubeUtil.extractVideoId(youtubeUrl);
+            if (videoId == null) {
+                log.warn("Could not extract video ID from YouTube URL: {}", youtubeUrl);
+                return null;
+            }
+
+            // Generate canonical watch URL for oEmbed request
+            String canonicalUrl = YouTubeUtil.generateWatchUrl(videoId);
+
+            // Build oEmbed request URL
+            String oembedUrl = YOUTUBE_OEMBED_ENDPOINT +
+                "?url=" + URLEncoder.encode(canonicalUrl, StandardCharsets.UTF_8) +
+                "&format=json";
+
+            log.debug("Fetching YouTube oEmbed from: {}", oembedUrl);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(oembedUrl))
+                .timeout(Duration.ofSeconds(10))
+                .GET()
+                .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                log.warn("YouTube oEmbed API returned status {} for URL: {}", response.statusCode(), youtubeUrl);
+                return null;
+            }
+
+            // Parse JSON response
+            YouTubeOEmbedResponse ytResponse = objectMapper.readValue(response.body(), YouTubeOEmbedResponse.class);
+
+            if (ytResponse.getTitle() == null) {
+                log.warn("YouTube oEmbed response missing title for URL: {}", youtubeUrl);
+                return null;
+            }
+
+            // Store JSON metadata for frontend flexibility (lazy loading, custom UI)
+            String thumbnailUrl = ytResponse.getThumbnailUrl() != null
+                ? ytResponse.getThumbnailUrl()
+                : YouTubeUtil.generateThumbnailUrl(videoId);
+
+            String embedDataJson = String.format(
+                "{\"videoId\":\"%s\",\"title\":\"%s\",\"authorName\":\"%s\",\"authorUrl\":\"%s\",\"thumbnailUrl\":\"%s\"}",
+                escapeJsonString(videoId),
+                escapeJsonString(ytResponse.getTitle()),
+                escapeJsonString(ytResponse.getAuthorName() != null ? ytResponse.getAuthorName() : ""),
+                escapeJsonString(ytResponse.getAuthorUrl() != null ? ytResponse.getAuthorUrl() : ""),
+                escapeJsonString(thumbnailUrl)
+            );
+
+            // Convert to our standard format
+            OEmbedResponse oEmbedResponse = new OEmbedResponse();
+            oEmbedResponse.setHtml(embedDataJson);
+            oEmbedResponse.setType(ytResponse.getType());
+            oEmbedResponse.setWidth(ytResponse.getWidth());
+            oEmbedResponse.setHeight(ytResponse.getHeight());
+            oEmbedResponse.setTitle(ytResponse.getTitle());
+            oEmbedResponse.setAuthorName(ytResponse.getAuthorName());
+            oEmbedResponse.setAuthorUrl(ytResponse.getAuthorUrl());
+            oEmbedResponse.setProviderName("YouTube");
+            oEmbedResponse.setProviderUrl("https://www.youtube.com");
+            oEmbedResponse.setUrl(canonicalUrl);
+            oEmbedResponse.setPlatform(SocialMediaUrlUtil.Platform.YOUTUBE);
+
+            log.info("Successfully fetched YouTube oEmbed for URL: {} (title: {})", youtubeUrl, ytResponse.getTitle());
+            return oEmbedResponse;
+
+        } catch (IOException e) {
+            log.error("IO error fetching YouTube oEmbed for URL: {}", youtubeUrl, e);
+            return null;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Interrupted while fetching YouTube oEmbed for URL: {}", youtubeUrl, e);
+            return null;
+        } catch (Exception e) {
+            log.error("Unexpected error fetching YouTube oEmbed for URL: {}", youtubeUrl, e);
+            return null;
+        }
+    }
+
+    /**
+     * Escapes special characters for JSON string values
+     */
+    private String escapeJsonString(String value) {
+        if (value == null) return "";
+        return value
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\t", "\\t");
+    }
+
+    /**
      * Standard oEmbed response format
      */
     @Data
@@ -198,5 +302,43 @@ public class OEmbedService {
         
         @JsonProperty("provider_url")
         private String providerUrl;
+    }
+
+    /**
+     * YouTube oEmbed response format
+     * Reference: https://oembed.com/ and YouTube oEmbed API
+     */
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private static class YouTubeOEmbedResponse {
+        private String title;
+
+        @JsonProperty("author_name")
+        private String authorName;
+
+        @JsonProperty("author_url")
+        private String authorUrl;
+
+        private String type;  // "video"
+        private Integer height;
+        private Integer width;
+        private String version;
+
+        @JsonProperty("provider_name")
+        private String providerName;  // "YouTube"
+
+        @JsonProperty("provider_url")
+        private String providerUrl;   // "https://www.youtube.com/"
+
+        @JsonProperty("thumbnail_url")
+        private String thumbnailUrl;
+
+        @JsonProperty("thumbnail_width")
+        private Integer thumbnailWidth;
+
+        @JsonProperty("thumbnail_height")
+        private Integer thumbnailHeight;
+
+        private String html;  // YouTube returns an iframe HTML
     }
 }
