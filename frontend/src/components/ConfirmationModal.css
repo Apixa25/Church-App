@@ -25,12 +25,32 @@
 }
 
 .modal-content {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--border-radius-lg);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  /* Liquid Glass Effect */
+  background: var(--glass-bg-solid);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow:
+    var(--glass-shadow),
+    var(--glass-shadow-glow),
+    var(--glass-inset-highlight);
   animation: slideUp 0.3s ease-out;
   position: relative;
+  overflow: hidden;
+}
+
+/* Liquid Glass Shine Effect */
+.modal-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: var(--glass-shine-gradient);
+  pointer-events: none;
+  border-radius: 20px 20px 0 0;
 }
 
 @keyframes slideUp {
@@ -46,10 +66,12 @@
 
 .modal-header {
   padding: 24px 24px 16px;
-  border-bottom: 1px solid var(--border-primary);
+  border-bottom: 1px solid var(--glass-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+  z-index: 1;
 }
 
 .modal-header h2 {
@@ -66,8 +88,10 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
+  background: var(--glass-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -91,6 +115,8 @@
 
 .modal-body {
   padding: 24px;
+  position: relative;
+  z-index: 1;
 }
 
 .modal-actions {
@@ -98,7 +124,9 @@
   display: flex;
   gap: 12px;
   justify-content: flex-end;
-  border-top: 1px solid var(--border-primary);
+  border-top: 1px solid var(--glass-border);
+  position: relative;
+  z-index: 1;
 }
 
 .btn-secondary {
