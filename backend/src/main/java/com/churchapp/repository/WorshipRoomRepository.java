@@ -77,4 +77,35 @@ public interface WorshipRoomRepository extends JpaRepository<WorshipRoom, UUID> 
     // Count currently playing rooms
     @Query("SELECT COUNT(wr) FROM WorshipRoom wr WHERE wr.playbackStatus = 'playing' AND wr.isActive = true")
     long countCurrentlyPlaying();
+
+    // === NEW ROOM TYPE QUERIES ===
+
+    // Find rooms by type
+    List<WorshipRoom> findByRoomTypeAndIsActiveTrueOrderByCreatedAtDesc(WorshipRoom.RoomType roomType);
+
+    // Find public rooms by type
+    List<WorshipRoom> findByRoomTypeAndIsPrivateFalseAndIsActiveTrueOrderByCreatedAtDesc(WorshipRoom.RoomType roomType);
+
+    // Find template rooms (playlists others can start)
+    @Query("SELECT wr FROM WorshipRoom wr WHERE wr.roomType = 'TEMPLATE' AND wr.isActive = true AND wr.isPrivate = false AND wr.allowUserStart = true ORDER BY wr.createdAt DESC")
+    List<WorshipRoom> findAvailableTemplateRooms();
+
+    // Find live event rooms
+    @Query("SELECT wr FROM WorshipRoom wr WHERE wr.roomType = 'LIVE_EVENT' AND wr.isActive = true ORDER BY wr.scheduledStartTime ASC")
+    List<WorshipRoom> findLiveEventRooms();
+
+    // Find upcoming live events
+    @Query("SELECT wr FROM WorshipRoom wr WHERE wr.roomType = 'LIVE_EVENT' AND wr.isActive = true AND wr.scheduledStartTime > :now ORDER BY wr.scheduledStartTime ASC")
+    List<WorshipRoom> findUpcomingLiveEvents(@Param("now") LocalDateTime now);
+
+    // Find live events that should auto-start
+    @Query("SELECT wr FROM WorshipRoom wr WHERE wr.roomType = 'LIVE_EVENT' AND wr.isActive = true AND wr.autoStartEnabled = true AND wr.isLiveStreamActive = false AND wr.scheduledStartTime <= :now")
+    List<WorshipRoom> findLiveEventsToAutoStart(@Param("now") LocalDateTime now);
+
+    // Find live events that should auto-close
+    @Query("SELECT wr FROM WorshipRoom wr WHERE wr.roomType = 'LIVE_EVENT' AND wr.isActive = true AND wr.autoCloseEnabled = true AND wr.isLiveStreamActive = true AND wr.scheduledEndTime <= :now")
+    List<WorshipRoom> findLiveEventsToAutoClose(@Param("now") LocalDateTime now);
+
+    // Find rooms using a specific playlist
+    List<WorshipRoom> findByPlaylistIdAndIsActiveTrue(UUID playlistId);
 }

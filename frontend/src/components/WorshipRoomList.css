@@ -60,7 +60,7 @@
 /* Navigation Buttons - Using specific selector to override App.css */
 .worship-room-list .header-actions {
   display: grid !important;
-  grid-template-columns: repeat(2, 1fr) !important;
+  grid-template-columns: repeat(3, 1fr) !important;
   gap: 12px !important;
   width: 100% !important;
   flex-wrap: unset !important;
@@ -258,6 +258,51 @@
   color: var(--text-secondary);
 }
 
+/* Room Type Badges */
+.room-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.room-type-badge {
+  padding: 4px 10px;
+  border-radius: var(--border-radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.template-badge {
+  background: linear-gradient(135deg, #9b59b6, #8e44ad);
+  color: white;
+  border: none;
+}
+
+.live-event-badge {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  border: none;
+}
+
+.live-event-badge.live {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  animation: pulse-badge 1.5s ease-in-out infinite;
+}
+
+.live-event-badge.scheduled {
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+}
+
+@keyframes pulse-badge {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
 .manage-room-button {
   margin-left: 8px;
   padding: 6px 10px;
@@ -377,6 +422,72 @@
   text-overflow: ellipsis;
 }
 
+/* Scheduled Time Display */
+.scheduled-time {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, rgba(243, 156, 18, 0.1), rgba(230, 126, 34, 0.1));
+  border: 1px solid rgba(243, 156, 18, 0.3);
+  border-radius: var(--border-radius-md);
+  margin-top: 12px;
+}
+
+.schedule-icon {
+  font-size: 16px;
+}
+
+.schedule-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f39c12;
+}
+
+/* Playlist Info Display */
+.playlist-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, rgba(155, 89, 182, 0.1), rgba(142, 68, 173, 0.1));
+  border: 1px solid rgba(155, 89, 182, 0.3);
+  border-radius: var(--border-radius-md);
+  margin-top: 12px;
+}
+
+.playlist-icon {
+  font-size: 16px;
+}
+
+.playlist-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #9b59b6;
+  flex: 1;
+}
+
+.video-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  padding: 2px 8px;
+  border-radius: var(--border-radius-pill);
+}
+
+/* Stream Indicator */
+.stream-indicator {
+  background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+}
+
+/* Section Description */
+.section-description {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  padding-left: 2px;
+}
+
 /* Room Actions */
 .room-actions {
   display: flex;
@@ -385,6 +496,108 @@
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--border-primary);
+}
+
+.template-actions,
+.live-event-actions {
+  flex-direction: column;
+}
+
+/* Template Room Styling */
+.template-room {
+  border-color: rgba(155, 89, 182, 0.3);
+}
+
+.template-room:hover {
+  border-color: rgba(155, 89, 182, 0.6);
+  box-shadow: var(--shadow-md), 0 0 12px rgba(155, 89, 182, 0.3);
+}
+
+/* Live Event Room Styling */
+.live-event-room {
+  border-color: rgba(231, 76, 60, 0.3);
+}
+
+.live-event-room:hover {
+  border-color: rgba(231, 76, 60, 0.6);
+  box-shadow: var(--shadow-md), 0 0 12px rgba(231, 76, 60, 0.3);
+}
+
+/* Start Template Button */
+.start-template-button {
+  width: 100%;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #9b59b6, #8e44ad);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: 0 2px 8px rgba(155, 89, 182, 0.3);
+}
+
+.start-template-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #8e44ad, #7d3c98);
+  box-shadow: 0 4px 12px rgba(155, 89, 182, 0.5);
+  transform: translateY(-1px);
+}
+
+.start-template-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Live Event Buttons */
+.start-live-event-button {
+  width: 100%;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+}
+
+.start-live-event-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #c0392b, #a93226);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.5);
+  transform: translateY(-1px);
+}
+
+.start-live-event-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.end-live-event-button {
+  width: 100%;
+  padding: 10px 16px;
+  background: var(--bg-secondary);
+  color: #e74c3c;
+  border: 1px solid rgba(231, 76, 60, 0.5);
+  border-radius: var(--border-radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.end-live-event-button:hover:not(:disabled) {
+  background: rgba(231, 76, 60, 0.1);
+  border-color: #e74c3c;
+}
+
+.end-live-event-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .join-room-button {
@@ -672,6 +885,68 @@
   font-weight: 500;
 }
 
+/* Room Type Selector */
+.room-type-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.room-type-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px 16px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-align: left;
+}
+
+.room-type-option:hover {
+  border-color: var(--border-glow);
+  background: var(--bg-elevated);
+}
+
+.room-type-option.active {
+  border-color: var(--accent-primary);
+  background: rgba(91, 127, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.1);
+}
+
+.room-type-option .room-type-icon {
+  font-size: 20px;
+  margin-bottom: 2px;
+}
+
+.room-type-option .room-type-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.room-type-option .room-type-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Make room type options horizontal on larger screens */
+@media (min-width: 600px) {
+  .room-type-selector {
+    flex-direction: row;
+  }
+
+  .room-type-option {
+    flex: 1;
+    text-align: center;
+    align-items: center;
+  }
+}
+
 /* Modal Actions */
 .modal-actions {
   display: flex;
@@ -836,13 +1111,13 @@
 
   .worship-room-list .header-actions {
     display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(3, 1fr) !important;
     gap: 10px !important;
   }
 
   .worship-room-list .nav-btn {
-    padding: 14px 16px;
-    font-size: 12px;
+    padding: 12px 10px;
+    font-size: 11px;
     min-height: 48px;
   }
 
@@ -871,15 +1146,15 @@
 
   .worship-room-list .header-actions {
     display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 8px !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
   }
 
   .worship-room-list .nav-btn {
-    font-size: 11px;
-    padding: 12px 10px;
+    font-size: 10px;
+    padding: 10px 6px;
     min-height: 44px;
-    gap: 4px;
+    gap: 2px;
   }
 
   .room-thumbnail {
@@ -905,6 +1180,15 @@
   .cancel-button,
   .submit-button {
     width: 100%;
+  }
+
+  /* Room type selector on mobile */
+  .room-type-selector {
+    flex-direction: column;
+  }
+
+  .room-type-option {
+    padding: 12px;
   }
 }
 

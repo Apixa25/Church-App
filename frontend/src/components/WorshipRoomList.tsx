@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { worshipAPI } from '../services/worshipApi';
-import { WorshipRoom, PlaybackStatus } from '../types/Worship';
+import { WorshipRoom, PlaybackStatus, RoomType, WorshipPlaylist, formatScheduledTime, isScheduledSoon } from '../types/Worship';
 import websocketService from '../services/websocketService';
 import LoadingSpinner from './LoadingSpinner';
 import './WorshipRoomList.css';
@@ -37,9 +37,12 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
   const [rooms, setRooms] = useState<WorshipRoom[]>([]);
   const [publicRooms, setPublicRooms] = useState<WorshipRoom[]>([]);
   const [playingRooms, setPlayingRooms] = useState<WorshipRoom[]>([]);
+  const [templateRooms, setTemplateRooms] = useState<WorshipRoom[]>([]);
+  const [liveEventRooms, setLiveEventRooms] = useState<WorshipRoom[]>([]);
+  const [playlists, setPlaylists] = useState<WorshipPlaylist[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<'myRooms' | 'public' | 'playing' | 'create'>('playing');
+  const [activeView, setActiveView] = useState<'playing' | 'myRooms' | 'public' | 'templates' | 'liveEvents'>('playing');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createFormData, setCreateFormData] = useState({
     name: '',
@@ -48,11 +51,17 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
     isPrivate: false,
     maxParticipants: 50,
     skipThreshold: 0.5,
+    roomType: RoomType.LIVE as RoomType,
+    liveStreamUrl: '',
+    scheduledStartTime: '',
+    autoStartEnabled: false,
+    autoCloseEnabled: false,
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [createLoading, setCreateLoading] = useState(false);
   const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
+  const [startingRoomId, setStartingRoomId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -83,14 +92,20 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
   const loadRooms = async () => {
     try {
       setLoading(true);
-      const [myRooms, availableRooms, currentlyPlaying] = await Promise.all([
+      const [myRooms, availableRooms, currentlyPlaying, templates, liveEvents, publicPlaylists] = await Promise.all([
         worshipAPI.getUserRooms(),
         worshipAPI.getPublicRooms(),
         worshipAPI.getCurrentlyPlayingRooms(),
+        worshipAPI.getTemplateRooms(),
+        worshipAPI.getLiveEventRooms(),
+        worshipAPI.getPublicPlaylists(),
       ]);
       setRooms(myRooms.data);
       setPublicRooms(availableRooms.data);
       setPlayingRooms(currentlyPlaying.data);
+      setTemplateRooms(templates.data);
+      setLiveEventRooms(liveEvents.data);
+      setPlaylists(publicPlaylists.data);
     } catch (err) {
       setError('Failed to load worship rooms');
       console.error('Error loading rooms:', err);
@@ -123,6 +138,54 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
     } catch (err) {
       console.error('Error joining room:', err);
       alert('Failed to join room. Please try again.');
+    }
+  };
+
+  const handleStartTemplate = async (roomId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      setStartingRoomId(roomId);
+      const response = await worshipAPI.startTemplateRoom(roomId);
+      // Navigate to the newly created live room
+      navigate(`/worship/${response.data.id}`);
+    } catch (err) {
+      console.error('Error starting template room:', err);
+      alert('Failed to start worship session. Please try again.');
+    } finally {
+      setStartingRoomId(null);
+    }
+  };
+
+  const handleStartLiveEvent = async (roomId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      setStartingRoomId(roomId);
+      await worshipAPI.startLiveEvent(roomId);
+      loadRooms();
+      // Navigate to the live event room
+      navigate(`/worship/${roomId}`);
+    } catch (err) {
+      console.error('Error starting live event:', err);
+      alert('Failed to start live event. Please try again.');
+    } finally {
+      setStartingRoomId(null);
+    }
+  };
+
+  const handleEndLiveEvent = async (roomId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const confirmed = window.confirm('Are you sure you want to end this live event?');
+    if (!confirmed) return;
+
+    try {
+      setStartingRoomId(roomId);
+      await worshipAPI.endLiveEvent(roomId);
+      loadRooms();
+    } catch (err) {
+      console.error('Error ending live event:', err);
+      alert('Failed to end live event. Please try again.');
+    } finally {
+      setStartingRoomId(null);
     }
   };
 
@@ -190,25 +253,42 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
         imageUrl = uploadedUrl;
       }
 
-      const response = await worshipAPI.createRoom({
-        ...createFormData,
+      // Prepare room data based on room type
+      const roomData: any = {
+        name: createFormData.name,
+        description: createFormData.description,
         imageUrl,
-      });
+        isPrivate: createFormData.isPrivate,
+        maxParticipants: createFormData.maxParticipants,
+        skipThreshold: createFormData.skipThreshold,
+        roomType: createFormData.roomType,
+      };
+
+      // Add live event specific fields
+      if (createFormData.roomType === RoomType.LIVE_EVENT) {
+        roomData.liveStreamUrl = createFormData.liveStreamUrl;
+        roomData.autoStartEnabled = createFormData.autoStartEnabled;
+        roomData.autoCloseEnabled = createFormData.autoCloseEnabled;
+        if (createFormData.scheduledStartTime) {
+          roomData.scheduledStartTime = createFormData.scheduledStartTime;
+        }
+      }
+
+      // Add template specific fields
+      if (createFormData.roomType === RoomType.TEMPLATE) {
+        roomData.isTemplate = true;
+        roomData.allowUserStart = true;
+      }
+
+      const response = await worshipAPI.createRoom(roomData);
 
       setShowCreateModal(false);
-      setCreateFormData({
-        name: '',
-        description: '',
-        imageUrl: '',
-        isPrivate: false,
-        maxParticipants: 50,
-        skipThreshold: 0.5,
-      });
-      setImageFile(null);
-      setImagePreview('');
+      resetCreateForm();
       loadRooms();
-      // Navigate to newly created room
-      navigate(`/worship/${response.data.id}`);
+      // Navigate to newly created room (for live rooms) or stay on list (for templates/events)
+      if (createFormData.roomType === RoomType.LIVE) {
+        navigate(`/worship/${response.data.id}`);
+      }
     } catch (err) {
       console.error('Error creating room:', err);
       alert('Failed to create room. Please try again.');
@@ -217,89 +297,212 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
     }
   };
 
-  const renderRoom = (room: WorshipRoom, isJoinable: boolean = false) => (
-    <div
-      key={room.id}
-      className={`worship-room-item ${selectedRoomId === room.id ? 'selected' : ''} ${isJoinable ? 'joinable' : ''}`}
-      onClick={() => !isJoinable && handleRoomClick(room)}
-    >
-      <div className="room-thumbnail">
-        {room.imageUrl ? (
-          <img src={room.imageUrl} alt={room.name} />
-        ) : (
-          <div className="room-thumbnail-placeholder">
-            {room.playbackStatus === PlaybackStatus.PLAYING ? '🎵' : '🎶'}
-          </div>
-        )}
-        {room.playbackStatus === PlaybackStatus.PLAYING && (
-          <div className="playing-indicator">
-            <span className="pulse-dot"></span>
-            <span className="pulse-text">LIVE</span>
-          </div>
-        )}
-      </div>
+  const resetCreateForm = () => {
+    setCreateFormData({
+      name: '',
+      description: '',
+      imageUrl: '',
+      isPrivate: false,
+      maxParticipants: 50,
+      skipThreshold: 0.5,
+      roomType: RoomType.LIVE,
+      liveStreamUrl: '',
+      scheduledStartTime: '',
+      autoStartEnabled: false,
+      autoCloseEnabled: false,
+    });
+    setImageFile(null);
+    setImagePreview('');
+  };
 
-      <div className="room-content">
-        <div className="room-header">
-          <h3>{room.name}</h3>
-          {room.isPrivate && <span className="privacy-badge">🔒 Private</span>}
-          {room.canDelete && (
-            <button
-              className="manage-room-button"
-              onClick={(e) => handleDeleteRoom(room.id, e)}
-              disabled={deleteLoadingId === room.id}
-              title="Delete room"
-            >
-              {deleteLoadingId === room.id ? 'Deleting...' : '🗑️'}
-            </button>
+  const getRoomTypeIcon = (roomType?: RoomType): string => {
+    switch (roomType) {
+      case RoomType.TEMPLATE: return '📋';
+      case RoomType.LIVE_EVENT: return '📺';
+      default: return '🎵';
+    }
+  };
+
+  const getRoomTypeBadge = (room: WorshipRoom) => {
+    if (room.roomType === RoomType.TEMPLATE) {
+      return <span className="room-type-badge template-badge">Template</span>;
+    }
+    if (room.roomType === RoomType.LIVE_EVENT) {
+      if (room.isLiveStreamActive) {
+        return <span className="room-type-badge live-event-badge live">Live Stream</span>;
+      }
+      if (room.scheduledStartTime && isScheduledSoon(room.scheduledStartTime)) {
+        return <span className="room-type-badge live-event-badge scheduled">Starting Soon</span>;
+      }
+      return <span className="room-type-badge live-event-badge">Scheduled Event</span>;
+    }
+    return null;
+  };
+
+  const renderRoom = (room: WorshipRoom, options: { isJoinable?: boolean; showStartButton?: boolean; isTemplate?: boolean; isLiveEvent?: boolean } = {}) => {
+    const { isJoinable = false, showStartButton = false, isTemplate = false, isLiveEvent = false } = options;
+
+    return (
+      <div
+        key={room.id}
+        className={`worship-room-item ${selectedRoomId === room.id ? 'selected' : ''} ${isJoinable || showStartButton ? 'joinable' : ''} ${isTemplate ? 'template-room' : ''} ${isLiveEvent ? 'live-event-room' : ''}`}
+        onClick={() => !isJoinable && !showStartButton && handleRoomClick(room)}
+      >
+        <div className="room-thumbnail">
+          {room.imageUrl ? (
+            <img src={room.imageUrl} alt={room.name} />
+          ) : (
+            <div className="room-thumbnail-placeholder">
+              {getRoomTypeIcon(room.roomType)}
+            </div>
+          )}
+          {room.playbackStatus === PlaybackStatus.PLAYING && (
+            <div className="playing-indicator">
+              <span className="pulse-dot"></span>
+              <span className="pulse-text">LIVE</span>
+            </div>
+          )}
+          {room.roomType === RoomType.LIVE_EVENT && room.isLiveStreamActive && (
+            <div className="playing-indicator stream-indicator">
+              <span className="pulse-dot"></span>
+              <span className="pulse-text">STREAMING</span>
+            </div>
           )}
         </div>
 
-        {room.description && <p className="room-description">{room.description}</p>}
+        <div className="room-content">
+          <div className="room-header">
+            <h3>{room.name}</h3>
+            <div className="room-badges">
+              {getRoomTypeBadge(room)}
+              {room.isPrivate && <span className="privacy-badge">🔒 Private</span>}
+            </div>
+            {room.canDelete && (
+              <button
+                className="manage-room-button"
+                onClick={(e) => handleDeleteRoom(room.id, e)}
+                disabled={deleteLoadingId === room.id}
+                title="Delete room"
+              >
+                {deleteLoadingId === room.id ? 'Deleting...' : '🗑️'}
+              </button>
+            )}
+          </div>
 
-        <div className="room-meta">
-          <span className="room-status">
-            {getStatusIcon(room.playbackStatus)} {formatPlaybackStatus(room.playbackStatus)}
-          </span>
-          <span className="room-participants">
-            👥 {formatParticipantCount(room.participantCount)}
-          </span>
-          {room.maxParticipants && (
-            <span className="room-capacity">
-              / {room.maxParticipants}
+          {room.description && <p className="room-description">{room.description}</p>}
+
+          <div className="room-meta">
+            {room.roomType !== RoomType.TEMPLATE && (
+              <span className="room-status">
+                {getStatusIcon(room.playbackStatus)} {formatPlaybackStatus(room.playbackStatus)}
+              </span>
+            )}
+            <span className="room-participants">
+              👥 {formatParticipantCount(room.participantCount)}
             </span>
-          )}
-        </div>
+            {room.maxParticipants && (
+              <span className="room-capacity">
+                / {room.maxParticipants}
+              </span>
+            )}
+          </div>
 
-        {room.currentVideoTitle && (
-          <div className="current-song">
-            <div className="current-song-thumbnail">
-              {room.currentVideoThumbnail ? (
-                <img src={room.currentVideoThumbnail} alt={room.currentVideoTitle} />
-              ) : (
-                <span>🎵</span>
+          {/* Scheduled time for live events */}
+          {room.roomType === RoomType.LIVE_EVENT && room.scheduledStartTime && !room.isLiveStreamActive && (
+            <div className="scheduled-time">
+              <span className="schedule-icon">🗓️</span>
+              <span className="schedule-text">{formatScheduledTime(room.scheduledStartTime)}</span>
+            </div>
+          )}
+
+          {/* Playlist info for templates */}
+          {room.roomType === RoomType.TEMPLATE && room.playlistName && (
+            <div className="playlist-info">
+              <span className="playlist-icon">📋</span>
+              <span className="playlist-name">{room.playlistName}</span>
+              {room.playlistVideoCount && (
+                <span className="video-count">{room.playlistVideoCount} videos</span>
               )}
             </div>
-            <div className="current-song-info">
-              <span className="now-playing-label">Now Playing</span>
-              <span className="current-song-title">{room.currentVideoTitle}</span>
-            </div>
-          </div>
-        )}
+          )}
 
-        {isJoinable && (
-          <div className="room-actions">
-            <button
-              onClick={(e) => handleJoinRoom(room.id, e)}
-              className="join-room-button"
-            >
-              Join Room
-            </button>
-          </div>
-        )}
+          {room.currentVideoTitle && (
+            <div className="current-song">
+              <div className="current-song-thumbnail">
+                {room.currentVideoThumbnail ? (
+                  <img src={room.currentVideoThumbnail} alt={room.currentVideoTitle} />
+                ) : (
+                  <span>🎵</span>
+                )}
+              </div>
+              <div className="current-song-info">
+                <span className="now-playing-label">Now Playing</span>
+                <span className="current-song-title">{room.currentVideoTitle}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Standard join button */}
+          {isJoinable && !isTemplate && !isLiveEvent && (
+            <div className="room-actions">
+              <button
+                onClick={(e) => handleJoinRoom(room.id, e)}
+                className="join-room-button"
+              >
+                Join Room
+              </button>
+            </div>
+          )}
+
+          {/* Template room actions */}
+          {isTemplate && (
+            <div className="room-actions template-actions">
+              <button
+                onClick={(e) => handleStartTemplate(room.id, e)}
+                className="start-template-button"
+                disabled={startingRoomId === room.id}
+              >
+                {startingRoomId === room.id ? 'Starting...' : 'Start Worship Session'}
+              </button>
+            </div>
+          )}
+
+          {/* Live event actions */}
+          {isLiveEvent && (
+            <div className="room-actions live-event-actions">
+              {!room.isLiveStreamActive ? (
+                <button
+                  onClick={(e) => handleStartLiveEvent(room.id, e)}
+                  className="start-live-event-button"
+                  disabled={startingRoomId === room.id}
+                >
+                  {startingRoomId === room.id ? 'Starting...' : 'Go Live'}
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={(e) => handleJoinRoom(room.id, e)}
+                    className="join-room-button"
+                  >
+                    Watch Live
+                  </button>
+                  {room.canDelete && (
+                    <button
+                      onClick={(e) => handleEndLiveEvent(room.id, e)}
+                      className="end-live-event-button"
+                      disabled={startingRoomId === room.id}
+                    >
+                      {startingRoomId === room.id ? 'Ending...' : 'End Stream'}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderCreateModal = () => (
     <div className="create-room-modal-overlay" onClick={() => setShowCreateModal(false)}>
@@ -309,6 +512,40 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
         </button>
         <h2>Create Worship Room</h2>
         <form onSubmit={handleCreateRoom}>
+          {/* Room Type Selection */}
+          <div className="form-group">
+            <label>Room Type</label>
+            <div className="room-type-selector">
+              <button
+                type="button"
+                className={`room-type-option ${createFormData.roomType === RoomType.LIVE ? 'active' : ''}`}
+                onClick={() => setCreateFormData({ ...createFormData, roomType: RoomType.LIVE })}
+              >
+                <span className="room-type-icon">🎵</span>
+                <span className="room-type-label">Live Room</span>
+                <span className="room-type-desc">DJ-style room like plug.dj</span>
+              </button>
+              <button
+                type="button"
+                className={`room-type-option ${createFormData.roomType === RoomType.TEMPLATE ? 'active' : ''}`}
+                onClick={() => setCreateFormData({ ...createFormData, roomType: RoomType.TEMPLATE })}
+              >
+                <span className="room-type-icon">📋</span>
+                <span className="room-type-label">Playlist Template</span>
+                <span className="room-type-desc">Reusable playlist anyone can start</span>
+              </button>
+              <button
+                type="button"
+                className={`room-type-option ${createFormData.roomType === RoomType.LIVE_EVENT ? 'active' : ''}`}
+                onClick={() => setCreateFormData({ ...createFormData, roomType: RoomType.LIVE_EVENT })}
+              >
+                <span className="room-type-icon">📺</span>
+                <span className="room-type-label">Live Event</span>
+                <span className="room-type-desc">YouTube live stream with scheduling</span>
+              </button>
+            </div>
+          </div>
+
           <div className="form-group">
             <label htmlFor="room-name">Room Name *</label>
             <input
@@ -316,7 +553,13 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
               type="text"
               value={createFormData.name}
               onChange={(e) => setCreateFormData({ ...createFormData, name: e.target.value })}
-              placeholder="Sunday Worship, Youth Night, etc."
+              placeholder={
+                createFormData.roomType === RoomType.LIVE_EVENT
+                  ? "Sunday Morning Service, Easter Worship, etc."
+                  : createFormData.roomType === RoomType.TEMPLATE
+                  ? "Morning Devotional Playlist, Youth Worship Mix, etc."
+                  : "Sunday Worship, Youth Night, etc."
+              }
               required
               maxLength={100}
             />
@@ -333,6 +576,57 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
               maxLength={500}
             />
           </div>
+
+          {/* Live Event specific fields */}
+          {createFormData.roomType === RoomType.LIVE_EVENT && (
+            <>
+              <div className="form-group">
+                <label htmlFor="live-stream-url">YouTube Live Stream URL *</label>
+                <input
+                  id="live-stream-url"
+                  type="url"
+                  value={createFormData.liveStreamUrl}
+                  onChange={(e) => setCreateFormData({ ...createFormData, liveStreamUrl: e.target.value })}
+                  placeholder="https://youtube.com/live/VIDEO_ID or https://www.youtube.com/watch?v=VIDEO_ID"
+                  required
+                />
+                <small>Paste the URL of your YouTube live stream</small>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="scheduled-start">Scheduled Start Time</label>
+                <input
+                  id="scheduled-start"
+                  type="datetime-local"
+                  value={createFormData.scheduledStartTime}
+                  onChange={(e) => setCreateFormData({ ...createFormData, scheduledStartTime: e.target.value })}
+                />
+                <small>When should this live event start?</small>
+              </div>
+
+              <div className="form-group checkbox-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={createFormData.autoStartEnabled}
+                    onChange={(e) => setCreateFormData({ ...createFormData, autoStartEnabled: e.target.checked })}
+                  />
+                  <span>Auto-start at scheduled time</span>
+                </label>
+              </div>
+
+              <div className="form-group checkbox-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={createFormData.autoCloseEnabled}
+                    onChange={(e) => setCreateFormData({ ...createFormData, autoCloseEnabled: e.target.checked })}
+                  />
+                  <span>Auto-close when stream ends</span>
+                </label>
+              </div>
+            </>
+          )}
 
           <div className="form-group">
             <label htmlFor="room-image">Room Image</label>
@@ -377,19 +671,22 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="skip-threshold">Skip Threshold (0.0 - 1.0)</label>
-            <input
-              id="skip-threshold"
-              type="number"
-              step="0.1"
-              value={createFormData.skipThreshold}
-              onChange={(e) => setCreateFormData({ ...createFormData, skipThreshold: parseFloat(e.target.value) })}
-              min={0}
-              max={1}
-            />
-            <small>Percentage of votes needed to skip a song (0.5 = 50%)</small>
-          </div>
+          {/* Skip threshold only for live rooms and templates */}
+          {createFormData.roomType !== RoomType.LIVE_EVENT && (
+            <div className="form-group">
+              <label htmlFor="skip-threshold">Skip Threshold (0.0 - 1.0)</label>
+              <input
+                id="skip-threshold"
+                type="number"
+                step="0.1"
+                value={createFormData.skipThreshold}
+                onChange={(e) => setCreateFormData({ ...createFormData, skipThreshold: parseFloat(e.target.value) })}
+                min={0}
+                max={1}
+              />
+              <small>Percentage of votes needed to skip a song (0.5 = 50%)</small>
+            </div>
+          )}
 
           <div className="form-group checkbox-group">
             <label>
@@ -405,13 +702,17 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
           <div className="modal-actions">
             <button
               type="button"
-              onClick={() => setShowCreateModal(false)}
+              onClick={() => { setShowCreateModal(false); resetCreateForm(); }}
               className="cancel-button"
             >
               Cancel
             </button>
             <button type="submit" className="submit-button" disabled={createLoading}>
-              {createLoading ? 'Creating...' : 'Create Room'}
+              {createLoading ? 'Creating...' :
+                createFormData.roomType === RoomType.TEMPLATE ? 'Create Template' :
+                createFormData.roomType === RoomType.LIVE_EVENT ? 'Schedule Event' :
+                'Create Room'
+              }
             </button>
           </div>
         </form>
@@ -455,6 +756,18 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
             ▶️ Now Playing
           </button>
           <button
+            onClick={() => setActiveView('templates')}
+            className={`nav-btn ${activeView === 'templates' ? 'active' : ''}`}
+          >
+            📋 Templates
+          </button>
+          <button
+            onClick={() => setActiveView('liveEvents')}
+            className={`nav-btn ${activeView === 'liveEvents' ? 'active' : ''}`}
+          >
+            📺 Live Events
+          </button>
+          <button
             onClick={() => setActiveView('myRooms')}
             className={`nav-btn ${activeView === 'myRooms' ? 'active' : ''}`}
           >
@@ -464,35 +777,82 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
             onClick={() => setActiveView('public')}
             className={`nav-btn ${activeView === 'public' ? 'active' : ''}`}
           >
-            🌍 Public Rooms
+            🌍 Public
           </button>
           <button
             onClick={() => setShowCreateModal(true)}
             className={`nav-btn create-btn`}
           >
-            ➕ Create Room
+            ➕ Create
           </button>
         </div>
       </div>
 
-      {activeView === 'playing' ? (
+      {activeView === 'playing' && (
         <div className="rooms-section">
           <h3>Currently Playing</h3>
           {playingRooms.length === 0 ? (
             <div className="empty-state">
               <p>🎵 No rooms are currently playing</p>
               <p>Start a worship session or join a public room!</p>
-              <button onClick={() => setActiveView('public')} className="primary-button">
-                Browse Public Rooms
+              <div className="empty-state-actions">
+                <button onClick={() => setActiveView('templates')} className="primary-button">
+                  Browse Templates
+                </button>
+                <button onClick={() => setActiveView('public')} className="secondary-button">
+                  Browse Public Rooms
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="rooms-grid">
+              {playingRooms.map((room) => renderRoom(room, { isJoinable: !room.isParticipant }))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeView === 'templates' && (
+        <div className="rooms-section">
+          <h3>Playlist Templates</h3>
+          <p className="section-description">Start a worship session from a curated playlist. Everyone can worship together!</p>
+          {templateRooms.length === 0 ? (
+            <div className="empty-state">
+              <p>📋 No playlist templates available yet</p>
+              <p>Create a template playlist for others to enjoy!</p>
+              <button onClick={() => setShowCreateModal(true)} className="primary-button">
+                Create Template
               </button>
             </div>
           ) : (
             <div className="rooms-grid">
-              {playingRooms.map((room) => renderRoom(room))}
+              {templateRooms.map((room) => renderRoom(room, { isTemplate: true }))}
             </div>
           )}
         </div>
-      ) : activeView === 'myRooms' ? (
+      )}
+
+      {activeView === 'liveEvents' && (
+        <div className="rooms-section">
+          <h3>Live Events</h3>
+          <p className="section-description">Watch YouTube live streams together with your church community.</p>
+          {liveEventRooms.length === 0 ? (
+            <div className="empty-state">
+              <p>📺 No live events scheduled</p>
+              <p>Schedule a YouTube live stream for your congregation!</p>
+              <button onClick={() => setShowCreateModal(true)} className="primary-button">
+                Schedule Live Event
+              </button>
+            </div>
+          ) : (
+            <div className="rooms-grid">
+              {liveEventRooms.map((room) => renderRoom(room, { isLiveEvent: true }))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeView === 'myRooms' && (
         <div className="rooms-section">
           <h3>My Rooms</h3>
           {rooms.length === 0 ? (
@@ -514,7 +874,9 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
             </div>
           )}
         </div>
-      ) : (
+      )}
+
+      {activeView === 'public' && (
         <div className="rooms-section">
           <h3>Public Rooms</h3>
           {publicRooms.length === 0 ? (
@@ -527,7 +889,7 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
             </div>
           ) : (
             <div className="rooms-grid">
-              {publicRooms.map((room) => renderRoom(room, !room.isParticipant))}
+              {publicRooms.map((room) => renderRoom(room, { isJoinable: !room.isParticipant }))}
             </div>
           )}
         </div>

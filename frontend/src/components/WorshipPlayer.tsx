@@ -22,6 +22,8 @@ interface WorshipPlayerProps {
   } | null;
   onPlaybackControl?: (action: PlaybackAction, seekPosition?: number) => void;
   canControl: boolean;
+  isLiveStream?: boolean;
+  liveStreamUrl?: string;
 }
 
 const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
@@ -29,6 +31,8 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
   syncState,
   onPlaybackControl,
   canControl,
+  isLiveStream = false,
+  liveStreamUrl,
 }) => {
   const playerRef = useRef<any>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
@@ -76,21 +80,34 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
       }
     }
 
+    // For live streams, use YouTube's built-in controls for better live stream support
+    const playerVars = isLiveStream ? {
+      autoplay: 1, // Auto-play for live streams
+      controls: 1, // Use YouTube controls for live streams (better live functionality)
+      disablekb: 0,
+      fs: 1,
+      modestbranding: 1,
+      rel: 0,
+      iv_load_policy: 3,
+      playsinline: 1,
+      origin: window.location.origin,
+    } : {
+      autoplay: 0,
+      controls: 0, // Use custom controls for regular videos
+      disablekb: 1,
+      fs: 0,
+      modestbranding: 1,
+      rel: 0,
+      iv_load_policy: 3,
+      playsinline: 1,
+      origin: window.location.origin,
+    };
+
     playerRef.current = new window.YT.Player(playerIdRef.current, {
       height: '100%',
       width: '100%',
       videoId: videoId || '',
-      playerVars: {
-        autoplay: 0,
-        controls: 0, // Use custom controls instead of YouTube UI
-        disablekb: 1,
-        fs: 0,
-        modestbranding: 1,
-        rel: 0,
-        iv_load_policy: 3,
-        playsinline: 1,
-        origin: window.location.origin,
-      },
+      playerVars,
       events: {
         onReady: handlePlayerReady,
         onStateChange: handlePlayerStateChange,
@@ -263,15 +280,26 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
   };
 
   return (
-    <div className="worship-player">
+    <div className={`worship-player ${isLiveStream ? 'live-stream-player' : ''}`}>
+      {/* Live Stream Indicator */}
+      {isLiveStream && videoId && (
+        <div className="live-stream-banner">
+          <span className="live-indicator">
+            <span className="live-dot"></span>
+            LIVE
+          </span>
+          <span className="live-text">Watching live stream together</span>
+        </div>
+      )}
+
       {/* Video Container */}
       <div className="player-video-container">
         {!videoId ? (
           <div className="player-placeholder">
             <div className="placeholder-content">
-              <span className="placeholder-icon">🎵</span>
-              <h3>No song playing</h3>
-              <p>Add songs to the queue to start worship</p>
+              <span className="placeholder-icon">{isLiveStream ? '📺' : '🎵'}</span>
+              <h3>{isLiveStream ? 'Live stream not started' : 'No song playing'}</h3>
+              <p>{isLiveStream ? 'The live event will start soon' : 'Add songs to the queue to start worship'}</p>
             </div>
           </div>
         ) : (
@@ -279,8 +307,8 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
         )}
       </div>
 
-      {/* Custom Controls */}
-      {videoId && (
+      {/* Custom Controls - Only show for non-live streams */}
+      {videoId && !isLiveStream && (
         <div className="player-controls">
           {/* Playback Controls */}
           <div className="controls-row">
@@ -352,6 +380,41 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
               Only the worship leader and moderators can control playback
             </div>
           )}
+        </div>
+      )}
+
+      {/* Live Stream Volume Control - Minimal controls for live streams */}
+      {videoId && isLiveStream && (
+        <div className="player-controls live-controls">
+          <div className="controls-row">
+            <div className="controls-left">
+              <div className="live-badge">
+                <span className="live-dot"></span>
+                LIVE
+              </div>
+            </div>
+            <div className="controls-right">
+              {/* Volume Control */}
+              <div className="volume-control">
+                <button
+                  onClick={handleMuteToggle}
+                  className="control-btn volume-btn"
+                  title={isMuted ? 'Unmute' : 'Mute'}
+                >
+                  {isMuted ? '🔇' : volume > 50 ? '🔊' : volume > 0 ? '🔉' : '🔈'}
+                </button>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={isMuted ? 0 : volume}
+                  onChange={(e) => handleVolumeChange(parseInt(e.target.value))}
+                  className="volume-slider"
+                  title="Volume"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -37,11 +37,30 @@ public class WorshipRoomResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    // Room type fields
+    private String roomType; // LIVE, TEMPLATE, LIVE_EVENT
+
+    // Live event fields
+    private LocalDateTime scheduledStartTime;
+    private LocalDateTime scheduledEndTime;
+    private String liveStreamUrl;
+    private Boolean isLiveStreamActive;
+    private Boolean autoStartEnabled;
+    private Boolean autoCloseEnabled;
+
+    // Template/Playlist fields
+    private Boolean isTemplate;
+    private Boolean allowUserStart;
+    private UUID playlistId;
+    private String playlistName;
+    private Integer currentPlaylistPosition;
+
     // User context
     private Boolean isParticipant;
     private Boolean isCreator;
     private Boolean isCurrentLeader;
     private Boolean canJoin;
+    private Boolean canStart; // Can user start this template room
     private String userRole; // LISTENER, DJ, LEADER, MODERATOR
     private Boolean isInWaitlist;
     private Integer waitlistPosition;
@@ -75,6 +94,25 @@ public class WorshipRoomResponse {
         this.updatedAt = room.getUpdatedAt();
         this.canEdit = false;
         this.canDelete = false;
+
+        // Room type fields
+        this.roomType = room.getRoomType() != null ? room.getRoomType().name() : "LIVE";
+
+        // Live event fields
+        this.scheduledStartTime = room.getScheduledStartTime();
+        this.scheduledEndTime = room.getScheduledEndTime();
+        this.liveStreamUrl = room.getLiveStreamUrl();
+        this.isLiveStreamActive = room.getIsLiveStreamActive();
+        this.autoStartEnabled = room.getAutoStartEnabled();
+        this.autoCloseEnabled = room.getAutoCloseEnabled();
+
+        // Template/Playlist fields
+        this.isTemplate = room.getIsTemplate();
+        this.allowUserStart = room.getAllowUserStart();
+        this.playlistId = room.getPlaylist() != null ? room.getPlaylist().getId() : null;
+        this.playlistName = room.getPlaylist() != null ? room.getPlaylist().getName() : null;
+        this.currentPlaylistPosition = room.getCurrentPlaylistPosition();
+        this.canStart = false;
     }
 
     // Static factory methods
@@ -101,5 +139,26 @@ public class WorshipRoomResponse {
 
     public boolean hasCurrentSong() {
         return currentVideoId != null && !currentVideoId.trim().isEmpty();
+    }
+
+    // Room type helper methods
+    public boolean isLiveRoom() {
+        return "LIVE".equals(roomType) || roomType == null;
+    }
+
+    public boolean isTemplateRoom() {
+        return "TEMPLATE".equals(roomType);
+    }
+
+    public boolean isLiveEventRoom() {
+        return "LIVE_EVENT".equals(roomType);
+    }
+
+    public boolean isLiveNow() {
+        return isLiveEventRoom() && Boolean.TRUE.equals(isLiveStreamActive);
+    }
+
+    public boolean isUpcoming() {
+        return isLiveEventRoom() && scheduledStartTime != null && !Boolean.TRUE.equals(isLiveStreamActive);
     }
 }

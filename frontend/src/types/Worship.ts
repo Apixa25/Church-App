@@ -1,10 +1,19 @@
 // ==================== WORSHIP ROOM TYPES ====================
 
+export enum RoomType {
+  LIVE = 'LIVE',           // Original plug.dj style - leader controls, everyone syncs
+  TEMPLATE = 'TEMPLATE',   // Saved playlist that anyone can start
+  LIVE_EVENT = 'LIVE_EVENT' // YouTube live stream with scheduling
+}
+
 export interface WorshipRoom {
   id: string;
   name: string;
   description?: string;
   imageUrl?: string;
+
+  // Room type
+  roomType: RoomType;
 
   // Creator details
   createdBy: string;
@@ -31,6 +40,23 @@ export interface WorshipRoom {
   participantCount: number;
   skipThreshold: number;
 
+  // Live event fields
+  scheduledStartTime?: string;
+  scheduledEndTime?: string;
+  liveStreamUrl?: string;
+  isLiveStreamActive?: boolean;
+  autoStartEnabled?: boolean;
+  autoCloseEnabled?: boolean;
+
+  // Template/Playlist fields
+  isTemplate?: boolean;
+  allowUserStart?: boolean;
+  playlistId?: string;
+  playlistName?: string;
+  playlistVideoCount?: number;
+  playlistTotalDuration?: number;
+  currentPlaylistPosition?: number;
+
   // Timestamps
   createdAt: string;
   updatedAt: string;
@@ -40,6 +66,7 @@ export interface WorshipRoom {
   isCreator?: boolean;
   isCurrentLeader?: boolean;
   canJoin?: boolean;
+  canStart?: boolean; // Can user start this template room
   userRole?: ParticipantRole;
   isInWaitlist?: boolean;
   waitlistPosition?: number;
@@ -54,6 +81,21 @@ export interface WorshipRoomRequest {
   isPrivate?: boolean;
   maxParticipants?: number;
   skipThreshold?: number;
+
+  // Room type
+  roomType?: string; // 'LIVE' | 'TEMPLATE' | 'LIVE_EVENT'
+
+  // Live event fields
+  scheduledStartTime?: string;
+  scheduledEndTime?: string;
+  liveStreamUrl?: string;
+  autoStartEnabled?: boolean;
+  autoCloseEnabled?: boolean;
+
+  // Template/Playlist fields
+  isTemplate?: boolean;
+  allowUserStart?: boolean;
+  playlistId?: string;
 }
 
 // ==================== QUEUE ENTRY TYPES ====================
@@ -243,6 +285,65 @@ export enum WorshipMessageType {
   SYNC_STATE = 'SYNC_STATE'
 }
 
+// ==================== PLAYLIST TYPES ====================
+
+export interface WorshipPlaylist {
+  id: string;
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  createdBy: string;
+  createdByName: string;
+  createdByProfilePic?: string;
+  isPublic: boolean;
+  isActive: boolean;
+  totalDuration: number;
+  videoCount: number;
+  playCount: number;
+  createdAt: string;
+  updatedAt: string;
+
+  // User context
+  isCreator?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+
+  // Entries (optional - loaded separately or included)
+  entries?: WorshipPlaylistEntry[];
+}
+
+export interface WorshipPlaylistEntry {
+  id: string;
+  playlistId: string;
+  videoId: string;
+  videoTitle: string;
+  videoDuration?: number;
+  videoThumbnail?: string;
+  videoThumbnailUrl?: string; // Alias for backwards compatibility
+  position: number;
+  addedBy: string;
+  addedByName: string;
+  addedByProfilePic?: string;
+  createdAt: string;
+}
+
+export interface WorshipPlaylistRequest {
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  isPublic?: boolean;
+  entries?: WorshipPlaylistEntryRequest[];
+}
+
+export interface WorshipPlaylistEntryRequest {
+  videoId: string;
+  videoTitle: string;
+  videoDuration?: number;
+  videoThumbnail?: string;
+  videoThumbnailUrl?: string; // Alias
+  position?: number;
+}
+
 // ==================== YOUTUBE TYPES ====================
 
 export interface YouTubeVideo {
@@ -311,12 +412,13 @@ export const calculateUpvotePercentage = (upvotes: number, skipVotes: number): n
   return (upvotes / total) * 100;
 };
 
-// YouTube video ID extraction
+// YouTube video ID extraction (including live stream URLs)
 export const extractYouTubeVideoId = (url: string): string | null => {
   const regexes = [
     /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
     /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
-    /youtube\.com\/v\/([a-zA-Z0-9_-]{11})/
+    /youtube\.com\/v\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/live\/([a-zA-Z0-9_-]{11})/  // Live stream URL format
   ];
 
   for (const regex of regexes) {
@@ -332,6 +434,11 @@ export const extractYouTubeVideoId = (url: string): string | null => {
   }
 
   return null;
+};
+
+// Check if a YouTube URL is a live stream
+export const isYouTubeLiveUrl = (url: string): boolean => {
+  return /youtube\.com\/live\//.test(url);
 };
 
 // Get YouTube thumbnail URL
@@ -357,4 +464,75 @@ export const canModerateRoom = (role?: ParticipantRole): boolean => {
 export const canVote = (role?: ParticipantRole): boolean => {
   // All users except undefined role can vote
   return role !== undefined;
+};
+
+// Room type helpers
+export const isLiveRoom = (room: WorshipRoom): boolean => {
+  return room.roomType === RoomType.LIVE || !room.roomType;
+};
+
+export const isTemplateRoom = (room: WorshipRoom): boolean => {
+  return room.roomType === RoomType.TEMPLATE;
+};
+
+export const isLiveEventRoom = (room: WorshipRoom): boolean => {
+  return room.roomType === RoomType.LIVE_EVENT;
+};
+
+export const isLiveStreamActive = (room: WorshipRoom): boolean => {
+  return isLiveEventRoom(room) && room.isLiveStreamActive === true;
+};
+
+export const isUpcomingEvent = (room: WorshipRoom): boolean => {
+  return isLiveEventRoom(room) &&
+         room.scheduledStartTime !== undefined &&
+         room.isLiveStreamActive !== true;
+};
+
+export const getRoomTypeDisplay = (roomType: RoomType | string): string => {
+  const displays: Record<string, string> = {
+    [RoomType.LIVE]: 'Live Room',
+    [RoomType.TEMPLATE]: 'Playlist Template',
+    [RoomType.LIVE_EVENT]: 'Live Event'
+  };
+  return displays[roomType] || 'Room';
+};
+
+export const formatScheduledTime = (dateString?: string): string => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+};
+
+export const formatPlaylistDuration = (seconds: number): string => {
+  if (!seconds) return '0:00';
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+// Check if scheduled event is starting soon (within 30 minutes)
+export const isScheduledSoon = (scheduledTime?: string): boolean => {
+  if (!scheduledTime) return false;
+  const scheduled = new Date(scheduledTime).getTime();
+  const now = Date.now();
+  const thirtyMinutes = 30 * 60 * 1000;
+  return scheduled > now && scheduled - now <= thirtyMinutes;
+};
+
+// Check if scheduled event has passed
+export const isScheduledPast = (scheduledTime?: string): boolean => {
+  if (!scheduledTime) return false;
+  return new Date(scheduledTime).getTime() < Date.now();
 };

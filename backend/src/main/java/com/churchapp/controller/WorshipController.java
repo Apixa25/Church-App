@@ -2,6 +2,7 @@ package com.churchapp.controller;
 
 import com.churchapp.dto.*;
 import com.churchapp.service.FileUploadService;
+import com.churchapp.service.WorshipPlaylistService;
 import com.churchapp.service.WorshipQueueService;
 import com.churchapp.service.WorshipRoomService;
 import jakarta.validation.Valid;
@@ -26,6 +27,7 @@ public class WorshipController {
 
     private final WorshipRoomService roomService;
     private final WorshipQueueService queueService;
+    private final WorshipPlaylistService playlistService;
     private final FileUploadService fileUploadService;
 
     // ==================== ROOM ENDPOINTS ====================
@@ -288,6 +290,228 @@ public class WorshipController {
             return ResponseEntity.ok(successResponse("Song skipped successfully"));
         } catch (RuntimeException e) {
             log.error("Error skipping song", e);
+            return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
+        }
+    }
+
+    // ==================== ROOM TYPE SPECIFIC ENDPOINTS ====================
+
+    @GetMapping("/rooms/templates")
+    public ResponseEntity<List<WorshipRoomResponse>> getTemplateRooms(@AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            List<WorshipRoomResponse> rooms = roomService.getTemplateRooms(userDetails.getUsername());
+            return ResponseEntity.ok(rooms);
+        } catch (RuntimeException e) {
+            log.error("Error fetching template rooms", e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/rooms/live-events")
+    public ResponseEntity<List<WorshipRoomResponse>> getLiveEventRooms(@AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            List<WorshipRoomResponse> rooms = roomService.getLiveEventRooms(userDetails.getUsername());
+            return ResponseEntity.ok(rooms);
+        } catch (RuntimeException e) {
+            log.error("Error fetching live event rooms", e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/rooms/live-events/upcoming")
+    public ResponseEntity<List<WorshipRoomResponse>> getUpcomingLiveEvents(@AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            List<WorshipRoomResponse> rooms = roomService.getUpcomingLiveEvents(userDetails.getUsername());
+            return ResponseEntity.ok(rooms);
+        } catch (RuntimeException e) {
+            log.error("Error fetching upcoming live events", e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PostMapping("/rooms/{roomId}/start-template")
+    public ResponseEntity<?> startTemplateRoom(@AuthenticationPrincipal UserDetails userDetails,
+                                               @PathVariable UUID roomId) {
+        try {
+            WorshipRoomResponse room = roomService.startTemplateRoom(userDetails.getUsername(), roomId);
+            return ResponseEntity.ok(room);
+        } catch (RuntimeException e) {
+            log.error("Error starting template room", e);
+            return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/rooms/{roomId}/start-live-event")
+    public ResponseEntity<?> startLiveEvent(@AuthenticationPrincipal UserDetails userDetails,
+                                            @PathVariable UUID roomId) {
+        try {
+            WorshipRoomResponse room = roomService.startLiveEvent(userDetails.getUsername(), roomId);
+            return ResponseEntity.ok(room);
+        } catch (RuntimeException e) {
+            log.error("Error starting live event", e);
+            return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/rooms/{roomId}/end-live-event")
+    public ResponseEntity<?> endLiveEvent(@AuthenticationPrincipal UserDetails userDetails,
+                                          @PathVariable UUID roomId) {
+        try {
+            roomService.endLiveEvent(userDetails.getUsername(), roomId);
+            return ResponseEntity.ok(successResponse("Live event ended successfully"));
+        } catch (RuntimeException e) {
+            log.error("Error ending live event", e);
+            return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
+        }
+    }
+
+    // ==================== PLAYLIST ENDPOINTS ====================
+
+    @GetMapping("/playlists")
+    public ResponseEntity<List<WorshipPlaylistResponse>> getPublicPlaylists(@AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            List<WorshipPlaylistResponse> playlists = playlistService.getPublicPlaylists(userDetails.getUsername());
+            return ResponseEntity.ok(playlists);
+        } catch (RuntimeException e) {
+            log.error("Error fetching public playlists", e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/playlists/my-playlists")
+    public ResponseEntity<List<WorshipPlaylistResponse>> getMyPlaylists(@AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            List<WorshipPlaylistResponse> playlists = playlistService.getMyPlaylists(userDetails.getUsername());
+            return ResponseEntity.ok(playlists);
+        } catch (RuntimeException e) {
+            log.error("Error fetching user playlists", e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/playlists/popular")
+    public ResponseEntity<List<WorshipPlaylistResponse>> getPopularPlaylists(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "10") int limit) {
+        try {
+            List<WorshipPlaylistResponse> playlists = playlistService.getPopularPlaylists(userDetails.getUsername(), limit);
+            return ResponseEntity.ok(playlists);
+        } catch (RuntimeException e) {
+            log.error("Error fetching popular playlists", e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/playlists/search")
+    public ResponseEntity<List<WorshipPlaylistResponse>> searchPlaylists(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam String q) {
+        try {
+            List<WorshipPlaylistResponse> playlists = playlistService.searchPlaylists(userDetails.getUsername(), q);
+            return ResponseEntity.ok(playlists);
+        } catch (RuntimeException e) {
+            log.error("Error searching playlists", e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/playlists/{playlistId}")
+    public ResponseEntity<?> getPlaylistById(@AuthenticationPrincipal UserDetails userDetails,
+                                             @PathVariable UUID playlistId) {
+        try {
+            WorshipPlaylistResponse playlist = playlistService.getPlaylistById(userDetails.getUsername(), playlistId);
+            return ResponseEntity.ok(playlist);
+        } catch (RuntimeException e) {
+            log.error("Error fetching playlist", e);
+            return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/playlists")
+    public ResponseEntity<?> createPlaylist(@AuthenticationPrincipal UserDetails userDetails,
+                                            @Valid @RequestBody WorshipPlaylistRequest request) {
+        try {
+            WorshipPlaylistResponse playlist = playlistService.createPlaylist(userDetails.getUsername(), request);
+            return ResponseEntity.ok(playlist);
+        } catch (RuntimeException e) {
+            log.error("Error creating playlist", e);
+            return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
+        }
+    }
+
+    @PutMapping("/playlists/{playlistId}")
+    public ResponseEntity<?> updatePlaylist(@AuthenticationPrincipal UserDetails userDetails,
+                                            @PathVariable UUID playlistId,
+                                            @Valid @RequestBody WorshipPlaylistRequest request) {
+        try {
+            WorshipPlaylistResponse playlist = playlistService.updatePlaylist(userDetails.getUsername(), playlistId, request);
+            return ResponseEntity.ok(playlist);
+        } catch (RuntimeException e) {
+            log.error("Error updating playlist", e);
+            return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/playlists/{playlistId}")
+    public ResponseEntity<?> deletePlaylist(@AuthenticationPrincipal UserDetails userDetails,
+                                            @PathVariable UUID playlistId) {
+        try {
+            playlistService.deletePlaylist(userDetails.getUsername(), playlistId);
+            return ResponseEntity.ok(successResponse("Playlist deleted successfully"));
+        } catch (RuntimeException e) {
+            log.error("Error deleting playlist", e);
+            return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
+        }
+    }
+
+    // ==================== PLAYLIST ENTRY ENDPOINTS ====================
+
+    @GetMapping("/playlists/{playlistId}/entries")
+    public ResponseEntity<?> getPlaylistEntries(@AuthenticationPrincipal UserDetails userDetails,
+                                                @PathVariable UUID playlistId) {
+        try {
+            List<WorshipPlaylistEntryResponse> entries = playlistService.getPlaylistEntries(userDetails.getUsername(), playlistId);
+            return ResponseEntity.ok(entries);
+        } catch (RuntimeException e) {
+            log.error("Error fetching playlist entries", e);
+            return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/playlists/{playlistId}/entries")
+    public ResponseEntity<?> addPlaylistEntry(@AuthenticationPrincipal UserDetails userDetails,
+                                              @PathVariable UUID playlistId,
+                                              @Valid @RequestBody WorshipPlaylistEntryRequest request) {
+        try {
+            WorshipPlaylistEntryResponse entry = playlistService.addEntry(userDetails.getUsername(), playlistId, request);
+            return ResponseEntity.ok(entry);
+        } catch (RuntimeException e) {
+            log.error("Error adding playlist entry", e);
+            return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/playlists/entries/{entryId}")
+    public ResponseEntity<?> removePlaylistEntry(@AuthenticationPrincipal UserDetails userDetails,
+                                                 @PathVariable UUID entryId) {
+        try {
+            playlistService.removeEntry(userDetails.getUsername(), entryId);
+            return ResponseEntity.ok(successResponse("Entry removed successfully"));
+        } catch (RuntimeException e) {
+            log.error("Error removing playlist entry", e);
+            return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
+        }
+    }
+
+    @PutMapping("/playlists/entries/{entryId}/position")
+    public ResponseEntity<?> updateEntryPosition(@AuthenticationPrincipal UserDetails userDetails,
+                                                 @PathVariable UUID entryId,
+                                                 @RequestParam int position) {
+        try {
+            WorshipPlaylistEntryResponse entry = playlistService.updateEntryPosition(userDetails.getUsername(), entryId, position);
+            return ResponseEntity.ok(entry);
+        } catch (RuntimeException e) {
+            log.error("Error updating entry position", e);
             return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
         }
     }

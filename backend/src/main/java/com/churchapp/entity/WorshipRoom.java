@@ -20,13 +20,21 @@ import java.util.UUID;
 @Table(name = "worship_rooms", indexes = {
     @Index(name = "idx_worship_room_created_by", columnList = "created_by"),
     @Index(name = "idx_worship_room_is_active", columnList = "is_active"),
-    @Index(name = "idx_worship_room_created_at", columnList = "created_at")
+    @Index(name = "idx_worship_room_created_at", columnList = "created_at"),
+    @Index(name = "idx_worship_room_type", columnList = "room_type"),
+    @Index(name = "idx_worship_room_scheduled_start", columnList = "scheduled_start_time")
 })
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class WorshipRoom {
+
+    public enum RoomType {
+        LIVE,           // Original behavior - leader controls, everyone syncs (plug.dj style)
+        TEMPLATE,       // Saved playlist that anyone can start
+        LIVE_EVENT      // YouTube live stream with scheduling
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -43,6 +51,11 @@ public class WorshipRoom {
 
     @Column(name = "image_url", length = 500)
     private String imageUrl;
+
+    // Room type - determines behavior
+    @Enumerated(EnumType.STRING)
+    @Column(name = "room_type", length = 20)
+    private RoomType roomType = RoomType.LIVE;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", referencedColumnName = "id", nullable = false)
@@ -81,6 +94,44 @@ public class WorshipRoom {
 
     @Column(name = "skip_threshold")
     private Double skipThreshold = 0.5; // 50% of participants needed to skip
+
+    // === LIVE EVENT FIELDS ===
+    @Column(name = "scheduled_start_time")
+    private LocalDateTime scheduledStartTime;
+
+    @Column(name = "scheduled_end_time")
+    private LocalDateTime scheduledEndTime;
+
+    @Column(name = "live_stream_url", length = 500)
+    private String liveStreamUrl;
+
+    @Column(name = "is_live_stream_active")
+    private Boolean isLiveStreamActive = false;
+
+    @Column(name = "auto_start_enabled")
+    private Boolean autoStartEnabled = false;
+
+    @Column(name = "auto_close_enabled")
+    private Boolean autoCloseEnabled = true;
+
+    // === TEMPLATE FIELDS ===
+    @Column(name = "is_template")
+    private Boolean isTemplate = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "template_source_id", referencedColumnName = "id")
+    private WorshipRoom templateSource;
+
+    @Column(name = "allow_user_start")
+    private Boolean allowUserStart = false;
+
+    // === PLAYLIST FIELDS ===
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "playlist_id", referencedColumnName = "id")
+    private WorshipPlaylist playlist;
+
+    @Column(name = "current_playlist_position")
+    private Integer currentPlaylistPosition = 0;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

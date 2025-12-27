@@ -27,6 +27,8 @@ public class WorshipRoomService {
     private final WorshipRoomSettingsRepository settingsRepository;
     private final WorshipQueueRepository queueRepository;
     private final WorshipPlayHistoryRepository historyRepository;
+    private final WorshipPlaylistRepository playlistRepository;
+    private final WorshipPlaylistEntryRepository playlistEntryRepository;
     private final UserRepository userRepository;
     private final WorshipPermissionService permissionService;
     private final SimpMessagingTemplate messagingTemplate;
@@ -67,6 +69,40 @@ public class WorshipRoomService {
         room.setSkipThreshold(request.getSkipThreshold());
         room.setPlaybackStatus("stopped");
         room.setPlaybackPosition(0.0);
+
+        // Set room type
+        if (request.getRoomType() != null) {
+            try {
+                room.setRoomType(WorshipRoom.RoomType.valueOf(request.getRoomType()));
+            } catch (IllegalArgumentException e) {
+                room.setRoomType(WorshipRoom.RoomType.LIVE);
+            }
+        } else {
+            room.setRoomType(WorshipRoom.RoomType.LIVE);
+        }
+
+        // Handle LIVE_EVENT specific fields
+        if (room.getRoomType() == WorshipRoom.RoomType.LIVE_EVENT) {
+            room.setScheduledStartTime(request.getScheduledStartTime());
+            room.setScheduledEndTime(request.getScheduledEndTime());
+            room.setLiveStreamUrl(request.getLiveStreamUrl());
+            room.setAutoStartEnabled(request.getAutoStartEnabled() != null ? request.getAutoStartEnabled() : false);
+            room.setAutoCloseEnabled(request.getAutoCloseEnabled() != null ? request.getAutoCloseEnabled() : true);
+            room.setIsLiveStreamActive(false);
+        }
+
+        // Handle TEMPLATE specific fields
+        if (room.getRoomType() == WorshipRoom.RoomType.TEMPLATE) {
+            room.setIsTemplate(request.getIsTemplate() != null ? request.getIsTemplate() : true);
+            room.setAllowUserStart(request.getAllowUserStart() != null ? request.getAllowUserStart() : true);
+
+            // Link playlist if provided
+            if (request.getPlaylistId() != null) {
+                WorshipPlaylist playlist = playlistRepository.findById(request.getPlaylistId())
+                    .orElseThrow(() -> new RuntimeException("Playlist not found"));
+                room.setPlaylist(playlist);
+            }
+        }
 
         room = roomRepository.save(room);
 
@@ -340,6 +376,244 @@ public class WorshipRoomService {
         return waitlist.stream()
             .map(WorshipRoomParticipantResponse::fromEntity)
             .collect(Collectors.toList());
+    }
+
+    // ==================== ROOM TYPE SPECIFIC OPERATIONS ====================
+
+    @Transactional(readOnly = true)
+    public List<WorshipRoomResponse> getTemplateRooms(String userEmail) {
+        User user = getUserByEmail(userEmail);
+        List<WorshipRoom> rooms = roomRepository.findAvailableTemplateRooms();
+
+        return rooms.stream()
+            .map(room -> {
+                WorshipRoomResponse response = buildRoomResponse(room, user);
+                // Template rooms can be started by any user if allowUserStart is true
+                response.setCanStart(room.getAllowUserStart() != null && room.getAllowUserStart());
+                return response;
+            })
+            .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<WorshipRoomResponse> getLiveEventRooms(String userEmail) {
+        User user = getUserByEmail(userEmail);
+        List<WorshipRoom> rooms = roomRepository.findLiveEventRooms();
+
+        return rooms.stream()
+            .map(room -> buildRoomResponse(room, user))
+            .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<WorshipRoomResponse> getUpcomingLiveEvents(String userEmail) {
+        User user = getUserByEmail(userEmail);
+        List<WorshipRoom> rooms = roomRepository.findUpcomingLiveEvents(LocalDateTime.now());
+
+        return rooms.stream()
+            .map(room -> buildRoomResponse(room, user))
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Start a template room - creates a new LIVE session from the template
+     * and populates the queue from the playlist
+     */
+    @Transactional
+    public WorshipRoomResponse startTemplateRoom(String userEmail, UUID templateRoomId) {
+        User user = getUserByEmail(userEmail);
+        WorshipRoom templateRoom = getRoomByIdOrThrow(templateRoomId);
+
+        // Validate it's a template room
+        if (templateRoom.getRoomType() != WorshipRoom.RoomType.TEMPLATE) {
+            throw new RuntimeException("This is not a template room");
+        }
+
+        // Check if user can start this template
+        if (!templateRoom.getAllowUserStart() && !templateRoom.isCreator(user)) {
+            throw new RuntimeException("You don't have permission to start this template");
+        }
+
+        // Check if there's already an active session from this template
+        List<WorshipRoom> existingSessions = roomRepository.findByPlaylistIdAndIsActiveTrue(
+            templateRoom.getPlaylist() != null ? templateRoom.getPlaylist().getId() : null
+        );
+
+        boolean hasActiveSession = existingSessions.stream()
+            .anyMatch(r -> r.getRoomType() == WorshipRoom.RoomType.LIVE && "playing".equals(r.getPlaybackStatus()));
+
+        if (hasActiveSession) {
+            throw new RuntimeException("There's already an active session from this template");
+        }
+
+        // Create a new LIVE room based on the template
+        WorshipRoom liveRoom = new WorshipRoom();
+        liveRoom.setName(templateRoom.getName() + " - Session");
+        liveRoom.setDescription(templateRoom.getDescription());
+        liveRoom.setImageUrl(templateRoom.getImageUrl());
+        liveRoom.setCreatedBy(user);
+        liveRoom.setCurrentLeader(user);
+        liveRoom.setIsPrivate(false);
+        liveRoom.setMaxParticipants(templateRoom.getMaxParticipants());
+        liveRoom.setSkipThreshold(templateRoom.getSkipThreshold());
+        liveRoom.setRoomType(WorshipRoom.RoomType.LIVE);
+        liveRoom.setTemplateSource(templateRoom);
+        liveRoom.setPlaylist(templateRoom.getPlaylist());
+        liveRoom.setPlaybackStatus("stopped");
+        liveRoom.setPlaybackPosition(0.0);
+        liveRoom.setCurrentPlaylistPosition(0);
+
+        liveRoom = roomRepository.save(liveRoom);
+
+        // Create default settings
+        WorshipRoomSettings settings = WorshipRoomSettings.createDefault(liveRoom);
+        settingsRepository.save(settings);
+
+        // Add user as moderator
+        WorshipRoomParticipant participant = new WorshipRoomParticipant();
+        participant.setWorshipRoom(liveRoom);
+        participant.setUser(user);
+        participant.setRole(WorshipRoomParticipant.ParticipantRole.MODERATOR);
+        participant.setLastActiveAt(LocalDateTime.now());
+        participantRepository.save(participant);
+
+        // Populate queue from playlist if available
+        if (templateRoom.getPlaylist() != null) {
+            List<WorshipPlaylistEntry> playlistEntries = playlistEntryRepository
+                .findByPlaylistIdOrderByPositionAsc(templateRoom.getPlaylist().getId());
+
+            int position = 10000;
+            for (WorshipPlaylistEntry playlistEntry : playlistEntries) {
+                WorshipQueueEntry queueEntry = new WorshipQueueEntry();
+                queueEntry.setWorshipRoom(liveRoom);
+                queueEntry.setUser(user);
+                queueEntry.setVideoId(playlistEntry.getVideoId());
+                queueEntry.setVideoTitle(playlistEntry.getVideoTitle());
+                queueEntry.setVideoDuration(playlistEntry.getVideoDuration());
+                queueEntry.setVideoThumbnailUrl(playlistEntry.getVideoThumbnailUrl());
+                queueEntry.setPosition(position);
+                queueEntry.setStatus(WorshipQueueEntry.QueueStatus.WAITING);
+                queueRepository.save(queueEntry);
+                position += 10000;
+            }
+
+            // Increment playlist play count
+            WorshipPlaylist playlist = templateRoom.getPlaylist();
+            playlist.incrementPlayCount();
+            playlistRepository.save(playlist);
+        }
+
+        // Broadcast room creation
+        messagingTemplate.convertAndSend("/topic/worship/rooms",
+            Map.of("type", "ROOM_CREATED", "room", WorshipRoomResponse.fromEntity(liveRoom)));
+
+        return buildRoomResponse(liveRoom, user);
+    }
+
+    /**
+     * Start a live stream event
+     */
+    @Transactional
+    public WorshipRoomResponse startLiveEvent(String userEmail, UUID roomId) {
+        User user = getUserByEmail(userEmail);
+        WorshipRoom room = getRoomByIdOrThrow(roomId);
+
+        // Validate it's a live event room
+        if (room.getRoomType() != WorshipRoom.RoomType.LIVE_EVENT) {
+            throw new RuntimeException("This is not a live event room");
+        }
+
+        // Check permissions
+        if (!room.isCreator(user) && !permissionService.canEditRoom(user, room)) {
+            throw new RuntimeException("You don't have permission to start this live event");
+        }
+
+        // Extract video ID from live stream URL
+        String videoId = extractYouTubeVideoId(room.getLiveStreamUrl());
+        if (videoId == null) {
+            throw new RuntimeException("Invalid YouTube live stream URL");
+        }
+
+        // Start the live stream
+        room.setIsLiveStreamActive(true);
+        room.setCurrentVideoId(videoId);
+        room.setCurrentVideoTitle(room.getName() + " - Live");
+        room.setPlaybackStatus("playing");
+        room.setPlaybackStartedAt(LocalDateTime.now());
+        room.setCurrentLeader(user);
+
+        room = roomRepository.save(room);
+
+        // Broadcast the live event start
+        messagingTemplate.convertAndSend("/topic/worship/rooms/" + roomId,
+            Map.of("type", "LIVE_EVENT_STARTED", "room", WorshipRoomResponse.fromEntity(room)));
+
+        return buildRoomResponse(room, user);
+    }
+
+    /**
+     * End a live stream event
+     */
+    @Transactional
+    public void endLiveEvent(String userEmail, UUID roomId) {
+        User user = getUserByEmail(userEmail);
+        WorshipRoom room = getRoomByIdOrThrow(roomId);
+
+        // Validate it's a live event room
+        if (room.getRoomType() != WorshipRoom.RoomType.LIVE_EVENT) {
+            throw new RuntimeException("This is not a live event room");
+        }
+
+        // Check permissions
+        if (!room.isCreator(user) && !permissionService.canEditRoom(user, room)) {
+            throw new RuntimeException("You don't have permission to end this live event");
+        }
+
+        // End the live stream
+        room.setIsLiveStreamActive(false);
+        room.setPlaybackStatus("stopped");
+        room.setCurrentVideoId(null);
+        room.setCurrentVideoTitle(null);
+        room.setPlaybackStartedAt(null);
+
+        // If auto-close is enabled, deactivate the room
+        if (room.getAutoCloseEnabled() != null && room.getAutoCloseEnabled()) {
+            room.setIsActive(false);
+        }
+
+        roomRepository.save(room);
+
+        // Broadcast the live event end
+        messagingTemplate.convertAndSend("/topic/worship/rooms/" + roomId,
+            Map.of("type", "LIVE_EVENT_ENDED", "roomId", roomId));
+    }
+
+    /**
+     * Extract YouTube video ID from various URL formats including live streams
+     */
+    private String extractYouTubeVideoId(String url) {
+        if (url == null || url.trim().isEmpty()) {
+            return null;
+        }
+
+        // Patterns for various YouTube URL formats
+        String[] patterns = {
+            "(?:youtube\\.com/watch\\?v=|youtu\\.be/)([a-zA-Z0-9_-]{11})",
+            "youtube\\.com/embed/([a-zA-Z0-9_-]{11})",
+            "youtube\\.com/v/([a-zA-Z0-9_-]{11})",
+            "youtube\\.com/live/([a-zA-Z0-9_-]{11})",  // Live stream URL format
+            "^([a-zA-Z0-9_-]{11})$"  // Just the video ID
+        };
+
+        for (String pattern : patterns) {
+            java.util.regex.Pattern p = java.util.regex.Pattern.compile(pattern);
+            java.util.regex.Matcher m = p.matcher(url);
+            if (m.find()) {
+                return m.group(1);
+            }
+        }
+
+        return null;
     }
 
     // ==================== HELPER METHODS ====================
