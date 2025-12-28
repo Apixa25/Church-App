@@ -30,7 +30,13 @@
       "Bash(md5sum:*)",
       "Bash(aws elasticbeanstalk describe-environments:*)",
       "Bash(zip:*)",
-      "Bash(aws elasticbeanstalk update-environment:*)"
+      "Bash(aws elasticbeanstalk update-environment:*)",
+      "Bash(aws elbv2 describe-load-balancers:*)",
+      "Bash(iconv:*)",
+      "Bash(curl:*)",
+      "Bash(unzip:*)",
+      "Bash(aws elasticbeanstalk restart-app-server:*)",
+      "Bash(aws elb describe-load-balancers:*)"
     ],
     "deny": [],
     "ask": []

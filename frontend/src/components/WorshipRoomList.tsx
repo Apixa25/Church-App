@@ -69,22 +69,30 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
 
     // Subscribe to room list updates with error handling
     let cleanup: (() => void) | null = null;
+    let pollInterval: NodeJS.Timeout | null = null;
 
-    try {
-      cleanup = websocketService.subscribeToWorshipRoom('global', handleRoomUpdate);
-    } catch (err) {
-      console.warn('WebSocket not connected yet for worship rooms:', err);
-      // Polling fallback - refresh room list periodically if WebSocket isn't available
-      const pollInterval = setInterval(() => {
-        loadRooms();
-      }, 30000); // Refresh every 30 seconds
+    const setupWebSocket = async () => {
+      try {
+        // Wait for WebSocket connection first
+        await websocketService.connect();
+        cleanup = websocketService.subscribeToWorshipRoom('global', handleRoomUpdate);
+      } catch (err) {
+        console.warn('WebSocket not connected yet for worship rooms:', err);
+        // Polling fallback - refresh room list periodically if WebSocket isn't available
+        pollInterval = setInterval(() => {
+          loadRooms();
+        }, 30000); // Refresh every 30 seconds
+      }
+    };
 
-      cleanup = () => clearInterval(pollInterval);
-    }
+    setupWebSocket();
 
     return () => {
       if (cleanup) {
         cleanup();
+      }
+      if (pollInterval) {
+        clearInterval(pollInterval);
       }
     };
   }, []);
@@ -250,6 +258,7 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
       // Upload image if file is selected
       if (imageFile) {
         const uploadedUrl = await worshipAPI.uploadRoomImage(imageFile);
+        console.log('Image uploaded successfully, URL:', uploadedUrl);
         imageUrl = uploadedUrl;
       }
 
@@ -263,6 +272,8 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
         skipThreshold: createFormData.skipThreshold,
         roomType: createFormData.roomType,
       };
+
+      console.log('Creating room with data:', roomData);
 
       // Add live event specific fields
       if (createFormData.roomType === RoomType.LIVE_EVENT) {
@@ -281,6 +292,7 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
       }
 
       const response = await worshipAPI.createRoom(roomData);
+      console.log('Room created, response:', response.data);
 
       setShowCreateModal(false);
       resetCreateForm();
@@ -350,12 +362,23 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
       >
         <div className="room-thumbnail">
           {room.imageUrl ? (
-            <img src={room.imageUrl} alt={room.name} />
-          ) : (
-            <div className="room-thumbnail-placeholder">
-              {getRoomTypeIcon(room.roomType)}
-            </div>
-          )}
+            <img
+              src={room.imageUrl}
+              alt={room.name}
+              onError={(e) => {
+                console.error('Image failed to load:', room.imageUrl);
+                // Hide the broken image and show placeholder
+                e.currentTarget.style.display = 'none';
+                const placeholder = e.currentTarget.parentElement?.querySelector('.room-thumbnail-placeholder');
+                if (placeholder) {
+                  (placeholder as HTMLElement).style.display = 'flex';
+                }
+              }}
+            />
+          ) : null}
+          <div className="room-thumbnail-placeholder" style={{ display: room.imageUrl ? 'none' : 'flex' }}>
+            {getRoomTypeIcon(room.roomType)}
+          </div>
           {room.playbackStatus === PlaybackStatus.PLAYING && (
             <div className="playing-indicator">
               <span className="pulse-dot"></span>

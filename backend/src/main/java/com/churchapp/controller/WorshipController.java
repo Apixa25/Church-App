@@ -93,7 +93,11 @@ public class WorshipController {
     public ResponseEntity<?> createRoom(@AuthenticationPrincipal UserDetails userDetails,
                                        @Valid @RequestBody WorshipRoomRequest request) {
         try {
+            log.info("Creating worship room for user: {}, name: {}, imageUrl: {}",
+                userDetails.getUsername(), request.getName(), request.getImageUrl());
             WorshipRoomResponse room = roomService.createRoom(userDetails.getUsername(), request);
+            log.info("Room created successfully with id: {}, imageUrl in response: {}",
+                room.getId(), room.getImageUrl());
             return ResponseEntity.ok(room);
         } catch (RuntimeException e) {
             log.error("Error creating worship room", e);
