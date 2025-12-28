@@ -43,6 +43,7 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(50);
   const [isMuted, setIsMuted] = useState(false);
+  const [showCastHelp, setShowCastHelp] = useState(false);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize YouTube IFrame API
@@ -414,6 +415,65 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
                 />
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cast to TV Button */}
+      {videoId && (
+        <button
+          className="cast-help-btn"
+          onClick={() => setShowCastHelp(true)}
+          title="Cast to TV"
+        >
+          📺 Cast to TV
+        </button>
+      )}
+
+      {/* Cast Help Modal */}
+      {showCastHelp && (
+        <div className="cast-help-overlay" onClick={() => setShowCastHelp(false)}>
+          <div className="cast-help-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="cast-help-close" onClick={() => setShowCastHelp(false)}>
+              &times;
+            </button>
+            <h3>📺 Cast to Your TV</h3>
+            <p className="cast-help-intro">
+              Watch worship on the big screen! Use your device's built-in casting feature:
+            </p>
+
+            <div className="cast-instructions">
+              <div className="cast-device">
+                <h4>iPhone / iPad</h4>
+                <ol>
+                  <li>Swipe down from top-right corner to open Control Center</li>
+                  <li>Tap "Screen Mirroring"</li>
+                  <li>Select your Apple TV or AirPlay-compatible TV</li>
+                </ol>
+              </div>
+
+              <div className="cast-device">
+                <h4>Android</h4>
+                <ol>
+                  <li>Swipe down from top of screen to open Quick Settings</li>
+                  <li>Look for "Cast", "Smart View", or "Screen Cast"</li>
+                  <li>Select your Chromecast or Smart TV</li>
+                </ol>
+              </div>
+
+              <div className="cast-device">
+                <h4>Desktop Chrome</h4>
+                <ol>
+                  <li>Click the three-dot menu in the top right</li>
+                  <li>Select "Cast..."</li>
+                  <li>Choose your Chromecast device</li>
+                </ol>
+              </div>
+            </div>
+
+            <p className="cast-help-note">
+              Tip: For best results, connect your device to the same WiFi network as your TV.
+            </p>
           </div>
         </div>
       )}

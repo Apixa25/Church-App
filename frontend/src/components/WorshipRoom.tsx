@@ -54,20 +54,52 @@ const WorshipRoom: React.FC = () => {
       return;
     }
 
-    loadRoomData();
-    setupWebSocketSubscriptions();
+    let cleanupWebSocket: (() => void) | undefined;
+    let heartbeatInterval: NodeJS.Timeout | undefined;
 
-    // Send heartbeat every 30 seconds
-    const heartbeatInterval = setInterval(() => {
-      websocketService.sendWorshipHeartbeat(roomId);
-    }, 30000);
+    const initializeRoom = async () => {
+      // Load room data first
+      await loadRoomData();
 
-    // Send presence on mount
-    websocketService.sendWorshipPresence(roomId, 'online');
+      // Ensure WebSocket is connected before subscribing
+      try {
+        await websocketService.connect();
+        cleanupWebSocket = setupWebSocketSubscriptions();
+
+        // Send heartbeat every 30 seconds
+        heartbeatInterval = setInterval(() => {
+          try {
+            websocketService.sendWorshipHeartbeat(roomId);
+          } catch (err) {
+            console.warn('Failed to send heartbeat:', err);
+          }
+        }, 30000);
+
+        // Send presence on mount
+        try {
+          websocketService.sendWorshipPresence(roomId, 'online');
+        } catch (err) {
+          console.warn('Failed to send presence:', err);
+        }
+      } catch (err) {
+        console.error('Failed to connect WebSocket:', err);
+      }
+    };
+
+    initializeRoom();
 
     return () => {
-      clearInterval(heartbeatInterval);
-      websocketService.sendWorshipPresence(roomId, 'offline');
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+      }
+      if (cleanupWebSocket) {
+        cleanupWebSocket();
+      }
+      try {
+        websocketService.sendWorshipPresence(roomId, 'offline');
+      } catch (err) {
+        console.warn('Failed to send offline presence:', err);
+      }
     };
   }, [roomId, navigate]);
 
