@@ -24,7 +24,13 @@
       "Bash(aws ssm send-command:*)",
       "Bash(aws s3 cp:*)",
       "Bash(aws elasticbeanstalk create-application-version:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(git -C \"c:/Users/Admin/Church-App/Church-App\" status)",
+      "Bash(git -C \"c:/Users/Admin/Church-App/Church-App\" log --oneline -5)",
+      "Bash(md5sum:*)",
+      "Bash(aws elasticbeanstalk describe-environments:*)",
+      "Bash(zip:*)",
+      "Bash(aws elasticbeanstalk update-environment:*)"
     ],
     "deny": [],
     "ask": []

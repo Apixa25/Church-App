@@ -220,8 +220,65 @@ export const worshipAPI = {
 
   // ==================== FILE UPLOAD OPERATIONS ====================
 
-  // Upload room image
+  // Get pre-signed URL for direct S3 upload (X.com/Twitter approach)
+  getPresignedUploadUrl: async (fileName: string, contentType: string, fileSize: number): Promise<{
+    presignedUrl: string;
+    s3Key: string;
+    finalUrl: string;
+  }> => {
+    const response = await api.post('/worship/presigned-upload', {
+      fileName,
+      contentType,
+      fileSize,
+    });
+    return response.data;
+  },
+
+  // Confirm upload completion after direct S3 upload
+  confirmUpload: async (s3Key: string, fileName: string, contentType: string, fileSize: number): Promise<{
+    url: string;
+    success: boolean;
+  }> => {
+    const response = await api.post('/worship/confirm-upload', {
+      s3Key,
+      fileName,
+      contentType,
+      fileSize,
+    });
+    return response.data;
+  },
+
+  // Upload room image using direct S3 upload (bypasses NGINX, like X.com does)
   uploadRoomImage: async (file: File): Promise<string> => {
+    // Step 1: Get pre-signed URL from our backend
+    const { presignedUrl, s3Key, finalUrl } = await worshipAPI.getPresignedUploadUrl(
+      file.name,
+      file.type,
+      file.size
+    );
+
+    // Step 2: Upload directly to S3 using the pre-signed URL
+    const uploadResponse = await fetch(presignedUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      },
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error(`S3 upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+    }
+
+    // Step 3: Confirm upload completion with our backend
+    await worshipAPI.confirmUpload(s3Key, file.name, file.type, file.size);
+
+    // Return the final accessible URL
+    return finalUrl;
+  },
+
+  // Legacy upload method (through server - kept for backwards compatibility)
+  uploadRoomImageLegacy: async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append('file', file);
 

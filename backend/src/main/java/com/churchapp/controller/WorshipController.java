@@ -1,6 +1,7 @@
 package com.churchapp.controller;
 
 import com.churchapp.dto.*;
+import com.churchapp.dto.PresignedUploadResponse;
 import com.churchapp.service.FileUploadService;
 import com.churchapp.service.WorshipPlaylistService;
 import com.churchapp.service.WorshipQueueService;
@@ -517,6 +518,83 @@ public class WorshipController {
     }
 
     // ==================== FILE UPLOAD ENDPOINTS ====================
+
+    /**
+     * Get pre-signed URL for direct S3 upload (X.com/Twitter approach)
+     * This allows the client to upload directly to S3, bypassing NGINX size limits.
+     */
+    @PostMapping("/presigned-upload")
+    public ResponseEntity<?> getPresignedUploadUrl(@AuthenticationPrincipal UserDetails userDetails,
+                                                   @RequestBody Map<String, Object> request) {
+        try {
+            String fileName = (String) request.get("fileName");
+            String contentType = (String) request.get("contentType");
+            Long fileSize = request.get("fileSize") != null ?
+                ((Number) request.get("fileSize")).longValue() : null;
+
+            log.info("Generating presigned upload URL for user: {}, file: {}, type: {}, size: {}",
+                userDetails.getUsername(), fileName, contentType, fileSize);
+
+            // Validate image type
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return ResponseEntity.badRequest().body(errorResponse("Only image files are allowed"));
+            }
+
+            // Validate file size (max 10MB for images)
+            if (fileSize != null && fileSize > 10 * 1024 * 1024) {
+                return ResponseEntity.badRequest().body(errorResponse("File size exceeds maximum limit of 10MB"));
+            }
+
+            // Generate presigned URL
+            PresignedUploadResponse result =
+                fileUploadService.generatePresignedUploadUrl(fileName, contentType, fileSize, "worship-rooms");
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("presignedUrl", result.getPresignedUrl());
+            response.put("s3Key", result.getS3Key());
+            response.put("finalUrl", result.getFileUrl());
+
+            log.info("Generated presigned URL for key: {}", result.getS3Key());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error generating presigned upload URL", e);
+            return ResponseEntity.badRequest().body(errorResponse("Failed to generate upload URL: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Confirm upload completion after client uploads directly to S3
+     */
+    @PostMapping("/confirm-upload")
+    public ResponseEntity<?> confirmUpload(@AuthenticationPrincipal UserDetails userDetails,
+                                           @RequestBody Map<String, Object> request) {
+        try {
+            String s3Key = (String) request.get("s3Key");
+            String fileName = (String) request.get("fileName");
+            String contentType = (String) request.get("contentType");
+            Long fileSize = request.get("fileSize") != null ?
+                ((Number) request.get("fileSize")).longValue() : null;
+
+            log.info("Confirming upload for user: {}, s3Key: {}", userDetails.getUsername(), s3Key);
+
+            if (s3Key == null || s3Key.isEmpty()) {
+                return ResponseEntity.badRequest().body(errorResponse("s3Key is required"));
+            }
+
+            // Handle upload completion (this could update database records, etc.)
+            String finalUrl = fileUploadService.handleUploadCompletion(s3Key, fileName, contentType, fileSize, "worship-rooms");
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("url", finalUrl);
+            response.put("success", true);
+
+            log.info("Upload confirmed, final URL: {}", finalUrl);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error confirming upload", e);
+            return ResponseEntity.badRequest().body(errorResponse("Failed to confirm upload: " + e.getMessage()));
+        }
+    }
 
     @PostMapping("/upload-room-image")
     public ResponseEntity<?> uploadRoomImage(@AuthenticationPrincipal UserDetails userDetails,
