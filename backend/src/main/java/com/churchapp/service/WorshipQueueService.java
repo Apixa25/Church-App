@@ -489,9 +489,14 @@ public class WorshipQueueService {
     private WorshipQueueEntryResponse buildQueueEntryResponse(WorshipQueueEntry entry, User user) {
         WorshipQueueEntryResponse response = WorshipQueueEntryResponse.fromEntity(entry);
 
-        // Add user voting context
-        response.setUserHasUpvoted(entry.hasUserVoted(user, WorshipSongVote.VoteType.UPVOTE));
-        response.setUserHasVotedSkip(entry.hasUserVoted(user, WorshipSongVote.VoteType.SKIP));
+        // Use repository methods to get accurate vote counts from database
+        // (Entity's lazy-loaded votes collection may not include newly saved votes)
+        response.setUpvoteCount(voteRepository.countUpvotes(entry));
+        response.setSkipVoteCount(voteRepository.countSkipVotes(entry));
+
+        // Use repository to check user's votes
+        response.setUserHasUpvoted(voteRepository.hasUserVoted(entry, user, WorshipSongVote.VoteType.UPVOTE));
+        response.setUserHasVotedSkip(voteRepository.hasUserVoted(entry, user, WorshipSongVote.VoteType.SKIP));
 
         return response;
     }

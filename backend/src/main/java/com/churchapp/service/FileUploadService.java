@@ -180,7 +180,7 @@ public class FileUploadService {
     private String uploadOriginalFileFromBytes(byte[] fileBytes, String contentType, String originalFilename, String folder) {
         String fileExtension = getFileExtension(originalFilename);
         String uniqueFilename = UUID.randomUUID().toString() + fileExtension;
-        String key = folder + "/originals/" + uniqueFilename;
+        String key = "media/" + folder + "/originals/" + uniqueFilename;
         
         log.info("Uploading original file to S3: bucket={}, key={}, size={}", 
                 bucketName, key, fileBytes.length);
@@ -244,7 +244,7 @@ public class FileUploadService {
                 var result = imageProcessingService.processImage(file);
                 
                 // Upload optimized version
-                String optimizedKey = mediaFile.getFolder() + "/optimized/" + UUID.randomUUID() + ".jpg";
+                String optimizedKey = "media/" + mediaFile.getFolder() + "/optimized/" + UUID.randomUUID() + ".jpg";
                 uploadProcessedFile(result.getProcessedImageData(), optimizedKey, "image/jpeg");
                 
                 String optimizedUrl = generateAccessibleUrl(optimizedKey);
@@ -615,7 +615,7 @@ public class FileUploadService {
         // Generate unique S3 key
         String fileExtension = getFileExtension(fileName);
         String uniqueFilename = UUID.randomUUID().toString() + fileExtension;
-        String s3Key = folder + "/originals/" + uniqueFilename;
+        String s3Key = "media/" + folder + "/originals/" + uniqueFilename;
         
         // Generate final URL (for after upload) - use generateAccessibleUrl to ensure CloudFront if configured
         // This ensures consistency - the URL returned here should match what handleUploadCompletion returns
@@ -818,7 +818,7 @@ public class FileUploadService {
                 var result = imageProcessingService.processImage(file);
                 
                 // Upload optimized version
-                String optimizedKey = mediaFile.getFolder() + "/optimized/" + UUID.randomUUID() + ".jpg";
+                String optimizedKey = "media/" + mediaFile.getFolder() + "/optimized/" + UUID.randomUUID() + ".jpg";
                 uploadProcessedFile(result.getProcessedImageData(), optimizedKey, "image/jpeg");
                 
                 String optimizedUrl = generateAccessibleUrl(optimizedKey);

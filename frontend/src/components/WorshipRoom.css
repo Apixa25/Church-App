@@ -161,11 +161,13 @@
   justify-content: space-between;
   align-items: center;
   gap: 16px;
+  overflow: hidden;
 }
 
 .song-details {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
 .song-details h3 {
