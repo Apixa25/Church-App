@@ -50,7 +50,7 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
   const [playlists, setPlaylists] = useState<WorshipPlaylist[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<'playing' | 'myRooms' | 'public' | 'templates' | 'liveEvents'>('playing');
+  const [activeView, setActiveView] = useState<'playing' | 'myRooms' | 'public' | 'playlists' | 'liveEvents'>('playing');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createFormData, setCreateFormData] = useState({
     name: '',
@@ -454,7 +454,7 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
 
   const getRoomTypeBadge = (room: WorshipRoom) => {
     if (room.roomType === RoomType.TEMPLATE) {
-      return <span className="room-type-badge template-badge">Template</span>;
+      return <span className="room-type-badge template-badge">Playlist</span>;
     }
     if (room.roomType === RoomType.LIVE_EVENT) {
       if (room.isLiveStreamActive) {
@@ -594,7 +594,7 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
             </div>
           )}
 
-          {/* Template room actions */}
+          {/* Playlist room actions */}
           {isTemplate && (
             <div className="room-actions template-actions">
               <button
@@ -602,7 +602,7 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
                 className="start-template-button"
                 disabled={startingRoomId === room.id}
               >
-                {startingRoomId === room.id ? 'Starting...' : 'Start Worship Session'}
+                {startingRoomId === room.id ? 'Starting...' : '▶ Play'}
               </button>
             </div>
           )}
@@ -671,8 +671,8 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
                 onClick={() => setCreateFormData({ ...createFormData, roomType: RoomType.TEMPLATE })}
               >
                 <span className="room-type-icon">📋</span>
-                <span className="room-type-label">Playlist Template</span>
-                <span className="room-type-desc">Reusable playlist anyone can start</span>
+                <span className="room-type-label">Playlist</span>
+                <span className="room-type-desc">Build a playlist to worship together</span>
               </button>
               <button
                 type="button"
@@ -771,8 +771,8 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
           {/* Template Playlist Songs */}
           {createFormData.roomType === RoomType.TEMPLATE && (
             <div className="form-group template-songs-section">
-              <label>Playlist Songs</label>
-              <p className="section-hint">Add songs to your template playlist. Others can start a session with these songs pre-loaded.</p>
+              <label>Songs</label>
+              <p className="section-hint">Add songs to your playlist. Anyone can press play and worship together!</p>
 
               {/* Added songs list */}
               {templateSongs.length > 0 && (
@@ -830,7 +830,7 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
               </div>
 
               {templateSongs.length === 0 && (
-                <p className="empty-playlist-hint">No songs added yet. Add at least one song to create a useful template.</p>
+                <p className="empty-playlist-hint">No songs added yet. Add at least one song to create your playlist.</p>
               )}
             </div>
           )}
@@ -866,45 +866,50 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
             )}
           </div>
 
-          <div className="form-group">
-            <label htmlFor="max-participants">Max Participants</label>
-            <input
-              id="max-participants"
-              type="number"
-              value={createFormData.maxParticipants}
-              onChange={(e) => setCreateFormData({ ...createFormData, maxParticipants: parseInt(e.target.value) })}
-              min={2}
-              max={500}
-            />
-          </div>
+          {/* Advanced options - hide for playlists to keep it simple */}
+          {createFormData.roomType !== RoomType.TEMPLATE && (
+            <>
+              <div className="form-group">
+                <label htmlFor="max-participants">Max Participants</label>
+                <input
+                  id="max-participants"
+                  type="number"
+                  value={createFormData.maxParticipants}
+                  onChange={(e) => setCreateFormData({ ...createFormData, maxParticipants: parseInt(e.target.value) })}
+                  min={2}
+                  max={500}
+                />
+              </div>
 
-          {/* Skip threshold only for live rooms and templates */}
-          {createFormData.roomType !== RoomType.LIVE_EVENT && (
-            <div className="form-group">
-              <label htmlFor="skip-threshold">Skip Threshold (0.0 - 1.0)</label>
-              <input
-                id="skip-threshold"
-                type="number"
-                step="0.1"
-                value={createFormData.skipThreshold}
-                onChange={(e) => setCreateFormData({ ...createFormData, skipThreshold: parseFloat(e.target.value) })}
-                min={0}
-                max={1}
-              />
-              <small>Percentage of votes needed to skip a song (0.5 = 50%)</small>
-            </div>
+              {/* Skip threshold only for live rooms */}
+              {createFormData.roomType !== RoomType.LIVE_EVENT && (
+                <div className="form-group">
+                  <label htmlFor="skip-threshold">Skip Threshold (0.0 - 1.0)</label>
+                  <input
+                    id="skip-threshold"
+                    type="number"
+                    step="0.1"
+                    value={createFormData.skipThreshold}
+                    onChange={(e) => setCreateFormData({ ...createFormData, skipThreshold: parseFloat(e.target.value) })}
+                    min={0}
+                    max={1}
+                  />
+                  <small>Percentage of votes needed to skip a song (0.5 = 50%)</small>
+                </div>
+              )}
+
+              <div className="form-group checkbox-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={createFormData.isPrivate}
+                    onChange={(e) => setCreateFormData({ ...createFormData, isPrivate: e.target.checked })}
+                  />
+                  <span>Make this room private</span>
+                </label>
+              </div>
+            </>
           )}
-
-          <div className="form-group checkbox-group">
-            <label>
-              <input
-                type="checkbox"
-                checked={createFormData.isPrivate}
-                onChange={(e) => setCreateFormData({ ...createFormData, isPrivate: e.target.checked })}
-              />
-              <span>Make this room private</span>
-            </label>
-          </div>
 
           <div className="modal-actions">
             <button
@@ -963,10 +968,10 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
             ▶️ Now Playing
           </button>
           <button
-            onClick={() => setActiveView('templates')}
-            className={`nav-btn ${activeView === 'templates' ? 'active' : ''}`}
+            onClick={() => setActiveView('playlists')}
+            className={`nav-btn ${activeView === 'playlists' ? 'active' : ''}`}
           >
-            📋 Templates
+            📋 Playlists
           </button>
           <button
             onClick={() => setActiveView('liveEvents')}
@@ -1003,8 +1008,8 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
               <p>🎵 No rooms are currently playing</p>
               <p>Start a worship session or join a public room!</p>
               <div className="empty-state-actions">
-                <button onClick={() => setActiveView('templates')} className="primary-button">
-                  Browse Templates
+                <button onClick={() => setActiveView('playlists')} className="primary-button">
+                  Browse Playlists
                 </button>
                 <button onClick={() => setActiveView('public')} className="secondary-button">
                   Browse Public Rooms
@@ -1019,16 +1024,16 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
         </div>
       )}
 
-      {activeView === 'templates' && (
+      {activeView === 'playlists' && (
         <div className="rooms-section">
-          <h3>Playlist Templates</h3>
-          <p className="section-description">Start a worship session from a curated playlist. Everyone can worship together!</p>
+          <h3>Playlists</h3>
+          <p className="section-description">Press play on a playlist to start worshipping together!</p>
           {templateRooms.length === 0 ? (
             <div className="empty-state">
-              <p>📋 No playlist templates available yet</p>
-              <p>Create a template playlist for others to enjoy!</p>
+              <p>📋 No playlists available yet</p>
+              <p>Create a playlist for everyone to enjoy!</p>
               <button onClick={() => setShowCreateModal(true)} className="primary-button">
-                Create Template
+                Create Playlist
               </button>
             </div>
           ) : (
