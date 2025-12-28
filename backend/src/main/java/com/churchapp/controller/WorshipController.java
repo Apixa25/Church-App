@@ -259,6 +259,21 @@ public class WorshipController {
         }
     }
 
+    // ==================== PLAY HISTORY ENDPOINTS ====================
+
+    @GetMapping("/rooms/{roomId}/history")
+    public ResponseEntity<?> getRoomHistory(@AuthenticationPrincipal UserDetails userDetails,
+                                           @PathVariable UUID roomId,
+                                           @RequestParam(defaultValue = "20") int limit) {
+        try {
+            List<WorshipPlayHistoryResponse> history = roomService.getRoomHistory(roomId, limit);
+            return ResponseEntity.ok(history);
+        } catch (RuntimeException e) {
+            log.error("Error fetching room history", e);
+            return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
+        }
+    }
+
     // ==================== VOTING ENDPOINTS ====================
 
     @PostMapping("/vote")

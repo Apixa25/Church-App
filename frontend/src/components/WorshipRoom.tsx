@@ -6,10 +6,12 @@ import {
   WorshipRoom as WorshipRoomType,
   WorshipQueueEntry,
   WorshipRoomParticipant,
+  WorshipPlayHistory,
   PlaybackStatus,
   PlaybackAction,
   ParticipantRole,
   canControlPlayback as canControl,
+  formatDuration,
 } from '../types/Worship';
 import WorshipPlayer from './WorshipPlayer';
 import WorshipQueue from './WorshipQueue';
@@ -28,6 +30,9 @@ const WorshipRoom: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [history, setHistory] = useState<WorshipPlayHistory[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [userRole, setUserRole] = useState<ParticipantRole>(ParticipantRole.LISTENER);
 
   // Settings form state
@@ -316,6 +321,39 @@ const WorshipRoom: React.FC = () => {
     }
   };
 
+  const loadHistory = async () => {
+    if (!roomId) return;
+    try {
+      setHistoryLoading(true);
+      const response = await worshipAPI.getRoomHistory(roomId, 20);
+      setHistory(response.data);
+    } catch (err) {
+      console.error('Error loading history:', err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const toggleHistory = () => {
+    if (!showHistory) {
+      loadHistory();
+    }
+    setShowHistory(!showHistory);
+  };
+
+  const formatPlayedTime = (playedAt: string): string => {
+    const date = new Date(playedAt);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return date.toLocaleDateString();
+  };
+
   const handlePlaybackControl = (action: PlaybackAction, seekPosition?: number) => {
     if (!roomId || !canControl(userRole)) {
       console.warn('Insufficient permissions for playback control');
@@ -552,6 +590,66 @@ const WorshipRoom: React.FC = () => {
             }}
             userRole={userRole}
           />
+
+          {/* History Section */}
+          <div className="history-section">
+            <button className="history-toggle-button" onClick={toggleHistory}>
+              <span className="history-icon">📜</span>
+              <span>Play History</span>
+              <span className="history-toggle-arrow">{showHistory ? '▲' : '▼'}</span>
+            </button>
+
+            {showHistory && (
+              <div className="history-content">
+                {historyLoading ? (
+                  <div className="history-loading">Loading history...</div>
+                ) : history.length === 0 ? (
+                  <div className="history-empty">No songs have been played yet</div>
+                ) : (
+                  <div className="history-list">
+                    {history.map((item) => (
+                      <div key={item.id} className={`history-item ${item.wasSkipped ? 'skipped' : ''}`}>
+                        <div className="history-item-thumbnail">
+                          {item.videoThumbnailUrl ? (
+                            <img src={item.videoThumbnailUrl} alt={item.videoTitle} />
+                          ) : (
+                            <div className="history-item-placeholder">🎵</div>
+                          )}
+                          {item.wasSkipped && <span className="skipped-badge">Skipped</span>}
+                        </div>
+                        <div className="history-item-info">
+                          <div className="history-item-title">{item.videoTitle}</div>
+                          <div className="history-item-meta">
+                            <span className="history-played-time">{formatPlayedTime(item.playedAt)}</span>
+                            {item.videoDuration && (
+                              <>
+                                <span className="meta-separator">•</span>
+                                <span className="history-duration">{formatDuration(item.videoDuration)}</span>
+                              </>
+                            )}
+                            {(item.upvoteCount > 0 || item.skipVoteCount > 0) && (
+                              <>
+                                <span className="meta-separator">•</span>
+                                <span className="history-votes">
+                                  {item.upvoteCount > 0 && <span>👍 {item.upvoteCount}</span>}
+                                  {item.skipVoteCount > 0 && <span>⏭️ {item.skipVoteCount}</span>}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          {item.leaderName && (
+                            <div className="history-leader">
+                              Led by {item.leaderName}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right Column - Participants (if showing) */}

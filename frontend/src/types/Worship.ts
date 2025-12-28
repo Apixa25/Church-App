@@ -167,6 +167,25 @@ export enum VoteType {
   SKIP = 'SKIP'
 }
 
+// ==================== PLAY HISTORY TYPES ====================
+
+export interface WorshipPlayHistory {
+  id: string;
+  videoId: string;
+  videoTitle: string;
+  videoDuration?: number;
+  videoThumbnailUrl?: string;
+  playedAt: string;
+  completedAt?: string;
+  wasSkipped: boolean;
+  upvoteCount: number;
+  skipVoteCount: number;
+  participantCount: number;
+  leaderName?: string;
+  leaderProfilePic?: string;
+  leaderId?: string;
+}
+
 // ==================== PLAYBACK COMMAND TYPES ====================
 
 export interface WorshipPlaybackCommand {

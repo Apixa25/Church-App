@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { worshipAPI } from '../services/worshipApi';
-import { WorshipRoom, PlaybackStatus, RoomType, WorshipPlaylist, formatScheduledTime, isScheduledSoon } from '../types/Worship';
+import { WorshipRoom, PlaybackStatus, RoomType, WorshipPlaylist, formatScheduledTime, isScheduledSoon, extractYouTubeVideoId } from '../types/Worship';
 import websocketService from '../services/websocketService';
 import LoadingSpinner from './LoadingSpinner';
 import './WorshipRoomList.css';
+
+// Type for songs being added to a template
+interface TemplateSong {
+  videoId: string;
+  videoTitle: string;
+  videoDuration?: number;
+  videoThumbnailUrl?: string;
+}
 
 interface WorshipRoomListProps {
   onRoomSelect?: (room: WorshipRoom) => void;
@@ -62,6 +70,10 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
   const [createLoading, setCreateLoading] = useState(false);
   const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
   const [startingRoomId, setStartingRoomId] = useState<string | null>(null);
+  // Template song states
+  const [templateSongs, setTemplateSongs] = useState<TemplateSong[]>([]);
+  const [templateSongUrl, setTemplateSongUrl] = useState('');
+  const [addingSong, setAddingSong] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -289,6 +301,38 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
       if (createFormData.roomType === RoomType.TEMPLATE) {
         roomData.isTemplate = true;
         roomData.allowUserStart = true;
+
+        // If songs were added, create a playlist first
+        if (templateSongs.length > 0) {
+          console.log('Creating playlist for template with', templateSongs.length, 'songs');
+
+          // Create the playlist
+          const playlistResponse = await worshipAPI.createPlaylist({
+            name: createFormData.name,
+            description: createFormData.description || `Playlist for ${createFormData.name}`,
+            imageUrl,
+            isPublic: !createFormData.isPrivate,
+          });
+
+          const playlistId = playlistResponse.data.id;
+          console.log('Playlist created:', playlistId);
+
+          // Add each song to the playlist
+          for (let i = 0; i < templateSongs.length; i++) {
+            const song = templateSongs[i];
+            await worshipAPI.addPlaylistEntry(playlistId, {
+              videoId: song.videoId,
+              videoTitle: song.videoTitle,
+              videoDuration: song.videoDuration,
+              videoThumbnailUrl: song.videoThumbnailUrl,
+              position: (i + 1) * 10000, // Same position scheme as queue
+            });
+          }
+          console.log('All songs added to playlist');
+
+          // Link the playlist to the template room
+          roomData.playlistId = playlistId;
+        }
       }
 
       const response = await worshipAPI.createRoom(roomData);
@@ -325,6 +369,79 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
     });
     setImageFile(null);
     setImagePreview('');
+    setTemplateSongs([]);
+    setTemplateSongUrl('');
+  };
+
+  // Fetch YouTube video title using oEmbed API (no API key required)
+  const fetchYouTubeTitle = async (videoId: string): Promise<string> => {
+    try {
+      const response = await fetch(
+        `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        return data.title || `YouTube Video ${videoId}`;
+      }
+    } catch (err) {
+      console.warn('Failed to fetch YouTube title:', err);
+    }
+    return `YouTube Video ${videoId}`;
+  };
+
+  // Add song to template playlist
+  const handleAddTemplateSong = async () => {
+    if (!templateSongUrl.trim()) return;
+
+    const videoId = extractYouTubeVideoId(templateSongUrl);
+    if (!videoId) {
+      alert('Invalid YouTube URL. Please enter a valid YouTube video link.');
+      return;
+    }
+
+    // Check if already added
+    if (templateSongs.some(s => s.videoId === videoId)) {
+      alert('This song is already in the playlist.');
+      return;
+    }
+
+    setAddingSong(true);
+    try {
+      // Fetch video title using oEmbed API
+      const videoTitle = await fetchYouTubeTitle(videoId);
+      const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+
+      setTemplateSongs([...templateSongs, {
+        videoId,
+        videoTitle,
+        videoThumbnailUrl: thumbnailUrl,
+      }]);
+      setTemplateSongUrl('');
+    } catch (err) {
+      console.error('Error fetching video info:', err);
+      // Fall back to just adding with video ID
+      setTemplateSongs([...templateSongs, {
+        videoId,
+        videoTitle: `YouTube Video (${videoId})`,
+        videoThumbnailUrl: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+      }]);
+      setTemplateSongUrl('');
+    } finally {
+      setAddingSong(false);
+    }
+  };
+
+  // Remove song from template playlist
+  const handleRemoveTemplateSong = (index: number) => {
+    setTemplateSongs(templateSongs.filter((_, i) => i !== index));
+  };
+
+  // Format duration for display
+  const formatDuration = (seconds?: number): string => {
+    if (!seconds) return '';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const getRoomTypeIcon = (roomType?: RoomType): string => {
@@ -649,6 +766,73 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
                 </label>
               </div>
             </>
+          )}
+
+          {/* Template Playlist Songs */}
+          {createFormData.roomType === RoomType.TEMPLATE && (
+            <div className="form-group template-songs-section">
+              <label>Playlist Songs</label>
+              <p className="section-hint">Add songs to your template playlist. Others can start a session with these songs pre-loaded.</p>
+
+              {/* Added songs list */}
+              {templateSongs.length > 0 && (
+                <div className="template-songs-list">
+                  {templateSongs.map((song, index) => (
+                    <div key={song.videoId} className="template-song-item">
+                      <div className="template-song-thumbnail">
+                        {song.videoThumbnailUrl ? (
+                          <img src={song.videoThumbnailUrl} alt={song.videoTitle} />
+                        ) : (
+                          <span>🎵</span>
+                        )}
+                      </div>
+                      <div className="template-song-info">
+                        <span className="template-song-title">{song.videoTitle}</span>
+                        {song.videoDuration && (
+                          <span className="template-song-duration">{formatDuration(song.videoDuration)}</span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        className="remove-song-button"
+                        onClick={() => handleRemoveTemplateSong(index)}
+                        title="Remove song"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add song input */}
+              <div className="add-song-input-group">
+                <input
+                  type="text"
+                  value={templateSongUrl}
+                  onChange={(e) => setTemplateSongUrl(e.target.value)}
+                  placeholder="Paste YouTube URL..."
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddTemplateSong();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddTemplateSong}
+                  disabled={addingSong || !templateSongUrl.trim()}
+                  className="add-song-btn"
+                >
+                  {addingSong ? 'Adding...' : '+ Add Song'}
+                </button>
+              </div>
+
+              {templateSongs.length === 0 && (
+                <p className="empty-playlist-hint">No songs added yet. Add at least one song to create a useful template.</p>
+              )}
+            </div>
           )}
 
           <div className="form-group">

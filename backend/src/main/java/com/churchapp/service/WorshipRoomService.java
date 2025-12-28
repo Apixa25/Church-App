@@ -616,6 +616,18 @@ public class WorshipRoomService {
         return null;
     }
 
+    // ==================== PLAY HISTORY ====================
+
+    @Transactional(readOnly = true)
+    public List<WorshipPlayHistoryResponse> getRoomHistory(UUID roomId, int limit) {
+        WorshipRoom room = getRoomByIdOrThrow(roomId);
+        Pageable pageable = PageRequest.of(0, Math.min(limit, 50)); // Cap at 50 max
+        return historyRepository.findByWorshipRoomOrderByPlayedAtDesc(room, pageable)
+            .stream()
+            .map(WorshipPlayHistoryResponse::fromEntity)
+            .collect(Collectors.toList());
+    }
+
     // ==================== HELPER METHODS ====================
 
     private User getUserByEmail(String email) {

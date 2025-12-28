@@ -10,7 +10,8 @@ import {
   WorshipPlaylist,
   WorshipPlaylistRequest,
   WorshipPlaylistEntry,
-  WorshipPlaylistEntryRequest
+  WorshipPlaylistEntryRequest,
+  WorshipPlayHistory
 } from '../types/Worship';
 
 export const worshipAPI = {
@@ -109,6 +110,12 @@ export const worshipAPI = {
   // Remove song from queue
   removeFromQueue: (queueEntryId: string): Promise<{ data: { message: string } }> =>
     api.delete(`/worship/queue/${queueEntryId}`),
+
+  // ==================== PLAY HISTORY OPERATIONS ====================
+
+  // Get room play history
+  getRoomHistory: (roomId: string, limit: number = 20): Promise<{ data: WorshipPlayHistory[] }> =>
+    api.get(`/worship/rooms/${roomId}/history?limit=${limit}`),
 
   // ==================== VOTING OPERATIONS ====================
 
