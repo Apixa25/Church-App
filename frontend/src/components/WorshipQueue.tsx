@@ -18,6 +18,22 @@ interface WorshipQueueProps {
   userRole: ParticipantRole;
 }
 
+// Fetch YouTube video title using oEmbed API (no API key required)
+const fetchYouTubeTitle = async (videoId: string): Promise<string> => {
+  try {
+    const response = await fetch(
+      `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
+    );
+    if (response.ok) {
+      const data = await response.json();
+      return data.title || `YouTube Video ${videoId}`;
+    }
+  } catch (err) {
+    console.warn('Failed to fetch YouTube title:', err);
+  }
+  return `YouTube Video ${videoId}`;
+};
+
 const WorshipQueue: React.FC<WorshipQueueProps> = ({
   roomId,
   queue,
@@ -41,9 +57,8 @@ const WorshipQueue: React.FC<WorshipQueueProps> = ({
         return;
       }
 
-      // Fetch video metadata from YouTube (in a real app, this would use YouTube Data API)
-      // For now, we'll use a placeholder
-      const videoTitle = `YouTube Video ${videoId}`;
+      // Fetch actual video title from YouTube
+      const videoTitle = await fetchYouTubeTitle(videoId);
       const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
 
       const songData: any = {
@@ -51,7 +66,6 @@ const WorshipQueue: React.FC<WorshipQueueProps> = ({
         videoTitle,
         videoThumbnailUrl: thumbnailUrl,
       };
-      // Don't include videoDuration if we don't have it - backend validation requires it to be positive if present
 
       console.log('Adding song to queue:', { roomId, songData });
       await worshipAPI.addToQueue(roomId, songData);
