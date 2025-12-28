@@ -23,7 +23,8 @@
       "Bash(aws ssm get-command-invocation:*)",
       "Bash(aws ssm send-command:*)",
       "Bash(aws s3 cp:*)",
-      "Bash(aws elasticbeanstalk create-application-version:*)"
+      "Bash(aws elasticbeanstalk create-application-version:*)",
+      "Bash(cd:*)"
     ],
     "deny": [],
     "ask": []

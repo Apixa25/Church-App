@@ -30,6 +30,14 @@ const WorshipRoom: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [userRole, setUserRole] = useState<ParticipantRole>(ParticipantRole.LISTENER);
 
+  // Settings form state
+  const [settingsName, setSettingsName] = useState('');
+  const [settingsDescription, setSettingsDescription] = useState('');
+  const [settingsIsPrivate, setSettingsIsPrivate] = useState(false);
+  const [settingsMaxParticipants, setSettingsMaxParticipants] = useState<number | undefined>(undefined);
+  const [settingsSkipThreshold, setSettingsSkipThreshold] = useState(50);
+  const [savingSettings, setSavingSettings] = useState(false);
+
   // Sync state for coordinated playback
   const [syncState, setSyncState] = useState<{
     action: PlaybackAction;
@@ -146,6 +154,8 @@ const WorshipRoom: React.FC = () => {
       loadQueue();
     } else if (update.type === 'VOTE_UPDATED' && update.queueEntry) {
       const updatedEntry = update.queueEntry as WorshipQueueEntry;
+
+      // Update queue entries
       setQueue((prevQueue) =>
         prevQueue.map((entry) =>
           entry.id === updatedEntry.id
@@ -153,10 +163,26 @@ const WorshipRoom: React.FC = () => {
                 ...entry,
                 upvoteCount: updatedEntry.upvoteCount ?? entry.upvoteCount,
                 skipVoteCount: updatedEntry.skipVoteCount ?? entry.skipVoteCount,
+                userHasUpvoted: updatedEntry.userHasUpvoted ?? entry.userHasUpvoted,
+                userHasVotedSkip: updatedEntry.userHasVotedSkip ?? entry.userHasVotedSkip,
               }
             : entry
         )
       );
+
+      // Also update currentSong if this is the currently playing entry
+      setCurrentSong((prevSong) => {
+        if (prevSong && prevSong.id === updatedEntry.id) {
+          return {
+            ...prevSong,
+            upvoteCount: updatedEntry.upvoteCount ?? prevSong.upvoteCount,
+            skipVoteCount: updatedEntry.skipVoteCount ?? prevSong.skipVoteCount,
+            userHasUpvoted: updatedEntry.userHasUpvoted ?? prevSong.userHasUpvoted,
+            userHasVotedSkip: updatedEntry.userHasVotedSkip ?? prevSong.userHasVotedSkip,
+          };
+        }
+        return prevSong;
+      });
     }
   };
 
@@ -322,6 +348,38 @@ const WorshipRoom: React.FC = () => {
     }
   };
 
+  const openSettings = () => {
+    if (room) {
+      setSettingsName(room.name);
+      setSettingsDescription(room.description || '');
+      setSettingsIsPrivate(room.isPrivate);
+      setSettingsMaxParticipants(room.maxParticipants);
+      setSettingsSkipThreshold(room.skipThreshold || 50);
+    }
+    setShowSettings(true);
+  };
+
+  const handleSaveSettings = async () => {
+    if (!roomId) return;
+    try {
+      setSavingSettings(true);
+      const response = await worshipAPI.updateRoom(roomId, {
+        name: settingsName,
+        description: settingsDescription,
+        isPrivate: settingsIsPrivate,
+        maxParticipants: settingsMaxParticipants,
+        skipThreshold: settingsSkipThreshold,
+      });
+      setRoom(response.data);
+      setShowSettings(false);
+    } catch (err: any) {
+      console.error('Error saving settings:', err);
+      alert(err.response?.data?.error || 'Failed to save settings');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="worship-room loading">
@@ -366,7 +424,7 @@ const WorshipRoom: React.FC = () => {
           </button>
           {room.canEdit && (
             <>
-              <button onClick={() => setShowSettings(!showSettings)} className="settings-button">
+              <button onClick={openSettings} className="settings-button">
                 ⚙️ Settings
               </button>
             </>
@@ -523,6 +581,98 @@ const WorshipRoom: React.FC = () => {
                 className="confirm-delete-button"
               >
                 Delete Room
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="modal-overlay" onClick={() => setShowSettings(false)}>
+          <div className="modal-content settings-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Room Settings</h2>
+              <button className="modal-close-btn" onClick={() => setShowSettings(false)}>
+                &times;
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label htmlFor="settings-name">Room Name</label>
+                <input
+                  id="settings-name"
+                  type="text"
+                  value={settingsName}
+                  onChange={(e) => setSettingsName(e.target.value)}
+                  placeholder="Enter room name..."
+                  maxLength={100}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="settings-description">Description</label>
+                <textarea
+                  id="settings-description"
+                  value={settingsDescription}
+                  onChange={(e) => setSettingsDescription(e.target.value)}
+                  placeholder="Describe your room..."
+                  rows={3}
+                  maxLength={500}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="settings-skip-threshold">Skip Vote Threshold (%)</label>
+                <input
+                  id="settings-skip-threshold"
+                  type="number"
+                  min={10}
+                  max={100}
+                  value={settingsSkipThreshold}
+                  onChange={(e) => setSettingsSkipThreshold(parseInt(e.target.value) || 50)}
+                />
+                <p className="field-hint">Percentage of participants needed to skip a song</p>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="settings-max-participants">Max Participants (optional)</label>
+                <input
+                  id="settings-max-participants"
+                  type="number"
+                  min={2}
+                  max={1000}
+                  value={settingsMaxParticipants || ''}
+                  onChange={(e) => setSettingsMaxParticipants(e.target.value ? parseInt(e.target.value) : undefined)}
+                  placeholder="No limit"
+                />
+              </div>
+
+              <div className="form-group checkbox-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={settingsIsPrivate}
+                    onChange={(e) => setSettingsIsPrivate(e.target.checked)}
+                  />
+                  <span>Private Room</span>
+                </label>
+                <p className="field-hint">Private rooms are only visible to invited members</p>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button
+                onClick={() => setShowSettings(false)}
+                className="cancel-button"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveSettings}
+                className="save-button"
+                disabled={savingSettings || !settingsName.trim()}
+              >
+                {savingSettings ? 'Saving...' : 'Save Settings'}
               </button>
             </div>
           </div>
