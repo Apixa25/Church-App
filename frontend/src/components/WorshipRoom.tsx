@@ -423,11 +423,9 @@ const WorshipRoom: React.FC = () => {
             👥 {participants.length}
           </button>
           {room.canEdit && (
-            <>
-              <button onClick={openSettings} className="settings-button">
-                ⚙️ Settings
-              </button>
-            </>
+            <button onClick={openSettings} className="settings-button" title="Room Settings">
+              ⚙️
+            </button>
           )}
           {room.canDelete && (
             <>

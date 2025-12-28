@@ -83,6 +83,12 @@
   gap: 6px;
 }
 
+/* Icon-only button (settings) */
+.settings-button {
+  padding: 10px 14px;
+  font-size: 18px;
+}
+
 .participants-button:hover,
 .settings-button:hover {
   background: var(--bg-elevated);
