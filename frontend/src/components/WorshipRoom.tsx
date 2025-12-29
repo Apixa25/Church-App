@@ -375,8 +375,21 @@ const WorshipRoom: React.FC = () => {
   const handlePlayNext = async () => {
     if (!roomId) return;
     try {
-      await worshipAPI.playNext(roomId);
-      // Now playing update will come via WebSocket
+      const response = await worshipAPI.playNext(roomId);
+      const queueEntry = response.data;
+
+      // Immediately update state from API response (don't wait for WebSocket)
+      // This ensures the initiating client sees immediate feedback
+      setCurrentSong(queueEntry);
+      setSyncState({
+        action: PlaybackAction.PLAY,
+        videoId: queueEntry.videoId,
+        videoTitle: queueEntry.videoTitle,
+        scheduledPlayTime: Date.now() + 500, // Small delay for sync
+        timestamp: Date.now(),
+      });
+
+      // WebSocket will also send NOW_PLAYING to other clients
     } catch (err: any) {
       console.error('Error playing next song:', err);
       alert(err.response?.data?.error || 'Failed to play next song');

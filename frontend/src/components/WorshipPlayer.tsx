@@ -44,10 +44,18 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
   const [volume, setVolume] = useState(50);
   const [isMuted, setIsMuted] = useState(false);
   const [showCastHelp, setShowCastHelp] = useState(false);
+  const [showTapToPlay, setShowTapToPlay] = useState(false);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingPlayRef = useRef(false);
 
-  // Initialize YouTube IFrame API
+  // Detect iOS (Safari blocks autoplay without user gesture)
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  // Initialize YouTube IFrame API - re-run when videoId becomes available
   useEffect(() => {
+    // Only initialize when we have a videoId (container will exist in DOM)
+    if (!videoId) return;
+
     if (!window.YT) {
       const tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
@@ -55,19 +63,21 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
       firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
 
       window.onYouTubeIframeAPIReady = initializePlayer;
-    } else {
+    } else if (!playerRef.current) {
+      // YT API already loaded but player not created - initialize now
       initializePlayer();
     }
 
     return () => {
       if (playerRef.current) {
         playerRef.current.destroy();
+        playerRef.current = null;
       }
       if (syncTimeoutRef.current) {
         clearTimeout(syncTimeoutRef.current);
       }
     };
-  }, []);
+  }, [videoId]);
 
   const initializePlayer = () => {
     if (!playerContainerRef.current) return;
@@ -124,7 +134,7 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
   };
 
   const handlePlayerReady = (event: any) => {
-    console.log('YouTube player ready');
+    console.log('YouTube player ready - setting isReady to true');
     setIsReady(true);
     event.target.setVolume(volume);
 
@@ -145,8 +155,22 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
 
   const handlePlayerStateChange = (event: any) => {
     const playerState = event.data;
-    // YT.PlayerState.PLAYING = 1, PAUSED = 2, ENDED = 0
+    // YT.PlayerState.PLAYING = 1, PAUSED = 2, ENDED = 0, CUED = 5
     setIsPlaying(playerState === window.YT.PlayerState.PLAYING);
+
+    // On iOS, if we tried to play but video is paused/cued, autoplay was blocked
+    if (isIOS && pendingPlayRef.current &&
+        (playerState === window.YT.PlayerState.PAUSED ||
+         playerState === window.YT.PlayerState.CUED)) {
+      setShowTapToPlay(true);
+      pendingPlayRef.current = false;
+    }
+
+    // Clear pending play and hide overlay if actually playing
+    if (playerState === window.YT.PlayerState.PLAYING) {
+      pendingPlayRef.current = false;
+      setShowTapToPlay(false);
+    }
 
     if (playerState === window.YT.PlayerState.ENDED) {
       setIsPlaying(false);
@@ -155,7 +179,17 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
 
   // Handle sync state changes (syncState controls all video loading to avoid race conditions)
   useEffect(() => {
-    if (!syncState || !isReady || !playerRef.current) return;
+    console.log('Sync effect triggered:', {
+      hasSyncState: !!syncState,
+      isReady,
+      hasPlayerRef: !!playerRef.current,
+      syncState: syncState
+    });
+
+    if (!syncState || !isReady || !playerRef.current) {
+      console.log('Sync effect early return - missing requirements');
+      return;
+    }
 
     // Clear any pending sync
     if (syncTimeoutRef.current) {
@@ -167,6 +201,8 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
       console.log('Executing sync:', syncState.action, 'videoId:', syncState.videoId);
       switch (syncState.action) {
         case PlaybackAction.PLAY:
+          // Track that we're attempting to play (for iOS autoplay detection)
+          pendingPlayRef.current = true;
           if (syncState.videoId) {
             // Load the video and explicitly start playback
             playerRef.current.loadVideoById({
@@ -191,6 +227,7 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
           break;
 
         case PlaybackAction.RESUME:
+          pendingPlayRef.current = true;
           playerRef.current.playVideo();
           break;
 
@@ -260,6 +297,14 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
     }
   };
 
+  // Handle tap-to-play for iOS (user gesture required to start playback)
+  const handleTapToPlay = () => {
+    if (playerRef.current) {
+      playerRef.current.playVideo();
+      setShowTapToPlay(false);
+    }
+  };
+
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -290,7 +335,18 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
             </div>
           </div>
         ) : (
-          <div ref={playerContainerRef} id={playerIdRef.current} className="player-iframe" />
+          <>
+            <div ref={playerContainerRef} id={playerIdRef.current} className="player-iframe" />
+            {/* Tap to Play overlay for iOS (autoplay blocked) */}
+            {showTapToPlay && (
+              <div className="tap-to-play-overlay" onClick={handleTapToPlay}>
+                <div className="tap-to-play-content">
+                  <span className="tap-icon">▶️</span>
+                  <span>Tap to Play</span>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
