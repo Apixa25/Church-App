@@ -155,20 +155,32 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
 
   const handlePlayerStateChange = (event: any) => {
     const playerState = event.data;
-    // YT.PlayerState.PLAYING = 1, PAUSED = 2, ENDED = 0, CUED = 5
+    // YT.PlayerState: UNSTARTED = -1, ENDED = 0, PLAYING = 1, PAUSED = 2, BUFFERING = 3, CUED = 5
+    console.log('Player state changed:', playerState, 'pendingPlay:', pendingPlayRef.current, 'isIOS:', isIOS);
+
     setIsPlaying(playerState === window.YT.PlayerState.PLAYING);
 
-    // On iOS, if we tried to play but video is paused/cued, autoplay was blocked
-    if (isIOS && pendingPlayRef.current &&
-        (playerState === window.YT.PlayerState.PAUSED ||
-         playerState === window.YT.PlayerState.CUED)) {
-      setShowTapToPlay(true);
-      pendingPlayRef.current = false;
+    // On iOS, if we tried to play but video is not playing, autoplay was blocked
+    // Check for any non-playing state after a play attempt
+    if (isIOS && pendingPlayRef.current) {
+      if (playerState === window.YT.PlayerState.PLAYING) {
+        // Success! Video is playing
+        pendingPlayRef.current = false;
+        setShowTapToPlay(false);
+      } else if (playerState === window.YT.PlayerState.PAUSED ||
+                 playerState === window.YT.PlayerState.CUED ||
+                 playerState === window.YT.PlayerState.UNSTARTED ||
+                 playerState === -1) {
+        // Autoplay blocked - show tap to play
+        console.log('iOS autoplay blocked - showing tap to play overlay');
+        setShowTapToPlay(true);
+        pendingPlayRef.current = false;
+      }
+      // For BUFFERING (3), keep waiting
     }
 
-    // Clear pending play and hide overlay if actually playing
+    // Always hide overlay when playing starts
     if (playerState === window.YT.PlayerState.PLAYING) {
-      pendingPlayRef.current = false;
       setShowTapToPlay(false);
     }
 
@@ -198,7 +210,7 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
     }
 
     const executeSync = () => {
-      console.log('Executing sync:', syncState.action, 'videoId:', syncState.videoId);
+      console.log('Executing sync:', syncState.action, 'videoId:', syncState.videoId, 'isIOS:', isIOS);
       switch (syncState.action) {
         case PlaybackAction.PLAY:
           // Track that we're attempting to play (for iOS autoplay detection)
@@ -217,6 +229,22 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
           } else {
             playerRef.current.playVideo();
           }
+
+          // iOS fallback: If video hasn't started playing in 1.5s, show tap overlay
+          if (isIOS) {
+            setTimeout(() => {
+              if (pendingPlayRef.current && playerRef.current) {
+                const state = playerRef.current.getPlayerState();
+                console.log('iOS timeout check - player state:', state);
+                // If not playing (1), show the overlay
+                if (state !== 1) {
+                  console.log('iOS: Video not playing after timeout, showing tap overlay');
+                  setShowTapToPlay(true);
+                  pendingPlayRef.current = false;
+                }
+              }
+            }, 1500);
+          }
           break;
 
         case PlaybackAction.PAUSE:
@@ -229,6 +257,20 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
         case PlaybackAction.RESUME:
           pendingPlayRef.current = true;
           playerRef.current.playVideo();
+
+          // iOS fallback for resume as well
+          if (isIOS) {
+            setTimeout(() => {
+              if (pendingPlayRef.current && playerRef.current) {
+                const state = playerRef.current.getPlayerState();
+                if (state !== 1) {
+                  console.log('iOS: Resume failed, showing tap overlay');
+                  setShowTapToPlay(true);
+                  pendingPlayRef.current = false;
+                }
+              }
+            }, 1500);
+          }
           break;
 
         case PlaybackAction.STOP:
