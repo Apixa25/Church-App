@@ -38,7 +38,10 @@
       "Bash(aws elasticbeanstalk restart-app-server:*)",
       "Bash(aws elb describe-load-balancers:*)",
       "Bash(./mvnw.cmd clean package:*)",
-      "Bash(aws elasticbeanstalk describe-application-versions:*)"
+      "Bash(aws elasticbeanstalk describe-application-versions:*)",
+      "Bash(aws cloudfront list-distributions:*)",
+      "Bash(aws amplify:*)",
+      "Bash(aws cloudfront create-invalidation:*)"
     ],
     "deny": [],
     "ask": []
