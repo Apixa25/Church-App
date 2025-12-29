@@ -107,7 +107,7 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
     playerRef.current = new window.YT.Player(playerIdRef.current, {
       height: '100%',
       width: '100%',
-      videoId: videoId || '',
+      videoId: '', // Start empty - syncState will load the video to avoid race conditions
       playerVars,
       events: {
         onReady: handlePlayerReady,
@@ -153,22 +153,7 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
     }
   };
 
-  // Handle video changes
-  useEffect(() => {
-    if (isReady && playerRef.current && videoId) {
-      console.log('Loading video:', videoId);
-      try {
-        playerRef.current.loadVideoById({
-          videoId: videoId,
-          startSeconds: 0,
-        });
-      } catch (e) {
-        console.error('Error loading video:', e);
-      }
-    }
-  }, [videoId, isReady]);
-
-  // Handle sync state changes
+  // Handle sync state changes (syncState controls all video loading to avoid race conditions)
   useEffect(() => {
     if (!syncState || !isReady || !playerRef.current) return;
 
@@ -183,12 +168,13 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
       switch (syncState.action) {
         case PlaybackAction.PLAY:
           if (syncState.videoId) {
-            // Always load the video to ensure it's playing the correct one
+            // Load the video and explicitly start playback
             playerRef.current.loadVideoById({
               videoId: syncState.videoId,
               startSeconds: syncState.seekPosition || 0,
             });
-            // playVideo will be called automatically after loadVideoById
+            // Explicitly call playVideo to ensure playback starts
+            playerRef.current.playVideo();
           } else if (syncState.seekPosition !== undefined) {
             playerRef.current.seekTo(syncState.seekPosition, true);
             playerRef.current.playVideo();
