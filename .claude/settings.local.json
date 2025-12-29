@@ -36,7 +36,9 @@
       "Bash(curl:*)",
       "Bash(unzip:*)",
       "Bash(aws elasticbeanstalk restart-app-server:*)",
-      "Bash(aws elb describe-load-balancers:*)"
+      "Bash(aws elb describe-load-balancers:*)",
+      "Bash(./mvnw.cmd clean package:*)",
+      "Bash(aws elasticbeanstalk describe-application-versions:*)"
     ],
     "deny": [],
     "ask": []

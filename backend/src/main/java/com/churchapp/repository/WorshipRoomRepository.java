@@ -23,8 +23,12 @@ public interface WorshipRoomRepository extends JpaRepository<WorshipRoom, UUID> 
     // Find all active rooms
     List<WorshipRoom> findByIsActiveTrueOrderByCreatedAtDesc();
 
-    // Find public rooms
+    // Find public rooms (all types - kept for backwards compatibility)
     List<WorshipRoom> findByIsPrivateFalseAndIsActiveTrueOrderByCreatedAtDesc();
+
+    // Find public LIVE rooms only (excludes TEMPLATE and LIVE_EVENT which have their own tabs)
+    @Query("SELECT wr FROM WorshipRoom wr WHERE wr.isPrivate = false AND wr.isActive = true AND (wr.roomType = 'LIVE' OR wr.roomType IS NULL) ORDER BY wr.createdAt DESC")
+    List<WorshipRoom> findPublicLiveRoomsOnly();
 
     // Find rooms created by user
     List<WorshipRoom> findByCreatedByAndIsActiveTrueOrderByCreatedAtDesc(User createdBy);

@@ -141,7 +141,9 @@ public class WorshipRoomService {
     @Transactional(readOnly = true)
     public List<WorshipRoomResponse> getPublicRooms(String userEmail) {
         User user = getUserByEmail(userEmail);
-        List<WorshipRoom> rooms = roomRepository.findByIsPrivateFalseAndIsActiveTrueOrderByCreatedAtDesc();
+        // Use findPublicLiveRoomsOnly to exclude TEMPLATE and LIVE_EVENT rooms
+        // Templates show in "Playlists" tab, Live Events show in "Live Events" tab
+        List<WorshipRoom> rooms = roomRepository.findPublicLiveRoomsOnly();
 
         return rooms.stream()
             .map(room -> buildRoomResponse(room, user))
