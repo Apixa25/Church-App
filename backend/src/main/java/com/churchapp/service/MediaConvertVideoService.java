@@ -130,7 +130,7 @@ public class MediaConvertVideoService {
     private String generateOutputKey(MediaFile mediaFile) {
         String folder = mediaFile.getFolder();
         String filename = UUID.randomUUID().toString() + ".mp4";
-        return String.format("%s/optimized/%s", folder, filename);
+        return String.format("media/%s/optimized/%s", folder, filename);
     }
 
     /**
@@ -140,7 +140,7 @@ public class MediaConvertVideoService {
     private String generateThumbnailKey(MediaFile mediaFile) {
         String folder = mediaFile.getFolder();
         String filename = UUID.randomUUID().toString() + ".jpg";
-        return String.format("%s/thumbnails/%s", folder, filename);
+        return String.format("media/%s/thumbnails/%s", folder, filename);
     }
 
     /**

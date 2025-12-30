@@ -849,21 +849,30 @@ public class PostController {
     
     /**
      * Extract folder name from S3 key
-     * S3 key format: "folder/originals/filename" or "folder/optimized/filename"
-     * Returns the first part (folder name)
+     * S3 key format: "media/folder/originals/filename" or "folder/originals/filename"
+     * Returns the folder path without media prefix and without originals/optimized/etc.
      */
     private String extractFolderFromS3Key(String s3Key) {
         if (s3Key == null || s3Key.isEmpty()) {
             log.warn("Empty S3 key provided, defaulting to 'posts'");
             return "posts";
         }
-        
-        // S3 key format: "folder/originals/filename" or "folder/optimized/filename"
-        int firstSlash = s3Key.indexOf('/');
-        if (firstSlash > 0) {
-            return s3Key.substring(0, firstSlash);
+
+        // New format: "media/posts/originals/filename" -> return "posts"
+        // Old format: "posts/originals/filename" -> return "posts"
+        String keyToProcess = s3Key;
+
+        // Strip "media/" prefix if present
+        if (keyToProcess.startsWith("media/")) {
+            keyToProcess = keyToProcess.substring("media/".length());
         }
-        
+
+        // Now extract folder (first segment before /originals/ or /optimized/)
+        int firstSlash = keyToProcess.indexOf('/');
+        if (firstSlash > 0) {
+            return keyToProcess.substring(0, firstSlash);
+        }
+
         // If no slash found, default to posts (shouldn't happen in normal operation)
         log.warn("Could not extract folder from S3 key '{}', defaulting to 'posts'", s3Key);
         return "posts";

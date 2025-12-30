@@ -327,9 +327,25 @@ public class MediaUrlService {
             // Or optimized: .../posts/optimized/{uuid}_optimized.mp4
             String uuid = null;
             
-            if (videoUrl.contains("/posts/originals/")) {
+            // Handle both old paths (posts/originals/) and new paths (media/posts/originals/)
+            if (videoUrl.contains("/media/posts/originals/")) {
+                int startIdx = videoUrl.indexOf("/media/posts/originals/") + "/media/posts/originals/".length();
+                int endIdx = videoUrl.lastIndexOf(".");
+                if (endIdx > startIdx) {
+                    uuid = videoUrl.substring(startIdx, endIdx);
+                }
+            } else if (videoUrl.contains("/posts/originals/")) {
                 int startIdx = videoUrl.indexOf("/posts/originals/") + "/posts/originals/".length();
                 int endIdx = videoUrl.lastIndexOf(".");
+                if (endIdx > startIdx) {
+                    uuid = videoUrl.substring(startIdx, endIdx);
+                }
+            } else if (videoUrl.contains("/media/posts/optimized/")) {
+                int startIdx = videoUrl.indexOf("/media/posts/optimized/") + "/media/posts/optimized/".length();
+                int endIdx = videoUrl.indexOf("_optimized");
+                if (endIdx == -1) {
+                    endIdx = videoUrl.lastIndexOf(".");
+                }
                 if (endIdx > startIdx) {
                     uuid = videoUrl.substring(startIdx, endIdx);
                 }
@@ -348,10 +364,17 @@ public class MediaUrlService {
                 log.debug("Cannot extract UUID from video URL for thumbnail: {}", videoUrl);
                 return null;
             }
-            
-            // Construct thumbnail URL: posts/thumbnails/{uuid}.0000000.jpg
-            String thumbnailKey = String.format("posts/thumbnails/%s.0000000.jpg", uuid);
-            
+
+            // Determine if this is a new-style URL (with media/ prefix) or old-style
+            boolean isNewPath = videoUrl.contains("/media/posts/");
+
+            // Construct thumbnail URL based on path style
+            // New: media/thumbnails/{uuid}.0000000.jpg
+            // Old: posts/thumbnails/{uuid}.0000000.jpg
+            String thumbnailKey = isNewPath
+                ? String.format("media/thumbnails/%s.0000000.jpg", uuid)
+                : String.format("posts/thumbnails/%s.0000000.jpg", uuid);
+
             // Build CloudFront URL
             String baseUrl = getCloudFrontBaseUrl();
             if (baseUrl != null) {
@@ -359,7 +382,7 @@ public class MediaUrlService {
                 log.debug("🖼️ Constructed thumbnail URL: {} -> {}", videoUrl, thumbnailUrl);
                 return thumbnailUrl;
             }
-            
+
             // Fallback to S3 URL (likely won't work but try anyway)
             return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, thumbnailKey);
             
