@@ -398,16 +398,6 @@ public class DashboardService {
         // Moderator and Admin actions
         if (currentUser.getRole() == User.Role.PLATFORM_ADMIN || currentUser.getRole() == User.Role.MODERATOR) {
             actions.add(QuickAction.createForRole(
-                "create_announcement",
-                "New Announcement",
-                "Create a new church announcement",
-                "/announcements/create",
-                "create",
-                "Create Announcement",
-                "MODERATOR"
-            ));
-            
-            actions.add(QuickAction.createForRole(
                 "moderate_content",
                 "Content Moderation",
                 "Review and moderate community content",

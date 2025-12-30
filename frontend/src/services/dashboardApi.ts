@@ -225,26 +225,10 @@ const dashboardApi = {
     }
   },
 
-  getAnnouncementQuickActions: (userRole?: string): QuickAction[] => {
-    // Note: The base "Announcements" action is provided by the backend (DashboardService.java)
-    // Only add admin/moderator-specific actions here to avoid duplicates
-    const actions: QuickAction[] = [];
-
-    // Add create action for admins and moderators
-    if (userRole === 'ADMIN' || userRole === 'MODERATOR') {
-      actions.push({
-        id: 'create-announcement',
-        title: 'New Announcement',
-        description: 'Create a new church announcement',
-        actionUrl: '/announcements/create',
-        iconType: 'create',
-        buttonText: 'New Announcement',
-        requiresAuth: true,
-        requiredRole: 'ADMIN,MODERATOR'
-      });
-    }
-
-    return actions;
+  getAnnouncementQuickActions: (_userRole?: string): QuickAction[] => {
+    // The "Announcements" action is provided by the backend (DashboardService.java)
+    // Users can create announcements from within the announcements page
+    return [];
   },
 
   // Event specific dashboard functions
