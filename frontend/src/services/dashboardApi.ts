@@ -435,15 +435,6 @@ const dashboardApi = {
         iconType: 'donation',
         buttonText: 'Give Now',
         requiresAuth: true
-      },
-      {
-        id: 'donation-history',
-        title: 'My Donations',
-        description: 'View your donation history and receipts',
-        actionUrl: '/donations',
-        iconType: 'history',
-        buttonText: 'View History',
-        requiresAuth: true
       }
     ];
 

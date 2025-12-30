@@ -25,7 +25,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions, isLoading }) => {
       book: '📚',
       resource: '📚',
       heart: '💝',
-      donation: '💝',
+      donation: '💲',
       history: '💝',
       settings: '⚙️',
       rsvp: '🎫',

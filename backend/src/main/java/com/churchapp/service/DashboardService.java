@@ -360,14 +360,6 @@ public class DashboardService {
                 "Give Now"
             ));
 
-            actions.add(QuickAction.create(
-                "donation_history",
-                "My Donations",
-                "View your donation history and receipts",
-                "/donations",
-                "history",
-                "View History"
-            ));
         }
         
         
