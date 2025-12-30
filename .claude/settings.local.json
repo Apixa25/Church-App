@@ -41,7 +41,18 @@
       "Bash(aws elasticbeanstalk describe-application-versions:*)",
       "Bash(aws cloudfront list-distributions:*)",
       "Bash(aws amplify:*)",
-      "Bash(aws cloudfront create-invalidation:*)"
+      "Bash(aws cloudfront create-invalidation:*)",
+      "Bash(aws s3api get-bucket-cors:*)",
+      "Bash(aws cloudfront get-distribution-config:*)",
+      "Bash(aws cloudfront get-response-headers-policy:*)",
+      "Bash(aws elasticbeanstalk describe-applications:*)",
+      "Bash(aws s3 mv:*)",
+      "Bash(aws elasticbeanstalk describe-events:*)",
+      "Bash(git show:*)",
+      "Bash(git push:*)",
+      "Bash(git reset:*)",
+      "Bash(git restore:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

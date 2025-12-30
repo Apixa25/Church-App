@@ -11,6 +11,11 @@ package-lock.json
 build/
 dist/
 target/
+*.jar
+*.war
+
+# Temporary test/extract folders
+test-extract/
 
 # IDE settings
 .idea/
