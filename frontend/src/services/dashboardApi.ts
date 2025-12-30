@@ -226,17 +226,9 @@ const dashboardApi = {
   },
 
   getAnnouncementQuickActions: (userRole?: string): QuickAction[] => {
-    const actions: QuickAction[] = [
-      {
-        id: 'view-announcements',
-        title: 'Announcements',
-        description: 'View church announcements and important updates',
-        actionUrl: '/announcements',
-        iconType: 'announcement',
-        buttonText: 'View Announcements',
-        requiresAuth: true
-      }
-    ];
+    // Note: The base "Announcements" action is provided by the backend (DashboardService.java)
+    // Only add admin/moderator-specific actions here to avoid duplicates
+    const actions: QuickAction[] = [];
 
     // Add create action for admins and moderators
     if (userRole === 'ADMIN' || userRole === 'MODERATOR') {

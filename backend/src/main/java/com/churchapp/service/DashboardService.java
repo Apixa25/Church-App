@@ -402,7 +402,7 @@ public class DashboardService {
                 "New Announcement",
                 "Create a new church announcement",
                 "/announcements/create",
-                "megaphone",
+                "create",
                 "Create Announcement",
                 "MODERATOR"
             ));
