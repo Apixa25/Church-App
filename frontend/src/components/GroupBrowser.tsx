@@ -68,45 +68,6 @@ const SearchBar = styled.input`
   }
 `;
 
-const FilterSection = styled.div`
-  margin-top: 20px;
-`;
-
-const FilterLabel = styled.div`
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-`;
-
-const FilterTabs = styled.div`
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-`;
-
-const FilterTab = styled.button<{ active: boolean }>`
-  padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 500;
-  border: 2px solid ${props => props.active ? 'var(--accent-primary)' : 'var(--border-primary)'};
-  background: ${props => props.active ? 'var(--gradient-primary)' : 'var(--bg-tertiary)'};
-  color: ${props => props.active ? 'white' : 'var(--text-secondary)'};
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all var(--transition-base);
-  box-shadow: ${props => props.active ? '0 0 12px var(--button-primary-glow)' : 'none'};
-
-  &:hover {
-    border-color: var(--accent-primary);
-    background: ${props => props.active ? 'var(--gradient-primary)' : 'var(--bg-elevated)'};
-    box-shadow: ${props => props.active ? '0 0 12px var(--button-primary-glow)' : '0 0 8px rgba(91, 127, 255, 0.2)'};
-    transform: translateY(-1px);
-  }
-`;
-
 const MyGroupsSection = styled.div`
   margin-bottom: 40px;
 `;
@@ -452,7 +413,6 @@ const SuccessMessage = styled.div`
   font-size: 14px;
 `;
 
-type VisibilityFilter = 'ALL' | 'PUBLIC' | 'ORG_PRIVATE' | 'CROSS_ORG' | 'INVITE_ONLY';
 type MyGroupsTab = 'UNMUTED' | 'MUTED';
 
 const GroupBrowser: React.FC = () => {
@@ -476,7 +436,6 @@ const GroupBrowser: React.FC = () => {
 
   const [myGroupsTab, setMyGroupsTab] = useState<MyGroupsTab>('UNMUTED');
   const [searchQuery, setSearchQuery] = useState('');
-  const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>('ALL');
   const [searchResults, setSearchResults] = useState<Group[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -486,7 +445,7 @@ const GroupBrowser: React.FC = () => {
   const [orgGroupsLoading, setOrgGroupsLoading] = useState(false);
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
 
-  // Search groups when query or filter changes
+  // Search groups when query changes
   useEffect(() => {
     const performSearch = async () => {
       if (!searchQuery.trim()) {
@@ -499,14 +458,7 @@ const GroupBrowser: React.FC = () => {
         setError(null);
 
         const result = await searchGroups(searchQuery, 0, 50);
-
-        // Filter by visibility if not ALL
-        let filtered = result.content;
-        if (visibilityFilter !== 'ALL') {
-          filtered = filtered.filter(group => group.visibility === visibilityFilter);
-        }
-
-        setSearchResults(filtered);
+        setSearchResults(result.content);
       } catch (err: any) {
         setError(err.message || 'Failed to search groups');
         setSearchResults([]);
@@ -518,7 +470,7 @@ const GroupBrowser: React.FC = () => {
     // Debounce search
     const timeoutId = setTimeout(performSearch, 300);
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, visibilityFilter, searchGroups]);
+  }, [searchQuery, searchGroups]);
 
   // Fetch organizations followed as groups
   useEffect(() => {
@@ -822,42 +774,6 @@ const GroupBrowser: React.FC = () => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-
-        <FilterSection>
-          <FilterLabel>Visibility</FilterLabel>
-          <FilterTabs>
-            <FilterTab
-              active={visibilityFilter === 'ALL'}
-              onClick={() => setVisibilityFilter('ALL')}
-            >
-              All Groups
-            </FilterTab>
-            <FilterTab
-              active={visibilityFilter === 'PUBLIC'}
-              onClick={() => setVisibilityFilter('PUBLIC')}
-            >
-              Public
-            </FilterTab>
-            <FilterTab
-              active={visibilityFilter === 'ORG_PRIVATE'}
-              onClick={() => setVisibilityFilter('ORG_PRIVATE')}
-            >
-              Organization Only
-            </FilterTab>
-            <FilterTab
-              active={visibilityFilter === 'CROSS_ORG'}
-              onClick={() => setVisibilityFilter('CROSS_ORG')}
-            >
-              Cross-Organization
-            </FilterTab>
-            <FilterTab
-              active={visibilityFilter === 'INVITE_ONLY'}
-              onClick={() => setVisibilityFilter('INVITE_ONLY')}
-            >
-              Invite Only
-            </FilterTab>
-          </FilterTabs>
-        </FilterSection>
       </HeaderSection>
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
