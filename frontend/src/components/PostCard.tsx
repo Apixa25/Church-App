@@ -1169,18 +1169,16 @@ const PostCard: React.FC<PostCardProps> = ({
             <div className="post-meta">
               {post.location && <span className="location">📍 {post.location}</span>}
               {(post.group || post.organization) && (
-                <span 
+                <span
                   className="post-context-name clickable"
                   onClick={async (e) => {
                     e.stopPropagation();
                     try {
                       if (post.group) {
-                        if (location.pathname !== '/dashboard') {
-                          navigate('/dashboard');
-                          await new Promise(resolve => setTimeout(resolve, 100));
-                        }
-                        await setFilter('SELECTED_GROUPS', [post.group.id]);
+                        // Navigate to group page
+                        navigate(`/groups/${post.group.id}`);
                       } else if (post.organization) {
+                        // Filter feed by organization
                         if (location.pathname !== '/dashboard') {
                           navigate('/dashboard');
                           await new Promise(resolve => setTimeout(resolve, 100));
@@ -1191,9 +1189,9 @@ const PostCard: React.FC<PostCardProps> = ({
                       console.error('Error filtering feed:', error);
                     }
                   }}
-                  title={post.group ? `Show posts from ${post.group.name}` : `Show posts from ${post.organization?.name}`}
+                  title={post.group ? `View ${post.group.name} group` : `Show posts from ${post.organization?.name}`}
                 >
-                  {post.group ? post.group.name : post.organization?.name}
+                  {post.group ? `👥 ${post.group.name}` : post.organization?.name}
                 </span>
               )}
             </div>

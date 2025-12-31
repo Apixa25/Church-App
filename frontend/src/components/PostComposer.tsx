@@ -37,6 +37,8 @@ interface PostComposerProps {
   };
   /** Initial media file to attach (e.g., from camera capture) */
   initialMediaFile?: File;
+  /** Default group to post to (pre-selects the group in dropdown) */
+  defaultGroupId?: string;
 }
 
 const PostComposer: React.FC<PostComposerProps> = ({
@@ -45,7 +47,8 @@ const PostComposer: React.FC<PostComposerProps> = ({
   placeholder = "Share what's happening in your community...",
   replyTo,
   quoteTo,
-  initialMediaFile
+  initialMediaFile,
+  defaultGroupId
 }) => {
   // Multi-tenant contexts - Dual Primary System
   const { primaryMembership, familyPrimary, allMemberships } = useOrganization();
@@ -69,11 +72,32 @@ const PostComposer: React.FC<PostComposerProps> = ({
   const [externalUrl, setExternalUrl] = useState<string>('');
   const [detectedPlatform, setDetectedPlatform] = useState<SocialMediaPlatform | null>(null);
 
-  // Multi-tenant post targeting - Default to Family Primary if available, otherwise Church Primary
-  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string | undefined>(
-    familyPrimary?.organizationId || primaryMembership?.organizationId
-  );
-  const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(undefined);
+  // Multi-tenant post targeting - Priority: defaultGroupId > Family > Church > First Group > Global
+  // Compute initial values based on priority
+  const getInitialTarget = () => {
+    // If defaultGroupId is provided, use it (from GroupPage)
+    if (defaultGroupId) {
+      return { orgId: undefined, groupId: defaultGroupId };
+    }
+    // Priority 1: Family Primary
+    if (familyPrimary?.organizationId) {
+      return { orgId: familyPrimary.organizationId, groupId: undefined };
+    }
+    // Priority 2: Church Primary
+    if (primaryMembership?.organizationId) {
+      return { orgId: primaryMembership.organizationId, groupId: undefined };
+    }
+    // Priority 3: First unmuted group (if user has groups but no orgs)
+    if (unmutedGroups.length > 0) {
+      return { orgId: undefined, groupId: unmutedGroups[0].groupId };
+    }
+    // Priority 4: Global feed
+    return { orgId: '00000000-0000-0000-0000-000000000001', groupId: undefined };
+  };
+
+  const initialTarget = getInitialTarget();
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string | undefined>(initialTarget.orgId);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(initialTarget.groupId);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -611,25 +635,45 @@ const PostComposer: React.FC<PostComposerProps> = ({
               📷
             </button>
 
-            {/* Organization selector - immediately visible so users know where post is going */}
+            {/* Combined Post To selector - shows organizations and groups */}
             <select
-              value={selectedOrganizationId || ''}
+              value={selectedGroupId ? `group:${selectedGroupId}` : (selectedOrganizationId || 'global')}
               onChange={(e) => {
                 const value = e.target.value;
-                setSelectedOrganizationId(
-                  value === '' ? '00000000-0000-0000-0000-000000000001' : (value || undefined)
-                );
-                setSelectedGroupId(undefined);
+                if (value === 'global') {
+                  setSelectedOrganizationId('00000000-0000-0000-0000-000000000001');
+                  setSelectedGroupId(undefined);
+                } else if (value.startsWith('group:')) {
+                  const groupId = value.replace('group:', '');
+                  setSelectedGroupId(groupId);
+                  setSelectedOrganizationId(undefined); // Groups take priority
+                } else {
+                  setSelectedOrganizationId(value);
+                  setSelectedGroupId(undefined);
+                }
               }}
               className="toolbar-organization-select"
-              title="Post to organization"
+              title="Choose where to post"
             >
-              <option value="">🌐 Global Feed</option>
-              {allMemberships.map(membership => (
-                <option key={membership.id} value={membership.organizationId}>
-                  {membership.organizationName}
-                </option>
-              ))}
+              <option value="global">🌐 Global Feed</option>
+              {allMemberships.length > 0 && (
+                <optgroup label="Organizations">
+                  {allMemberships.map(membership => (
+                    <option key={membership.id} value={membership.organizationId}>
+                      {membership.organizationType === 'FAMILY' ? '🏠' : '⛪'} {membership.organizationName}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {unmutedGroups.length > 0 && (
+                <optgroup label="My Groups">
+                  {unmutedGroups.map(membership => (
+                    <option key={membership.id} value={`group:${membership.groupId}`}>
+                      👥 {membership.groupName}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
           </div>
 
@@ -650,33 +694,6 @@ const PostComposer: React.FC<PostComposerProps> = ({
           <div className="more-options-modal-overlay" onClick={() => setShowMoreOptions(false)}>
             <div className="more-options-modal" onClick={(e) => e.stopPropagation()}>
               <h3>⚙️ More Options</h3>
-              
-              {/* Multi-tenant: Group selector */}
-              {unmutedGroups.length > 0 && (
-                <div className="option-group">
-                  <label htmlFor="group">Post to Group (optional):</label>
-                  <select
-                    id="group"
-                    value={selectedGroupId || ''}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setSelectedGroupId(value || undefined);
-                      // Clear organization when group is selected (group takes priority)
-                      if (value) {
-                        setSelectedOrganizationId(undefined);
-                      }
-                    }}
-                    className="group-select"
-                  >
-                    <option value="">No specific group</option>
-                    {unmutedGroups.map(membership => (
-                      <option key={membership.id} value={membership.groupId}>
-                        {membership.groupName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
 
               <div className="option-group">
                 <label htmlFor="location">Location:</label>

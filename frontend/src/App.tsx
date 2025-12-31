@@ -38,6 +38,7 @@ import WorshipRoomList from './components/WorshipRoomList';
 import WorshipRoom from './components/WorshipRoom';
 import OrganizationBrowser from './components/OrganizationBrowser';
 import GroupBrowser from './components/GroupBrowser';
+import GroupPage from './components/GroupPage';
 import WebSocketStatusIndicator from './components/WebSocketStatusIndicator';
 import QuickActionsPage from './components/QuickActionsPage';
 import BottomNav from './components/BottomNav';
@@ -458,6 +459,14 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <GroupBrowser />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/groups/:groupId"
+              element={
+                <ProtectedRoute>
+                  <GroupPage />
                 </ProtectedRoute>
               }
             />

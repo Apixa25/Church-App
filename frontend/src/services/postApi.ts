@@ -169,6 +169,17 @@ export const getPostsByType = async (
   return response.data;
 };
 
+export const getGroupFeed = async (
+  groupId: string,
+  page: number = 0,
+  size: number = 20
+): Promise<FeedResponse> => {
+  const response = await api.get(`/posts/feed/group/${groupId}`, {
+    params: { page, size }
+  });
+  return response.data;
+};
+
 export const searchPosts = async (
   query: string,
   page: number = 0,

@@ -688,7 +688,7 @@ const GroupBrowser: React.FC = () => {
   };
 
   const renderGroupCard = (group: Group, isMemberOfGroup: boolean, isMutedGroup: boolean = false) => (
-    <GroupCard key={group.id}>
+    <GroupCard key={group.id} onClick={() => navigate(`/groups/${group.id}`)}>
       <GroupHeader>
         <GroupInfo>
           <GroupName>
@@ -730,9 +730,15 @@ const GroupBrowser: React.FC = () => {
         </GroupInfo>
       </GroupHeader>
 
-      <ButtonGroup>
+      <ButtonGroup onClick={(e) => e.stopPropagation()}>
         {isMemberOfGroup ? (
           <>
+            <Button
+              variant="secondary"
+              onClick={() => navigate(`/groups/${group.id}`)}
+            >
+              View Group
+            </Button>
             {isMutedGroup ? (
               <Button
                 variant="primary"
