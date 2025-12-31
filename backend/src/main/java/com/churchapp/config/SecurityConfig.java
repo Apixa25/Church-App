@@ -108,12 +108,15 @@ public class SecurityConfig {
                 .authenticationEntryPoint((request, response, authException) -> {
                     // For API endpoints, return 401 instead of redirecting to login
                     String requestURI = request.getRequestURI();
-                    if (requestURI.startsWith("/chat") || 
-                        requestURI.startsWith("/profile") || 
+                    if (requestURI.startsWith("/chat") ||
+                        requestURI.startsWith("/profile") ||
                         requestURI.startsWith("/dashboard") ||
                         requestURI.startsWith("/announcements") ||  // Add announcements to API endpoints
                         requestURI.startsWith("/prayers") ||        // Add prayers to API endpoints
                         requestURI.startsWith("/settings") ||       // Ensure settings returns JSON 401 instead of redirect
+                        requestURI.startsWith("/groups") ||         // Groups API endpoints
+                        requestURI.startsWith("/posts") ||          // Posts API endpoints
+                        requestURI.startsWith("/organizations") ||  // Organizations API endpoints
                         requestURI.startsWith("/ws")) {
                         response.setStatus(401);
                         response.setContentType("application/json");
