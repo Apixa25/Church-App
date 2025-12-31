@@ -19,6 +19,7 @@ export interface Group {
   maxMembers?: number;
   memberCount?: number;
   settings?: Record<string, any>;
+  imageUrl?: string;
   createdAt?: string;
   updatedAt?: string;
   // User-specific fields (if member)

@@ -66,6 +66,9 @@ public class Group {
     @Column(name = "member_count", nullable = false)
     private Integer memberCount = 0;
 
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

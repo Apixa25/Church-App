@@ -34,6 +34,9 @@ public class GroupResponse {
     // Statistics
     private Integer memberCount;
 
+    // Group image
+    private String imageUrl;
+
     // User's membership info (to be populated by controller)
     private String userRole; // CREATOR, MODERATOR, MEMBER
     private Boolean isMuted;
@@ -68,6 +71,7 @@ public class GroupResponse {
 
         response.setAllowedOrgIds(group.getAllowedOrgIds());
         response.setMemberCount(group.getMemberCount());
+        response.setImageUrl(group.getImageUrl());
         response.setCreatedAt(group.getCreatedAt());
         response.setUpdatedAt(group.getUpdatedAt());
 
@@ -83,6 +87,7 @@ public class GroupResponse {
         response.setType(group.getType() != null ? group.getType().name() : null);
         response.setTags(group.getTags());
         response.setMemberCount(group.getMemberCount());
+        response.setImageUrl(group.getImageUrl());
         response.setCreatedAt(group.getCreatedAt());
 
         if (group.getCreatedByUser() != null) {

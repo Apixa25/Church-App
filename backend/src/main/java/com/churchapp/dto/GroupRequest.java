@@ -33,6 +33,10 @@ public class GroupRequest {
     // For CROSS_ORG groups
     private List<UUID> allowedOrgIds;
 
+    // Group image URL (uploaded via presigned URL)
+    @Size(max = 500, message = "Image URL cannot exceed 500 characters")
+    private String imageUrl;
+
     public Group toGroup() {
         Group group = new Group();
         group.setName(this.name);
@@ -46,6 +50,7 @@ public class GroupRequest {
         group.setTags(this.tags);
         group.setSettings(this.settings);
         group.setAllowedOrgIds(this.allowedOrgIds);
+        group.setImageUrl(this.imageUrl);
 
         // Creator and timestamps set by service layer
 
