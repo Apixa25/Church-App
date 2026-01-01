@@ -152,11 +152,16 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
 
   // Delete group
   const deleteGroup = async (groupId: string): Promise<void> => {
+    console.log('[GroupContext] deleteGroup called with groupId:', groupId);
     try {
+      console.log('[GroupContext] Sending DELETE request to /groups/' + groupId);
       await api.delete(`/groups/${groupId}`);
+      console.log('[GroupContext] DELETE request successful, refreshing groups...');
       await refreshGroups();
+      console.log('[GroupContext] Groups refreshed after delete');
     } catch (error: any) {
-      console.error('Error deleting group:', error);
+      console.error('[GroupContext] Error deleting group:', error);
+      console.error('[GroupContext] Error response:', error.response?.data);
       throw new Error(error.response?.data?.message || 'Failed to delete group');
     }
   };

@@ -54,7 +54,8 @@
       "Bash(git restore:*)",
       "Bash(git commit:*)",
       "Bash(xargs ls:*)",
-      "Bash(./mvnw.cmd clean:*)"
+      "Bash(./mvnw.cmd clean:*)",
+      "Bash(aws cloudfront get-invalidation:*)"
     ],
     "deny": [],
     "ask": []

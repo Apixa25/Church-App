@@ -557,18 +557,24 @@ const GroupBrowser: React.FC = () => {
   };
 
   const handleDeleteGroup = async (groupId: string, groupName: string) => {
+    console.log('[GroupBrowser] handleDeleteGroup called', { groupId, groupName });
     try {
       setActionLoading(groupId);
       setError(null);
       setSuccess(null);
 
       if (window.confirm(`Are you sure you want to delete "${groupName}"? This action cannot be undone.`)) {
+        console.log('[GroupBrowser] User confirmed delete, calling deleteGroup...');
         await deleteGroup(groupId);
+        console.log('[GroupBrowser] deleteGroup completed successfully');
         // Remove from local search results immediately
         setSearchResults(prev => prev.filter(g => g.id !== groupId));
         setSuccess(`Successfully deleted ${groupName}.`);
+      } else {
+        console.log('[GroupBrowser] User cancelled delete');
       }
     } catch (err: any) {
+      console.error('[GroupBrowser] Delete failed:', err);
       setError(err.message || 'Failed to delete group');
     } finally {
       setActionLoading(null);
