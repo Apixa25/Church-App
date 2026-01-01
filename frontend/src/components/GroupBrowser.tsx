@@ -564,6 +564,8 @@ const GroupBrowser: React.FC = () => {
 
       if (window.confirm(`Are you sure you want to delete "${groupName}"? This action cannot be undone.`)) {
         await deleteGroup(groupId);
+        // Remove from local search results immediately
+        setSearchResults(prev => prev.filter(g => g.id !== groupId));
         setSuccess(`Successfully deleted ${groupName}.`);
       }
     } catch (err: any) {

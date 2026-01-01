@@ -51,6 +51,21 @@ const GroupHeader = styled.div`
   margin-bottom: 24px;
 `;
 
+const GroupImageContainer = styled.div`
+  width: 100%;
+  max-height: 200px;
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  margin-bottom: 16px;
+`;
+
+const GroupImage = styled.img`
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  display: block;
+`;
+
 const GroupTitle = styled.h1`
   font-size: 28px;
   font-weight: 700;
@@ -559,6 +574,11 @@ const GroupPage: React.FC = () => {
         </BackButton>
 
         <GroupHeader>
+          {group.imageUrl && (
+            <GroupImageContainer>
+              <GroupImage src={group.imageUrl} alt={group.name} />
+            </GroupImageContainer>
+          )}
           <GroupTitle>
             {group.name}
             {group.userRole && (
