@@ -33,6 +33,7 @@ public class MembershipResponse {
     // Group-specific fields
     private UUID groupId;
     private String groupName;
+    private String groupImageUrl;
     private Boolean isMuted;
 
     // Factory method for organization memberships
@@ -75,6 +76,7 @@ public class MembershipResponse {
         if (membership.getGroup() != null) {
             response.setGroupId(membership.getGroup().getId());
             response.setGroupName(membership.getGroup().getName());
+            response.setGroupImageUrl(membership.getGroup().getImageUrl());
         }
 
         response.setRole(membership.getRole() != null ? membership.getRole().name() : null);

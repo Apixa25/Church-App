@@ -486,11 +486,23 @@ const ContextSwitcher: React.FC = () => {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  handleSelectGroup(membership.groupId, membership.groupName, null);
+                  handleSelectGroup(membership.groupId, membership.groupName, membership.groupImageUrl);
                 }}
                 type="button"
               >
-                <OptionIcon>👥</OptionIcon>
+                {membership.groupImageUrl ? (
+                  <OptionLogo
+                    src={membership.groupImageUrl}
+                    alt=""
+                    crossOrigin="anonymous"
+                    onError={(e) => {
+                      // Hide the broken image and show fallback
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <OptionIcon>👥</OptionIcon>
+                )}
                 <OptionContent>
                   <OptionName>{membership.groupName || 'Group'}</OptionName>
                   <OptionType>Group • {membership.role}</OptionType>
