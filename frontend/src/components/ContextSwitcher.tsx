@@ -3,20 +3,23 @@ import ReactDOM from 'react-dom';
 import styled from 'styled-components';
 import { useActiveContext } from '../contexts/ActiveContextContext';
 import { useOrganization } from '../contexts/OrganizationContext';
+import { useGroup } from '../contexts/GroupContext';
 
 // ============================================================================
 // CONTEXT SWITCHER COMPONENT
 // ============================================================================
-// This component allows users to switch between their Church Primary and
-// Family Primary contexts. It appears in the dashboard header when a user
-// has BOTH a Church Primary and Family Primary organization.
+// This component allows users to switch between their Church Primary,
+// Family Primary, and Groups contexts. It appears in the dashboard header when
+// a user has both primaries OR any groups.
 //
 // When the user switches context:
-// - The dashboard header changes to show the selected organization
-// - Quick Actions become scoped to that organization
-// - Community Stats show that organization's data
-// - Donations go to that organization
-// - The Feed Filter "Primary Org Only" option respects the active context
+// - The dashboard header changes to show the selected organization/group
+// - Quick Actions become scoped to that organization (not for groups)
+// - Community Stats show that organization's data (not for groups)
+// - Donations go to that organization (not for groups)
+// - The Feed Filter updates to show the selected context's posts
+//
+// Priority order for auto-selection: Family > Church > Group
 // ============================================================================
 
 const SwitcherContainer = styled.div`
@@ -277,18 +280,33 @@ const ActiveIndicator = styled.div`
   box-shadow: 0 0 8px var(--accent-primary, #667eea);
 `;
 
+const SectionDivider = styled.div`
+  padding: 8px 12px 4px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary, #a0a0b0);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-top: 1px solid var(--border-primary, #3a3a4e);
+  margin-top: 4px;
+`;
+
 const ContextSwitcher: React.FC = () => {
   const {
     activeContext,
     setActiveContext,
+    setActiveGroup,
     hasChurch,
     hasFamily,
+    hasGroups,
     showContextSwitcher,
     activeOrganizationName,
     activeOrganizationLogo,
+    activeGroupId,
   } = useActiveContext();
 
   const { churchPrimary, familyPrimary } = useOrganization();
+  const { unmutedGroups } = useGroup();
 
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -373,7 +391,17 @@ const ContextSwitcher: React.FC = () => {
   const getContextIcon = () => {
     if (activeContext === 'church') return '⛪';
     if (activeContext === 'family') return '🏠';
+    if (activeContext === 'group') return '👥';
     return '🌍';
+  };
+
+  const handleSelectGroup = (groupId: string, groupName: string | undefined, groupImage?: string | null) => {
+    if (typeof setActiveGroup === 'function') {
+      setActiveGroup(groupId, groupName || 'Group', groupImage);
+      setIsOpen(false);
+    } else {
+      console.error('❌ ContextSwitcher: setActiveGroup is not a function!', setActiveGroup);
+    }
   };
 
   // Extract dropdown content to reuse in both regular and portal dropdowns
@@ -427,9 +455,9 @@ const ContextSwitcher: React.FC = () => {
             type="button"
           >
             {familyPrimary.organizationLogoUrl && !familyLogoError ? (
-              <OptionLogo 
-                src={familyPrimary.organizationLogoUrl} 
-                alt="" 
+              <OptionLogo
+                src={familyPrimary.organizationLogoUrl}
+                alt=""
                 crossOrigin="anonymous"
                 onError={() => {
                   console.warn('⚠️ Family org logo failed to load, falling back to icon:', familyPrimary.organizationLogoUrl);
@@ -445,6 +473,32 @@ const ContextSwitcher: React.FC = () => {
             </OptionContent>
             {activeContext === 'family' && <ActiveIndicator />}
           </OptionButton>
+        )}
+
+        {/* Groups Section */}
+        {hasGroups && unmutedGroups.length > 0 && (
+          <>
+            <SectionDivider>My Groups</SectionDivider>
+            {unmutedGroups.map((membership) => (
+              <OptionButton
+                key={membership.groupId}
+                $isActive={activeContext === 'group' && activeGroupId === membership.groupId}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSelectGroup(membership.groupId, membership.groupName, null);
+                }}
+                type="button"
+              >
+                <OptionIcon>👥</OptionIcon>
+                <OptionContent>
+                  <OptionName>{membership.groupName || 'Group'}</OptionName>
+                  <OptionType>Group • {membership.role}</OptionType>
+                </OptionContent>
+                {activeContext === 'group' && activeGroupId === membership.groupId && <ActiveIndicator />}
+              </OptionButton>
+            ))}
+          </>
         )}
       </DropdownOptions>
     </>

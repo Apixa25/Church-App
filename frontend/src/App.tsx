@@ -132,8 +132,8 @@ const App: React.FC = () => {
       <AuthProvider>
         <WebSocketProvider>
           <OrganizationProvider>
-            <ActiveContextProvider>
-              <GroupProvider>
+            <GroupProvider>
+              <ActiveContextProvider>
                 <FeedFilterProvider>
                   <UploadQueueProvider>
                   <Router>
@@ -518,8 +518,8 @@ const App: React.FC = () => {
               </Router>
               </UploadQueueProvider>
               </FeedFilterProvider>
-            </GroupProvider>
-          </ActiveContextProvider>
+            </ActiveContextProvider>
+          </GroupProvider>
         </OrganizationProvider>
       </WebSocketProvider>
     </AuthProvider>

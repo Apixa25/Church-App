@@ -30,14 +30,15 @@ const Dashboard: React.FC = () => {
   const { user, logout, updateUser } = useAuth();
   // Dual Primary System - use both organization context and active context
   const { churchPrimary, familyPrimary, hasChurchPrimary, hasFamilyPrimary } = useOrganization();
-  const { 
-    activeContext, 
-    activeMembership, 
-    activeOrganizationName, 
+  const {
+    activeContext,
+    activeMembership,
+    activeOrganizationName,
     activeOrganizationLogo,
     activeOrganizationId,
+    activeGroupId,
     hasAnyPrimary,
-    showContextSwitcher 
+    showContextSwitcher
   } = useActiveContext();
   
   // Feed filter context - to auto-update filter when context changes
@@ -222,8 +223,9 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const currentContext = activeContext || 'gathering';
     const currentOrgId = activeOrganizationId || null;
+    const currentGroupId = activeGroupId || null;
     const prevState = contextStateRef.current;
-    
+
     // Check if this is initial mount
     if (!prevState.initialized) {
       contextStateRef.current = {
@@ -233,40 +235,45 @@ const Dashboard: React.FC = () => {
       };
       return; // Skip on initial mount - React Query handles initial fetch
     }
-    
+
     // Check if context or organization actually changed
     const contextChanged = prevState.context !== currentContext;
     const orgChanged = prevState.orgId !== currentOrgId;
-    
+
     // Exit early if nothing changed (most common case)
     if (!contextChanged && !orgChanged) {
       return;
     }
-    
+
     // Update ref FIRST to prevent duplicate processing
     contextStateRef.current = {
       context: currentContext,
       orgId: currentOrgId,
       initialized: true
     };
-    
-    
+
+
     // Handle context change - do all updates in ONE place
-    if (currentOrgId && (currentContext === 'church' || currentContext === 'family')) {
-      // 1. Update filter (this will trigger PostFeed refresh via filter change)
+    if (currentContext === 'group' && currentGroupId) {
+      // Group context - filter to show only this group's posts
+      setFilter('SELECTED_GROUPS', [currentGroupId]).catch((error) => {
+        console.error('Failed to update filter on group context change:', error);
+      });
+    } else if (currentOrgId && (currentContext === 'church' || currentContext === 'family')) {
+      // Organization context - filter to primary org
       setFilter('PRIMARY_ONLY', [], currentOrgId).catch((error) => {
         console.error('Failed to update filter on context change:', error);
       });
-      
+
       // 2. Dashboard data will auto-refetch via React Query (queryKey includes activeOrganizationId)
       // No need to call refetchDashboard() - it's redundant!
     }
-    
+
     // Note: We do NOT call setFeedRefreshKey here anymore!
     // PostFeed will refresh automatically when filter changes OR when queryKey changes
     // This eliminates the duplicate refresh problem
-    
-  }, [activeContext, activeOrganizationId, setFilter]);
+
+  }, [activeContext, activeOrganizationId, activeGroupId, setFilter]);
 
   // Handle reset flag from Home button click - reset dashboard to initial state
   // NOTE: This is now only triggered by explicit double-tap, not regular navigation
