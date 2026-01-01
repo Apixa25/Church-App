@@ -15,17 +15,18 @@ import java.util.UUID;
 @Repository
 public interface GroupRepository extends JpaRepository<Group, UUID> {
 
-    List<Group> findByType(Group.GroupType type);
+    @Query("SELECT g FROM Group g WHERE g.type = :type AND g.deletedAt IS NULL")
+    List<Group> findByType(@Param("type") Group.GroupType type);
 
-    @Query("SELECT g FROM Group g WHERE g.createdByUser.id = :userId ORDER BY g.createdAt DESC")
+    @Query("SELECT g FROM Group g WHERE g.createdByUser.id = :userId AND g.deletedAt IS NULL ORDER BY g.createdAt DESC")
     List<Group> findByCreatedByUserId(@Param("userId") UUID userId);
 
-    @Query("SELECT g FROM Group g WHERE g.createdByOrg.id = :orgId ORDER BY g.createdAt DESC")
+    @Query("SELECT g FROM Group g WHERE g.createdByOrg.id = :orgId AND g.deletedAt IS NULL ORDER BY g.createdAt DESC")
     List<Group> findByCreatedByOrgId(@Param("orgId") UUID orgId);
 
-    @Query("SELECT g FROM Group g WHERE " +
-           "LOWER(g.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
-           "OR LOWER(g.description) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
+    @Query("SELECT g FROM Group g WHERE g.deletedAt IS NULL AND " +
+           "(LOWER(g.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
+           "OR LOWER(g.description) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
     Page<Group> searchGroups(@Param("searchTerm") String searchTerm, Pageable pageable);
 
     @Query("SELECT g FROM Group g WHERE g.type = 'PUBLIC' AND g.deletedAt IS NULL " +

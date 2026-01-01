@@ -14,29 +14,29 @@ import java.util.UUID;
 @Repository
 public interface UserGroupMembershipRepository extends JpaRepository<UserGroupMembership, UUID> {
 
-    @Query("SELECT m FROM UserGroupMembership m WHERE m.user.id = :userId")
+    @Query("SELECT m FROM UserGroupMembership m WHERE m.user.id = :userId AND m.group.deletedAt IS NULL")
     List<UserGroupMembership> findByUserId(@Param("userId") UUID userId);
 
-    @Query("SELECT m FROM UserGroupMembership m WHERE m.group.id = :groupId")
+    @Query("SELECT m FROM UserGroupMembership m WHERE m.group.id = :groupId AND m.group.deletedAt IS NULL")
     List<UserGroupMembership> findByGroupId(@Param("groupId") UUID groupId);
 
     @Query("SELECT m FROM UserGroupMembership m WHERE " +
-           "m.user.id = :userId AND m.group.id = :groupId")
+           "m.user.id = :userId AND m.group.id = :groupId AND m.group.deletedAt IS NULL")
     Optional<UserGroupMembership> findByUserIdAndGroupId(
         @Param("userId") UUID userId,
         @Param("groupId") UUID groupId
     );
 
     @Query("SELECT m FROM UserGroupMembership m WHERE " +
-           "m.user.id = :userId AND m.isMuted = false")
+           "m.user.id = :userId AND m.isMuted = false AND m.group.deletedAt IS NULL")
     List<UserGroupMembership> findUnmutedByUserId(@Param("userId") UUID userId);
 
     @Query("SELECT m FROM UserGroupMembership m WHERE " +
-           "m.user.id = :userId AND m.isMuted = true")
+           "m.user.id = :userId AND m.isMuted = true AND m.group.deletedAt IS NULL")
     List<UserGroupMembership> findMutedByUserId(@Param("userId") UUID userId);
 
     @Query("SELECT m.group.id FROM UserGroupMembership m WHERE " +
-           "m.user.id = :userId AND m.isMuted = false")
+           "m.user.id = :userId AND m.isMuted = false AND m.group.deletedAt IS NULL")
     List<UUID> findUnmutedGroupIdsByUserId(@Param("userId") UUID userId);
 
     boolean existsByUserIdAndGroupId(UUID userId, UUID groupId);
