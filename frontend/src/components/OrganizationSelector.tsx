@@ -446,24 +446,6 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
     <DropdownPortal ref={dropdownRef} $isOpen={isOpen} $top={dropdownPosition.top} $left={dropdownPosition.left}>
         {primaryMembership ? (
           <>
-            <DropdownHeader>
-              <DropdownTitle>Current Organization</DropdownTitle>
-              <CurrentOrgCard>
-                <CurrentOrgName>{primaryMembership.organizationName}</CurrentOrgName>
-                <CurrentOrgMeta>
-                  <PrimaryBadge>PRIMARY</PrimaryBadge>
-                  <span>
-                    {primaryMembership.role.toLowerCase().charAt(0).toUpperCase() +
-                     primaryMembership.role.toLowerCase().slice(1)}
-                  </span>
-                </CurrentOrgMeta>
-              </CurrentOrgCard>
-              {!canSwitch && (
-                <CooldownNotice>
-                  You can switch your primary organization in {daysUntilSwitch} days
-                </CooldownNotice>
-              )}
-            </DropdownHeader>
 
             {secondaryMemberships.length > 0 && (
               <DropdownSection>
@@ -502,13 +484,13 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
 
             <DropdownSection>
               <BrowseButton onClick={handleBrowse}>
-                Browse Organizations
+                Find Organizations
               </BrowseButton>
             </DropdownSection>
 
             <DropdownSection>
               <BrowseButtonSecondary onClick={handleBrowseGroups}>
-                Find Groups to Join
+                Find Groups
               </BrowseButtonSecondary>
             </DropdownSection>
           </>
@@ -557,13 +539,13 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
 
             <DropdownSection>
               <BrowseButton onClick={handleBrowse}>
-                Find Organizations to Join
+                Find Organizations
               </BrowseButton>
             </DropdownSection>
 
             <DropdownSection>
               <BrowseButtonSecondary onClick={handleBrowseGroups}>
-                Find Groups to Join
+                Find Groups
               </BrowseButtonSecondary>
             </DropdownSection>
           </>
