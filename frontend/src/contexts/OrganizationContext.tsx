@@ -116,7 +116,8 @@ interface OrganizationContextType {
   // ========================================================================
   // ORGANIZATION QUERIES
   // ========================================================================
-  
+
+  getAllOrganizations: (page?: number, size?: number) => Promise<{ content: Organization[], totalElements: number }>;
   searchOrganizations: (query: string, page?: number, size?: number) => Promise<{ content: Organization[], totalElements: number }>;
   getOrganizationById: (orgId: string) => Promise<Organization>;
   getOrganizationBySlug: (slug: string) => Promise<Organization>;
@@ -311,6 +312,24 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   // ORGANIZATION QUERIES
   // ========================================================================
 
+  const getAllOrganizations = async (
+    page: number = 0,
+    size: number = 20
+  ): Promise<{ content: Organization[], totalElements: number }> => {
+    try {
+      const response = await api.get('/organizations', {
+        params: { page, size },
+      });
+      return {
+        content: response.data.content,
+        totalElements: response.data.totalElements,
+      };
+    } catch (error) {
+      console.error('Error fetching organizations:', error);
+      return { content: [], totalElements: 0 };
+    }
+  };
+
   const searchOrganizations = async (
     query: string,
     page: number = 0,
@@ -402,6 +421,7 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
     refreshMemberships,
     
     // Organization Queries
+    getAllOrganizations,
     searchOrganizations,
     getOrganizationById,
     getOrganizationBySlug,

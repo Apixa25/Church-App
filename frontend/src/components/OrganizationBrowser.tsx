@@ -554,6 +554,7 @@ const OrganizationBrowser: React.FC = () => {
     canBeFamilyPrimary,
     canSwitchPrimary,
     getDaysUntilCanSwitch,
+    getAllOrganizations,
     searchOrganizations,
   } = useOrganization();
 
@@ -601,25 +602,35 @@ const OrganizationBrowser: React.FC = () => {
     }
   };
 
+  // Track if we're currently loading to prevent duplicate calls
+  const isLoadingRef = useRef(false);
+
   // Load more organizations for infinite scroll (browse mode)
   const loadMoreOrganizations = async () => {
-    if (loadingMore || !hasMore) return;
+    if (isLoadingRef.current || !hasMore) return;
+    isLoadingRef.current = true;
     setLoadingMore(true);
 
     try {
-      const result = await searchOrganizations('*', currentPage, 7);
+      const result = await getAllOrganizations(currentPage, 7);
 
       if (result.content.length < 7) {
         setHasMore(false);
       }
 
-      setAllOrganizations(prev => [...prev, ...result.content]);
+      // Deduplicate by id when adding new organizations
+      setAllOrganizations(prev => {
+        const existingIds = new Set(prev.map(org => org.id));
+        const newOrgs = result.content.filter(org => !existingIds.has(org.id));
+        return [...prev, ...newOrgs];
+      });
       setCurrentPage(prev => prev + 1);
       setInitialLoadDone(true);
     } catch (err) {
       console.error('Error loading organizations:', err);
     } finally {
       setLoadingMore(false);
+      isLoadingRef.current = false;
     }
   };
 
@@ -634,7 +645,7 @@ const OrganizationBrowser: React.FC = () => {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore && !isSearchMode && initialLoadDone) {
+        if (entries[0].isIntersecting && hasMore && !isLoadingRef.current && !isSearchMode && initialLoadDone) {
           loadMoreOrganizations();
         }
       },
