@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGroup, Group } from '../contexts/GroupContext';
 import { useAuth } from '../contexts/AuthContext';
-import { uploadProfilePicture } from '../services/postApi';
+import { uploadGroupImage } from '../services/postApi';
 import { processImageForUpload, isValidImageFile } from '../utils/imageUtils';
+import { getApiUrl } from '../config/runtimeConfig';
 import styled from 'styled-components';
 
 const PageContainer = styled.div`
@@ -236,8 +237,8 @@ const SuccessMessage = styled.div`
 const GroupSettings: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { getGroupById, updateGroup, isCreator, myGroups } = useGroup();
+  useAuth();
+  const { getGroupById, isCreator, myGroups, refreshGroups } = useGroup();
 
   // Form state
   const [group, setGroup] = useState<Group | null>(null);
@@ -363,15 +364,37 @@ const GroupSettings: React.FC = () => {
       // Upload new image if selected
       if (imageFile) {
         console.log('Uploading group image...');
-        imageUrl = await uploadProfilePicture(imageFile);
+        imageUrl = await uploadGroupImage(imageFile);
         console.log('Group image uploaded:', imageUrl);
       }
 
-      // Update group
-      await updateGroup(groupId, {
-        description: description.trim(),
-        imageUrl: imageUrl || undefined
+      // Update group - backend expects 'type' not 'visibility', so we make a direct API call
+      // Note: Backend returns 'type' but frontend interface incorrectly says 'visibility'
+      // Access as 'any' to get the actual 'type' property from backend response
+      const groupType = (group as any).type || group.visibility || 'PUBLIC';
+
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${getApiUrl()}/groups/${groupId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: group.name,
+          type: groupType,
+          description: description.trim(),
+          imageUrl: imageUrl || undefined
+        })
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to update group');
+      }
+
+      // Refresh groups to update the context with new data
+      await refreshGroups();
 
       setSuccess('Group settings saved successfully!');
 

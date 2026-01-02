@@ -608,18 +608,18 @@ export const uploadProfilePicture = async (file: File): Promise<string> => {
 export const uploadBannerImage = async (file: File): Promise<string> => {
   console.log('🖼️ Uploading banner image using presigned URL (bypasses Nginx)');
   console.log(`   File: ${file.name}, Size: ${(file.size / 1024 / 1024).toFixed(2)}MB, Type: ${file.type}`);
-  
+
   try {
     // Step 1: Get presigned URL from backend (goes through Nginx but tiny request)
     console.log('🔑 Step 1: Getting presigned URL from backend...');
     const presignedResponse = await generatePresignedUploadUrl(file, 'banners');
     console.log('✅ Got presigned URL:', presignedResponse.s3Key);
-    
+
     // Step 2: Upload directly to S3 (bypasses Nginx completely!)
     console.log('☁️ Step 2: Uploading directly to S3...');
     await uploadFileToS3(file, presignedResponse.presignedUrl);
     console.log('✅ File uploaded to S3 successfully');
-    
+
     // Step 3: Confirm upload completion to backend
     console.log('✔️ Step 3: Confirming upload with backend...');
     const confirmResponse = await confirmUpload({
@@ -628,12 +628,53 @@ export const uploadBannerImage = async (file: File): Promise<string> => {
       contentType: file.type,
       fileSize: file.size
     });
-    
+
     console.log('🎉 Banner image upload complete!', confirmResponse.fileUrl);
     return confirmResponse.fileUrl;
-    
+
   } catch (error: any) {
     console.error('❌ Banner image upload failed:', error);
+    throw error;
+  }
+};
+
+/**
+ * Upload group image using presigned URL (industry-standard approach)
+ *
+ * This bypasses Nginx entirely by uploading directly to S3.
+ * Works on all devices including iPhone, no file size limits from Nginx!
+ *
+ * Flow: Frontend → Backend (get presigned URL) → S3 (direct upload) → Backend (confirm)
+ */
+export const uploadGroupImage = async (file: File): Promise<string> => {
+  console.log('👥 Uploading group image using presigned URL (bypasses Nginx)');
+  console.log(`   File: ${file.name}, Size: ${(file.size / 1024 / 1024).toFixed(2)}MB, Type: ${file.type}`);
+
+  try {
+    // Step 1: Get presigned URL from backend (goes through Nginx but tiny request)
+    console.log('🔑 Step 1: Getting presigned URL from backend...');
+    const presignedResponse = await generatePresignedUploadUrl(file, 'groups');
+    console.log('✅ Got presigned URL:', presignedResponse.s3Key);
+
+    // Step 2: Upload directly to S3 (bypasses Nginx completely!)
+    console.log('☁️ Step 2: Uploading directly to S3...');
+    await uploadFileToS3(file, presignedResponse.presignedUrl);
+    console.log('✅ File uploaded to S3 successfully');
+
+    // Step 3: Confirm upload completion to backend
+    console.log('✔️ Step 3: Confirming upload with backend...');
+    const confirmResponse = await confirmUpload({
+      s3Key: presignedResponse.s3Key,
+      fileName: file.name,
+      contentType: file.type,
+      fileSize: file.size
+    });
+
+    console.log('🎉 Group image upload complete!', confirmResponse.fileUrl);
+    return confirmResponse.fileUrl;
+
+  } catch (error: any) {
+    console.error('❌ Group image upload failed:', error);
     throw error;
   }
 };

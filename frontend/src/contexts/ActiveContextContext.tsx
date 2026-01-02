@@ -202,6 +202,19 @@ export const ActiveContextProvider: React.FC<ActiveContextProviderProps> = ({ ch
       ? unmutedGroups.find(g => g.groupId === activeGroupId) || null
       : null;
 
+  // Sync activeGroupImage with membership data when it changes
+  // This ensures that when a group image is updated, it reflects in the dashboard
+  useEffect(() => {
+    if (activeGroupMembership && activeGroupMembership.groupImageUrl) {
+      // Update state if membership has a different image than what we have stored
+      if (activeGroupMembership.groupImageUrl !== activeGroupImage) {
+        console.log('🔄 Syncing group image from membership:', activeGroupMembership.groupImageUrl);
+        setActiveGroupImage(activeGroupMembership.groupImageUrl);
+        localStorage.setItem(ACTIVE_GROUP_IMAGE_STORAGE_KEY, activeGroupMembership.groupImageUrl);
+      }
+    }
+  }, [activeGroupMembership, activeGroupImage]);
+
   // Derived values for the active context
   // When context is 'group', use group name/image; otherwise use organization
   const activeOrganizationId = activeContext === 'group' ? null : (activeMembership?.organizationId || null);
