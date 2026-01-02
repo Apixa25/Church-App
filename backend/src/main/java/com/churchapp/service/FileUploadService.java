@@ -290,10 +290,15 @@ public class FileUploadService {
                     return;
                 }
                 
-                // CRITICAL: Store job ID in MediaFile for webhook/polling to find it!
+                // CRITICAL: Store job ID and expected output keys in MediaFile for webhook to find them!
+                // Note: mediaFile already has expectedOptimizedKey and expectedThumbnailKey set by startVideoProcessingJob
                 mediaFileRepository.findById(mediaFile.getId()).ifPresent(mf -> {
                     mf.setJobId(jobId);
+                    mf.setExpectedOptimizedKey(mediaFile.getExpectedOptimizedKey());
+                    mf.setExpectedThumbnailKey(mediaFile.getExpectedThumbnailKey());
                     mediaFileRepository.save(mf);
+                    log.info("Saved expected keys to DB - optimized: {}, thumbnail: {}",
+                            mf.getExpectedOptimizedKey(), mf.getExpectedThumbnailKey());
                 });
                 
                 log.info("MediaConvert job started: {} for video: {} (MediaFile ID: {})", 
@@ -861,10 +866,14 @@ public class FileUploadService {
                     return;
                 }
                 
-                // Store job ID in MediaFile for polling
+                // Store job ID and expected output keys in MediaFile for webhook to find them
                 mediaFileRepository.findById(mediaFile.getId()).ifPresent(mf -> {
                     mf.setJobId(jobId);
+                    mf.setExpectedOptimizedKey(mediaFile.getExpectedOptimizedKey());
+                    mf.setExpectedThumbnailKey(mediaFile.getExpectedThumbnailKey());
                     mediaFileRepository.save(mf);
+                    log.info("Saved expected keys to DB - optimized: {}, thumbnail: {}",
+                            mf.getExpectedOptimizedKey(), mf.getExpectedThumbnailKey());
                 });
                 
                 log.info("MediaConvert job started: {} for video: {} (MediaFile ID: {})", 

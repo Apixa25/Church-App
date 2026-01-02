@@ -72,7 +72,7 @@ public class MediaConvertVideoService {
             // Extract S3 key from original URL if full URL provided
             String inputKey = extractS3KeyFromUrl(s3InputKey);
             String outputKey = generateOutputKey(mediaFile);
-            String thumbnailKey = generateThumbnailKey(mediaFile);
+            String thumbnailKey = generateThumbnailKey(mediaFile, inputKey);
 
             // CRITICAL: Store expected output keys in MediaFile BEFORE creating job
             // This ensures webhook knows exactly where to find outputs without guessing
@@ -141,12 +141,23 @@ public class MediaConvertVideoService {
 
     /**
      * Generate S3 output key for video thumbnail
-     * Note: This will be used when thumbnail generation is implemented
+     * MediaConvert names the output based on the INPUT filename (without extension) + frame number
+     * So for input "abc123.webm", thumbnail will be "abc123.0000000.jpg"
+     *
+     * @param mediaFile The MediaFile entity
+     * @param inputKey The S3 key of the input video (to extract the base filename)
+     * @return The expected S3 key where MediaConvert will write the thumbnail
      */
-    private String generateThumbnailKey(MediaFile mediaFile) {
+    private String generateThumbnailKey(MediaFile mediaFile, String inputKey) {
         String folder = mediaFile.getFolder();
-        String filename = UUID.randomUUID().toString() + ".jpg";
-        return String.format("media/%s/thumbnails/%s", folder, filename);
+
+        // Extract the base filename from the input key (e.g., "abc123" from "media/posts/originals/abc123.webm")
+        String inputFilename = inputKey.substring(inputKey.lastIndexOf("/") + 1);
+        String baseFilename = inputFilename.substring(0, inputFilename.lastIndexOf("."));
+
+        // MediaConvert adds .0000000 suffix for frame captures (frame number with 7 digits, first frame = 0)
+        String thumbnailFilename = baseFilename + ".0000000.jpg";
+        return String.format("media/%s/thumbnails/%s", folder, thumbnailFilename);
     }
 
     /**
