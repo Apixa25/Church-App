@@ -22,6 +22,13 @@ export const resourceAPI = {
   trackDownload: (resourceId: string) =>
     api.post(`/resources/${resourceId}/download`),
 
+  trackShare: (resourceId: string) =>
+    api.post(`/resources/${resourceId}/share`),
+
+  // Public resource endpoint (no authentication required)
+  getPublicResource: (resourceId: string) =>
+    api.get(`/public/resources/${resourceId}`),
+
   // Authenticated endpoints
   createResource: (resourceRequest: ResourceRequest) =>
     api.post<Resource>('/resources', resourceRequest),

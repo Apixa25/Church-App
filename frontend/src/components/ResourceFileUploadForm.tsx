@@ -27,7 +27,9 @@ const ResourceFileUploadForm: React.FC<ResourceFileUploadFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
+  const [uploadedResource, setUploadedResource] = useState<Resource | null>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isEditing = !!resource;
   const isFileUpdate = isEditing && resource?.fileUrl;
@@ -171,7 +173,8 @@ const ResourceFileUploadForm: React.FC<ResourceFileUploadFormProps> = ({
         throw new Error('No file selected');
       }
 
-      onSuccess(response.data);
+      // Show success state with shareable link instead of immediately closing
+      setUploadedResource(response.data);
     } catch (error: any) {
       console.error('Error uploading resource with file:', error);
       onError(error.response?.data?.error || `Failed to ${isFileUpdate ? 'update file' : 'upload resource'}`);
@@ -187,6 +190,113 @@ const ResourceFileUploadForm: React.FC<ResourceFileUploadFormProps> = ({
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
+
+  const getShareableLink = (resourceId: string) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return `${origin}/public/resources/${resourceId}/preview`;
+  };
+
+  const handleCopyLink = async () => {
+    if (!uploadedResource) return;
+
+    const shareUrl = getShareableLink(uploadedResource.id);
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const tempInput = document.createElement('input');
+        tempInput.style.position = 'absolute';
+        tempInput.style.left = '-1000px';
+        tempInput.value = shareUrl;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+      }
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 3000);
+    } catch (err) {
+      console.error('Failed to copy link:', err);
+    }
+  };
+
+  const handleDone = () => {
+    if (uploadedResource) {
+      onSuccess(uploadedResource);
+    }
+  };
+
+  const handleUploadAnother = () => {
+    setUploadedResource(null);
+    setSelectedFile(null);
+    setFileValidation(null);
+    setFormData({
+      title: '',
+      description: '',
+      category: ResourceCategory.GENERAL,
+    });
+    setCopySuccess(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Show success state after upload
+  if (uploadedResource) {
+    return (
+      <div className="resource-file-upload-container">
+        <div className="upload-success-state">
+          <div className="success-icon">✅</div>
+          <h2>Resource Uploaded Successfully!</h2>
+          <p className="success-message">
+            Your resource "{uploadedResource.title}" is now available in the library.
+          </p>
+
+          <div className="share-link-section">
+            <label>Shareable Link</label>
+            <p className="share-link-hint">
+              Copy this link to share with your group or paste it in a post.
+            </p>
+            <div className="share-link-row">
+              <code className="share-link-display">
+                {getShareableLink(uploadedResource.id)}
+              </code>
+              <button
+                type="button"
+                className="btn btn-primary copy-link-btn"
+                onClick={handleCopyLink}
+              >
+                {copySuccess ? '✓ Copied!' : 'Copy Link'}
+              </button>
+            </div>
+            {copySuccess && (
+              <div className="copy-success-message">
+                Link copied! Paste it in a post or message to share with others.
+              </div>
+            )}
+          </div>
+
+          <div className="success-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleUploadAnother}
+            >
+              Upload Another
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleDone}
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="resource-file-upload-container">

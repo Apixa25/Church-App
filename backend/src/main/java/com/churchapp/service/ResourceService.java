@@ -252,7 +252,22 @@ public class ResourceService {
         
         log.info("Download count incremented for resource: {} (new count: {})", resourceId, resource.getDownloadCount());
     }
-    
+
+    // Share tracking
+    public void incrementShareCount(UUID resourceId) {
+        Resource resource = resourceRepository.findById(resourceId)
+            .orElseThrow(() -> new RuntimeException("Resource not found with id: " + resourceId));
+
+        if (!resource.getIsApproved()) {
+            throw new RuntimeException("Cannot share unapproved resource");
+        }
+
+        resource.setShareCount(resource.getShareCount() + 1);
+        resourceRepository.save(resource);
+
+        log.info("Share count incremented for resource: {} (new count: {})", resourceId, resource.getShareCount());
+    }
+
     // Query methods for public access (approved resources only)
     public Page<Resource> getApprovedResources(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);

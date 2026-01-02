@@ -17,6 +17,7 @@ import AuthError from './components/AuthError';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import PublicPostPreview from './components/PublicPostPreview';
+import PublicResourcePreview from './components/PublicResourcePreview';
 import PostDetailPage from './components/PostDetailPage';
 import ProfileView from './components/ProfileView';
 import ProfileEdit from './components/ProfileEdit';
@@ -160,7 +161,9 @@ const App: React.FC = () => {
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/auth/error" element={<AuthError />} />
             <Route path="/posts/:postId" element={<PublicPostPreview />} />
-            
+            <Route path="/public/posts/:postId/preview" element={<PublicPostPreview />} />
+            <Route path="/public/resources/:resourceId/preview" element={<PublicResourcePreview />} />
+
             {/* Protected routes */}
             <Route
               path="/dashboard"

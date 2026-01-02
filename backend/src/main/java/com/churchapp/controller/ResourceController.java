@@ -127,7 +127,21 @@ public class ResourceController {
             return ResponseEntity.badRequest().body(error);
         }
     }
-    
+
+    @PostMapping("/{resourceId}/share")
+    public ResponseEntity<?> trackShare(@PathVariable UUID resourceId) {
+        try {
+            resourceService.incrementShareCount(resourceId);
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Share tracked successfully");
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
     // Authenticated endpoints
     @PostMapping
     public ResponseEntity<?> createResource(Authentication authentication,

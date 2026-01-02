@@ -62,6 +62,9 @@ public class Resource {
     
     @Column(name = "download_count", nullable = false)
     private Integer downloadCount = 0;
+
+    @Column(name = "share_count", nullable = false)
+    private Integer shareCount = 0;
     
     // YouTube video support fields
     @Column(name = "youtube_url", length = 500)

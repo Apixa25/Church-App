@@ -319,6 +319,133 @@
   line-height: 1.4;
 }
 
+/* Upload Success State */
+.upload-success-state {
+  text-align: center;
+  padding: 48px 32px;
+  background: var(--bg-elevated);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--border-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.upload-success-state .success-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.upload-success-state h2 {
+  margin: 0 0 12px 0;
+  font-size: 1.75rem;
+  color: var(--success);
+}
+
+.upload-success-state .success-message {
+  margin: 0 0 32px 0;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+.upload-success-state .share-link-section {
+  background: var(--bg-tertiary);
+  padding: 24px;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-primary);
+  margin-bottom: 32px;
+  text-align: left;
+}
+
+.upload-success-state .share-link-section label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.upload-success-state .share-link-hint {
+  margin: 0 0 16px 0;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.upload-success-state .share-link-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.upload-success-state .share-link-display {
+  flex: 1;
+  min-width: 200px;
+  padding: 12px 16px;
+  border-radius: var(--border-radius-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  font-family: 'Courier New', Courier, monospace;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.upload-success-state .copy-link-btn {
+  white-space: nowrap;
+  min-width: 110px;
+}
+
+.upload-success-state .copy-success-message {
+  margin-top: 12px;
+  padding: 10px 16px;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+  border-radius: var(--border-radius-sm);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.upload-success-state .success-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.upload-success-state .success-actions .btn {
+  min-width: 140px;
+}
+
+@media (max-width: 480px) {
+  .upload-success-state {
+    padding: 32px 20px;
+  }
+
+  .upload-success-state .share-link-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .upload-success-state .share-link-display {
+    min-width: 100%;
+  }
+
+  .upload-success-state .copy-link-btn {
+    width: 100%;
+  }
+
+  .upload-success-state .success-actions {
+    flex-direction: column;
+  }
+
+  .upload-success-state .success-actions .btn {
+    width: 100%;
+  }
+}
+
 /* Button Styles - inherit from ResourcePage.css */
 .btn {
   padding: 12px 24px;

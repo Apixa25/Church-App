@@ -1,7 +1,6 @@
 package com.churchapp.dto;
 
 import com.churchapp.entity.Resource;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -39,14 +38,15 @@ public class ResourceResponse {
     // Metadata
     private Boolean isApproved;
     private Integer downloadCount;
+    private Integer shareCount;
     private LocalDateTime createdAt;
     
     public ResourceResponse(UUID id, String title, String description, Resource.ResourceCategory category,
                            String fileName, String fileUrl, Long fileSize, String fileType,
                            UUID uploadedById, String uploaderName, String uploaderProfilePicUrl,
-                           String youtubeUrl, String youtubeVideoId, String youtubeTitle, 
+                           String youtubeUrl, String youtubeVideoId, String youtubeTitle,
                            String youtubeThumbnailUrl, String youtubeDuration, String youtubeChannel,
-                           Boolean isApproved, Integer downloadCount, LocalDateTime createdAt) {
+                           Boolean isApproved, Integer downloadCount, Integer shareCount, LocalDateTime createdAt) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -66,6 +66,7 @@ public class ResourceResponse {
         this.youtubeChannel = youtubeChannel;
         this.isApproved = isApproved;
         this.downloadCount = downloadCount;
+        this.shareCount = shareCount;
         this.createdAt = createdAt;
     }
     
@@ -90,6 +91,7 @@ public class ResourceResponse {
             resource.getYoutubeChannel(),
             resource.getIsApproved(),
             resource.getDownloadCount(),
+            resource.getShareCount(),
             resource.getCreatedAt()
         );
     }

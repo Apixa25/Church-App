@@ -12,6 +12,7 @@ export interface Resource {
   uploaderProfilePicUrl?: string;
   isApproved?: boolean;
   downloadCount: number;
+  shareCount: number;
   createdAt: string;
   // YouTube video fields
   youtubeUrl?: string;
@@ -183,3 +184,28 @@ export const generateYouTubeWatchUrl = (videoId: string): string => {
 export const isYouTubeResource = (resource: Resource): boolean => {
   return !!(resource.youtubeVideoId || resource.fileType === 'video/youtube');
 };
+
+// Public resource type for shareable link preview pages
+export interface PublicResource {
+  id: string;
+  title: string;
+  descriptionPreview: string;
+  category: string;
+  categoryLabel: string;
+  fileName?: string;
+  fileUrl?: string;
+  fileSize?: number;
+  fileType?: string;
+  uploaderName: string;
+  uploaderAvatarUrl?: string;
+  youtubeUrl?: string;
+  youtubeVideoId?: string;
+  youtubeThumbnailUrl?: string;
+  youtubeTitle?: string;
+  youtubeDuration?: string;
+  youtubeChannel?: string;
+  downloadCount: number;
+  shareCount: number;
+  createdAt?: string;
+  heroImageUrl?: string;
+}

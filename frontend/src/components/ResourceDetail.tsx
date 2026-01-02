@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { resourceAPI } from '../services/resourceApi';
-import { 
-  Resource, 
-  getResourceCategoryLabel, 
-  formatFileSize, 
+import {
+  Resource,
+  getResourceCategoryLabel,
+  formatFileSize,
   getFileIconByType,
   isYouTubeResource,
   generateYouTubeEmbedUrl
 } from '../types/Resource';
+import ResourceShareModal from './ResourceShareModal';
 import './ResourceDetail.css';
 
 interface ResourceDetailProps {
@@ -30,6 +31,7 @@ const ResourceDetail: React.FC<ResourceDetailProps> = ({
   const [resource, setResource] = useState<Resource | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const isAdmin = user?.role === 'PLATFORM_ADMIN' || user?.role === 'MODERATOR';
   const isModerator = user?.role === 'MODERATOR';
@@ -199,7 +201,7 @@ const ResourceDetail: React.FC<ResourceDetailProps> = ({
           <div className="uploader-info">
             <div className="uploader-name">{resource.uploaderName}</div>
             <div className="upload-stats">
-              ↓ {resource.downloadCount} downloads
+              ⬇️ {resource.downloadCount} downloads · 🔗 {resource.shareCount || 0} shares
             </div>
           </div>
         </div>
@@ -296,35 +298,50 @@ const ResourceDetail: React.FC<ResourceDetailProps> = ({
       </div>
 
       <div className="resource-detail-actions">
-        {canEditResource() && (
-          <div className="action-group">
-            <button
-              className="btn btn-outline-primary"
-              onClick={() => onEdit(resource)}
-            >
-              ✏️ Edit
-            </button>
-            <button
-              className="btn btn-outline-danger"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? (
-                <>
-                  <span className="loading-spinner-sm"></span>
-                  Deleting...
-                </>
-              ) : (
-                '🗑️ Delete'
-              )}
-            </button>
-          </div>
-        )}
+        <div className="action-group">
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowShareModal(true)}
+          >
+            🔗 Share
+          </button>
+          {canEditResource() && (
+            <>
+              <button
+                className="btn btn-outline-primary"
+                onClick={() => onEdit(resource)}
+              >
+                ✏️ Edit
+              </button>
+              <button
+                className="btn btn-outline-danger"
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <>
+                    <span className="loading-spinner-sm"></span>
+                    Deleting...
+                  </>
+                ) : (
+                  '🗑️ Delete'
+                )}
+              </button>
+            </>
+          )}
+        </div>
 
         <button className="btn btn-secondary" onClick={onBack}>
           ⬅️ Back to Resources
         </button>
       </div>
+
+      {/* Share Modal */}
+      <ResourceShareModal
+        resource={resource}
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+      />
     </div>
   );
 };
