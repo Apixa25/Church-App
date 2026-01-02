@@ -251,6 +251,13 @@ const BrowseButtonSecondary = styled(BrowseButton)`
   }
 `;
 
+const HelpText = styled.div`
+  font-size: 12px;
+  color: #000;
+  margin-bottom: 8px;
+  line-height: 1.4;
+`;
+
 const CooldownNotice = styled.div`
   padding: 8px 12px;
   background: #fff3cd;
@@ -483,12 +490,14 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
             )}
 
             <DropdownSection>
+              <HelpText>For example: a Church or a Family - You can be a part of 2 Organizations MAX</HelpText>
               <BrowseButton onClick={handleBrowse}>
                 Find Organizations
               </BrowseButton>
             </DropdownSection>
 
             <DropdownSection>
+              <HelpText>For example: A Bible Study or Camping Trip - You can be a part of unlimited groups</HelpText>
               <BrowseButtonSecondary onClick={handleBrowseGroups}>
                 Find Groups
               </BrowseButtonSecondary>
@@ -538,12 +547,14 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
             )}
 
             <DropdownSection>
+              <HelpText>For example: a Church or a Family - You can be a part of 2 Organizations MAX</HelpText>
               <BrowseButton onClick={handleBrowse}>
                 Find Organizations
               </BrowseButton>
             </DropdownSection>
 
             <DropdownSection>
+              <HelpText>For example: A Bible Study or Camping Trip - You can be a part of unlimited groups</HelpText>
               <BrowseButtonSecondary onClick={handleBrowseGroups}>
                 Find Groups
               </BrowseButtonSecondary>
