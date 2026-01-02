@@ -147,6 +147,14 @@ const Dashboard: React.FC = () => {
   // Check if user has any primary organization (Church OR Family) - used to optimize API calls
   const hasPrimaryOrg = hasAnyPrimary;
 
+  // Check for ?view=activity URL parameter (from Quick Actions navigation)
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get('view') === 'activity' && hasPrimaryOrg) {
+      setFeedView('activity');
+    }
+  }, [location.search, hasPrimaryOrg]);
+
   // 🚀 React Query - Smart caching with stale-while-revalidate
   const { 
     data: dashboardData, 
@@ -563,8 +571,8 @@ const Dashboard: React.FC = () => {
                   🌟 Social Feed
                 </button>
               )}
-              {/* Only show Activity Feed button if user has primary org AND not already on Activity Feed */}
-              {hasPrimaryOrg && feedView !== 'activity' && (
+              {/* Activity Feed button hidden - now accessible via Quick Actions */}
+              {false && hasPrimaryOrg && feedView !== 'activity' && (
                 <button
                   className="feed-toggle-btn"
                   onClick={() => handleFeedViewChange('activity')}

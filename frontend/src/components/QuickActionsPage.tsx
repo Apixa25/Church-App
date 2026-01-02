@@ -85,6 +85,18 @@ const QuickActionsPage: React.FC = () => {
           </button>
         </div>
 
+        {/* Activity Feed Quick Access Button */}
+        <div className="activity-feed-quick-action">
+          <button
+            className="activity-feed-button"
+            onClick={() => navigate('/dashboard?view=activity')}
+            aria-label="View Activity Feed"
+          >
+            <span className="activity-icon">📋</span>
+            <span className="activity-text">Activity Feed</span>
+          </button>
+        </div>
+
         <QuickActions
           actions={quickActions}
           isLoading={isLoading}

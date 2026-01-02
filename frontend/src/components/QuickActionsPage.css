@@ -54,6 +54,11 @@
 
 /* Community Stats Quick Action Button */
 .community-stats-quick-action {
+  margin-bottom: 16px;
+}
+
+/* Activity Feed Quick Action Button */
+.activity-feed-quick-action {
   margin-bottom: 20px;
 }
 
@@ -93,6 +98,50 @@
   font-size: 16px;
 }
 
+/* Activity Feed Button */
+.activity-feed-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, var(--accent-secondary), var(--accent-tertiary, #6366f1));
+  border: none;
+  border-radius: var(--border-radius-md);
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: 0 4px 16px var(--button-primary-glow);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.activity-feed-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--glow-blue);
+}
+
+.activity-feed-button:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.activity-feed-button .activity-icon {
+  font-size: 24px;
+}
+
+.activity-feed-button .activity-text {
+  font-size: 16px;
+}
+
+/* Accessibility */
+.community-stats-button:focus,
+.activity-feed-button:focus {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
 @media (max-width: 480px) {
   .quick-actions-header {
     padding: 12px;
@@ -128,22 +177,37 @@
   .community-stats-button .stats-text {
     font-size: 15px;
   }
-}
 
-/* Accessibility */
-.community-stats-button:focus {
-  outline: 2px solid white;
-  outline-offset: 2px;
+  .activity-feed-quick-action {
+    margin-bottom: 16px;
+  }
+
+  .activity-feed-button {
+    padding: 14px 20px;
+    font-size: 15px;
+    border-radius: var(--border-radius-md);
+  }
+
+  .activity-feed-button .activity-icon {
+    font-size: 22px;
+  }
+
+  .activity-feed-button .activity-text {
+    font-size: 15px;
+  }
 }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .community-stats-button {
+  .community-stats-button,
+  .activity-feed-button {
     transition: none;
   }
-  
+
   .community-stats-button:hover,
-  .community-stats-button:active {
+  .community-stats-button:active,
+  .activity-feed-button:hover,
+  .activity-feed-button:active {
     transform: none;
   }
 }
