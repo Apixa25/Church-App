@@ -222,9 +222,9 @@ const SectionTitle = styled.h2`
 
 const MembershipCard = styled.div`
   background: var(--bg-elevated);
-  padding: 16px;
+  padding: 10px 14px;
   border-radius: var(--border-radius-md);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -239,43 +239,105 @@ const MembershipCard = styled.div`
 
 const MembershipInfo = styled.div`
   flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  min-width: 0;
 `;
 
 const MembershipName = styled.div`
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 4px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 `;
 
 const MembershipRole = styled.div`
-  font-size: 14px;
+  font-size: 11px;
   color: var(--text-secondary);
+  width: 100%;
 `;
 
 const PrimaryBadge = styled.span`
   display: inline-block;
-  padding: 4px 12px;
+  padding: 3px 8px;
   background: var(--gradient-primary);
   color: white;
   border-radius: var(--border-radius-pill);
-  font-size: 12px;
+  font-size: 9px;
   font-weight: 600;
   box-shadow: 0 2px 8px var(--button-primary-glow);
+  white-space: nowrap;
+  flex-shrink: 0;
 `;
 
 const SecondaryBadge = styled.span`
   display: inline-block;
-  padding: 4px 12px;
+  padding: 3px 8px;
   background: var(--bg-secondary);
   color: var(--text-secondary);
   border: 1px solid var(--border-primary);
   border-radius: var(--border-radius-pill);
-  font-size: 12px;
+  font-size: 9px;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+`;
+
+const SmallLeaveButton = styled.button`
+  padding: 3px 10px;
+  font-size: 9px;
+  font-weight: 600;
+  background: var(--error);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-pill);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  &:hover {
+    background: #dc2626;
+    box-shadow: 0 0 12px var(--error-glow);
+  }
+
+  &:disabled {
+    background: #999;
+    cursor: not-allowed;
+  }
+`;
+
+const SmallActionButton = styled.button<{ variant?: 'primary' | 'secondary' }>`
+  padding: 3px 10px;
+  font-size: 9px;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--border-radius-pill);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  ${props => props.variant === 'primary' ? `
+    background: var(--gradient-primary);
+    color: white;
+    &:hover {
+      box-shadow: 0 2px 8px var(--button-primary-glow);
+    }
+  ` : `
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-primary);
+    &:hover {
+      background: var(--bg-elevated);
+    }
+  `}
+
+  &:disabled {
+    background: #999;
+    cursor: not-allowed;
+  }
 `;
 
 const OrganizationGrid = styled.div`
@@ -890,44 +952,6 @@ const OrganizationBrowser: React.FC = () => {
           )}
         </SearchBarContainer>
 
-        <FilterTabs>
-          <FilterTab
-            active={typeFilter === 'ALL'}
-            onClick={() => setTypeFilter('ALL')}
-          >
-            All Organizations
-          </FilterTab>
-          <FilterTab
-            active={typeFilter === 'CHURCH'}
-            onClick={() => setTypeFilter('CHURCH')}
-          >
-            Churches
-          </FilterTab>
-          <FilterTab
-            active={typeFilter === 'MINISTRY'}
-            onClick={() => setTypeFilter('MINISTRY')}
-          >
-            Ministries
-          </FilterTab>
-          <FilterTab
-            active={typeFilter === 'NONPROFIT'}
-            onClick={() => setTypeFilter('NONPROFIT')}
-          >
-            Nonprofits
-          </FilterTab>
-          <FilterTab
-            active={typeFilter === 'FAMILY'}
-            onClick={() => setTypeFilter('FAMILY')}
-          >
-            Families
-          </FilterTab>
-          <FilterTab
-            active={typeFilter === 'GENERAL'}
-            onClick={() => setTypeFilter('GENERAL')}
-          >
-            General
-          </FilterTab>
-        </FilterTabs>
       </HeaderSection>
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
@@ -944,67 +968,55 @@ const OrganizationBrowser: React.FC = () => {
           {churchPrimary && (
             <MembershipCard>
               <MembershipInfo>
-                <MembershipName>
-                  {churchPrimary.organizationName}
-                  <PrimaryBadge>CHURCH PRIMARY</PrimaryBadge>
-                </MembershipName>
+                <MembershipName>{churchPrimary.organizationName}</MembershipName>
+                <PrimaryBadge>CHURCH PRIMARY</PrimaryBadge>
+                <SmallLeaveButton
+                  onClick={() => handleLeave(churchPrimary.organizationId, churchPrimary.organizationName || 'this organization')}
+                  disabled={actionLoading === churchPrimary.organizationId}
+                >
+                  {actionLoading === churchPrimary.organizationId ? '...' : 'Leave'}
+                </SmallLeaveButton>
                 <MembershipRole>
                   {churchPrimary.role.toLowerCase().charAt(0).toUpperCase() +
-                   churchPrimary.role.toLowerCase().slice(1)} •
-                  Joined {new Date(churchPrimary.joinedAt).toLocaleDateString()}
+                   churchPrimary.role.toLowerCase().slice(1)} • Joined {new Date(churchPrimary.joinedAt).toLocaleDateString()}
                 </MembershipRole>
               </MembershipInfo>
-              <Button
-                variant="danger"
-                onClick={() => handleLeave(churchPrimary.organizationId, churchPrimary.organizationName || 'this organization')}
-                disabled={actionLoading === churchPrimary.organizationId}
-              >
-                {actionLoading === churchPrimary.organizationId ? 'Leaving...' : 'Leave'}
-              </Button>
             </MembershipCard>
           )}
           {familyPrimary && (
             <MembershipCard>
               <MembershipInfo>
-                <MembershipName>
-                  {familyPrimary.organizationName}
-                  <PrimaryBadge>FAMILY PRIMARY</PrimaryBadge>
-                </MembershipName>
+                <MembershipName>{familyPrimary.organizationName}</MembershipName>
+                <PrimaryBadge>FAMILY PRIMARY</PrimaryBadge>
+                <SmallLeaveButton
+                  onClick={() => handleLeave(familyPrimary.organizationId, familyPrimary.organizationName || 'this organization')}
+                  disabled={actionLoading === familyPrimary.organizationId}
+                >
+                  {actionLoading === familyPrimary.organizationId ? '...' : 'Leave'}
+                </SmallLeaveButton>
                 <MembershipRole>
                   {familyPrimary.role.toLowerCase().charAt(0).toUpperCase() +
-                   familyPrimary.role.toLowerCase().slice(1)} •
-                  Joined {new Date(familyPrimary.joinedAt).toLocaleDateString()}
+                   familyPrimary.role.toLowerCase().slice(1)} • Joined {new Date(familyPrimary.joinedAt).toLocaleDateString()}
                 </MembershipRole>
               </MembershipInfo>
-              <Button
-                variant="danger"
-                onClick={() => handleLeave(familyPrimary.organizationId, familyPrimary.organizationName || 'this organization')}
-                disabled={actionLoading === familyPrimary.organizationId}
-              >
-                {actionLoading === familyPrimary.organizationId ? 'Leaving...' : 'Leave'}
-              </Button>
             </MembershipCard>
           )}
           {secondaryMemberships.map(membership => (
             <MembershipCard key={membership.id}>
               <MembershipInfo>
-                <MembershipName>
-                  {membership.organizationName}
-                  <SecondaryBadge>SECONDARY</SecondaryBadge>
-                </MembershipName>
+                <MembershipName>{membership.organizationName}</MembershipName>
+                <SecondaryBadge>SECONDARY</SecondaryBadge>
+                <SmallLeaveButton
+                  onClick={() => handleLeave(membership.organizationId, membership.organizationName || 'this organization')}
+                  disabled={actionLoading === membership.organizationId}
+                >
+                  {actionLoading === membership.organizationId ? '...' : 'Leave'}
+                </SmallLeaveButton>
                 <MembershipRole>
                   {membership.role.toLowerCase().charAt(0).toUpperCase() +
-                   membership.role.toLowerCase().slice(1)} •
-                  Joined {new Date(membership.joinedAt).toLocaleDateString()}
+                   membership.role.toLowerCase().slice(1)} • Joined {new Date(membership.joinedAt).toLocaleDateString()}
                 </MembershipRole>
               </MembershipInfo>
-              <Button
-                variant="danger"
-                onClick={() => handleLeave(membership.organizationId, membership.organizationName || 'this organization')}
-                disabled={actionLoading === membership.organizationId}
-              >
-                {actionLoading === membership.organizationId ? 'Leaving...' : 'Leave'}
-              </Button>
             </MembershipCard>
           ))}
         </MyMembershipsSection>
@@ -1016,44 +1028,37 @@ const OrganizationBrowser: React.FC = () => {
           {followedOrgGroups.map(orgGroup => (
             <MembershipCard key={orgGroup.id}>
               <MembershipInfo>
-                <MembershipName>
-                  {orgGroup.organization.name}
-                  <SecondaryBadge>
-                    {orgGroup.isMuted ? 'MUTED' : 'FOLLOWING AS GROUP'}
-                  </SecondaryBadge>
-                </MembershipName>
-                <MembershipRole>
-                  {getTypeLabel(orgGroup.organization.type)} • 
-                  Following since {new Date(orgGroup.joinedAt).toLocaleDateString()}
-                  {orgGroup.isMuted && ' • Muted'}
-                </MembershipRole>
-              </MembershipInfo>
-              <ButtonGroup>
+                <MembershipName>{orgGroup.organization.name}</MembershipName>
+                <SecondaryBadge>
+                  {orgGroup.isMuted ? 'MUTED' : 'FOLLOWING'}
+                </SecondaryBadge>
                 {orgGroup.isMuted ? (
-                  <Button
+                  <SmallActionButton
                     variant="primary"
                     onClick={() => handleUnmuteOrgGroup(orgGroup.organization.id, orgGroup.organization.name)}
                     disabled={actionLoading === orgGroup.organization.id}
                   >
-                    {actionLoading === orgGroup.organization.id ? 'Unmuting...' : 'Unmute'}
-                  </Button>
+                    {actionLoading === orgGroup.organization.id ? '...' : 'Unmute'}
+                  </SmallActionButton>
                 ) : (
-                  <Button
+                  <SmallActionButton
                     variant="secondary"
                     onClick={() => handleMuteOrgGroup(orgGroup.organization.id, orgGroup.organization.name)}
                     disabled={actionLoading === orgGroup.organization.id}
                   >
-                    {actionLoading === orgGroup.organization.id ? 'Muting...' : 'Mute'}
-                  </Button>
+                    {actionLoading === orgGroup.organization.id ? '...' : 'Mute'}
+                  </SmallActionButton>
                 )}
-                <Button
-                  variant="danger"
+                <SmallLeaveButton
                   onClick={() => handleUnfollowOrgGroup(orgGroup.organization.id, orgGroup.organization.name)}
                   disabled={actionLoading === orgGroup.organization.id}
                 >
-                  {actionLoading === orgGroup.organization.id ? 'Unfollowing...' : 'Unfollow'}
-                </Button>
-              </ButtonGroup>
+                  {actionLoading === orgGroup.organization.id ? '...' : 'Unfollow'}
+                </SmallLeaveButton>
+                <MembershipRole>
+                  {getTypeLabel(orgGroup.organization.type)} • Following since {new Date(orgGroup.joinedAt).toLocaleDateString()}
+                </MembershipRole>
+              </MembershipInfo>
             </MembershipCard>
           ))}
         </MyMembershipsSection>
