@@ -890,10 +890,10 @@ const OrganizationBrowser: React.FC = () => {
           >
             🏠 Back Home
           </button>
-          <Title>Discover Organizations</Title>
+          <Title>Find Organizations</Title>
         </HeaderTop>
         <Subtitle>
-          Find and join churches, ministries, nonprofits, and families in your community
+          Discover and join churches, ministries, nonprofits, and families in your community
         </Subtitle>
 
         <SearchBarContainer>
