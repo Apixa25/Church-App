@@ -59,7 +59,10 @@
       "Bash(aws cloudfront get-origin-request-policy:*)",
       "Bash(python3:*)",
       "Bash(node -e:*)",
-      "Bash(aws cloudfront update-distribution:*)"
+      "Bash(aws cloudfront update-distribution:*)",
+      "Bash(aws cloudfront get-cache-policy:*)",
+      "Bash(aws cloudfront list-cache-policies:*)",
+      "Bash(aws cloudfront create-cache-policy:*)"
     ],
     "deny": [],
     "ask": []

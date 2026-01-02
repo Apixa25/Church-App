@@ -424,10 +424,9 @@ const ContextSwitcher: React.FC = () => {
             type="button"
           >
             {churchPrimary.organizationLogoUrl && !churchLogoError ? (
-              <OptionLogo 
-                src={churchPrimary.organizationLogoUrl} 
-                alt="" 
-                crossOrigin="anonymous"
+              <OptionLogo
+                src={churchPrimary.organizationLogoUrl}
+                alt=""
                 onError={() => {
                   console.warn('⚠️ Church org logo failed to load, falling back to icon:', churchPrimary.organizationLogoUrl);
                   setChurchLogoError(true);
@@ -458,7 +457,6 @@ const ContextSwitcher: React.FC = () => {
               <OptionLogo
                 src={familyPrimary.organizationLogoUrl}
                 alt=""
-                crossOrigin="anonymous"
                 onError={() => {
                   console.warn('⚠️ Family org logo failed to load, falling back to icon:', familyPrimary.organizationLogoUrl);
                   setFamilyLogoError(true);
@@ -494,7 +492,6 @@ const ContextSwitcher: React.FC = () => {
                   <OptionLogo
                     src={membership.groupImageUrl}
                     alt=""
-                    crossOrigin="anonymous"
                     onError={(e) => {
                       // Hide the broken image and show fallback
                       (e.target as HTMLImageElement).style.display = 'none';
@@ -536,10 +533,9 @@ const ContextSwitcher: React.FC = () => {
         aria-expanded={isOpen}
       >
         {activeOrganizationLogo && !activeLogoError ? (
-          <OrgLogo 
-            src={activeOrganizationLogo} 
-            alt="" 
-            crossOrigin="anonymous"
+          <OrgLogo
+            src={activeOrganizationLogo}
+            alt=""
             onError={() => {
               console.warn('⚠️ Active org logo failed to load, falling back to icon:', activeOrganizationLogo);
               setActiveLogoError(true);
