@@ -624,15 +624,17 @@ const GroupPage: React.FC = () => {
               <MetaItem>
                 <span>👤</span>
                 <span>Created by{' '}
-                  {(group.createdByUserId || group.creatorId) ? (
-                    <CreatorLink
-                      onClick={() => navigate(`/profile/${group.createdByUserId || group.creatorId}`)}
-                    >
-                      {group.createdByUserName || group.creatorName}
-                    </CreatorLink>
-                  ) : (
-                    group.createdByUserName || group.creatorName
-                  )}
+                  <CreatorLink
+                    onClick={() => {
+                      const creatorId = group.createdByUserId || group.creatorId;
+                      console.log('🔗 Navigating to creator profile:', creatorId);
+                      if (creatorId) {
+                        navigate(`/profile/${creatorId}`);
+                      }
+                    }}
+                  >
+                    {group.createdByUserName || group.creatorName}
+                  </CreatorLink>
                 </span>
               </MetaItem>
             )}

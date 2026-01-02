@@ -38,6 +38,7 @@ const Dashboard: React.FC = () => {
     activeOrganizationId,
     activeGroupId,
     activeGroupDescription,
+    activeGroupCreatorId,
     activeGroupCreatorName,
     hasAnyPrimary,
     showContextSwitcher
@@ -529,7 +530,19 @@ const Dashboard: React.FC = () => {
             <p className="group-description">{activeGroupDescription}</p>
           )}
           {activeGroupCreatorName && (
-            <p className="group-creator">Created by {activeGroupCreatorName}</p>
+            <p className="group-creator">
+              Created by{' '}
+              {activeGroupCreatorId ? (
+                <span
+                  className="creator-link"
+                  onClick={() => navigate(`/profile/${activeGroupCreatorId}`)}
+                >
+                  {activeGroupCreatorName}
+                </span>
+              ) : (
+                activeGroupCreatorName
+              )}
+            </p>
           )}
         </div>
       )}

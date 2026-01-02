@@ -858,6 +858,20 @@
   font-style: italic;
 }
 
+/* Clickable creator link in group info */
+.group-info-section .creator-link {
+  color: var(--accent-primary, #5b7fff);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-style: normal;
+  font-weight: 500;
+}
+
+.group-info-section .creator-link:hover {
+  text-decoration: underline;
+  opacity: 0.8;
+}
+
 /* Mobile adjustments for group info section */
 @media (max-width: 768px) {
   .group-info-section {
