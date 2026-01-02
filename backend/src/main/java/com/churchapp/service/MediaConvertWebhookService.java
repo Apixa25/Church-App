@@ -330,25 +330,25 @@ public class MediaConvertWebhookService {
             }
             
             // Extract the UUID from the original URL
-            // Original URL format: https://bucket.s3.region.amazonaws.com/posts/originals/{uuid}.webm
-            // Or CloudFront: https://xxxxx.cloudfront.net/posts/originals/{uuid}.webm
+            // Original URL format: https://bucket.s3.region.amazonaws.com/media/posts/originals/{uuid}.webm
+            // Or CloudFront: https://xxxxx.cloudfront.net/media/posts/originals/{uuid}.webm
             String uuid = null;
-            if (originalUrl.contains("/posts/originals/")) {
-                int startIdx = originalUrl.indexOf("/posts/originals/") + "/posts/originals/".length();
+            if (originalUrl.contains("/media/posts/originals/")) {
+                int startIdx = originalUrl.indexOf("/media/posts/originals/") + "/media/posts/originals/".length();
                 int endIdx = originalUrl.lastIndexOf(".");
                 if (endIdx > startIdx) {
                     uuid = originalUrl.substring(startIdx, endIdx);
                 }
             }
-            
+
             if (uuid == null || uuid.isEmpty()) {
                 log.warn("⚠️ Cannot extract UUID from original URL: {}", originalUrl);
                 return null;
             }
-            
+
             // Construct the optimized URL
-            // Pattern: posts/optimized/{uuid}_optimized.mp4
-            String optimizedKey = String.format("posts/optimized/%s_optimized.mp4", uuid);
+            // Pattern: media/posts/optimized/{uuid}_optimized.mp4
+            String optimizedKey = String.format("media/posts/optimized/%s_optimized.mp4", uuid);
             
             // ALWAYS use CloudFront URL - S3 direct access is denied
             String optimizedUrl = buildCloudFrontUrl(optimizedKey);
@@ -383,24 +383,24 @@ public class MediaConvertWebhookService {
             }
             
             // Extract the UUID from the original URL
-            // Original URL format: https://xxx.cloudfront.net/posts/originals/{uuid}.webm
-            // Or S3: https://bucket.s3.region.amazonaws.com/posts/originals/{uuid}.webm
+            // Original URL format: https://xxx.cloudfront.net/media/posts/originals/{uuid}.webm
+            // Or S3: https://bucket.s3.region.amazonaws.com/media/posts/originals/{uuid}.webm
             String uuid = null;
-            if (originalUrl.contains("/posts/originals/")) {
-                int startIdx = originalUrl.indexOf("/posts/originals/") + "/posts/originals/".length();
+            if (originalUrl.contains("/media/posts/originals/")) {
+                int startIdx = originalUrl.indexOf("/media/posts/originals/") + "/media/posts/originals/".length();
                 int endIdx = originalUrl.lastIndexOf(".");
                 if (endIdx > startIdx) {
                     uuid = originalUrl.substring(startIdx, endIdx);
                 }
             }
-            
+
             if (uuid == null || uuid.isEmpty()) {
                 log.warn("⚠️ Cannot extract UUID from original URL: {}", originalUrl);
                 return null;
             }
-            
-            // MediaConvert creates: posts/thumbnails/{uuid}.0000000.jpg
-            String thumbnailKey = String.format("posts/thumbnails/%s.0000000.jpg", uuid);
+
+            // MediaConvert creates: media/posts/thumbnails/{uuid}.0000000.jpg
+            String thumbnailKey = String.format("media/posts/thumbnails/%s.0000000.jpg", uuid);
             
             // Use CloudFront URL
             String thumbnailUrl = buildCloudFrontUrl(thumbnailKey);

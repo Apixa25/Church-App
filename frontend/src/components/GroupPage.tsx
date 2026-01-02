@@ -627,6 +627,15 @@ const GroupPage: React.FC = () => {
                 >
                   {actionLoading ? '...' : group.isMuted ? 'Unmute' : 'Mute'}
                 </ActionButton>
+                {isCreatorOfGroup && (
+                  <ActionButton
+                    variant="secondary"
+                    onClick={() => navigate(`/groups/${groupId}/settings`)}
+                    disabled={actionLoading}
+                  >
+                    Edit Group
+                  </ActionButton>
+                )}
                 {isCreatorOfGroup ? (
                   <ActionButton
                     variant="danger"
