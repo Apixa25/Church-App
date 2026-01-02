@@ -131,6 +131,9 @@ public class GroupService {
         if (updates.getSettings() != null) {
             group.setSettings(updates.getSettings());
         }
+        if (updates.getImageUrl() != null) {
+            group.setImageUrl(updates.getImageUrl());
+        }
 
         group.setUpdatedAt(LocalDateTime.now());
         return groupRepository.save(group);

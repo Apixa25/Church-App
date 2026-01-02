@@ -62,7 +62,8 @@
       "Bash(aws cloudfront update-distribution:*)",
       "Bash(aws cloudfront get-cache-policy:*)",
       "Bash(aws cloudfront list-cache-policies:*)",
-      "Bash(aws cloudfront create-cache-policy:*)"
+      "Bash(aws cloudfront create-cache-policy:*)",
+      "Bash(timeout 60 bash -c 'while true; do STATUS=$(aws elasticbeanstalk describe-environments --application-name church-app-backend --environment-name Church-app-backend-prod --region us-west-2 --query \"\"Environments[0].Status\"\" --output text); echo \"\"Status: $STATUS\"\"; if [ \"\"$STATUS\"\" = \"\"Ready\"\" ]; then echo \"\"Deployment complete!\"\"; break; fi; sleep 10; done')"
     ],
     "deny": [],
     "ask": []
