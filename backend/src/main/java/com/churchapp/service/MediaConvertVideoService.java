@@ -10,7 +10,6 @@ import software.amazon.awssdk.services.mediaconvert.MediaConvertClient;
 import software.amazon.awssdk.services.mediaconvert.model.*;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Service for processing videos using AWS MediaConvert
@@ -71,7 +70,7 @@ public class MediaConvertVideoService {
 
             // Extract S3 key from original URL if full URL provided
             String inputKey = extractS3KeyFromUrl(s3InputKey);
-            String outputKey = generateOutputKey(mediaFile);
+            String outputKey = generateOutputKey(mediaFile, inputKey);
             String thumbnailKey = generateThumbnailKey(mediaFile, inputKey);
 
             // CRITICAL: Store expected output keys in MediaFile BEFORE creating job
@@ -132,11 +131,23 @@ public class MediaConvertVideoService {
 
     /**
      * Generate S3 output key for processed video
+     * MediaConvert names the output based on the INPUT filename (without extension) + nameModifier
+     * Since we use nameModifier="_optimized", output will be {inputBasename}_optimized.mp4
+     *
+     * @param mediaFile The MediaFile entity
+     * @param inputKey The S3 key of the input video (to extract the base filename)
+     * @return The expected S3 key where MediaConvert will write the optimized video
      */
-    private String generateOutputKey(MediaFile mediaFile) {
+    private String generateOutputKey(MediaFile mediaFile, String inputKey) {
         String folder = mediaFile.getFolder();
-        String filename = UUID.randomUUID().toString() + ".mp4";
-        return String.format("media/%s/optimized/%s", folder, filename);
+
+        // Extract the base filename from the input key (e.g., "abc123" from "media/posts/originals/abc123.webm")
+        String inputFilename = inputKey.substring(inputKey.lastIndexOf("/") + 1);
+        String baseFilename = inputFilename.substring(0, inputFilename.lastIndexOf("."));
+
+        // MediaConvert adds _optimized suffix because we set nameModifier("_optimized") in job settings
+        String optimizedFilename = baseFilename + "_optimized.mp4";
+        return String.format("media/%s/optimized/%s", folder, optimizedFilename);
     }
 
     /**

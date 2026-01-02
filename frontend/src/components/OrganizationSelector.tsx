@@ -436,10 +436,10 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
     );
   }
 
-  // Updated text: "Find Organization" instead of "No Organization" to encourage discovery
-  const displayName = primaryMembership?.organizationName || '🔍 Find Organization';
-  const displayIcon = primaryMembership 
-    ? getOrganizationIcon(primaryMembership.organizationType) 
+  // Always show "Group Selector" as the button label for clarity
+  const displayName = 'Group Selector';
+  const displayIcon = primaryMembership
+    ? getOrganizationIcon(primaryMembership.organizationType)
     : '🔍';
 
   const dropdownContent = isOpen && (
