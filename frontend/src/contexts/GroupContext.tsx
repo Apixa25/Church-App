@@ -12,7 +12,11 @@ export interface Group {
   visibility: 'PUBLIC' | 'ORG_PRIVATE' | 'CROSS_ORG' | 'INVITE_ONLY';
   organizationId?: string;
   organizationName?: string;
-  creatorId: string;
+  // Backend sends createdByUserId/createdByUserName
+  createdByUserId?: string;
+  createdByUserName?: string;
+  // Keep legacy aliases for compatibility
+  creatorId?: string;
   creatorName?: string;
   creatorAvatarUrl?: string;
   tags?: string[];

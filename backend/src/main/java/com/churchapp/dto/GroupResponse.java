@@ -91,10 +91,12 @@ public class GroupResponse {
         response.setCreatedAt(group.getCreatedAt());
 
         if (group.getCreatedByUser() != null) {
+            response.setCreatedByUserId(group.getCreatedByUser().getId());
             response.setCreatedByUserName(group.getCreatedByUser().getName());
         }
 
         if (group.getCreatedByOrg() != null) {
+            response.setCreatedByOrgId(group.getCreatedByOrg().getId());
             response.setCreatedByOrgName(group.getCreatedByOrg().getName());
         }
 

@@ -99,6 +99,17 @@ const MetaItem = styled.div`
   gap: 6px;
 `;
 
+const CreatorLink = styled.span`
+  color: var(--accent-primary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+
+  &:hover {
+    text-decoration: underline;
+    opacity: 0.8;
+  }
+`;
+
 const VisibilityBadge = styled.span<{ visibility: string }>`
   display: inline-block;
   padding: 4px 12px;
@@ -609,10 +620,20 @@ const GroupPage: React.FC = () => {
                 <span>{group.organizationName}</span>
               </MetaItem>
             )}
-            {group.creatorName && (
+            {(group.createdByUserName || group.creatorName) && (
               <MetaItem>
                 <span>👤</span>
-                <span>Created by {group.creatorName}</span>
+                <span>Created by{' '}
+                  {(group.createdByUserId || group.creatorId) ? (
+                    <CreatorLink
+                      onClick={() => navigate(`/profile/${group.createdByUserId || group.creatorId}`)}
+                    >
+                      {group.createdByUserName || group.creatorName}
+                    </CreatorLink>
+                  ) : (
+                    group.createdByUserName || group.creatorName
+                  )}
+                </span>
               </MetaItem>
             )}
           </GroupMeta>
