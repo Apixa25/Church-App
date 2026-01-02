@@ -369,10 +369,10 @@ public class MediaUrlService {
             boolean isNewPath = videoUrl.contains("/media/posts/");
 
             // Construct thumbnail URL based on path style
-            // New: media/thumbnails/{uuid}.0000000.jpg
+            // New: media/posts/thumbnails/{uuid}.0000000.jpg
             // Old: posts/thumbnails/{uuid}.0000000.jpg
             String thumbnailKey = isNewPath
-                ? String.format("media/thumbnails/%s.0000000.jpg", uuid)
+                ? String.format("media/posts/thumbnails/%s.0000000.jpg", uuid)
                 : String.format("posts/thumbnails/%s.0000000.jpg", uuid);
 
             // Build CloudFront URL

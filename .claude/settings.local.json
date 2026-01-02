@@ -56,7 +56,10 @@
       "Bash(xargs ls:*)",
       "Bash(./mvnw.cmd clean:*)",
       "Bash(aws cloudfront get-invalidation:*)",
-      "Bash(aws cloudfront get-origin-request-policy:*)"
+      "Bash(aws cloudfront get-origin-request-policy:*)",
+      "Bash(python3:*)",
+      "Bash(node -e:*)",
+      "Bash(aws cloudfront update-distribution:*)"
     ],
     "deny": [],
     "ask": []
