@@ -36,6 +36,9 @@ export interface GroupMembership {
   groupId: string;
   groupName?: string;
   groupImageUrl?: string;
+  groupDescription?: string;
+  groupCreatorId?: string;
+  groupCreatorName?: string;
   role: 'CREATOR' | 'MEMBER' | 'ADMIN' | 'MODERATOR';
   isMuted: boolean;
   joinedAt: string;

@@ -37,6 +37,8 @@ const Dashboard: React.FC = () => {
     activeOrganizationLogo,
     activeOrganizationId,
     activeGroupId,
+    activeGroupDescription,
+    activeGroupCreatorName,
     hasAnyPrimary,
     showContextSwitcher
   } = useActiveContext();
@@ -511,6 +513,18 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* Group Info Section - Only shows when viewing a group context */}
+      {activeContext === 'group' && (activeGroupDescription || activeGroupCreatorName) && (
+        <div className="group-info-section">
+          {activeGroupDescription && (
+            <p className="group-description">{activeGroupDescription}</p>
+          )}
+          {activeGroupCreatorName && (
+            <p className="group-creator">Created by {activeGroupCreatorName}</p>
+          )}
+        </div>
+      )}
 
       <main className="dashboard-content">
         {/* Warning Banner - shows at top of dashboard if user has warnings */}

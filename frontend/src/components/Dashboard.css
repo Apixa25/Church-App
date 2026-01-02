@@ -833,3 +833,42 @@
   flex-shrink: 0;
 }
 
+/* Group Info Section - displays group description and creator below the header */
+.group-info-section {
+  background: var(--bg-secondary, #1a1a2e);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-primary, #3a3a4e);
+  text-align: center;
+}
+
+.group-info-section .group-description {
+  margin: 0 0 6px 0;
+  color: var(--text-primary, #e0e0e0);
+  font-size: 14px;
+  line-height: 1.4;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.group-info-section .group-creator {
+  margin: 0;
+  color: var(--text-secondary, #a0a0b0);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* Mobile adjustments for group info section */
+@media (max-width: 768px) {
+  .group-info-section {
+    padding: 10px 12px;
+  }
+
+  .group-info-section .group-description {
+    font-size: 13px;
+  }
+
+  .group-info-section .group-creator {
+    font-size: 11px;
+  }
+}

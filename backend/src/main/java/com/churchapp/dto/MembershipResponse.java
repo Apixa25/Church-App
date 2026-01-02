@@ -34,6 +34,9 @@ public class MembershipResponse {
     private UUID groupId;
     private String groupName;
     private String groupImageUrl;
+    private String groupDescription;
+    private UUID groupCreatorId;
+    private String groupCreatorName;
     private Boolean isMuted;
 
     // Factory method for organization memberships
@@ -77,6 +80,11 @@ public class MembershipResponse {
             response.setGroupId(membership.getGroup().getId());
             response.setGroupName(membership.getGroup().getName());
             response.setGroupImageUrl(membership.getGroup().getImageUrl());
+            response.setGroupDescription(membership.getGroup().getDescription());
+            if (membership.getGroup().getCreatedByUser() != null) {
+                response.setGroupCreatorId(membership.getGroup().getCreatedByUser().getId());
+                response.setGroupCreatorName(membership.getGroup().getCreatedByUser().getName());
+            }
         }
 
         response.setRole(membership.getRole() != null ? membership.getRole().name() : null);

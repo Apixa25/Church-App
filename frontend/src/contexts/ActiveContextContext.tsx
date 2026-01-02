@@ -56,6 +56,8 @@ interface ActiveContextState {
   activeGroupId: string | null;
   activeGroupName: string | null;
   activeGroupImage: string | null;
+  activeGroupDescription: string | null;
+  activeGroupCreatorName: string | null;
 }
 
 const ActiveContextContext = createContext<ActiveContextState | undefined>(undefined);
@@ -211,6 +213,10 @@ export const ActiveContextProvider: React.FC<ActiveContextProviderProps> = ({ ch
     : (activeMembership?.organizationLogoUrl || null);
   const activeOrganizationType = activeContext === 'group' ? 'GROUP' : (activeMembership?.organizationType || null);
 
+  // Group description and creator from the active group membership
+  const activeGroupDescription = activeGroupMembership?.groupDescription || null;
+  const activeGroupCreatorName = activeGroupMembership?.groupCreatorName || null;
+
   const value: ActiveContextState = {
     activeContext,
     activeMembership,
@@ -230,6 +236,8 @@ export const ActiveContextProvider: React.FC<ActiveContextProviderProps> = ({ ch
     activeGroupId,
     activeGroupName,
     activeGroupImage,
+    activeGroupDescription,
+    activeGroupCreatorName,
   };
 
   return (
