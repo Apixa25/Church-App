@@ -129,6 +129,20 @@ public class MediaFile {
     @Column(name = "job_id", length = 100)
     private String jobId;
 
+    /**
+     * Expected S3 key for optimized output (e.g., media/posts/optimized/uuid_optimized.mp4)
+     * Stored when MediaConvert job starts so webhook knows exactly where output will be
+     */
+    @Column(name = "expected_optimized_key", length = 500)
+    private String expectedOptimizedKey;
+
+    /**
+     * Expected S3 key for thumbnail (e.g., media/posts/thumbnails/uuid.0000000.jpg)
+     * Stored when MediaConvert job starts so webhook knows exactly where thumbnail will be
+     */
+    @Column(name = "expected_thumbnail_key", length = 500)
+    private String expectedThumbnailKey;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

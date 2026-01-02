@@ -308,14 +308,15 @@ public class MediaUrlService {
     
     /**
      * Construct thumbnail URL from video URL pattern.
-     * MediaConvert creates thumbnails at: posts/thumbnails/{uuid}.0000000.jpg
-     * where {uuid} is extracted from the original video URL.
-     * 
-     * This method is used as a fallback when the thumbnail URL is not stored in the database.
-     * 
+     *
+     * @deprecated This fallback method is no longer needed. Thumbnail URLs are now stored
+     * in the MediaFile entity's expectedThumbnailKey field when the MediaConvert job starts.
+     * Use MediaFile.getThumbnailUrl() instead.
+     *
      * @param videoUrl The video URL (original or optimized)
      * @return CloudFront URL for the thumbnail, or null if cannot be constructed
      */
+    @Deprecated
     public String constructThumbnailUrl(String videoUrl) {
         if (videoUrl == null || videoUrl.isEmpty()) {
             return null;

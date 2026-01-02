@@ -66,13 +66,19 @@ public class MediaConvertVideoService {
                 log.warn("MediaConvert not configured. Skipping video optimization for: {}", s3InputKey);
                 return null; // Return null to indicate processing was skipped
             }
-            
+
             log.info("Starting MediaConvert job for video: {} (MediaFile ID: {})", s3InputKey, mediaFile.getId());
 
             // Extract S3 key from original URL if full URL provided
             String inputKey = extractS3KeyFromUrl(s3InputKey);
             String outputKey = generateOutputKey(mediaFile);
             String thumbnailKey = generateThumbnailKey(mediaFile);
+
+            // CRITICAL: Store expected output keys in MediaFile BEFORE creating job
+            // This ensures webhook knows exactly where to find outputs without guessing
+            mediaFile.setExpectedOptimizedKey(outputKey);
+            mediaFile.setExpectedThumbnailKey(thumbnailKey);
+            log.info("Stored expected output keys - optimized: {}, thumbnail: {}", outputKey, thumbnailKey);
 
             // Build S3 URIs
             String inputUri = String.format("s3://%s/%s", bucketName, inputKey);

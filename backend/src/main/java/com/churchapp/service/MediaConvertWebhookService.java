@@ -268,24 +268,21 @@ public class MediaConvertWebhookService {
                 }
             }
 
-            // Fallback: If optimized URL not found in event, construct from known pattern
-            // EventBridge events sometimes have missing or incorrect outputFilePaths
-            // We know the pattern: posts/optimized/{uuid}_optimized.mp4
-            if (optimizedUrl == null) {
-                log.warn("⚠️ Optimized URL not found in event output. Attempting fallback construction...");
-                optimizedUrl = constructOptimizedUrlFromPattern(mediaFile);
+            // Use stored expected keys if event data is missing
+            // These keys were stored when the MediaConvert job was created - single source of truth
+            if (optimizedUrl == null && mediaFile.getExpectedOptimizedKey() != null) {
+                log.info("📦 Using stored expectedOptimizedKey: {}", mediaFile.getExpectedOptimizedKey());
+                optimizedUrl = buildCloudFrontUrl(mediaFile.getExpectedOptimizedKey());
                 if (optimizedUrl != null) {
-                    log.info("✅ Constructed optimized URL from pattern: {}", optimizedUrl);
+                    log.info("✅ Built optimized URL from stored key: {}", optimizedUrl);
                 }
             }
 
-            // Fallback: If thumbnail not found in event, try to construct from known pattern
-            // MediaConvert creates thumbnails at: {folder}/thumbnails/{uuid}_thumbnail.jpg
-            if (thumbnailUrl == null) {
-                log.warn("⚠️ Thumbnail URL not found in event output. Attempting fallback construction...");
-                thumbnailUrl = constructThumbnailUrlFromPattern(mediaFile);
+            if (thumbnailUrl == null && mediaFile.getExpectedThumbnailKey() != null) {
+                log.info("📦 Using stored expectedThumbnailKey: {}", mediaFile.getExpectedThumbnailKey());
+                thumbnailUrl = buildCloudFrontUrl(mediaFile.getExpectedThumbnailKey());
                 if (thumbnailUrl != null) {
-                    log.info("🖼️ Constructed thumbnail URL from pattern: {}", thumbnailUrl);
+                    log.info("🖼️ Built thumbnail URL from stored key: {}", thumbnailUrl);
                 }
             }
 
@@ -311,109 +308,6 @@ public class MediaConvertWebhookService {
             log.error("❌ Error processing completed job for MediaFile: {}", mediaFile.getId(), e);
             mediaFile.markProcessingFailed("Error extracting job output: " + e.getMessage());
             mediaFileRepository.save(mediaFile);
-        }
-    }
-
-    /**
-     * Fallback: Construct optimized video URL from known pattern
-     * EventBridge events sometimes have missing or incorrect outputFilePaths
-     * Since we control the MediaConvert job settings, we know the output pattern:
-     * Input: posts/originals/{uuid}.webm (or .mov, .mp4)
-     * Output: posts/optimized/{uuid}_optimized.mp4
-     */
-    private String constructOptimizedUrlFromPattern(MediaFile mediaFile) {
-        try {
-            String originalUrl = mediaFile.getOriginalUrl();
-            if (originalUrl == null || originalUrl.isEmpty()) {
-                log.warn("⚠️ Cannot construct optimized URL: MediaFile originalUrl is null or empty");
-                return null;
-            }
-            
-            // Extract the UUID from the original URL
-            // Original URL format: https://bucket.s3.region.amazonaws.com/media/posts/originals/{uuid}.webm
-            // Or CloudFront: https://xxxxx.cloudfront.net/media/posts/originals/{uuid}.webm
-            String uuid = null;
-            if (originalUrl.contains("/media/posts/originals/")) {
-                int startIdx = originalUrl.indexOf("/media/posts/originals/") + "/media/posts/originals/".length();
-                int endIdx = originalUrl.lastIndexOf(".");
-                if (endIdx > startIdx) {
-                    uuid = originalUrl.substring(startIdx, endIdx);
-                }
-            }
-
-            if (uuid == null || uuid.isEmpty()) {
-                log.warn("⚠️ Cannot extract UUID from original URL: {}", originalUrl);
-                return null;
-            }
-
-            // Construct the optimized URL
-            // Pattern: media/posts/optimized/{uuid}_optimized.mp4
-            String optimizedKey = String.format("media/posts/optimized/%s_optimized.mp4", uuid);
-            
-            // ALWAYS use CloudFront URL - S3 direct access is denied
-            String optimizedUrl = buildCloudFrontUrl(optimizedKey);
-            if (optimizedUrl != null) {
-                log.info("✅ Using CloudFront URL for optimized video: {}", optimizedUrl);
-            } else {
-                // Fallback to S3 (will likely fail due to access policy, but try anyway)
-                optimizedUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, optimizedKey);
-                log.warn("⚠️ CloudFront URL not configured! Using S3 URL which may not work: {}", optimizedUrl);
-            }
-            
-            log.info("✅ Constructed optimized URL from pattern: {} (UUID: {})", optimizedUrl, uuid);
-            
-            return optimizedUrl;
-        } catch (Exception e) {
-            log.error("Error constructing optimized URL from pattern: {}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Fallback: Construct thumbnail URL from known pattern
-     * MediaConvert creates thumbnails at: posts/thumbnails/{uuid}.0000000.jpg
-     * where {uuid} is extracted from the original file URL
-     */
-    private String constructThumbnailUrlFromPattern(MediaFile mediaFile) {
-        try {
-            String originalUrl = mediaFile.getOriginalUrl();
-            if (originalUrl == null || originalUrl.isEmpty()) {
-                log.warn("⚠️ Cannot construct thumbnail URL: MediaFile originalUrl is null or empty");
-                return null;
-            }
-            
-            // Extract the UUID from the original URL
-            // Original URL format: https://xxx.cloudfront.net/media/posts/originals/{uuid}.webm
-            // Or S3: https://bucket.s3.region.amazonaws.com/media/posts/originals/{uuid}.webm
-            String uuid = null;
-            if (originalUrl.contains("/media/posts/originals/")) {
-                int startIdx = originalUrl.indexOf("/media/posts/originals/") + "/media/posts/originals/".length();
-                int endIdx = originalUrl.lastIndexOf(".");
-                if (endIdx > startIdx) {
-                    uuid = originalUrl.substring(startIdx, endIdx);
-                }
-            }
-
-            if (uuid == null || uuid.isEmpty()) {
-                log.warn("⚠️ Cannot extract UUID from original URL: {}", originalUrl);
-                return null;
-            }
-
-            // MediaConvert creates: media/posts/thumbnails/{uuid}.0000000.jpg
-            String thumbnailKey = String.format("media/posts/thumbnails/%s.0000000.jpg", uuid);
-            
-            // Use CloudFront URL
-            String thumbnailUrl = buildCloudFrontUrl(thumbnailKey);
-            if (thumbnailUrl == null) {
-                thumbnailUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, thumbnailKey);
-            }
-            
-            log.info("🖼️ Constructed thumbnail URL from pattern: {}", thumbnailUrl);
-            
-            return thumbnailUrl;
-        } catch (Exception e) {
-            log.error("Error constructing thumbnail URL from pattern: {}", e.getMessage());
-            return null;
         }
     }
 
