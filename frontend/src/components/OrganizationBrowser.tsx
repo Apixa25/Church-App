@@ -559,7 +559,7 @@ const OrganizationBrowser: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<OrgTypeFilter>('ALL');
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]); // Search results
   const [searchLoading, setSearchLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -573,6 +573,15 @@ const OrganizationBrowser: React.FC = () => {
   const [checkingFollowedOrgs, setCheckingFollowedOrgs] = useState(true);
   const [followedOrgGroups, setFollowedOrgGroups] = useState<OrganizationGroup[]>([]);
   const [loadingFollowedOrgs, setLoadingFollowedOrgs] = useState(false);
+
+  // Infinite scroll state for browse mode
+  const [allOrganizations, setAllOrganizations] = useState<Organization[]>([]); // Full browse list
+  const [currentPage, setCurrentPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [isSearchMode, setIsSearchMode] = useState(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Same curated list of family-friendly emojis from FamilyGroupCreateForm
   const familyEmojis = [
@@ -591,6 +600,53 @@ const OrganizationBrowser: React.FC = () => {
       searchInputRef.current.focus();
     }
   };
+
+  // Load more organizations for infinite scroll (browse mode)
+  const loadMoreOrganizations = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+
+    try {
+      const result = await searchOrganizations('*', currentPage, 7);
+
+      if (result.content.length < 7) {
+        setHasMore(false);
+      }
+
+      setAllOrganizations(prev => [...prev, ...result.content]);
+      setCurrentPage(prev => prev + 1);
+      setInitialLoadDone(true);
+    } catch (err) {
+      console.error('Error loading organizations:', err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  // Initial load of organizations on mount
+  useEffect(() => {
+    if (!initialLoadDone && !isSearchMode) {
+      loadMoreOrganizations();
+    }
+  }, []);
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !isSearchMode && initialLoadDone) {
+          loadMoreOrganizations();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, isSearchMode, initialLoadDone, currentPage]);
 
   // Close emoji picker when clicking outside
   useEffect(() => {
@@ -646,23 +702,27 @@ const OrganizationBrowser: React.FC = () => {
     checkFollowedOrgs();
   }, []);
 
-  // Search organizations when query or filter changes
+  // Search organizations when query changes (search mode only)
   useEffect(() => {
+    const query = searchQuery.trim();
+
+    // If search is empty, switch to browse mode
+    if (!query) {
+      setIsSearchMode(false);
+      setOrganizations([]);
+      return;
+    }
+
+    // Switch to search mode and perform search
+    setIsSearchMode(true);
+
     const performSearch = async () => {
       try {
         setSearchLoading(true);
         setError(null);
 
-        const query = searchQuery.trim() || '*'; // Use wildcard for empty search
         const result = await searchOrganizations(query, 0, 50);
-
-        // Filter by type if not ALL
-        let filtered = result.content;
-        if (typeFilter !== 'ALL') {
-          filtered = filtered.filter(org => org.type === typeFilter);
-        }
-
-        setOrganizations(filtered);
+        setOrganizations(result.content);
       } catch (err: any) {
         setError(err.message || 'Failed to search organizations');
         setOrganizations([]);
@@ -674,7 +734,7 @@ const OrganizationBrowser: React.FC = () => {
     // Debounce search
     const timeoutId = setTimeout(performSearch, 300);
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, typeFilter, searchOrganizations]);
+  }, [searchQuery, searchOrganizations]);
 
   const handleJoinAsPrimary = async (orgId: string, orgName: string, orgType?: string) => {
     try {
@@ -1065,115 +1125,233 @@ const OrganizationBrowser: React.FC = () => {
       )}
 
       <SectionTitle>
-        {searchQuery ? `Search Results for "${searchQuery}"` : 'All Organizations'}
+        {isSearchMode ? `Search Results for "${searchQuery}"` : 'All Organizations'}
       </SectionTitle>
 
-      {searchLoading ? (
-        <LoadingSpinner>Searching...</LoadingSpinner>
-      ) : organizations.length === 0 ? (
-        <EmptyState>
-          <EmptyStateTitle>No organizations found</EmptyStateTitle>
-          <EmptyStateText>
-            {searchQuery
-              ? 'Try adjusting your search or filters'
-              : 'Be the first to create an organization!'}
-          </EmptyStateText>
-        </EmptyState>
-      ) : (
-        <OrganizationGrid>
-          {organizations.map(org => (
-            <OrganizationCard key={org.id}>
-              <OrgName>{org.name}</OrgName>
-              <OrgType>{getTypeLabel(org.type)}</OrgType>
-              <OrgStats>
-                <OrgStat>
-                  <span>👥</span>
-                  <span>{org.memberCount || 0} members</span>
-                </OrgStat>
-                <OrgStat>
-                  <span>📊</span>
-                  <span>{org.tier}</span>
-                </OrgStat>
-              </OrgStats>
+      {/* Search Mode: Show search results */}
+      {isSearchMode ? (
+        searchLoading ? (
+          <LoadingSpinner>Searching...</LoadingSpinner>
+        ) : organizations.length === 0 ? (
+          <EmptyState>
+            <EmptyStateTitle>No organizations found</EmptyStateTitle>
+            <EmptyStateText>Try adjusting your search</EmptyStateText>
+          </EmptyState>
+        ) : (
+          <OrganizationGrid>
+            {organizations.map(org => (
+              <OrganizationCard key={org.id}>
+                <OrgName>{org.name}</OrgName>
+                <OrgType>{getTypeLabel(org.type)}</OrgType>
+                <OrgStats>
+                  <OrgStat>
+                    <span>👥</span>
+                    <span>{org.memberCount || 0} members</span>
+                  </OrgStat>
+                  <OrgStat>
+                    <span>📊</span>
+                    <span>{org.tier}</span>
+                  </OrgStat>
+                </OrgStats>
 
-              {isMember(org.id) ? (
-                <ButtonGroup>
-                  {isPrimary(org.id) ? (
-                    <Button disabled>
-                      {churchPrimary?.organizationId === org.id 
-                        ? 'Your Church Primary' 
-                        : familyPrimary?.organizationId === org.id
-                        ? 'Your Family Primary'
-                        : 'Your Primary Organization'}
-                    </Button>
-                  ) : isSecondary(org.id) ? (
-                    <>
-                      <Button disabled>Secondary Member</Button>
-                      <Button
-                        variant="danger"
-                        onClick={() => handleLeave(org.id, org.name)}
-                        disabled={actionLoading === org.id}
-                      >
-                        Leave
+                {isMember(org.id) ? (
+                  <ButtonGroup>
+                    {isPrimary(org.id) ? (
+                      <Button disabled>
+                        {churchPrimary?.organizationId === org.id
+                          ? 'Your Church Primary'
+                          : familyPrimary?.organizationId === org.id
+                          ? 'Your Family Primary'
+                          : 'Your Primary Organization'}
                       </Button>
-                    </>
-                  ) : (
-                    <Button disabled>Member</Button>
-                  )}
-                </ButtonGroup>
-              ) : (
-                <ButtonGroup>
-                  <Button
-                    variant="primary"
-                    onClick={() => handleJoinAsPrimary(org.id, org.name, org.type)}
-                    disabled={actionLoading === org.id}
-                    title={
-                      canBeFamilyPrimary(org.type)
-                        ? 'Set as your Family Primary organization'
+                    ) : isSecondary(org.id) ? (
+                      <>
+                        <Button disabled>Secondary Member</Button>
+                        <Button
+                          variant="danger"
+                          onClick={() => handleLeave(org.id, org.name)}
+                          disabled={actionLoading === org.id}
+                        >
+                          Leave
+                        </Button>
+                      </>
+                    ) : (
+                      <Button disabled>Member</Button>
+                    )}
+                  </ButtonGroup>
+                ) : (
+                  <ButtonGroup>
+                    <Button
+                      variant="primary"
+                      onClick={() => handleJoinAsPrimary(org.id, org.name, org.type)}
+                      disabled={actionLoading === org.id}
+                      title={
+                        canBeFamilyPrimary(org.type)
+                          ? 'Set as your Family Primary organization'
+                          : canBeChurchPrimary(org.type)
+                          ? 'Set as your Church Primary organization'
+                          : 'Join as your primary organization for full access'
+                      }
+                    >
+                      {actionLoading === org.id
+                        ? 'Joining...'
+                        : canBeFamilyPrimary(org.type)
+                        ? 'Set as Family Primary'
                         : canBeChurchPrimary(org.type)
-                        ? 'Set as your Church Primary organization'
-                        : 'Join as your primary organization for full access'
-                    }
-                  >
-                    {actionLoading === org.id 
-                      ? 'Joining...' 
-                      : canBeFamilyPrimary(org.type)
-                      ? 'Set as Family Primary'
-                      : canBeChurchPrimary(org.type)
-                      ? 'Set as Church Primary'
-                      : 'Join as Primary'}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleJoinAsSecondary(org.id, org.name)}
-                    disabled={actionLoading === org.id}
-                    title="Join as secondary to see public posts in your feed"
-                  >
-                    {actionLoading === org.id ? 'Joining...' : 'Join as Secondary'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleSeeGroupPosts(org.id, org.name)}
-                    disabled={actionLoading === org.id || followedAsGroups.has(org.id) || isPrimary(org.id)}
-                    title={
-                      isPrimary(org.id)
-                        ? 'You already see all posts from your primary organization'
+                        ? 'Set as Church Primary'
+                        : 'Join as Primary'}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => handleJoinAsSecondary(org.id, org.name)}
+                      disabled={actionLoading === org.id}
+                      title="Join as secondary to see public posts in your feed"
+                    >
+                      {actionLoading === org.id ? 'Joining...' : 'Join as Secondary'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleSeeGroupPosts(org.id, org.name)}
+                      disabled={actionLoading === org.id || followedAsGroups.has(org.id) || isPrimary(org.id)}
+                      title={
+                        isPrimary(org.id)
+                          ? 'You already see all posts from your primary organization'
+                          : followedAsGroups.has(org.id)
+                          ? 'Already following this organization as a group'
+                          : 'Follow this organization to see their posts in your feed (feed-only, no quick actions)'
+                      }
+                    >
+                      {actionLoading === org.id
+                        ? 'Following...'
                         : followedAsGroups.has(org.id)
-                        ? 'Already following this organization as a group'
-                        : 'Follow this organization to see their posts in your feed (feed-only, no quick actions)'
-                    }
-                  >
-                    {actionLoading === org.id
-                      ? 'Following...'
-                      : followedAsGroups.has(org.id)
-                      ? 'Following as Group'
-                      : 'See Group Posts'}
-                  </Button>
-                </ButtonGroup>
-              )}
-            </OrganizationCard>
-          ))}
-        </OrganizationGrid>
+                        ? 'Following as Group'
+                        : 'See Group Posts'}
+                    </Button>
+                  </ButtonGroup>
+                )}
+              </OrganizationCard>
+            ))}
+          </OrganizationGrid>
+        )
+      ) : (
+        /* Browse Mode: Show infinite scroll list */
+        <>
+          {!initialLoadDone ? (
+            <LoadingSpinner>Loading organizations...</LoadingSpinner>
+          ) : allOrganizations.length === 0 ? (
+            <EmptyState>
+              <EmptyStateTitle>No organizations found</EmptyStateTitle>
+              <EmptyStateText>Be the first to create an organization!</EmptyStateText>
+            </EmptyState>
+          ) : (
+            <>
+              <OrganizationGrid>
+                {allOrganizations.map(org => (
+                  <OrganizationCard key={org.id}>
+                    <OrgName>{org.name}</OrgName>
+                    <OrgType>{getTypeLabel(org.type)}</OrgType>
+                    <OrgStats>
+                      <OrgStat>
+                        <span>👥</span>
+                        <span>{org.memberCount || 0} members</span>
+                      </OrgStat>
+                      <OrgStat>
+                        <span>📊</span>
+                        <span>{org.tier}</span>
+                      </OrgStat>
+                    </OrgStats>
+
+                    {isMember(org.id) ? (
+                      <ButtonGroup>
+                        {isPrimary(org.id) ? (
+                          <Button disabled>
+                            {churchPrimary?.organizationId === org.id
+                              ? 'Your Church Primary'
+                              : familyPrimary?.organizationId === org.id
+                              ? 'Your Family Primary'
+                              : 'Your Primary Organization'}
+                          </Button>
+                        ) : isSecondary(org.id) ? (
+                          <>
+                            <Button disabled>Secondary Member</Button>
+                            <Button
+                              variant="danger"
+                              onClick={() => handleLeave(org.id, org.name)}
+                              disabled={actionLoading === org.id}
+                            >
+                              Leave
+                            </Button>
+                          </>
+                        ) : (
+                          <Button disabled>Member</Button>
+                        )}
+                      </ButtonGroup>
+                    ) : (
+                      <ButtonGroup>
+                        <Button
+                          variant="primary"
+                          onClick={() => handleJoinAsPrimary(org.id, org.name, org.type)}
+                          disabled={actionLoading === org.id}
+                          title={
+                            canBeFamilyPrimary(org.type)
+                              ? 'Set as your Family Primary organization'
+                              : canBeChurchPrimary(org.type)
+                              ? 'Set as your Church Primary organization'
+                              : 'Join as your primary organization for full access'
+                          }
+                        >
+                          {actionLoading === org.id
+                            ? 'Joining...'
+                            : canBeFamilyPrimary(org.type)
+                            ? 'Set as Family Primary'
+                            : canBeChurchPrimary(org.type)
+                            ? 'Set as Church Primary'
+                            : 'Join as Primary'}
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={() => handleJoinAsSecondary(org.id, org.name)}
+                          disabled={actionLoading === org.id}
+                          title="Join as secondary to see public posts in your feed"
+                        >
+                          {actionLoading === org.id ? 'Joining...' : 'Join as Secondary'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handleSeeGroupPosts(org.id, org.name)}
+                          disabled={actionLoading === org.id || followedAsGroups.has(org.id) || isPrimary(org.id)}
+                          title={
+                            isPrimary(org.id)
+                              ? 'You already see all posts from your primary organization'
+                              : followedAsGroups.has(org.id)
+                              ? 'Already following this organization as a group'
+                              : 'Follow this organization to see their posts in your feed (feed-only, no quick actions)'
+                          }
+                        >
+                          {actionLoading === org.id
+                            ? 'Following...'
+                            : followedAsGroups.has(org.id)
+                            ? 'Following as Group'
+                            : 'See Group Posts'}
+                        </Button>
+                      </ButtonGroup>
+                    )}
+                  </OrganizationCard>
+                ))}
+              </OrganizationGrid>
+
+              {/* Infinite scroll trigger */}
+              <div ref={loadMoreRef} style={{ padding: '20px', textAlign: 'center' }}>
+                {loadingMore && <LoadingSpinner>Loading more...</LoadingSpinner>}
+                {!hasMore && allOrganizations.length > 0 && (
+                  <EmptyStateText style={{ color: 'var(--text-secondary)' }}>
+                    You've seen all organizations
+                  </EmptyStateText>
+                )}
+              </div>
+            </>
+          )}
+        </>
       )}
     </BrowserContainer>
   );
