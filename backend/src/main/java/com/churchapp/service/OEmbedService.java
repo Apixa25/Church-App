@@ -252,14 +252,16 @@ public class OEmbedService {
             String normalizedUrl = SocialMediaUrlUtil.normalizeForStorage(url);
             String encodedUrl = URLEncoder.encode(normalizedUrl, StandardCharsets.UTF_8);
 
-            // Facebook video plugin for reels - use FB's recommended responsive approach
+            // Facebook video plugin for reels - 16:9 aspect ratio container with letterboxing
             String embedUrl = "https://www.facebook.com/plugins/video.php?href=" + encodedUrl +
-                "&show_text=false&width=auto";
+                "&show_text=false";
 
             String embedHtml = String.format(
-                "<iframe src=\"%s\" class=\"fb-responsive-iframe\" style=\"border:none;overflow:hidden;\" " +
+                "<div class=\"fb-embed-container\">" +
+                "<iframe src=\"%s\" class=\"fb-embed-iframe\" style=\"border:none;overflow:hidden;\" " +
                 "scrolling=\"no\" frameborder=\"0\" allowfullscreen=\"true\" " +
-                "allow=\"autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share\"></iframe>",
+                "allow=\"autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share\"></iframe>" +
+                "</div>",
                 embedUrl
             );
 
@@ -291,14 +293,16 @@ public class OEmbedService {
             String normalizedUrl = SocialMediaUrlUtil.normalizeForStorage(url);
             String encodedUrl = URLEncoder.encode(normalizedUrl, StandardCharsets.UTF_8);
 
-            // Facebook post plugin - use video plugin for video posts, responsive approach
+            // Facebook post plugin - 16:9 aspect ratio container with letterboxing
             String embedUrl = "https://www.facebook.com/plugins/video.php?href=" + encodedUrl +
-                "&show_text=false&width=auto";
+                "&show_text=false";
 
             String embedHtml = String.format(
-                "<iframe src=\"%s\" class=\"fb-responsive-iframe\" style=\"border:none;overflow:hidden;\" " +
+                "<div class=\"fb-embed-container\">" +
+                "<iframe src=\"%s\" class=\"fb-embed-iframe\" style=\"border:none;overflow:hidden;\" " +
                 "scrolling=\"no\" frameborder=\"0\" allowfullscreen=\"true\" " +
-                "allow=\"autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share\"></iframe>",
+                "allow=\"autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share\"></iframe>" +
+                "</div>",
                 embedUrl
             );
 
@@ -336,13 +340,15 @@ public class OEmbedService {
                 return null;
             }
 
-            // Instagram embed URL format - responsive sizing
+            // Instagram embed URL format - 9:16 aspect ratio container for portrait reels
             String embedUrl = "https://www.instagram.com/reel/" + reelId + "/embed/";
 
             String embedHtml = String.format(
-                "<iframe src=\"%s\" class=\"ig-responsive-iframe\" style=\"border:none;\" " +
+                "<div class=\"ig-embed-container\">" +
+                "<iframe src=\"%s\" class=\"ig-embed-iframe\" style=\"border:none;\" " +
                 "frameborder=\"0\" scrolling=\"no\" allowtransparency=\"true\" " +
-                "allow=\"encrypted-media\"></iframe>",
+                "allow=\"encrypted-media\"></iframe>" +
+                "</div>",
                 embedUrl
             );
 
