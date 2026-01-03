@@ -48,9 +48,10 @@ const MessageInput: React.FC<MessageInputProps> = ({
       setSelectedFile(null);
       if (onCancelReply) onCancelReply();
       
-      // Reset textarea height
+      // Reset textarea height and refocus to keep keyboard open on mobile
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
+        textareaRef.current.focus();
       }
     } catch (error) {
       console.error('Error sending message:', error);
