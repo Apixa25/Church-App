@@ -30,16 +30,27 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
 
   const formatTime = (timestamp: string) => {
     try {
+      // Handle null/undefined timestamp (new messages before server confirms)
+      if (!timestamp) {
+        return 'Just now';
+      }
+
       // Handle different timestamp formats that might come from backend
       let date: Date;
 
       if (Array.isArray(timestamp)) {
         // Handle array format [year, month, day, hour, minute, second, nanosecond]
         const [year, month, day, hour = 0, minute = 0, second = 0] = timestamp as number[];
-        date = new Date(year, month - 1, day, hour, minute, second); // Month is 0-indexed in Date constructor
+        // Create as UTC then convert to local
+        date = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
       } else {
         // Handle string format (ISO-8601 or other)
-        date = new Date(timestamp);
+        // Backend sends UTC timestamps without 'Z' suffix - append it to parse correctly
+        if (typeof timestamp === 'string' && timestamp.includes('T') && !timestamp.includes('Z') && !timestamp.includes('+') && !timestamp.includes('-', timestamp.indexOf('T'))) {
+          date = new Date(timestamp + 'Z');
+        } else {
+          date = new Date(timestamp);
+        }
       }
 
       // Validate the date
