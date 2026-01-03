@@ -233,6 +233,7 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  box-sizing: border-box;
 }
 
 .resource-share-modal-container .share-button {
@@ -396,7 +397,9 @@
   }
 
   .resource-share-modal-container .share-link-display {
-    min-width: 100%;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
   }
 
   .resource-share-modal-container .share-button.secondary {
