@@ -40,11 +40,12 @@ public class SocialMediaUrlUtil {
     // Facebook Post/Video URL Patterns
     // ============================================================================
     // Supports: https://www.facebook.com/pagename/posts/pfbid...
+    //          https://facebook.com/pagename/posts/pfbid...
     //          https://www.facebook.com/pagename/videos/123456
     //          https://www.facebook.com/watch/?v=123456
     //          https://www.facebook.com/photo/?fbid=123456
     private static final Pattern FACEBOOK_POST_PATTERN = Pattern.compile(
-        "(?:www\\.|m\\.)?facebook\\.com/(?:[^/]+/(?:posts|videos|photos)/|photo/\\?fbid=|watch/\\?v=)"
+        "facebook\\.com/[^/]+/posts/"
     );
 
     // ============================================================================

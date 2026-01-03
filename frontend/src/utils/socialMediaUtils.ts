@@ -28,7 +28,7 @@ export interface SocialMediaUrlInfo {
 // URL patterns for detection
 const X_STATUS_PATTERN = /(?:x\.com|twitter\.com)\/([a-zA-Z0-9_]+)\/status\/(\d+)/;
 const FACEBOOK_REEL_PATTERN = /(?:www\.|m\.)?facebook\.com\/reel\/(\d+)/;
-const FACEBOOK_POST_PATTERN = /(?:www\.|m\.)?facebook\.com\/(?:[^/]+\/(?:posts|videos|photos)\/|photo\/\?fbid=|watch\/\?v=)/;
+const FACEBOOK_POST_PATTERN = /facebook\.com\/[^/]+\/posts\//;
 const INSTAGRAM_REEL_PATTERN = /(?:www\.)?instagram\.com\/reel\/([a-zA-Z0-9_-]+)/;
 const YOUTUBE_PATTERNS = [
   /^https?:\/\/(www\.)?youtube\.com\/watch\?v=[a-zA-Z0-9_-]{11}/,
