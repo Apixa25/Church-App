@@ -274,6 +274,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
             className="send-button-large"
             disabled={disabled || uploading || (!message.trim() && !selectedFile)}
             title="Send message"
+            // Prevent button from stealing focus from textarea (keeps keyboard open on mobile)
+            onTouchStart={(e) => e.preventDefault()}
+            onMouseDown={(e) => e.preventDefault()}
           >
             {uploading ? (
               <div className="sending-spinner">⏳</div>
