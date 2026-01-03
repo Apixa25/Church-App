@@ -70,7 +70,8 @@
       "Bash(netstat:*)",
       "Bash(aws s3api get-bucket-website:*)",
       "Bash(aws route53:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(echo:*)"
     ],
     "deny": [],
     "ask": []

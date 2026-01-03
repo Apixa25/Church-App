@@ -300,7 +300,7 @@
 
 /* Profile Info X Style */
 .profile-info-x {
-  padding-bottom: 16px;
+  padding: 0 16px 16px 16px;
 }
 
 .profile-name-section {
@@ -1035,13 +1035,36 @@
 
   .profile-navigation-tabs {
     justify-content: flex-start;
-    padding: 0 8px;
+    padding: 0;
+    max-width: 100%;
   }
 
   .nav-tab-x {
     padding: 12px 10px;
     font-size: 14px;
     flex: 0 0 auto;
+  }
+
+  /* Edge-to-edge profile on mobile */
+  .profile-view-container.x-style {
+    padding: 0;
+  }
+
+  .profile-view-container.x-style .profile-view {
+    max-width: 100%;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .profile-header-content {
+    padding: 0;
+    max-width: 100%;
+  }
+
+  .profile-posts-feed {
+    padding: 0;
+    max-width: 100%;
   }
 }
 
@@ -1112,13 +1135,25 @@
 
   .profile-navigation-tabs {
     justify-content: flex-start;
-    padding: 0 4px;
+    padding: 0;
+    max-width: 100%;
   }
 
   .nav-tab-x {
     padding: 12px 8px;
     font-size: 13px;
     flex: 0 0 auto;
+  }
+
+  /* Edge-to-edge profile on mobile */
+  .profile-header-content {
+    padding: 0;
+    max-width: 100%;
+  }
+
+  .profile-posts-feed {
+    padding: 0;
+    max-width: 100%;
   }
 
   .profile-heart-button {
