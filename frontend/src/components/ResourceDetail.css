@@ -117,10 +117,18 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  min-width: 0; /* Allow flex item to shrink */
+  flex: 1;
+  overflow: hidden;
 }
 
 .file-icon {
   font-size: 2.5rem;
+}
+
+.file-text {
+  min-width: 0; /* Allow flex item to shrink below content size */
+  overflow: hidden;
 }
 
 .file-text .file-name {
@@ -129,6 +137,8 @@
   font-size: 1.1rem;
   display: block;
   margin-bottom: 6px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .file-meta {
@@ -144,6 +154,10 @@
   border-radius: 6px;
   font-weight: 600;
   font-size: 0.8rem;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .file-size {
