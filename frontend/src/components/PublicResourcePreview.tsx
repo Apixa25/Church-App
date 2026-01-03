@@ -161,7 +161,7 @@ const PublicResourcePreview: React.FC = () => {
               </a>
             )}
 
-            <a className="public-resource-cta" href="/dashboard">
+            <a className="public-resource-cta" href={`/resources?mode=detail&id=${resource.id}`}>
               Open in Church App →
             </a>
           </div>

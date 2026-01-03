@@ -283,6 +283,150 @@
   margin-bottom: 24px;
 }
 
+/* Image Preview */
+.resource-image-preview {
+  margin-bottom: 32px;
+  padding: 24px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-primary);
+}
+
+.resource-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: block;
+}
+
+.resource-image:hover {
+  transform: scale(1.01);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.image-click-hint {
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+/* PDF Preview */
+.resource-pdf-preview {
+  margin-bottom: 32px;
+  padding: 24px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-primary);
+}
+
+.pdf-container {
+  width: 100%;
+  height: 700px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-primary);
+  background: #f8fafc;
+}
+
+.pdf-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.pdf-fallback-hint {
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+}
+
+.pdf-fallback-hint a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.pdf-fallback-hint a:hover {
+  text-decoration: underline;
+}
+
+/* Video Preview */
+.resource-video-preview {
+  margin-bottom: 32px;
+  padding: 24px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-primary);
+}
+
+.video-container {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+}
+
+.resource-video {
+  width: 100%;
+  max-height: 500px;
+  display: block;
+}
+
+/* Audio Preview */
+.resource-audio-preview {
+  margin-bottom: 32px;
+  padding: 24px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-primary);
+}
+
+.resource-audio {
+  width: 100%;
+  border-radius: 8px;
+}
+
+/* Document Preview (Office files via Google Docs Viewer) */
+.resource-doc-preview {
+  margin-bottom: 32px;
+  padding: 24px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-primary);
+}
+
+.doc-container {
+  width: 100%;
+  height: 700px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-primary);
+  background: #f8fafc;
+}
+
+.doc-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.doc-fallback-hint {
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+}
+
+.doc-fallback-hint a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.doc-fallback-hint a:hover {
+  text-decoration: underline;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .resource-detail {

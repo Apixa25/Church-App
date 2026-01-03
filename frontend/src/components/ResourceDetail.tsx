@@ -10,7 +10,20 @@ import {
   generateYouTubeEmbedUrl
 } from '../types/Resource';
 import ResourceShareModal from './ResourceShareModal';
+import MediaViewer from './MediaViewer';
 import './ResourceDetail.css';
+
+// Helper to detect if file is an Office document
+const isOfficeDocument = (fileType?: string): boolean => {
+  if (!fileType) return false;
+  return fileType.includes('word') ||
+    fileType.includes('excel') ||
+    fileType.includes('spreadsheet') ||
+    fileType.includes('powerpoint') ||
+    fileType.includes('presentation') ||
+    fileType.includes('msword') ||
+    fileType.includes('officedocument');
+};
 
 interface ResourceDetailProps {
   resourceId: string;
@@ -32,6 +45,7 @@ const ResourceDetail: React.FC<ResourceDetailProps> = ({
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showMediaViewer, setShowMediaViewer] = useState(false);
 
   const isAdmin = user?.role === 'PLATFORM_ADMIN' || user?.role === 'MODERATOR';
   const isModerator = user?.role === 'MODERATOR';
@@ -261,6 +275,78 @@ const ResourceDetail: React.FC<ResourceDetailProps> = ({
           </div>
         )}
 
+        {/* Image Preview Section */}
+        {resource.fileType?.startsWith('image/') && resource.fileUrl && (
+          <div className="resource-image-preview">
+            <h3>🖼️ Image</h3>
+            <img
+              src={resource.fileUrl}
+              alt={resource.title}
+              onClick={() => setShowMediaViewer(true)}
+              className="resource-image"
+            />
+            <p className="image-click-hint">Click image to view full size</p>
+          </div>
+        )}
+
+        {/* PDF Preview Section */}
+        {resource.fileType === 'application/pdf' && resource.fileUrl && (
+          <div className="resource-pdf-preview">
+            <h3>📕 Document Preview</h3>
+            <div className="pdf-container">
+              <iframe
+                src={resource.fileUrl}
+                title={resource.title}
+                className="pdf-iframe"
+              />
+            </div>
+            <p className="pdf-fallback-hint">
+              Can't see the document? <a href={resource.fileUrl} target="_blank" rel="noopener noreferrer">Open in new tab</a>
+            </p>
+          </div>
+        )}
+
+        {/* Video Preview Section (non-YouTube) */}
+        {resource.fileType?.startsWith('video/') && !isYouTubeResource(resource) && resource.fileUrl && (
+          <div className="resource-video-preview">
+            <h3>🎥 Video</h3>
+            <div className="video-container">
+              <video controls className="resource-video">
+                <source src={resource.fileUrl} type={resource.fileType} />
+                Your browser does not support video playback.
+              </video>
+            </div>
+          </div>
+        )}
+
+        {/* Audio Preview Section */}
+        {resource.fileType?.startsWith('audio/') && resource.fileUrl && (
+          <div className="resource-audio-preview">
+            <h3>🎵 Audio</h3>
+            <audio controls className="resource-audio">
+              <source src={resource.fileUrl} type={resource.fileType} />
+              Your browser does not support audio playback.
+            </audio>
+          </div>
+        )}
+
+        {/* Office Document Preview Section (Word, Excel, PowerPoint via Google Docs Viewer) */}
+        {isOfficeDocument(resource.fileType) && resource.fileUrl && (
+          <div className="resource-doc-preview">
+            <h3>📄 Document Preview</h3>
+            <div className="doc-container">
+              <iframe
+                src={`https://docs.google.com/viewer?url=${encodeURIComponent(resource.fileUrl)}&embedded=true`}
+                title={resource.title}
+                className="doc-iframe"
+              />
+            </div>
+            <p className="doc-fallback-hint">
+              Can't see the document? <a href={resource.fileUrl} target="_blank" rel="noopener noreferrer">Download file</a>
+            </p>
+          </div>
+        )}
+
         {resource.fileUrl && (
           <div className="resource-file">
             <h3>File</h3>
@@ -342,6 +428,17 @@ const ResourceDetail: React.FC<ResourceDetailProps> = ({
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
       />
+
+      {/* Image Full-Screen Viewer */}
+      {resource.fileUrl && resource.fileType?.startsWith('image/') && (
+        <MediaViewer
+          mediaUrls={[resource.fileUrl]}
+          mediaTypes={[resource.fileType]}
+          isOpen={showMediaViewer}
+          onClose={() => setShowMediaViewer(false)}
+          initialIndex={0}
+        />
+      )}
     </div>
   );
 };
