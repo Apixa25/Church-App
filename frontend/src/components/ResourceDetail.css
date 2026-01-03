@@ -2,7 +2,7 @@
 .resource-detail {
   max-width: 800px;
   margin: 0 auto;
-  background: white;
+  background: var(--bg-tertiary);
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   overflow: hidden;
@@ -74,11 +74,11 @@
 
 .resource-detail-content h3 {
   font-size: 1.4rem;
-  color: #1e293b;
+  color: var(--text-primary);
   margin: 0 0 16px 0;
   font-weight: 700;
   padding-bottom: 8px;
-  border-bottom: 2px solid #f1f5f9;
+  border-bottom: 2px solid var(--border-primary);
 }
 
 .resource-description {
@@ -86,7 +86,7 @@
 }
 
 .description-text {
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 1.1rem;
   line-height: 1.7;
 }
@@ -108,9 +108,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: var(--bg-secondary);
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-primary);
 }
 
 .file-details {
@@ -125,7 +125,7 @@
 
 .file-text .file-name {
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-primary);
   font-size: 1.1rem;
   display: block;
   margin-bottom: 6px;
@@ -147,7 +147,7 @@
 }
 
 .file-size {
-  color: #64748b;
+  color: var(--text-tertiary);
   font-weight: 500;
 }
 
@@ -175,8 +175,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 24px 32px;
-  background: #fafbfc;
-  border-top: 1px solid #f1f5f9;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-primary);
 }
 
 .action-group {
@@ -188,14 +188,14 @@
 .resource-youtube {
   margin-bottom: 32px;
   padding: 24px;
-  background: #f8fafc;
+  background: var(--bg-secondary);
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-primary);
 }
 
 .resource-youtube h3 {
   margin: 0 0 16px 0;
-  color: #1e293b;
+  color: var(--text-primary);
   font-size: 1.25rem;
 }
 
@@ -223,28 +223,28 @@
 .youtube-channel,
 .youtube-duration {
   margin-bottom: 8px;
-  color: #64748b;
+  color: var(--text-tertiary);
   font-size: 0.9rem;
 }
 
 .youtube-video-title strong,
 .youtube-channel strong,
 .youtube-duration strong {
-  color: #374151;
+  color: var(--text-secondary);
   margin-right: 8px;
 }
 
 .youtube-links {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--border-primary);
 }
 
 /* Loading and Error States */
 .resource-detail-loading {
   text-align: center;
   padding: 80px 20px;
-  color: #64748b;
+  color: var(--text-tertiary);
 }
 
 .resource-detail-loading p {
@@ -255,7 +255,7 @@
 .resource-detail-error {
   text-align: center;
   padding: 80px 20px;
-  color: #64748b;
+  color: var(--text-tertiary);
 }
 
 .resource-detail-error h3 {
