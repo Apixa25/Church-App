@@ -287,3 +287,89 @@
     height: 40px;
   }
 }
+
+/* ============================================
+   Native Embeds (Facebook/Instagram)
+   Clean, edge-to-edge display without headers
+   ============================================ */
+
+.social-media-embed-card.native-embed {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.social-media-embed-card.native-embed:hover {
+  border-color: transparent;
+  background: transparent;
+}
+
+.native-embed .embed-content.native-content {
+  padding: 0;
+  min-height: auto;
+  display: block;
+}
+
+/* Facebook responsive iframe */
+.native-content .fb-responsive-iframe {
+  display: block;
+  width: 100% !important;
+  height: auto;
+  min-height: 200px;
+  border: none;
+  background: #000;
+}
+
+/* Instagram responsive iframe - portrait videos */
+.native-content .ig-responsive-iframe {
+  display: block;
+  width: 100% !important;
+  height: auto;
+  min-height: 400px;
+  border: none;
+  background: #000;
+}
+
+/* Direct iframe fallback for existing embeds without class */
+.native-content > iframe:not(.fb-responsive-iframe):not(.ig-responsive-iframe) {
+  display: block;
+  width: 100% !important;
+  height: auto;
+  min-height: 200px;
+  border: none;
+  margin: 0;
+  background: #000;
+}
+
+/* Remove any SDK-injected margins/padding */
+.native-content .fb-video,
+.native-content .fb-post,
+.native-content .fb_iframe_widget,
+.native-content .instagram-media {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  width: 100% !important;
+}
+
+/* Facebook embed specific - remove extra spacing */
+.native-content .fb_iframe_widget span {
+  width: 100% !important;
+}
+
+.native-content .fb_iframe_widget iframe {
+  width: 100% !important;
+}
+
+/* Responsive adjustments for native embeds */
+@media (max-width: 768px) {
+  .social-media-embed-card.native-embed {
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .native-embed .embed-content.native-content {
+    padding: 0;
+  }
+}

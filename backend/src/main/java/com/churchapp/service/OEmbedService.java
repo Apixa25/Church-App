@@ -252,12 +252,12 @@ public class OEmbedService {
             String normalizedUrl = SocialMediaUrlUtil.normalizeForStorage(url);
             String encodedUrl = URLEncoder.encode(normalizedUrl, StandardCharsets.UTF_8);
 
-            // Facebook video plugin for reels
+            // Facebook video plugin for reels - use FB's recommended responsive approach
             String embedUrl = "https://www.facebook.com/plugins/video.php?href=" + encodedUrl +
-                "&show_text=false&width=500";
+                "&show_text=false&width=auto";
 
             String embedHtml = String.format(
-                "<iframe src=\"%s\" width=\"500\" height=\"660\" style=\"border:none;overflow:hidden\" " +
+                "<iframe src=\"%s\" class=\"fb-responsive-iframe\" style=\"border:none;overflow:hidden;\" " +
                 "scrolling=\"no\" frameborder=\"0\" allowfullscreen=\"true\" " +
                 "allow=\"autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share\"></iframe>",
                 embedUrl
@@ -291,12 +291,12 @@ public class OEmbedService {
             String normalizedUrl = SocialMediaUrlUtil.normalizeForStorage(url);
             String encodedUrl = URLEncoder.encode(normalizedUrl, StandardCharsets.UTF_8);
 
-            // Facebook post plugin
-            String embedUrl = "https://www.facebook.com/plugins/post.php?href=" + encodedUrl +
-                "&show_text=true&width=500";
+            // Facebook post plugin - use video plugin for video posts, responsive approach
+            String embedUrl = "https://www.facebook.com/plugins/video.php?href=" + encodedUrl +
+                "&show_text=false&width=auto";
 
             String embedHtml = String.format(
-                "<iframe src=\"%s\" width=\"500\" height=\"600\" style=\"border:none;overflow:hidden\" " +
+                "<iframe src=\"%s\" class=\"fb-responsive-iframe\" style=\"border:none;overflow:hidden;\" " +
                 "scrolling=\"no\" frameborder=\"0\" allowfullscreen=\"true\" " +
                 "allow=\"autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share\"></iframe>",
                 embedUrl
@@ -336,12 +336,12 @@ public class OEmbedService {
                 return null;
             }
 
-            // Instagram embed URL format
+            // Instagram embed URL format - responsive sizing
             String embedUrl = "https://www.instagram.com/reel/" + reelId + "/embed/";
 
             String embedHtml = String.format(
-                "<iframe src=\"%s\" width=\"400\" height=\"600\" frameborder=\"0\" " +
-                "scrolling=\"no\" allowtransparency=\"true\" " +
+                "<iframe src=\"%s\" class=\"ig-responsive-iframe\" style=\"border:none;\" " +
+                "frameborder=\"0\" scrolling=\"no\" allowtransparency=\"true\" " +
                 "allow=\"encrypted-media\"></iframe>",
                 embedUrl
             );

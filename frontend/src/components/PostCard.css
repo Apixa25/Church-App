@@ -223,6 +223,12 @@
   padding: 0;
 }
 
+/* Native embeds (Facebook/Instagram) - remove wrapper margins */
+.post-external-embed:has(.native-embed) {
+  margin: 0;
+  padding: 0;
+}
+
 .post-external-link-fallback {
   margin: 12px 0;
   padding: 12px 16px;

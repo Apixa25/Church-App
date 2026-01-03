@@ -86,6 +86,29 @@ const SocialMediaEmbedCard: React.FC<SocialMediaEmbedCardProps> = ({
       if (platform === 'X_POST' || platform === 'X') {
         loadTwitterWidget();
       }
+
+      // Handle Facebook/Instagram iframe resize via postMessage
+      if (platform === 'FACEBOOK_REEL' || platform === 'FACEBOOK_POST' || platform === 'INSTAGRAM_REEL') {
+        const handleMessage = (event: MessageEvent) => {
+          // Facebook sends resize messages
+          if (event.origin.includes('facebook.com') || event.origin.includes('instagram.com')) {
+            try {
+              const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+              if (data.type === 'resize' && data.height && embedContainerRef.current) {
+                const iframe = embedContainerRef.current.querySelector('iframe');
+                if (iframe) {
+                  iframe.style.height = `${data.height}px`;
+                }
+              }
+            } catch {
+              // Ignore parse errors from other postMessage events
+            }
+          }
+        };
+
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+      }
     }
   }, [embedHtml, platform]);
 
@@ -288,6 +311,45 @@ const SocialMediaEmbedCard: React.FC<SocialMediaEmbedCardProps> = ({
             </p>
           )}
         </div>
+      </div>
+    );
+  }
+
+  // Render Facebook/Instagram embeds with native look (no header, no badges)
+  if (platform === 'FACEBOOK_REEL' || platform === 'FACEBOOK_POST' || platform === 'INSTAGRAM_REEL') {
+    return (
+      <div className="social-media-embed-card native-embed">
+        {onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="embed-remove-button"
+            aria-label="Remove embed"
+            title="Remove embed"
+          >
+            X
+          </button>
+        )}
+        {embedHtml ? (
+          <div
+            ref={embedContainerRef}
+            className="embed-content native-content"
+          />
+        ) : (
+          <div className="embed-fallback">
+            <p>{platformDisplayName} content</p>
+            {externalUrl && (
+              <a
+                href={externalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="embed-fallback-link"
+              >
+                View on {platformDisplayName}
+              </a>
+            )}
+          </div>
+        )}
       </div>
     );
   }
