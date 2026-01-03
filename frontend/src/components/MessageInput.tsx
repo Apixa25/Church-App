@@ -48,13 +48,16 @@ const MessageInput: React.FC<MessageInputProps> = ({
       setSelectedFile(null);
       if (onCancelReply) onCancelReply();
       
-      // Reset textarea height and refocus to keep keyboard open on mobile
+      // Reset textarea height - keep focus to prevent keyboard from closing on mobile
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
-        // Delay focus until after React finishes re-rendering
-        setTimeout(() => {
-          textareaRef.current?.focus();
-        }, 0);
+        // Don't blur/refocus - the textarea already has focus, just keep it
+        // Using requestAnimationFrame ensures we don't lose focus during React re-render
+        requestAnimationFrame(() => {
+          if (textareaRef.current && document.activeElement !== textareaRef.current) {
+            textareaRef.current.focus({ preventScroll: true });
+          }
+        });
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -252,6 +255,12 @@ const MessageInput: React.FC<MessageInputProps> = ({
             value={message}
             onChange={handleInputChange}
             onKeyPress={handleKeyPress}
+            onFocus={() => {
+              // On iOS, scroll input into view when keyboard opens
+              setTimeout(() => {
+                textareaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }, 300);
+            }}
             placeholder={disabled ? "You don't have permission to post" : placeholder}
             disabled={disabled || uploading}
             rows={1}

@@ -69,7 +69,8 @@
       "Bash(cmd /c \"taskkill /PID 89404 /F\")",
       "Bash(netstat:*)",
       "Bash(aws s3api get-bucket-website:*)",
-      "Bash(aws route53:*)"
+      "Bash(aws route53:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
