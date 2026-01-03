@@ -307,20 +307,6 @@ const SocialMediaEmbedCard: React.FC<SocialMediaEmbedCardProps> = ({
         </button>
       )}
 
-      <div className="embed-header">
-        <span className={getBadgeClass()}>{platformDisplayName}</span>
-        {externalUrl && (
-          <button
-            type="button"
-            onClick={handleOpenLink}
-            className="embed-open-link-button"
-            title="Open original post"
-          >
-            Open on {platformDisplayName}
-          </button>
-        )}
-      </div>
-
       {embedHtml ? (
         <div
           ref={embedContainerRef}
