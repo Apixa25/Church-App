@@ -65,11 +65,11 @@ public class OEmbedService {
                 case X_POST:
                     return fetchXOEmbed(url);
                 case FACEBOOK_REEL:
-                    log.info("Facebook Reel oEmbed requires App Access Token (Phase 2)");
-                    return null; // Will implement in Phase 2
+                    return generateFacebookReelEmbed(url);
+                case FACEBOOK_POST:
+                    return generateFacebookPostEmbed(url);
                 case INSTAGRAM_REEL:
-                    log.info("Instagram Reel oEmbed requires App Access Token (Phase 2)");
-                    return null; // Will implement in Phase 2
+                    return generateInstagramReelEmbed(url);
                 case YOUTUBE:
                     return fetchYouTubeOEmbed(url);
                 default:
@@ -239,6 +239,128 @@ public class OEmbedService {
             return null;
         } catch (Exception e) {
             log.error("Unexpected error fetching YouTube oEmbed for URL: {}", youtubeUrl, e);
+            return null;
+        }
+    }
+
+    /**
+     * Generates an embed for Facebook Reels using Facebook's plugin iframe
+     * No authentication required - uses public embed endpoint
+     */
+    private OEmbedResponse generateFacebookReelEmbed(String url) {
+        try {
+            String normalizedUrl = SocialMediaUrlUtil.normalizeForStorage(url);
+            String encodedUrl = URLEncoder.encode(normalizedUrl, StandardCharsets.UTF_8);
+
+            // Facebook video plugin for reels
+            String embedUrl = "https://www.facebook.com/plugins/video.php?href=" + encodedUrl +
+                "&show_text=false&width=500";
+
+            String embedHtml = String.format(
+                "<iframe src=\"%s\" width=\"500\" height=\"660\" style=\"border:none;overflow:hidden\" " +
+                "scrolling=\"no\" frameborder=\"0\" allowfullscreen=\"true\" " +
+                "allow=\"autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share\"></iframe>",
+                embedUrl
+            );
+
+            OEmbedResponse response = new OEmbedResponse();
+            response.setHtml(embedHtml);
+            response.setType("video");
+            response.setWidth(500);
+            response.setHeight(660);
+            response.setProviderName("Facebook");
+            response.setProviderUrl("https://www.facebook.com");
+            response.setUrl(normalizedUrl);
+            response.setPlatform(SocialMediaUrlUtil.Platform.FACEBOOK_REEL);
+
+            log.info("Generated Facebook Reel embed for URL: {}", url);
+            return response;
+
+        } catch (Exception e) {
+            log.error("Error generating Facebook Reel embed for URL: {}", url, e);
+            return null;
+        }
+    }
+
+    /**
+     * Generates an embed for Facebook Posts using Facebook's plugin iframe
+     * No authentication required - uses public embed endpoint
+     */
+    private OEmbedResponse generateFacebookPostEmbed(String url) {
+        try {
+            String normalizedUrl = SocialMediaUrlUtil.normalizeForStorage(url);
+            String encodedUrl = URLEncoder.encode(normalizedUrl, StandardCharsets.UTF_8);
+
+            // Facebook post plugin
+            String embedUrl = "https://www.facebook.com/plugins/post.php?href=" + encodedUrl +
+                "&show_text=true&width=500";
+
+            String embedHtml = String.format(
+                "<iframe src=\"%s\" width=\"500\" height=\"600\" style=\"border:none;overflow:hidden\" " +
+                "scrolling=\"no\" frameborder=\"0\" allowfullscreen=\"true\" " +
+                "allow=\"autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share\"></iframe>",
+                embedUrl
+            );
+
+            OEmbedResponse response = new OEmbedResponse();
+            response.setHtml(embedHtml);
+            response.setType("rich");
+            response.setWidth(500);
+            response.setHeight(600);
+            response.setProviderName("Facebook");
+            response.setProviderUrl("https://www.facebook.com");
+            response.setUrl(normalizedUrl);
+            response.setPlatform(SocialMediaUrlUtil.Platform.FACEBOOK_POST);
+
+            log.info("Generated Facebook Post embed for URL: {}", url);
+            return response;
+
+        } catch (Exception e) {
+            log.error("Error generating Facebook Post embed for URL: {}", url, e);
+            return null;
+        }
+    }
+
+    /**
+     * Generates an embed for Instagram Reels using Instagram's embed iframe
+     * No authentication required - uses public embed endpoint
+     */
+    private OEmbedResponse generateInstagramReelEmbed(String url) {
+        try {
+            String normalizedUrl = SocialMediaUrlUtil.normalizeForStorage(url);
+
+            // Extract reel ID and construct embed URL
+            String reelId = SocialMediaUrlUtil.extractIdentifier(normalizedUrl);
+            if (reelId == null) {
+                log.warn("Could not extract Instagram Reel ID from URL: {}", url);
+                return null;
+            }
+
+            // Instagram embed URL format
+            String embedUrl = "https://www.instagram.com/reel/" + reelId + "/embed/";
+
+            String embedHtml = String.format(
+                "<iframe src=\"%s\" width=\"400\" height=\"600\" frameborder=\"0\" " +
+                "scrolling=\"no\" allowtransparency=\"true\" " +
+                "allow=\"encrypted-media\"></iframe>",
+                embedUrl
+            );
+
+            OEmbedResponse response = new OEmbedResponse();
+            response.setHtml(embedHtml);
+            response.setType("video");
+            response.setWidth(400);
+            response.setHeight(600);
+            response.setProviderName("Instagram");
+            response.setProviderUrl("https://www.instagram.com");
+            response.setUrl(normalizedUrl);
+            response.setPlatform(SocialMediaUrlUtil.Platform.INSTAGRAM_REEL);
+
+            log.info("Generated Instagram Reel embed for URL: {}", url);
+            return response;
+
+        } catch (Exception e) {
+            log.error("Error generating Instagram Reel embed for URL: {}", url, e);
             return null;
         }
     }

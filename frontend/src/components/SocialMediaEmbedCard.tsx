@@ -123,6 +123,21 @@ const SocialMediaEmbedCard: React.FC<SocialMediaEmbedCardProps> = ({
 
   const platformDisplayName = getPlatformDisplayName(platform as SocialMediaPlatform);
 
+  // Determine badge class based on platform
+  const getBadgeClass = (): string => {
+    switch (platform) {
+      case 'YOUTUBE':
+        return 'embed-platform-badge youtube-badge';
+      case 'FACEBOOK_REEL':
+      case 'FACEBOOK_POST':
+        return 'embed-platform-badge facebook-badge';
+      case 'INSTAGRAM_REEL':
+        return 'embed-platform-badge instagram-badge';
+      default:
+        return 'embed-platform-badge';
+    }
+  };
+
   if (!embedHtml && !externalUrl) {
     return null;
   }
@@ -151,7 +166,7 @@ const SocialMediaEmbedCard: React.FC<SocialMediaEmbedCardProps> = ({
             </button>
           )}
           <div className="embed-header">
-            <span className="embed-platform-badge youtube-badge">YouTube</span>
+            <span className={getBadgeClass()}>YouTube</span>
             {externalUrl && (
               <button
                 type="button"
@@ -195,7 +210,7 @@ const SocialMediaEmbedCard: React.FC<SocialMediaEmbedCardProps> = ({
         )}
 
         <div className="embed-header">
-          <span className="embed-platform-badge youtube-badge">YouTube</span>
+          <span className={getBadgeClass()}>YouTube</span>
           {externalUrl && (
             <button
               type="button"
@@ -293,7 +308,7 @@ const SocialMediaEmbedCard: React.FC<SocialMediaEmbedCardProps> = ({
       )}
 
       <div className="embed-header">
-        <span className="embed-platform-badge">{platformDisplayName}</span>
+        <span className={getBadgeClass()}>{platformDisplayName}</span>
         {externalUrl && (
           <button
             type="button"

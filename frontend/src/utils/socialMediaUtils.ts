@@ -12,6 +12,7 @@
 export enum SocialMediaPlatform {
   X_POST = 'X_POST',
   FACEBOOK_REEL = 'FACEBOOK_REEL',
+  FACEBOOK_POST = 'FACEBOOK_POST',
   INSTAGRAM_REEL = 'INSTAGRAM_REEL',
   YOUTUBE = 'YOUTUBE',
   UNKNOWN = 'UNKNOWN'
@@ -27,6 +28,7 @@ export interface SocialMediaUrlInfo {
 // URL patterns for detection
 const X_STATUS_PATTERN = /(?:x\.com|twitter\.com)\/([a-zA-Z0-9_]+)\/status\/(\d+)/;
 const FACEBOOK_REEL_PATTERN = /(?:www\.|m\.)?facebook\.com\/reel\/(\d+)/;
+const FACEBOOK_POST_PATTERN = /(?:www\.|m\.)?facebook\.com\/(?:[^/]+\/(?:posts|videos|photos)\/|photo\/\?fbid=|watch\/\?v=)/;
 const INSTAGRAM_REEL_PATTERN = /(?:www\.)?instagram\.com\/reel\/([a-zA-Z0-9_-]+)/;
 const YOUTUBE_PATTERNS = [
   /^https?:\/\/(www\.)?youtube\.com\/watch\?v=[a-zA-Z0-9_-]{11}/,
@@ -56,9 +58,14 @@ export function detectPlatform(url: string): SocialMediaPlatform {
       return SocialMediaPlatform.X_POST;
     }
 
-    // Check Facebook Reel
+    // Check Facebook Reel (must check before generic post pattern)
     if (FACEBOOK_REEL_PATTERN.test(normalizedUrl)) {
       return SocialMediaPlatform.FACEBOOK_REEL;
+    }
+
+    // Check Facebook Post/Video
+    if (FACEBOOK_POST_PATTERN.test(normalizedUrl)) {
+      return SocialMediaPlatform.FACEBOOK_POST;
     }
 
     // Check Instagram Reel
@@ -188,6 +195,7 @@ export function getPlatformDisplayName(platform: SocialMediaPlatform): string {
     case SocialMediaPlatform.X_POST:
       return 'X';
     case SocialMediaPlatform.FACEBOOK_REEL:
+    case SocialMediaPlatform.FACEBOOK_POST:
       return 'Facebook';
     case SocialMediaPlatform.INSTAGRAM_REEL:
       return 'Instagram';

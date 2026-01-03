@@ -37,6 +37,17 @@ public class SocialMediaUrlUtil {
     );
 
     // ============================================================================
+    // Facebook Post/Video URL Patterns
+    // ============================================================================
+    // Supports: https://www.facebook.com/pagename/posts/pfbid...
+    //          https://www.facebook.com/pagename/videos/123456
+    //          https://www.facebook.com/watch/?v=123456
+    //          https://www.facebook.com/photo/?fbid=123456
+    private static final Pattern FACEBOOK_POST_PATTERN = Pattern.compile(
+        "(?:www\\.|m\\.)?facebook\\.com/(?:[^/]+/(?:posts|videos|photos)/|photo/\\?fbid=|watch/\\?v=)"
+    );
+
+    // ============================================================================
     // Instagram Reel URL Patterns
     // ============================================================================
     // Supports: https://www.instagram.com/reel/ABC123xyz/?...
@@ -51,6 +62,7 @@ public class SocialMediaUrlUtil {
     public enum Platform {
         X_POST("X"),
         FACEBOOK_REEL("Facebook"),
+        FACEBOOK_POST("Facebook"),
         INSTAGRAM_REEL("Instagram"),
         YOUTUBE("YouTube"),
         UNKNOWN("Unknown");
@@ -93,9 +105,14 @@ public class SocialMediaUrlUtil {
                 return Platform.X_POST;
             }
 
-            // Check Facebook Reel
+            // Check Facebook Reel (must check before generic post pattern)
             if (FACEBOOK_REEL_PATTERN.matcher(normalizedUrl).find()) {
                 return Platform.FACEBOOK_REEL;
+            }
+
+            // Check Facebook Post/Video
+            if (FACEBOOK_POST_PATTERN.matcher(normalizedUrl).find()) {
+                return Platform.FACEBOOK_POST;
             }
 
             // Check Instagram Reel
@@ -145,6 +162,9 @@ public class SocialMediaUrlUtil {
                     return extractXPostId(normalizedUrl);
                 case FACEBOOK_REEL:
                     return extractFacebookReelId(normalizedUrl);
+                case FACEBOOK_POST:
+                    // For posts, we use the full URL as identifier (needed for embed)
+                    return normalizedUrl;
                 case INSTAGRAM_REEL:
                     return extractInstagramReelId(normalizedUrl);
                 case YOUTUBE:
