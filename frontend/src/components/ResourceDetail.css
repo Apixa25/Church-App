@@ -430,70 +430,126 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .resource-detail {
-    margin: 0 16px;
+    margin: 0;
+    border-radius: 0;
   }
-  
+
   .resource-detail-header {
-    padding: 24px 20px;
+    padding: 20px 16px;
   }
-  
+
   .resource-title {
-    font-size: 2rem;
+    font-size: 1.75rem;
   }
-  
+
   .resource-detail-content {
-    padding: 24px 20px;
+    padding: 16px 12px;
   }
-  
+
   .resource-detail-actions {
     flex-direction: column;
     gap: 16px;
-    padding: 20px;
+    padding: 16px 12px;
   }
-  
+
   .action-group {
     width: 100%;
     justify-content: center;
   }
-  
+
   .action-group .btn {
     flex: 1;
+  }
+
+  /* Reduce padding on preview sections for mobile */
+  .resource-image-preview,
+  .resource-pdf-preview,
+  .resource-video-preview,
+  .resource-audio-preview,
+  .resource-doc-preview,
+  .resource-youtube {
+    padding: 12px 8px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+  }
+
+  .pdf-container,
+  .doc-container {
+    height: 500px;
+    border-radius: 4px;
+  }
+
+  .youtube-container {
+    border-radius: 4px;
   }
 }
 
 @media (max-width: 480px) {
+  .resource-detail-header {
+    padding: 16px 12px;
+  }
+
+  .resource-detail-content {
+    padding: 12px 8px;
+  }
+
   .resource-detail-meta {
     flex-direction: column;
     gap: 8px;
     align-items: flex-start;
   }
-  
+
   .resource-uploader {
     gap: 12px;
   }
-  
+
   .uploader-avatar {
     width: 40px;
     height: 40px;
   }
-  
+
   .resource-title {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
   }
-  
+
   .file-info {
     flex-direction: column;
     gap: 16px;
     text-align: center;
+    padding: 12px;
   }
-  
+
   .file-details {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .download-btn {
     width: 100%;
     justify-content: center;
+  }
+
+  /* Minimize padding on preview sections for small screens */
+  .resource-image-preview,
+  .resource-pdf-preview,
+  .resource-video-preview,
+  .resource-audio-preview,
+  .resource-doc-preview,
+  .resource-youtube {
+    padding: 8px 4px;
+    margin-bottom: 12px;
+    border-radius: 4px;
+  }
+
+  .pdf-container,
+  .doc-container {
+    height: 450px;
+    border-radius: 2px;
+  }
+
+  .resource-detail-content h3 {
+    font-size: 1.1rem;
+    padding-bottom: 6px;
+    margin-bottom: 12px;
   }
 }
