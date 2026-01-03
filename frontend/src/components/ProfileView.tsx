@@ -18,6 +18,7 @@ import chatApi from '../services/chatApi';
 import OrganizationSelector from './OrganizationSelector';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { Membership } from '../contexts/OrganizationContext';
+import { useGroup } from '../contexts/GroupContext';
 import FamilyGroupCreateForm from './FamilyGroupCreateForm';
 import LoadingSpinner from './LoadingSpinner';
 import { getImageUrlWithFallback } from '../utils/imageUrlUtils';
@@ -93,7 +94,23 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const targetUserId = userId || user?.userId || '';
   
   // Get memberships from context for own profile
-  const { allMemberships, familyPrimary, refreshMemberships } = useOrganization();
+  const { allMemberships, churchPrimary, familyPrimary, groups, refreshMemberships } = useOrganization();
+
+  // Get user groups (community-created groups) from GroupContext
+  const { myGroups } = useGroup();
+
+  // Helper function to get icon for organization type
+  const getGroupIcon = (type?: string): string => {
+    switch (type) {
+      case 'CHURCH': return '⛪';
+      case 'FAMILY': return '🏠';
+      case 'MINISTRY': return '🎯';
+      case 'NONPROFIT': return '💝';
+      case 'GENERAL': return '👥';
+      case 'USER_GROUP': return '👥';
+      default: return '🏢';
+    }
+  };
   
   // Family group creation state
   const [showCreateFamilyGroup, setShowCreateFamilyGroup] = useState(false);
@@ -1020,39 +1037,79 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
               }
             })()}
 
-            {/* Family Group Section - Only show on own profile */}
+            {/* Your Groups Section - Only show on own profile */}
             {isOwnProfile && (
-              <div className="profile-family-group-section">
-                {familyPrimary ? (
-                  <div className="family-group-info-card">
-                    <span className="family-group-icon">🏠</span>
-                    <div className="family-group-content">
-                      <span className="family-group-label">Your Family Group</span>
-                      <div className="family-group-name">{familyPrimary.organizationName}</div>
-                      <button 
-                        onClick={() => navigate(`/organizations/${familyPrimary.organizationId}`)}
-                        className="view-family-group-button"
-                      >
-                        View Family Group →
-                      </button>
+              <div className="profile-user-groups-section">
+                <span className="user-groups-label">Your Groups</span>
+
+                {/* List all groups */}
+                <div className="user-groups-list">
+                  {/* Church Primary */}
+                  {churchPrimary && (
+                    <div
+                      className="user-group-card"
+                      onClick={() => navigate(`/organizations/${churchPrimary.organizationId}`)}
+                    >
+                      <span className="user-group-icon">{getGroupIcon(churchPrimary.organizationType)}</span>
+                      <span className="user-group-name">{churchPrimary.organizationName}</span>
                     </div>
-                  </div>
-                ) : (
-                  <div className="create-family-group-card">
-                    <span className="family-group-icon">🏠</span>
-                    <div className="family-group-content">
-                      <span className="family-group-label">Create Your Family Group</span>
-                      <p className="family-group-description">
-                        Connect with your extended family! Perfect for families with multiple last names. 
-                        Use text or emojis as your family name.
-                      </p>
-                      <button 
-                        onClick={() => setShowCreateFamilyGroup(true)}
-                        className="create-family-group-button"
-                      >
-                        Create Family Group
-                      </button>
+                  )}
+
+                  {/* Family Primary */}
+                  {familyPrimary && (
+                    <div
+                      className="user-group-card"
+                      onClick={() => navigate(`/organizations/${familyPrimary.organizationId}`)}
+                    >
+                      <span className="user-group-icon">{getGroupIcon(familyPrimary.organizationType)}</span>
+                      <span className="user-group-name">{familyPrimary.organizationName}</span>
                     </div>
+                  )}
+
+                  {/* Other Organization Groups */}
+                  {groups.map((group) => (
+                    <div
+                      key={group.id}
+                      className="user-group-card"
+                      onClick={() => navigate(`/organizations/${group.organizationId}`)}
+                    >
+                      <span className="user-group-icon">{getGroupIcon(group.organizationType)}</span>
+                      <span className="user-group-name">{group.organizationName}</span>
+                    </div>
+                  ))}
+
+                  {/* User Groups (community-created groups) */}
+                  {myGroups.map((membership) => (
+                    <div
+                      key={membership.groupId}
+                      className="user-group-card"
+                      onClick={() => navigate(`/groups/${membership.groupId}`)}
+                    >
+                      <span className="user-group-icon">👥</span>
+                      <span className="user-group-name">{membership.groupName}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Find buttons for missing groups */}
+                {(!churchPrimary || !familyPrimary) && (
+                  <div className="find-groups-buttons">
+                    {!churchPrimary && (
+                      <button
+                        className="find-group-button"
+                        onClick={() => navigate('/organizations')}
+                      >
+                        Find Church to Join
+                      </button>
+                    )}
+                    {!familyPrimary && (
+                      <button
+                        className="find-group-button"
+                        onClick={() => navigate('/organizations')}
+                      >
+                        Find Family Group
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

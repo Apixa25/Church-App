@@ -171,6 +171,7 @@
   max-width: 320px;
   position: relative;
   z-index: 2;
+  margin-right: 16px;
 }
 
 .profile-org-selector-wrapper > * {
@@ -578,100 +579,83 @@
   border-color: var(--border-secondary);
 }
 
-/* Family Group Section */
-.profile-family-group-section {
+/* Your Groups Section */
+.profile-user-groups-section {
   margin-top: 12px;
 }
 
-.family-group-info-card,
-.create-family-group-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
-  background: var(--bg-tertiary);
-  border-radius: 12px;
-  border: 1px solid var(--border-primary);
-  transition: all 0.2s;
-}
-
-.create-family-group-card {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(91, 127, 255, 0.08));
-  border-color: rgba(139, 92, 246, 0.3);
-}
-
-.create-family-group-card:hover {
-  border-color: rgba(139, 92, 246, 0.5);
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
-}
-
-.family-group-icon {
-  font-size: 28px;
-  flex-shrink: 0;
-}
-
-.family-group-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.family-group-label {
+.user-groups-label {
+  display: block;
   font-size: 14px;
   color: var(--text-secondary);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  margin-bottom: 10px;
 }
 
-.family-group-name {
+.user-groups-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.user-group-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--bg-tertiary);
+  border-radius: 20px;
+  border: 1px solid var(--border-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.user-group-card:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border-glow);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(91, 127, 255, 0.2);
+}
+
+.user-group-icon {
   font-size: 18px;
-  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.user-group-name {
+  font-size: 14px;
+  font-weight: 500;
   color: var(--text-primary);
   word-break: break-word;
 }
 
-.family-group-description {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--text-secondary);
+.find-groups-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
 }
 
-.view-family-group-button,
-.create-family-group-button {
+.find-group-button {
   padding: 8px 16px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   border-radius: 20px;
-  border: none;
+  border: 1px dashed var(--border-secondary);
+  background: transparent;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
-  align-self: flex-start;
-  margin-top: 4px;
 }
 
-.view-family-group-button {
-  background: var(--accent-primary, #4a90e2);
-  color: white;
-}
-
-.view-family-group-button:hover {
-  background: var(--accent-primary-dark, #357abd);
+.find-group-button:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
-}
-
-.create-family-group-button {
-  background: linear-gradient(135deg, #8b5cf6, #6366f1);
-  color: white;
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
-}
-
-.create-family-group-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
 }
 
 .profile-stats-x {
