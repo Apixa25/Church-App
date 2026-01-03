@@ -127,7 +127,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
       <div
         className="message-content"
         style={{
-          maxWidth: '70%',
           display: 'flex',
           flexDirection: 'column',
           order: 1,

@@ -2941,12 +2941,12 @@
 
 .message-author {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-primary);
 }
 
 .message-time {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-tertiary);
 }
 
@@ -2967,7 +2967,8 @@
 
 .message-text {
   margin: 0;
-  line-height: 1.4;
+  font-size: 17px;
+  line-height: 1.5;
 }
 
 .own-message-footer {
@@ -3047,8 +3048,16 @@
   border-radius: var(--border-radius-md);
 }
 
-/* 📱 Mobile: Constrain images to fit within viewport and message bubbles */
+/* 📱 Mobile: Expand chat messages and reduce padding for better space usage */
 @media (max-width: 768px) {
+  .message-content {
+    max-width: 90% !important;
+  }
+
+  .messages-container {
+    padding: 12px;
+  }
+
   .message-image {
     max-width: 100%;
     max-width: min(250px, calc(100vw - 100px));
