@@ -106,8 +106,20 @@ public class PostService {
                 } else {
                     log.warn("⚠️ Failed to fetch oEmbed data for YouTube URL: {}, will store URL only", normalizedExternalUrl);
                 }
+            } else if (platform == SocialMediaUrlUtil.Platform.FACEBOOK_REEL
+                    || platform == SocialMediaUrlUtil.Platform.FACEBOOK_POST
+                    || platform == SocialMediaUrlUtil.Platform.INSTAGRAM_REEL) {
+                log.info("🎬 Fetching embed for {}: {}", platform, normalizedExternalUrl);
+                OEmbedService.OEmbedResponse oEmbedResponse = oEmbedService.fetchOEmbed(normalizedExternalUrl);
+                if (oEmbedResponse != null && oEmbedResponse.getHtml() != null) {
+                    externalEmbedHtml = oEmbedResponse.getHtml();
+                    log.info("✅ Successfully generated embed HTML for {}: {} (HTML length: {} chars)",
+                        platform, normalizedExternalUrl, externalEmbedHtml.length());
+                } else {
+                    log.warn("⚠️ Failed to generate embed HTML for {}: {}", platform, normalizedExternalUrl);
+                }
             } else {
-                log.info("ℹ️ oEmbed not yet implemented for platform: {}, storing URL only", platform);
+                log.info("ℹ️ Unknown platform for URL: {}, storing URL only", normalizedExternalUrl);
             }
         } else {
             log.debug("No external URL provided for post");

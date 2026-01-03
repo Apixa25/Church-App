@@ -65,7 +65,9 @@
       "Bash(aws cloudfront create-cache-policy:*)",
       "Bash(timeout 60 bash -c 'while true; do STATUS=$(aws elasticbeanstalk describe-environments --application-name church-app-backend --environment-name Church-app-backend-prod --region us-west-2 --query \"\"Environments[0].Status\"\" --output text); echo \"\"Status: $STATUS\"\"; if [ \"\"$STATUS\"\" = \"\"Ready\"\" ]; then echo \"\"Deployment complete!\"\"; break; fi; sleep 10; done')",
       "Bash(PGPASSWORD='Z.jS~w]fvv[W-TyYhB8TlTD_fEG2' psql -h church-app-db.cj88a8mwiwbt.us-west-2.rds.amazonaws.com -p 5432 -U church_user -d church_app -c \"SELECT version, description FROM flyway_schema_history WHERE version = ''37'';\")",
-      "Bash(git -C \"c:/Users/Admin/Church-App/Church-App\" status frontend/)"
+      "Bash(git -C \"c:/Users/Admin/Church-App/Church-App\" status frontend/)",
+      "Bash(cmd /c \"taskkill /PID 89404 /F\")",
+      "Bash(netstat:*)"
     ],
     "deny": [],
     "ask": []
