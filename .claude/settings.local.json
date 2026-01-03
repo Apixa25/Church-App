@@ -67,7 +67,9 @@
       "Bash(PGPASSWORD='Z.jS~w]fvv[W-TyYhB8TlTD_fEG2' psql -h church-app-db.cj88a8mwiwbt.us-west-2.rds.amazonaws.com -p 5432 -U church_user -d church_app -c \"SELECT version, description FROM flyway_schema_history WHERE version = ''37'';\")",
       "Bash(git -C \"c:/Users/Admin/Church-App/Church-App\" status frontend/)",
       "Bash(cmd /c \"taskkill /PID 89404 /F\")",
-      "Bash(netstat:*)"
+      "Bash(netstat:*)",
+      "Bash(aws s3api get-bucket-website:*)",
+      "Bash(aws route53:*)"
     ],
     "deny": [],
     "ask": []

@@ -51,7 +51,10 @@ const MessageInput: React.FC<MessageInputProps> = ({
       // Reset textarea height and refocus to keep keyboard open on mobile
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
-        textareaRef.current.focus();
+        // Delay focus until after React finishes re-rendering
+        setTimeout(() => {
+          textareaRef.current?.focus();
+        }, 0);
       }
     } catch (error) {
       console.error('Error sending message:', error);

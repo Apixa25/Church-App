@@ -2678,7 +2678,7 @@
 .chat-room {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100dvh; /* dvh adapts to mobile keyboard */
   background: var(--bg-primary);
   overscroll-behavior: contain;
   touch-action: pan-y;
@@ -2687,7 +2687,7 @@
 /* 📱 Mobile: Use full viewport (bottom nav is hidden in active chats) */
 @media (max-width: 768px) {
   .chat-room {
-    height: 100vh;
+    height: 100dvh; /* dvh adapts to mobile keyboard */
   }
 }
 
@@ -2701,6 +2701,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0; /* Prevent header from shrinking when keyboard opens */
 }
 
 .header-left {
@@ -4281,7 +4282,7 @@
 
   .chat-room {
     /* 📱 Full viewport height (bottom nav is hidden in active chats) */
-    height: 100vh;
+    height: 100dvh; /* dvh adapts to mobile keyboard */
   }
   
   .chat-content {
