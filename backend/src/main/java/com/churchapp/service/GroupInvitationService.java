@@ -8,6 +8,7 @@ import com.churchapp.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +32,7 @@ public class GroupInvitationService {
     private final UserRepository userRepository;
     private final UserGroupMembershipRepository membershipRepository;
     private final NotificationService notificationService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Value("${app.base-url:https://thegathering.app}")
     private String appBaseUrl;
@@ -363,14 +365,40 @@ public class GroupInvitationService {
     }
 
     /**
-     * Send push notification for invitation
+     * Send push notification and WebSocket notification for invitation
      */
     private void sendInvitationNotification(GroupInvitation invitation) {
-        try {
-            User invitedUser = invitation.getInvitedUser();
-            User inviter = invitation.getInviter();
-            Group group = invitation.getGroup();
+        User invitedUser = invitation.getInvitedUser();
+        User inviter = invitation.getInviter();
+        Group group = invitation.getGroup();
 
+        // Send WebSocket notification (for in-app notification bell)
+        try {
+            Map<String, Object> wsEvent = new HashMap<>();
+            wsEvent.put("eventType", "group_invitation_received");
+            wsEvent.put("invitationId", invitation.getId().toString());
+            wsEvent.put("groupId", group.getId().toString());
+            wsEvent.put("groupName", group.getName());
+            wsEvent.put("groupImageUrl", group.getImageUrl());
+            wsEvent.put("inviterId", inviter.getId().toString());
+            wsEvent.put("inviterName", inviter.getName());
+            wsEvent.put("invitationMessage", invitation.getMessage());
+            wsEvent.put("timestamp", LocalDateTime.now().toString());
+            wsEvent.put("actionUrl", "/invitations");
+
+            // Send to user's personal queue (frontend subscribes to /user/queue/events)
+            messagingTemplate.convertAndSendToUser(
+                invitedUser.getEmail(),
+                "/queue/events",
+                wsEvent
+            );
+            log.info("Sent WebSocket invitation notification to user {}", invitedUser.getEmail());
+        } catch (Exception e) {
+            log.error("Failed to send WebSocket invitation notification", e);
+        }
+
+        // Send FCM push notification
+        try {
             if (invitedUser.getFcmToken() != null && !invitedUser.getFcmToken().isEmpty()) {
                 String title = "Group Invitation";
                 String body = inviter.getName() + " invited you to join " + group.getName();
@@ -386,7 +414,7 @@ public class GroupInvitationService {
                 );
             }
         } catch (Exception e) {
-            log.error("Failed to send invitation notification", e);
+            log.error("Failed to send FCM invitation notification", e);
             // Don't fail the invitation creation if notification fails
         }
     }

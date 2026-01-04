@@ -75,6 +75,14 @@ export interface EventUpdate {
   commenterEmail?: string;
   commentContent?: string;
   parentCommentId?: string;
+
+  // Group invitation notification fields
+  invitationId?: string;
+  inviterId?: string;
+  inviterName?: string;
+  invitationMessage?: string;
+  groupName?: string;
+  groupImageUrl?: string;
 }
 
 export interface EventRsvpUpdate {

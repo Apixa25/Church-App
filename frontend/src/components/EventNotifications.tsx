@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEventNotifications, EventNotification } from '../hooks/useEventNotifications';
 import { formatRelativeDate } from '../utils/dateUtils';
 import { useWebSocket } from '../contexts/WebSocketContext';
+import PendingInvitationsModal from './PendingInvitationsModal';
 import './EventNotifications.css';
 
 const EventNotifications: React.FC = () => {
@@ -19,9 +20,18 @@ const EventNotifications: React.FC = () => {
   } = useEventNotifications();
 
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showInvitationsModal, setShowInvitationsModal] = useState(false);
 
   const handleNotificationClick = (notification: EventNotification) => {
     markAsRead(notification.id);
+
+    // Handle group invitation notifications - open the modal
+    if (notification.type === 'group_invitation_received') {
+      setShowNotifications(false);
+      setShowInvitationsModal(true);
+      return;
+    }
+
     if (notification.actionUrl) {
       navigate(notification.actionUrl);
     } else if (notification.chatGroupId) {
@@ -44,7 +54,8 @@ const EventNotifications: React.FC = () => {
       event_updated: '✏️',
       event_cancelled: '❌',
       chat_message_received: '💬',
-      post_comment_received: '💬' // Same icon as chat
+      post_comment_received: '💬', // Same icon as chat
+      group_invitation_received: '👥'
     };
     return iconMap[type] || '🔔';
   };
@@ -142,7 +153,7 @@ const EventNotifications: React.FC = () => {
 
           {notifications.length > 0 && (
             <div className="notification-footer">
-              <button 
+              <button
                 onClick={() => {
                   navigate('/calendar');
                   setShowNotifications(false);
@@ -156,6 +167,12 @@ const EventNotifications: React.FC = () => {
         </div>,
         document.body
       )}
+
+      {/* Pending Invitations Modal */}
+      <PendingInvitationsModal
+        isOpen={showInvitationsModal}
+        onClose={() => setShowInvitationsModal(false)}
+      />
     </div>
   );
 };

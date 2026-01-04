@@ -6,7 +6,7 @@ import webSocketService, { EventUpdate } from '../services/websocketService';
 
 export interface EventNotification {
   id: string;
-  type: 'event_created' | 'event_updated' | 'event_cancelled' | 'chat_message_received' | 'post_comment_received';
+  type: 'event_created' | 'event_updated' | 'event_cancelled' | 'chat_message_received' | 'post_comment_received' | 'group_invitation_received';
   title: string;
   message: string;
 
@@ -20,12 +20,21 @@ export interface EventNotification {
   senderName?: string;
   messageId?: string;
 
-  // Post comment fields (NEW)
+  // Post comment fields
   postId?: string;
   commentId?: string;
   commenterId?: string;
   commenterName?: string;
   commenterEmail?: string;
+
+  // Group invitation fields
+  invitationId?: string;
+  groupId?: string;
+  groupName?: string;
+  groupImageUrl?: string;
+  inviterId?: string;
+  inviterName?: string;
+  invitationMessage?: string;
 
   timestamp: string;
   read: boolean;
@@ -282,6 +291,34 @@ export const useEventNotifications = () => {
       return;
     }
 
+    // Handle group invitation notifications
+    if (eventType === 'group_invitation_received') {
+      // Don't notify users of their own invitations (they wouldn't receive this anyway, but just in case)
+      if (update.inviterId && update.inviterId === userRef.current.userId) {
+        return;
+      }
+
+      const notification: EventNotification = {
+        id: `invitation-${update.invitationId || update.groupId}-${Date.now()}`,
+        type: 'group_invitation_received',
+        title: getInvitationNotificationTitle(update),
+        message: getInvitationNotificationMessage(update),
+        invitationId: update.invitationId,
+        groupId: update.groupId,
+        groupName: update.groupName,
+        groupImageUrl: update.groupImageUrl,
+        inviterId: update.inviterId,
+        inviterName: update.inviterName,
+        invitationMessage: update.invitationMessage,
+        timestamp: update.timestamp || new Date().toISOString(),
+        read: false,
+        actionUrl: update.actionUrl || '/invitations'
+      };
+
+      addNotificationRef.current(notification);
+      return;
+    }
+
     // Handle event notifications (event_created, event_updated, event_cancelled)
     if (!eventType || !['event_created', 'event_updated', 'event_cancelled'].includes(eventType)) {
       return;
@@ -366,7 +403,7 @@ export const useEventNotifications = () => {
     return truncatedContent || `${senderName} sent a message in ${groupName}`;
   };
 
-  // Helper functions for post comment notifications (NEW)
+  // Helper functions for post comment notifications
   const getCommentNotificationTitle = (update: EventUpdate): string => {
     const commenterName = update.commenterName || 'Someone';
     return `💬 ${commenterName} commented on your post`;
@@ -378,6 +415,26 @@ export const useEventNotifications = () => {
       ? commentContent.substring(0, 100) + '...'
       : commentContent;
     return truncated || 'Tap to view comment';
+  };
+
+  // Helper functions for group invitation notifications
+  const getInvitationNotificationTitle = (update: EventUpdate): string => {
+    const inviterName = update.inviterName || 'Someone';
+    return `👥 ${inviterName} invited you to join a group`;
+  };
+
+  const getInvitationNotificationMessage = (update: EventUpdate): string => {
+    const groupName = update.groupName || 'a group';
+    const invitationMessage = update.invitationMessage;
+
+    if (invitationMessage && invitationMessage.length > 0) {
+      const truncated = invitationMessage.length > 80
+        ? invitationMessage.substring(0, 80) + '...'
+        : invitationMessage;
+      return `"${truncated}" - Join ${groupName}`;
+    }
+
+    return `You've been invited to join ${groupName}`;
   };
 
   // Set up WebSocket subscriptions
