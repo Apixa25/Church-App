@@ -1116,6 +1116,25 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
               </div>
             )}
 
+            {/* Other User's Groups Section - Show when viewing another user's profile */}
+            {!isOwnProfile && organizationMemberships.length > 0 && (
+              <div className="profile-user-groups-section">
+                <span className="user-groups-label">Groups</span>
+                <div className="user-groups-list">
+                  {organizationMemberships.map((membership) => (
+                    <div
+                      key={membership.id}
+                      className="user-group-card"
+                      onClick={() => navigate(`/organizations/${membership.organizationId}`)}
+                    >
+                      <span className="user-group-icon">{getGroupIcon(membership.organizationType)}</span>
+                      <span className="user-group-name">{membership.organizationName}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="profile-stats-x">
               <div 
                 className="stat-item-x clickable-stat-x"
