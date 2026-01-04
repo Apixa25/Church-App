@@ -38,17 +38,17 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  z-index: 1;
+  z-index: auto; /* Changed from 1 - prevents iOS stacking context issues */
 }
 
 @keyframes slideDown {
   from {
     opacity: 0;
-    transform: translateY(-20px);
+    transform: translateY(-20px) translateZ(0); /* translateZ(0) for iOS GPU layer */
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) translateZ(0); /* translateZ(0) for iOS GPU layer */
   }
 }
 
