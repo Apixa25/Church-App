@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { searchPosts, getFeed } from '../services/postApi';
 import { profileAPI } from '../services/api';
@@ -354,7 +355,9 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  // Use createPortal to render directly to document.body
+  // This escapes the Dashboard's stacking context and fixes iOS z-index issues
+  return createPortal(
     <div
       className="search-overlay"
       onClick={handleOverlayClick}
@@ -801,7 +804,8 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
