@@ -1,0 +1,99 @@
+/* AnimatedAvatar.css - Plug.dj-style sprite animation */
+
+.animated-avatar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+/* Leader glow effect */
+.animated-avatar-container.leader {
+  filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6));
+}
+
+.animated-avatar-container.leader::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 80%;
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.3) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* The animated sprite */
+.animated-avatar-sprite {
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  image-rendering: pixelated; /* Crisp pixel art look */
+  image-rendering: crisp-edges; /* Firefox */
+  animation: avatar-dance var(--animation-duration, 800ms) steps(var(--frame-count, 8)) infinite;
+}
+
+/* The dance animation - moves through sprite sheet frames */
+@keyframes avatar-dance {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: calc(-1 * var(--total-width, 512px)) 0;
+  }
+}
+
+/* Name label below avatar */
+.animated-avatar-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary, #ffffff);
+  background: rgba(0, 0, 0, 0.75);
+  padding: 2px 8px;
+  border-radius: 10px;
+  max-width: 80px;
+  white-space: nowrap;
+}
+
+.animated-avatar-name .name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leader-crown {
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+/* Size variations */
+.animated-avatar-container.small .animated-avatar-name {
+  font-size: 9px;
+  max-width: 60px;
+  padding: 1px 6px;
+}
+
+.animated-avatar-container.large .animated-avatar-name {
+  font-size: 13px;
+  max-width: 100px;
+  padding: 3px 10px;
+}
+
+/* Hover effect - slight scale */
+.animated-avatar-container:hover .animated-avatar-sprite {
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .animated-avatar-sprite {
+    animation: none;
+    background-position: 0 0; /* Show first frame only */
+  }
+}

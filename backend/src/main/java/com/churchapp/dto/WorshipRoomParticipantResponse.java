@@ -26,6 +26,9 @@ public class WorshipRoomParticipantResponse {
     private LocalDateTime lastActiveAt;
     private LocalDateTime updatedAt;
 
+    // Animated avatar for dance floor display
+    private WorshipAvatarResponse avatar;
+
     // Constructor from entity
     public WorshipRoomParticipantResponse(WorshipRoomParticipant participant) {
         this.id = participant.getId();
@@ -42,9 +45,20 @@ public class WorshipRoomParticipantResponse {
         this.updatedAt = participant.getUpdatedAt();
     }
 
+    // Constructor from entity with avatar
+    public WorshipRoomParticipantResponse(WorshipRoomParticipant participant, WorshipAvatarResponse avatar) {
+        this(participant);
+        this.avatar = avatar;
+    }
+
     // Static factory method
     public static WorshipRoomParticipantResponse fromEntity(WorshipRoomParticipant participant) {
         return new WorshipRoomParticipantResponse(participant);
+    }
+
+    // Static factory method with avatar
+    public static WorshipRoomParticipantResponse fromEntity(WorshipRoomParticipant participant, WorshipAvatarResponse avatar) {
+        return new WorshipRoomParticipantResponse(participant, avatar);
     }
 
     // Helper methods

@@ -166,6 +166,10 @@ public class User {
     @Column(name = "fcm_token", length = 500)
     private String fcmToken; // Firebase Cloud Messaging token for push notifications
 
+    // Selected worship avatar for dance floor display
+    @Column(name = "selected_avatar_id")
+    private UUID selectedAvatarId;
+
     // Timestamp of when user last viewed their Comments tab (for "New" badge)
     @Column(name = "last_comments_tab_viewed_at")
     private LocalDateTime lastCommentsTabViewedAt;

@@ -30,6 +30,7 @@ public class WorshipRoomService {
     private final WorshipPlaylistRepository playlistRepository;
     private final WorshipPlaylistEntryRepository playlistEntryRepository;
     private final UserRepository userRepository;
+    private final WorshipAvatarService avatarService;
     private final WorshipPermissionService permissionService;
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -311,7 +312,10 @@ public class WorshipRoomService {
             participantRepository.findByWorshipRoomAndIsActiveTrueOrderByJoinedAtAsc(room);
 
         return participants.stream()
-            .map(WorshipRoomParticipantResponse::fromEntity)
+            .map(participant -> {
+                WorshipAvatarResponse avatar = avatarService.getAvatarForUserId(participant.getUser().getId());
+                return WorshipRoomParticipantResponse.fromEntity(participant, avatar);
+            })
             .collect(Collectors.toList());
     }
 

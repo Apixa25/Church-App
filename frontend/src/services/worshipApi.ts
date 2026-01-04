@@ -11,7 +11,8 @@ import {
   WorshipPlaylistRequest,
   WorshipPlaylistEntry,
   WorshipPlaylistEntryRequest,
-  WorshipPlayHistory
+  WorshipPlayHistory,
+  WorshipAvatar
 } from '../types/Worship';
 
 export const worshipAPI = {
@@ -224,6 +225,20 @@ export const worshipAPI = {
   // Update entry position
   updateEntryPosition: (entryId: string, position: number): Promise<{ data: WorshipPlaylistEntry }> =>
     api.put(`/worship/playlists/entries/${entryId}/position?position=${position}`),
+
+  // ==================== AVATAR OPERATIONS (Plug.dj-style dance floor) ====================
+
+  // Get all available avatars
+  getAvatars: (): Promise<{ data: WorshipAvatar[] }> =>
+    api.get('/worship/avatars'),
+
+  // Select an avatar for the current user
+  selectAvatar: (avatarId: string): Promise<{ data: WorshipAvatar }> =>
+    api.put(`/worship/avatars/select/${avatarId}`),
+
+  // Get current user's selected avatar
+  getMyAvatar: (): Promise<{ data: WorshipAvatar | { message: string } }> =>
+    api.get('/worship/avatars/my-avatar'),
 
   // ==================== FILE UPLOAD OPERATIONS ====================
 

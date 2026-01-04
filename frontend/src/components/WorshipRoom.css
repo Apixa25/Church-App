@@ -67,6 +67,7 @@
 
 .participants-button,
 .settings-button,
+.avatar-selector-button,
 .leave-button,
 .delete-button {
   padding: 10px 18px;
@@ -83,14 +84,16 @@
   gap: 6px;
 }
 
-/* Icon-only button (settings) */
-.settings-button {
+/* Icon-only buttons (settings, avatar selector) */
+.settings-button,
+.avatar-selector-button {
   padding: 10px 14px;
   font-size: 18px;
 }
 
 .participants-button:hover,
-.settings-button:hover {
+.settings-button:hover,
+.avatar-selector-button:hover {
   background: var(--bg-elevated);
   border-color: var(--border-glow);
   box-shadow: 0 0 8px var(--button-primary-glow);
@@ -1087,4 +1090,16 @@
     font-size: 8px;
     padding: 1px 4px;
   }
+}
+
+/* ==================== AVATAR SELECTOR MODAL ==================== */
+
+.avatar-selector-modal {
+  max-width: 520px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.avatar-selector-modal .avatar-selector {
+  border-radius: 0;
 }

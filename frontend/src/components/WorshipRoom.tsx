@@ -15,6 +15,8 @@ import {
 } from '../types/Worship';
 import WorshipPlayer from './WorshipPlayer';
 import WorshipQueue from './WorshipQueue';
+import DanceFloor from './DanceFloor';
+import AvatarSelector from './AvatarSelector';
 import './WorshipRoom.css';
 
 const WorshipRoom: React.FC = () => {
@@ -31,6 +33,7 @@ const WorshipRoom: React.FC = () => {
   const [showParticipants, setShowParticipants] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showAvatarSelector, setShowAvatarSelector] = useState(false);
   const [history, setHistory] = useState<WorshipPlayHistory[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [userRole, setUserRole] = useState<ParticipantRole>(ParticipantRole.LISTENER);
@@ -505,6 +508,13 @@ const WorshipRoom: React.FC = () => {
           >
             👥 {participants.length}
           </button>
+          <button
+            onClick={() => setShowAvatarSelector(true)}
+            className="avatar-selector-button"
+            title="Change Your Avatar"
+          >
+            🎭
+          </button>
           {room.canEdit && (
             <button onClick={openSettings} className="settings-button" title="Room Settings">
               ⚙️
@@ -536,6 +546,13 @@ const WorshipRoom: React.FC = () => {
               canControl={canControl(userRole)}
             />
           </div>
+
+          {/* Dance Floor - Animated Avatars (Plug.dj style) */}
+          <DanceFloor
+            participants={participants}
+            currentLeaderId={room.currentLeaderId}
+            maxVisible={30}
+          />
 
           {/* Current Song Info */}
           {currentSong && (
@@ -816,6 +833,22 @@ const WorshipRoom: React.FC = () => {
                 {savingSettings ? 'Saving...' : 'Save Settings'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Avatar Selector Modal */}
+      {showAvatarSelector && (
+        <div className="modal-overlay" onClick={() => setShowAvatarSelector(false)}>
+          <div className="modal-content avatar-selector-modal" onClick={(e) => e.stopPropagation()}>
+            <AvatarSelector
+              onSelect={() => {
+                setShowAvatarSelector(false);
+                // Refresh participants to show updated avatar
+                loadParticipants();
+              }}
+              onClose={() => setShowAvatarSelector(false)}
+            />
           </div>
         </div>
       )}

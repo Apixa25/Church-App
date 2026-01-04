@@ -3,6 +3,7 @@ package com.churchapp.controller;
 import com.churchapp.dto.*;
 import com.churchapp.dto.PresignedUploadResponse;
 import com.churchapp.service.FileUploadService;
+import com.churchapp.service.WorshipAvatarService;
 import com.churchapp.service.WorshipPlaylistService;
 import com.churchapp.service.WorshipQueueService;
 import com.churchapp.service.WorshipRoomService;
@@ -29,6 +30,7 @@ public class WorshipController {
     private final WorshipRoomService roomService;
     private final WorshipQueueService queueService;
     private final WorshipPlaylistService playlistService;
+    private final WorshipAvatarService avatarService;
     private final FileUploadService fileUploadService;
 
     // ==================== ROOM ENDPOINTS ====================
@@ -629,6 +631,56 @@ public class WorshipController {
         } catch (RuntimeException e) {
             log.error("Error uploading room image", e);
             return ResponseEntity.badRequest().body(errorResponse("Failed to upload image: " + e.getMessage()));
+        }
+    }
+
+    // ==================== AVATAR ENDPOINTS ====================
+
+    /**
+     * Get all available avatars for the dance floor
+     */
+    @GetMapping("/avatars")
+    public ResponseEntity<List<WorshipAvatarResponse>> getAvailableAvatars(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            List<WorshipAvatarResponse> avatars = avatarService.getAvailableAvatars(userDetails.getUsername());
+            return ResponseEntity.ok(avatars);
+        } catch (RuntimeException e) {
+            log.error("Error fetching avatars", e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Select an avatar for the current user
+     */
+    @PutMapping("/avatars/select/{avatarId}")
+    public ResponseEntity<?> selectAvatar(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID avatarId) {
+        try {
+            WorshipAvatarResponse avatar = avatarService.selectAvatar(userDetails.getUsername(), avatarId);
+            return ResponseEntity.ok(avatar);
+        } catch (RuntimeException e) {
+            log.error("Error selecting avatar", e);
+            return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
+        }
+    }
+
+    /**
+     * Get the current user's selected avatar
+     */
+    @GetMapping("/avatars/my-avatar")
+    public ResponseEntity<?> getMyAvatar(@AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            WorshipAvatarResponse avatar = avatarService.getUserAvatar(userDetails.getUsername());
+            if (avatar == null) {
+                return ResponseEntity.ok(Map.of("message", "No avatar selected"));
+            }
+            return ResponseEntity.ok(avatar);
+        } catch (RuntimeException e) {
+            log.error("Error fetching user avatar", e);
+            return ResponseEntity.badRequest().body(errorResponse(e.getMessage()));
         }
     }
 

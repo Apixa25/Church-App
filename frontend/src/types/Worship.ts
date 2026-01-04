@@ -153,6 +153,31 @@ export interface WorshipRoomParticipant {
   joinedAt: string;
   lastActiveAt: string;
   updatedAt: string;
+  avatar?: WorshipAvatar; // Animated avatar for dance floor
+}
+
+// ==================== AVATAR TYPES (Plug.dj-style animated avatars) ====================
+
+/**
+ * Animated avatar for worship room dance floor display.
+ * Uses CSS sprite sheet animation with the steps() timing function.
+ */
+export interface WorshipAvatar {
+  id: string;
+  name: string;
+  description?: string;
+  /** URL to the sprite sheet PNG (horizontal strip of animation frames) */
+  spriteSheetUrl: string;
+  /** Number of animation frames in the sprite sheet */
+  frameCount: number;
+  /** Width of each frame in pixels */
+  frameWidth: number;
+  /** Height of each frame in pixels */
+  frameHeight: number;
+  /** Duration of one complete animation cycle in milliseconds */
+  animationDurationMs: number;
+  /** Whether this avatar is the user's currently selected one */
+  isSelected?: boolean;
 }
 
 // ==================== VOTING TYPES ====================
