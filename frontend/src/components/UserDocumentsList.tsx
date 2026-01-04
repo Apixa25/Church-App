@@ -69,6 +69,26 @@ const UserDocumentsList: React.FC<UserDocumentsListProps> = ({
     }
   };
 
+  const handleDeleteResource = async (resource: Resource, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${resource.title}"? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await resourceAPI.deleteResource(resource.id);
+      // Remove from local state
+      setResources(prev => prev.filter(r => r.id !== resource.id));
+      setTotalElements(prev => prev - 1);
+    } catch (err: any) {
+      console.error('Error deleting resource:', err);
+      alert(err.response?.data?.error || 'Failed to delete document');
+    }
+  };
+
   const formatDate = (dateInput: any) => {
     if (!dateInput) return 'Unknown Date';
 
@@ -201,15 +221,26 @@ const UserDocumentsList: React.FC<UserDocumentsListProps> = ({
                   <span className="document-downloads">↓{resource.downloadCount}</span>
                 </div>
 
-                {resource.fileUrl && (
-                  <button
-                    className="download-btn"
-                    onClick={(e) => handleDownload(resource, e)}
-                    title="Download"
-                  >
-                    ⬇️
-                  </button>
-                )}
+                <div className="document-actions">
+                  {resource.fileUrl && (
+                    <button
+                      className="download-btn"
+                      onClick={(e) => handleDownload(resource, e)}
+                      title="Download"
+                    >
+                      ⬇️
+                    </button>
+                  )}
+                  {isOwnProfile && (
+                    <button
+                      className="delete-btn"
+                      onClick={(e) => handleDeleteResource(resource, e)}
+                      title="Delete"
+                    >
+                      🗑️
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

@@ -160,6 +160,29 @@
   box-shadow: var(--glow-blue);
 }
 
+.document-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.delete-btn {
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid var(--error);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all var(--transition-base);
+  color: var(--error);
+}
+
+.delete-btn:hover {
+  background: var(--error);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 0 10px var(--error-glow);
+}
+
 /* Loading State */
 .documents-loading {
   text-align: center;
