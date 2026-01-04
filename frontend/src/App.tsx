@@ -41,6 +41,7 @@ import OrganizationBrowser from './components/OrganizationBrowser';
 import GroupBrowser from './components/GroupBrowser';
 import GroupPage from './components/GroupPage';
 import GroupSettings from './components/GroupSettings';
+import InviteLinkJoinPage from './components/InviteLinkJoinPage';
 import WebSocketStatusIndicator from './components/WebSocketStatusIndicator';
 import QuickActionsPage from './components/QuickActionsPage';
 import BottomNav from './components/BottomNav';
@@ -164,6 +165,7 @@ const App: React.FC = () => {
             <Route path="/posts/:postId" element={<PublicPostPreview />} />
             <Route path="/public/posts/:postId/preview" element={<PublicPostPreview />} />
             <Route path="/public/resources/:resourceId/preview" element={<PublicResourcePreview />} />
+            <Route path="/invite/:inviteCode" element={<InviteLinkJoinPage />} />
 
             {/* Protected routes */}
             <Route

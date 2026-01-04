@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { uploadGroupImage } from '../services/postApi';
 import { processImageForUpload, isValidImageFile } from '../utils/imageUtils';
 import { getApiUrl } from '../config/runtimeConfig';
+import GroupInviteLinksManager from './GroupInviteLinksManager';
 import styled from 'styled-components';
 
 const PageContainer = styled.div`
@@ -486,6 +487,14 @@ const GroupSettings: React.FC = () => {
         />
         <CharCount>{description.length} / 1000</CharCount>
       </FormSection>
+
+      {/* Invite Links Section */}
+      {groupId && (
+        <GroupInviteLinksManager
+          groupId={groupId}
+          groupName={group.name}
+        />
+      )}
 
       {/* Action Buttons */}
       <ButtonContainer>

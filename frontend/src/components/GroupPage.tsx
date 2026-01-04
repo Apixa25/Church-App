@@ -6,6 +6,7 @@ import { getGroupFeed } from '../services/postApi';
 import { Post } from '../types/Post';
 import PostCard from './PostCard';
 import PostComposer from './PostComposer';
+import InviteUserModal from './InviteUserModal';
 import styled from 'styled-components';
 
 const PageContainer = styled.div`
@@ -374,6 +375,9 @@ const GroupPage: React.FC = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // Invite modal state
+  const [showInviteModal, setShowInviteModal] = useState(false);
+
   // Membership state
   const [isMemberOfGroup, setIsMemberOfGroup] = useState(false);
   const [isCreatorOfGroup, setIsCreatorOfGroup] = useState(false);
@@ -650,6 +654,13 @@ const GroupPage: React.FC = () => {
                 >
                   {actionLoading ? '...' : group.isMuted ? 'Unmute' : 'Mute'}
                 </ActionButton>
+                <ActionButton
+                  variant="secondary"
+                  onClick={() => setShowInviteModal(true)}
+                  disabled={actionLoading}
+                >
+                  Invite
+                </ActionButton>
                 {isCreatorOfGroup && (
                   <ActionButton
                     variant="secondary"
@@ -744,6 +755,20 @@ const GroupPage: React.FC = () => {
           </LoadMoreButton>
         )}
       </FeedSection>
+
+      {/* Invite User Modal */}
+      {group && (
+        <InviteUserModal
+          isOpen={showInviteModal}
+          onClose={() => setShowInviteModal(false)}
+          groupId={group.id}
+          groupName={group.name}
+          onInviteSent={() => {
+            setSuccessMessage('Invitation sent!');
+            setTimeout(() => setSuccessMessage(null), 3000);
+          }}
+        />
+      )}
     </PageContainer>
   );
 };

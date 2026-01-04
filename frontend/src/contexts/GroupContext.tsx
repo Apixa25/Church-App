@@ -55,6 +55,9 @@ interface GroupContextType {
   unmutedGroups: GroupMembership[];
   mutedGroups: GroupMembership[];
 
+  // Invitation state
+  pendingInvitationCount: number;
+
   // Loading states
   loading: boolean;
 
@@ -69,6 +72,7 @@ interface GroupContextType {
 
   // Utilities
   refreshGroups: () => Promise<void>;
+  refreshInvitationCount: () => Promise<void>;
   isMember: (groupId: string) => Promise<boolean>;
   isCreator: (groupId: string) => Promise<boolean>;
   canJoin: (groupId: string) => Promise<boolean>;
@@ -91,6 +95,7 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
   const [myGroups, setMyGroups] = useState<GroupMembership[]>([]);
   const [unmutedGroups, setUnmutedGroups] = useState<GroupMembership[]>([]);
   const [mutedGroups, setMutedGroups] = useState<GroupMembership[]>([]);
+  const [pendingInvitationCount, setPendingInvitationCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   // Axios instance with auth
@@ -133,6 +138,24 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
   };
 
   const refreshGroups = fetchGroups;
+
+  // Fetch pending invitation count
+  const fetchInvitationCount = async () => {
+    if (!isAuthenticated) {
+      setPendingInvitationCount(0);
+      return;
+    }
+
+    try {
+      const response = await api.get('/groups/invitations/pending/count');
+      setPendingInvitationCount(response.data || 0);
+    } catch (error) {
+      console.error('Error fetching invitation count:', error);
+      setPendingInvitationCount(0);
+    }
+  };
+
+  const refreshInvitationCount = fetchInvitationCount;
 
   // Create group
   const createGroup = async (groupData: Partial<Group>): Promise<Group> => {
@@ -314,15 +337,17 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
     }
   };
 
-  // Initialize groups on mount and when auth changes
+  // Initialize groups and invitation count on mount and when auth changes
   useEffect(() => {
     fetchGroups();
+    fetchInvitationCount();
   }, [isAuthenticated, token]);
 
   const value: GroupContextType = {
     myGroups,
     unmutedGroups,
     mutedGroups,
+    pendingInvitationCount,
     loading,
     joinGroup,
     leaveGroup,
@@ -332,6 +357,7 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
     updateGroup,
     deleteGroup,
     refreshGroups,
+    refreshInvitationCount,
     isMember,
     isCreator,
     canJoin,
