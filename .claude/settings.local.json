@@ -71,7 +71,8 @@
       "Bash(aws s3api get-bucket-website:*)",
       "Bash(aws route53:*)",
       "Bash(find:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(PGPASSWORD='Z.jS~w]fvv[W-TyYhB8TlTD_fEG2' psql -h church-app-db.cj88a8mwiwbt.us-west-2.rds.amazonaws.com -p 5432 -U church_user -d church_app -c \"\\d group_invite_links\")"
     ],
     "deny": [],
     "ask": []
