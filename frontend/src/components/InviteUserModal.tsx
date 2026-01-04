@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import api from '../services/api';
+import { profileAPI } from '../services/api';
 import groupInviteApi from '../services/groupInviteApi';
 import './InviteUserModal.css';
 
@@ -56,7 +56,7 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({
     const timeoutId = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const response = await api.searchUsers(searchQuery, 0, 10);
+        const response = await profileAPI.searchUsers(searchQuery, 0, 10);
         setSearchResults(response.data.content || []);
       } catch (err) {
         console.error('Error searching users:', err);
