@@ -93,8 +93,15 @@ public interface ResourceRepository extends JpaRepository<Resource, UUID> {
     
     // Find resources uploaded by user and approval status
     Page<Resource> findByUploadedByAndIsApprovedOrderByCreatedAtDesc(
-        User uploadedBy, 
-        Boolean isApproved, 
+        User uploadedBy,
+        Boolean isApproved,
+        Pageable pageable
+    );
+
+    // Find approved resources by user ID (for public profile view)
+    Page<Resource> findByUploadedByIdAndIsApprovedOrderByCreatedAtDesc(
+        UUID uploadedById,
+        Boolean isApproved,
         Pageable pageable
     );
     

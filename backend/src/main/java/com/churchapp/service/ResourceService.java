@@ -311,11 +311,20 @@ public class ResourceService {
     public Page<Resource> getUserResourcesByStatus(UUID userId, boolean approved, int page, int size) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-        
+
         Pageable pageable = PageRequest.of(page, size);
         return resourceRepository.findByUploadedByAndIsApprovedOrderByCreatedAtDesc(user, approved, pageable);
     }
-    
+
+    /**
+     * Get approved resources by any user ID (for public profile view)
+     * This allows visitors to see documents uploaded by a user on their profile
+     */
+    public Page<Resource> getApprovedResourcesByUserId(UUID userId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return resourceRepository.findByUploadedByIdAndIsApprovedOrderByCreatedAtDesc(userId, true, pageable);
+    }
+
     // Admin query methods (can see all resources)
     public Page<Resource> getAllResources(UUID adminId, int page, int size) {
         User admin = userRepository.findById(adminId)

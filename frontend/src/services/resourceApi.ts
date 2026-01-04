@@ -29,6 +29,15 @@ export const resourceAPI = {
   getPublicResource: (resourceId: string) =>
     api.get(`/public/resources/${resourceId}`),
 
+  // Get a user's public (approved) resources for profile view
+  getUserPublicResources: (userId: string, page = 0, size = 12) => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      size: size.toString(),
+    });
+    return api.get<ResourceResponse>(`/resources/user/${userId}?${params.toString()}`);
+  },
+
   // Authenticated endpoints
   createResource: (resourceRequest: ResourceRequest) =>
     api.post<Resource>('/resources', resourceRequest),

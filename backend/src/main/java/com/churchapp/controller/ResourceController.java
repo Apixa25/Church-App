@@ -79,6 +79,36 @@ public class ResourceController {
         }
     }
     
+    // Public endpoint to get a user's approved resources (for profile view)
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<?> getUserPublicResources(
+        @PathVariable UUID userId,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "12") int size
+    ) {
+        try {
+            Page<Resource> resourcePage = resourceService.getApprovedResourcesByUserId(userId, page, size);
+
+            List<ResourceResponse> resources = resourcePage.getContent()
+                .stream()
+                .map(ResourceResponse::publicFromResource)
+                .collect(Collectors.toList());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("resources", resources);
+            response.put("currentPage", resourcePage.getNumber());
+            response.put("totalPages", resourcePage.getTotalPages());
+            response.put("totalElements", resourcePage.getTotalElements());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error fetching user's public resources: {}", e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to fetch user resources");
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
     @GetMapping("/{resourceId}")
     public ResponseEntity<?> getResource(@PathVariable UUID resourceId, Authentication authentication) {
         try {

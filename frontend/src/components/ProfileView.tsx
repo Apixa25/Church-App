@@ -23,6 +23,7 @@ import FamilyGroupCreateForm from './FamilyGroupCreateForm';
 import LoadingSpinner from './LoadingSpinner';
 import { getImageUrlWithFallback } from '../utils/imageUrlUtils';
 import MediaViewer from './MediaViewer';
+import UserDocumentsList from './UserDocumentsList';
 import './ProfileView.css';
 
 interface ProfileViewProps {
@@ -46,7 +47,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const [posts, setPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [postsError, setPostsError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'posts' | 'comments' | 'replies' | 'media' | 'bookmarks' | 'analytics'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'comments' | 'replies' | 'media' | 'documents' | 'bookmarks' | 'analytics'>('posts');
   const [hasNewComments, setHasNewComments] = useState(false);
   const [page, setPage] = useState(0);
   const [hasMorePosts, setHasMorePosts] = useState(true);
@@ -340,7 +341,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   useEffect(() => {
     if (location.state && (location.state as any).activeTab) {
       const tab = (location.state as any).activeTab;
-      if (['posts', 'comments', 'replies', 'media', 'bookmarks', 'analytics'].includes(tab)) {
+      if (['posts', 'comments', 'replies', 'media', 'documents', 'bookmarks', 'analytics'].includes(tab)) {
         setActiveTab(tab);
         // Clear the state to prevent re-setting tab on subsequent renders
         navigate(location.pathname, { replace: true, state: {} });
@@ -1170,12 +1171,18 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
             Media
           </button>
           <button
+            className={`nav-tab-x ${activeTab === 'documents' ? 'active' : ''}`}
+            onClick={() => setActiveTab('documents')}
+          >
+            Docs
+          </button>
+          <button
             className={`nav-tab-x ${activeTab === 'bookmarks' ? 'active' : ''}`}
             onClick={() => isOwnProfile && setActiveTab('bookmarks')}
             disabled={!isOwnProfile}
             title={!isOwnProfile ? 'Bookmarks are private' : undefined}
           >
-            Bookmarks
+            B-marks
           </button>
         </div>
 
@@ -1321,6 +1328,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
         {activeTab === 'media' && (
           <div className="profile-tab-content">
             <MediaGrid userId={targetUserId} isOwnProfile={isOwnProfile} />
+          </div>
+        )}
+
+        {activeTab === 'documents' && (
+          <div className="profile-tab-content">
+            <UserDocumentsList userId={targetUserId} isOwnProfile={isOwnProfile} />
           </div>
         )}
       </div>
