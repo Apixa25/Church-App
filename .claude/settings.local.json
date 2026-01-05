@@ -75,7 +75,8 @@
       "Bash(PGPASSWORD='Z.jS~w]fvv[W-TyYhB8TlTD_fEG2' psql -h church-app-db.cj88a8mwiwbt.us-west-2.rds.amazonaws.com -p 5432 -U church_user -d church_app -c \"\\d group_invite_links\")",
       "Bash(PGPASSWORD='Z.jS~w]fvv[W-TyYhB8TlTD_fEG2' psql -h church-app-db.cj88a8mwiwbt.us-west-2.rds.amazonaws.com -p 5432 -U church_user -d church_app -c \"SELECT version, description FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 5;\")",
       "Bash(node scripts/convert-sprite-grid.js:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(cp:*)"
     ],
     "deny": [],
     "ask": []
