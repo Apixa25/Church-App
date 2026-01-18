@@ -53,6 +53,46 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
     doubleTapTimeout: null as NodeJS.Timeout | null
   });
 
+  // 🔧 Track if modal was closed by back button (to avoid double history manipulation)
+  const closedByBackButtonRef = useRef(false);
+
+  // 🔧 FIX: Handle browser back button to close modal instead of exiting app
+  // This pushes a history state when modal opens, and listens for popstate to close
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset the flag when modal is closed
+      closedByBackButtonRef.current = false;
+      return;
+    }
+
+    // Reset flag when opening
+    closedByBackButtonRef.current = false;
+
+    // Push a state to history so back button can close the modal
+    const historyState = { mediaViewerOpen: true, timestamp: Date.now() };
+    window.history.pushState(historyState, '', window.location.href);
+
+    // Handle back button press
+    const handlePopState = (event: PopStateEvent) => {
+      // Mark that close was triggered by back button
+      closedByBackButtonRef.current = true;
+      // When user presses back, close the modal instead of navigating away
+      onClose();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      // If modal is closing through onClose (not back button), 
+      // we need to go back to remove our history entry
+      // Only do this if NOT closed by back button (to avoid double navigation)
+      if (!closedByBackButtonRef.current && window.history.state?.mediaViewerOpen) {
+        window.history.back();
+      }
+    };
+  }, [isOpen, onClose]);
+
   // Reset zoom when opening/closing
   useEffect(() => {
     if (isOpen) {
