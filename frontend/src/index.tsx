@@ -5,6 +5,16 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 
+// 🔧 IMMEDIATE FIX: Reset any stuck body overflow BEFORE React mounts
+// This runs synchronously, before any React components, to ensure scroll always works
+// This catches any overflow: hidden that was left from a previous session
+if (document.body) {
+  document.body.style.overflow = '';
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.width = '';
+}
+
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );

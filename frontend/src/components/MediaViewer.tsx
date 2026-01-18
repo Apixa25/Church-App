@@ -82,17 +82,30 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
         lastTapTime: 0,
         doubleTapTimeout: null
       };
+      // Store original overflow to restore exactly what it was
+      const originalOverflow = document.body.style.overflow || '';
       document.body.style.overflow = 'hidden';
+      
+      // Return cleanup function that ALWAYS restores scroll
+      return () => {
+        // 🔧 FIX: Always restore body overflow, even if component unmounts unexpectedly
+        document.body.style.overflow = originalOverflow || '';
+        if (touchStateRef.current.animationFrameId) {
+          cancelAnimationFrame(touchStateRef.current.animationFrameId);
+        }
+      };
     } else {
-      document.body.style.overflow = 'unset';
+      // 🔧 FIX: When closing, always ensure body overflow is restored
+      document.body.style.overflow = '';
+      
+      return () => {
+        // Extra safety: ensure cleanup on unmount even when closed
+        document.body.style.overflow = '';
+        if (touchStateRef.current.animationFrameId) {
+          cancelAnimationFrame(touchStateRef.current.animationFrameId);
+        }
+      };
     }
-
-    return () => {
-      document.body.style.overflow = 'unset';
-      if (touchStateRef.current.animationFrameId) {
-        cancelAnimationFrame(touchStateRef.current.animationFrameId);
-      }
-    };
   }, [isOpen]);
 
   // Handle Escape key to close

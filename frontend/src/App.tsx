@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import statusBarService from './services/statusBarService';
 import { applyStoredSettings } from './services/settingsApi';
@@ -69,6 +69,55 @@ const queryClient = new QueryClient({
   },
 });
 
+// 🔧 Scroll Safety Component - Ensures body overflow is never stuck
+// This prevents scrolling issues from modals that don't clean up properly
+const ScrollSafety: React.FC = () => {
+  const location = useLocation();
+
+  // Reset body scroll on mount (catches any stuck state from previous session)
+  useEffect(() => {
+    // Reset any stuck body styles that might prevent scrolling
+    // This runs immediately on mount to catch any state left from a previous session
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+  }, []);
+
+  // Reset body scroll on route change (catches modals that didn't clean up)
+  useEffect(() => {
+    // Small delay to ensure any modal cleanup has run first
+    const timeoutId = setTimeout(() => {
+      const bodyOverflowStyle = document.body.style.overflow;
+      
+      // Check if body overflow is stuck as 'hidden'
+      // Only reset if it's explicitly set and no modals are open
+      if (bodyOverflowStyle === 'hidden') {
+        // Check for visible modals - query common modal selectors
+        const visibleModals = document.querySelectorAll(
+          '[class*="modal-overlay"]:not([style*="display: none"]), ' +
+          '[class*="modal-overlay"]:not([style*="display:none"]), ' +
+          '.composer-modal-overlay:not([style*="display: none"]), ' +
+          '.composer-modal-overlay:not([style*="display:none"])'
+        );
+        
+        // If no visible modals, body overflow is probably stuck - reset it
+        if (visibleModals.length === 0) {
+          console.log('🔧 ScrollSafety: Detected stuck body overflow, resetting...');
+          document.body.style.overflow = '';
+          document.body.style.position = '';
+          document.body.style.top = '';
+          document.body.style.width = '';
+        }
+      }
+    }, 300); // Increased delay to give modals more time to set state
+
+    return () => clearTimeout(timeoutId);
+  }, [location.pathname]);
+
+  return null;
+};
+
 const App: React.FC = () => {
   const [showComposer, setShowComposer] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
@@ -82,6 +131,13 @@ const App: React.FC = () => {
 
     // Initialize native status bar styling
     statusBarService.initialize();
+
+    // 🔧 SAFETY FIX: Ensure body scroll is never stuck from a previous session
+    // This resets any stuck overflow: hidden that might have been left by a modal
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
 
     // Set up service worker update handler
     serviceWorkerRegistration.setUpdateHandler((registration: ServiceWorkerRegistration) => {
@@ -140,6 +196,7 @@ const App: React.FC = () => {
                 <FeedFilterProvider>
                   <UploadQueueProvider>
                   <Router>
+                  <ScrollSafety />
                   <GlobalSearchProvider>
                   {/* 🔥 Firebase Initializer - auto-initializes FCM when user is authenticated */}
                   <FirebaseInitializer />
