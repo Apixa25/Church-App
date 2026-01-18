@@ -320,7 +320,9 @@ body::before {
   max-width: 100vw;
   overscroll-behavior-y: none;
   overscroll-behavior-x: none;
-  touch-action: pan-y;
+  touch-action: pan-y; /* For touch devices - doesn't affect mouse wheel */
+  /* Ensure wheel events work: explicitly allow pointer events */
+  pointer-events: auto;
 }
 
 /* Add bottom padding on mobile to account for bottom navigation */

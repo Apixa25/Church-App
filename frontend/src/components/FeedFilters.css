@@ -18,7 +18,9 @@
   margin-bottom: 0;
   width: 100%;
   box-sizing: border-box;
-  overflow: hidden;
+  /* 🔧 FIX: Removed overflow: hidden - it was preventing wheel events from scrolling the page */
+  /* overflow: hidden; - Removed to allow wheel scroll to propagate */
+  /* When mouse is over this element, wheel events should scroll the page, not be captured */
 }
 
 .filter-option {
