@@ -540,6 +540,8 @@ const PostFeed: React.FC<PostFeedProps> = ({
   }, [posts, checkForNewContent, isConnected]);
 
   // 🎯 Pull-to-refresh handler - ONLY works when scrollY === 0
+  // 🔧 ANDROID FIX: Use passive listeners to avoid blocking scrolling
+  // We'll track pull state separately and only preventDefault when necessary
   useEffect(() => {
     const handleTouchStart = (e: TouchEvent) => {
       // CRITICAL: Only activate if user is EXACTLY at the top
@@ -553,22 +555,26 @@ const PostFeed: React.FC<PostFeedProps> = ({
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      // Only allow pull if we started at the top
-      if (window.scrollY === 0 && pullStartY.current > 0 && isAtTopRef.current) {
+      // 🔧 ANDROID FIX: Use passive listeners - don't preventDefault
+      // This allows Android's native scrolling to work smoothly
+      // We'll only track state for pull-to-refresh UI, not block scrolling
+      
+      const isAtTop = window.scrollY === 0;
+      const isPullingDown = pullStartY.current > 0 && isAtTopRef.current;
+      
+      if (isAtTop && isPullingDown) {
         const currentY = e.touches[0].clientY;
         const distance = Math.max(0, currentY - pullStartY.current);
         
-        if (distance > 0) {
+        // Only show pull indicator if pulling down significantly
+        // But DON'T preventDefault - let native scrolling work
+        if (distance > 20) {
           setIsPulling(true);
           setPullDistance(Math.min(distance, PULL_THRESHOLD * 1.5));
-          // Prevent default scrolling when pulling
-          if (distance > 10) {
-            e.preventDefault();
-          }
         }
       } else {
-        // Reset if user scrolled away from top
-        if (window.scrollY > 0) {
+        // Clear pulling state when not at top or not pulling
+        if (!isAtTop || !isPullingDown) {
           setIsPulling(false);
           setPullDistance(0);
           pullStartY.current = 0;
@@ -589,8 +595,10 @@ const PostFeed: React.FC<PostFeedProps> = ({
       isAtTopRef.current = true; // Reset for next time
     };
 
-    window.addEventListener('touchstart', handleTouchStart, { passive: false });
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    // 🔧 ANDROID FIX: Use passive listeners to avoid blocking scrolling
+    // Passive listeners allow the browser to scroll immediately without waiting for JS
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
     window.addEventListener('touchend', handleTouchEnd, { passive: true });
 
     return () => {

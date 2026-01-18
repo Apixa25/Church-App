@@ -7,6 +7,10 @@
   width: 100%;
   box-sizing: border-box;
   position: relative;
+  /* 🔧 ANDROID FIX: Ensure touch scrolling works on Android */
+  /* This explicitly allows vertical panning (scrolling) on touch devices */
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Pull-to-refresh indicator */
@@ -229,6 +233,9 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  /* 🔧 ANDROID FIX: Explicitly allow vertical panning for touch scrolling */
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 .post-wrapper {
