@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { useAuth } from '../contexts/AuthContext';
 import './BottomNav.css';
 
 interface BottomNavProps {
@@ -15,6 +16,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick, onCameraClick, showC
   const location = useLocation();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
   
   // 🔄 Double-tap detection for Home button refresh
   const lastTapTimeRef = useRef<number>(0);
@@ -22,6 +24,13 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick, onCameraClick, showC
   const DOUBLE_TAP_THRESHOLD = 300; // milliseconds
 
   if (!isMobile) {
+    return null;
+  }
+
+  // 🔒 Hide bottom nav on login/register/auth pages or when not authenticated
+  const isAuthPage = ['/login', '/register', '/auth/callback', '/auth/error'].includes(location.pathname) 
+                     || location.pathname.startsWith('/invite/');
+  if (!isAuthenticated || isAuthPage) {
     return null;
   }
 
