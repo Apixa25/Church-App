@@ -8,9 +8,16 @@ const API_BASE_URL = getApiUrl();
 interface OrganizationCreateFormProps {
   onSuccess?: (organization: any) => void;
   onCancel?: () => void;
+  createEndpoint?: string;
+  permissionErrorMessage?: string;
 }
 
-const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({ onSuccess, onCancel }) => {
+const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({
+  onSuccess,
+  onCancel,
+  createEndpoint = '/organizations',
+  permissionErrorMessage = 'You do not have permission to create organizations. System admin access required.',
+}) => {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [type, setType] = useState<'CHURCH' | 'MINISTRY' | 'NONPROFIT' | 'FAMILY' | 'GENERAL'>('CHURCH');
@@ -116,7 +123,7 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({ onSucce
       }
 
       const response = await axios.post(
-        `${API_BASE_URL}/organizations`,
+        `${API_BASE_URL}${createEndpoint}`,
         formData,
         {
           headers: {
@@ -141,7 +148,7 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({ onSucce
     } catch (err: any) {
       console.error('Error creating organization:', err);
       if (err.response?.status === 403) {
-        setError('You do not have permission to create organizations. System admin access required.');
+        setError(permissionErrorMessage);
       } else if (err.response?.status === 409 || err.response?.data?.message?.includes('slug')) {
         setError('This organization slug is already taken. Please choose a different one.');
       } else {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization, Organization } from '../contexts/OrganizationContext';
 import organizationGroupApi, { OrganizationGroup } from '../services/organizationGroupApi';
+import CreateOrganizationModal from './CreateOrganizationModal';
 import styled from 'styled-components';
 import '../App.css';
 
@@ -23,6 +24,26 @@ const HeaderTop = styled.div`
   align-items: center;
   gap: 16px;
   margin-bottom: 20px;
+`;
+
+const CreateButton = styled.button`
+  margin-left: auto;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: 0 0 12px var(--button-primary-glow);
+
+  &:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
+    box-shadow: 0 0 20px var(--button-primary-glow);
+  }
 `;
 
 const Title = styled.h1`
@@ -556,6 +577,7 @@ const OrganizationBrowser: React.FC = () => {
     getDaysUntilCanSwitch,
     getAllOrganizations,
     searchOrganizations,
+    refreshMemberships,
   } = useOrganization();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -582,6 +604,7 @@ const OrganizationBrowser: React.FC = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [showCreateOrganizationModal, setShowCreateOrganizationModal] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Same curated list of family-friendly emojis from FamilyGroupCreateForm
@@ -946,6 +969,36 @@ const OrganizationBrowser: React.FC = () => {
     }
   };
 
+  const handleOrganizationCreated = async (organization: Organization) => {
+    if (organization) {
+      setAllOrganizations(prev => {
+        if (prev.some(org => org.id === organization.id)) {
+          return prev;
+        }
+        return [organization, ...prev];
+      });
+
+      const normalizedQuery = searchQuery.trim().toLowerCase();
+      if (normalizedQuery && organization.name?.toLowerCase().includes(normalizedQuery)) {
+        setOrganizations(prev => {
+          if (prev.some(org => org.id === organization.id)) {
+            return prev;
+          }
+          return [organization, ...prev];
+        });
+      }
+    }
+
+    try {
+      await refreshMemberships();
+      setSuccess(`Successfully created ${organization?.name || 'your organization'}!`);
+      setError(null);
+    } catch (err) {
+      // Non-blocking: creation succeeded even if membership refresh is delayed.
+      console.warn('Organization created, but membership refresh failed:', err);
+    }
+  };
+
   if (contextLoading) {
     return <LoadingSpinner>Loading your memberships...</LoadingSpinner>;
   }
@@ -962,6 +1015,9 @@ const OrganizationBrowser: React.FC = () => {
             🏠 Back Home
           </button>
           <Title>Find Organizations</Title>
+          <CreateButton onClick={() => setShowCreateOrganizationModal(true)}>
+            + Create Organization
+          </CreateButton>
         </HeaderTop>
         <Subtitle>
           Discover and join churches, ministries, nonprofits, and families in your community
@@ -1364,6 +1420,11 @@ const OrganizationBrowser: React.FC = () => {
           )}
         </>
       )}
+      <CreateOrganizationModal
+        isOpen={showCreateOrganizationModal}
+        onClose={() => setShowCreateOrganizationModal(false)}
+        onSuccess={handleOrganizationCreated}
+      />
     </BrowserContainer>
   );
 };

@@ -19,6 +19,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 import com.churchapp.service.FileUploadService;
 
 import jakarta.validation.Valid;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
@@ -41,6 +43,13 @@ public class OrganizationController {
     private final com.churchapp.service.OrganizationMetricsService metricsService;
     private final MetricsSnapshotService metricsSnapshotService;
     private final StorageLimitService storageLimitService;
+    private static final Set<Organization.OrganizationType> USER_CREATABLE_ORG_TYPES = Set.of(
+        Organization.OrganizationType.CHURCH,
+        Organization.OrganizationType.MINISTRY,
+        Organization.OrganizationType.NONPROFIT,
+        Organization.OrganizationType.FAMILY,
+        Organization.OrganizationType.GENERAL
+    );
 
     // Helper method to get user ID from Spring Security User
     private UUID getUserId(User securityUser) {
@@ -122,6 +131,66 @@ public class OrganizationController {
 
         OrganizationResponse response = OrganizationResponse.fromOrganization(created);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping(value = "/user-create", consumes = {"multipart/form-data"})
+    public ResponseEntity<OrganizationResponse> createOrganizationForUser(
+            @RequestParam("name") String name,
+            @RequestParam("slug") String slug,
+            @RequestParam("type") String type,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam(value = "logo", required = false) MultipartFile logoFile,
+            @AuthenticationPrincipal User userDetails) {
+
+        log.info("User {} creating organization: {}", userDetails.getUsername(), name);
+
+        try {
+            Organization.OrganizationType requestedType;
+            try {
+                requestedType = Organization.OrganizationType.valueOf(type.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid organization type: " + type);
+            }
+
+            if (!USER_CREATABLE_ORG_TYPES.contains(requestedType)) {
+                throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "This organization type is not available for user-created organizations"
+                );
+            }
+
+            String logoUrl = null;
+            if (logoFile != null && !logoFile.isEmpty()) {
+                log.info("Uploading logo for user-created organization: {}", name);
+                logoUrl = fileUploadService.uploadFile(logoFile, "organizations/logos");
+                log.info("Logo uploaded successfully: {}", logoUrl);
+            }
+
+            OrganizationRequest request = new OrganizationRequest();
+            request.setName(name);
+            request.setSlug(slug);
+            request.setType(requestedType.name());
+            request.setLogoUrl(logoUrl);
+
+            if (description != null && !description.trim().isEmpty()) {
+                Map<String, Object> metadata = new HashMap<>();
+                metadata.put("description", description.trim());
+                request.setMetadata(metadata);
+            }
+
+            Organization org = request.toOrganization();
+            com.churchapp.entity.User creator = getCurrentUserEntity(userDetails);
+            Organization created = organizationService.createOrganization(org, creator);
+
+            OrganizationResponse response = OrganizationResponse.fromOrganization(created);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (RuntimeException e) {
+            log.error("Error creating user organization: {}", name, e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error creating user organization: {}", name, e);
+            throw new RuntimeException("Failed to create organization: " + e.getMessage(), e);
+        }
     }
 
     // ========================================================================
