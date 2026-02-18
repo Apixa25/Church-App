@@ -22,6 +22,8 @@ import java.util.UUID;
 @Slf4j
 public class PostService {
 
+    private static final UUID GLOBAL_ORG_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final HashtagRepository hashtagRepository;
@@ -358,15 +360,13 @@ public class PostService {
      * Excludes posts from blocked users (mutual blocking)
      * Shows anonymous posts only to their author (userId)
      * 
-     * FILTER BEHAVIOR (all logic is in FeedFilterService.getFeedParameters):
-     * - EVERYTHING: Church + Family + Groups + Global Feed + Followed Users + Org-as-Groups
+     * FILTER BEHAVIOR:
+     * - EVERYTHING: Global catch-all feed (all main posts across all orgs/groups)
      * - ALL: Church + Family + Groups + Followed Users + Org-as-Groups (NO Global Feed)
      * - PRIMARY_ONLY: ONLY the selected organization (no groups, no followed users, no org-as-groups)
      * - SELECTED_GROUPS: ONLY selected groups (no orgs, no followed users, no org-as-groups)
      */
     public Page<Post> getMultiTenantFeed(UUID userId, Pageable pageable) {
-        // Get feed parameters - ALL filter logic is handled in FeedFilterService
-        FeedFilterService.FeedParameters params = feedFilterService.getFeedParameters(userId);
         FeedPreference preference = feedFilterService.getFeedPreference(userId);
         FeedPreference.FeedFilter activeFilter = preference.getActiveFilter();
 
@@ -374,10 +374,20 @@ public class PostService {
         List<UUID> blockedUserIds = userBlockService.getMutuallyBlockedUserIds(userId);
         List<UUID> blockedIds = blockedUserIds.isEmpty() ? null : blockedUserIds;
 
+        // EVERYTHING is intentionally universal: all main posts in the app
+        // (still filtered for hidden/anonymous/blocked users in repository query).
+        if (activeFilter == FeedPreference.FeedFilter.EVERYTHING) {
+            log.info("🌐 EVERYTHING filter active - using universal feed query");
+            return postRepository.findMainPostsForFeed(blockedIds, userId, pageable);
+        }
+
+        // Feed parameters for ALL / PRIMARY_ONLY / SELECTED_GROUPS are resolved in FeedFilterService
+        FeedFilterService.FeedParameters params = feedFilterService.getFeedParameters(userId);
+
         // Determine if we should include followed users
-        // Only for ALL and EVERYTHING filters
+        // Only for ALL filter (EVERYTHING short-circuits to universal query above)
         List<UUID> followingIds = null;
-        if (activeFilter == FeedPreference.FeedFilter.ALL || activeFilter == FeedPreference.FeedFilter.EVERYTHING) {
+        if (activeFilter == FeedPreference.FeedFilter.ALL) {
             followingIds = userFollowService.getFollowingIds(userId);
             if (followingIds.isEmpty()) {
                 followingIds = null;
@@ -394,13 +404,11 @@ public class PostService {
             followingIds != null ? followingIds.size() : 0);
 
         // For social-only users (no primary org), use the global user feed query
-        if (params.getPrimaryOrgIds().isEmpty() && 
-            (activeFilter == FeedPreference.FeedFilter.ALL || activeFilter == FeedPreference.FeedFilter.EVERYTHING)) {
-            UUID globalOrgId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        if (params.getPrimaryOrgIds().isEmpty() && activeFilter == FeedPreference.FeedFilter.ALL) {
             log.info("🌐 Using global user feed query for social-only user");
             return postRepository.findGlobalUserFeed(
                 params.getGroupIds(), 
-                globalOrgId,
+                GLOBAL_ORG_ID,
                 params.getOrgAsGroupIds(),
                 blockedIds,
                 followingIds,
@@ -413,7 +421,7 @@ public class PostService {
         // The FeedFilterService has already set up the params correctly for each filter type:
         // - PRIMARY_ONLY: Only selected org in primaryOrgIds, everything else is empty
         // - SELECTED_GROUPS: Only selected groups in groupIds, everything else is empty
-        // - EVERYTHING/ALL: Full set of orgs and groups
+        // - ALL: Full set of orgs and groups
         return postRepository.findMultiTenantFeed(
             params.getPrimaryOrgIds(),
             params.getSecondaryOrgIds(),

@@ -502,7 +502,7 @@ const FeedFilterSelector: React.FC = () => {
           <OptionContent>
             <OptionTitle>🌐 Everything</OptionTitle>
             <OptionDescription>
-              See posts from your Church, Family, Groups, the Global Feed, and users you follow
+              See all posts across The Gathering (all organizations and groups), newest first
             </OptionDescription>
           </OptionContent>
         </FilterOption>

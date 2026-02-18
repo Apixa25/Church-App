@@ -278,7 +278,7 @@ public class FeedFilterService {
      * Supports dual-primary system (churchPrimary + familyPrimary)
      * 
      * FILTER BEHAVIOR:
-     * - EVERYTHING: Church + Family + Groups + Global Feed + Followed Users + Org-as-Groups
+     * - EVERYTHING: Universal catch-all (handled in PostService via global main-feed query)
      * - ALL: Church + Family + Groups + Followed Users + Org-as-Groups (NO Global Feed)
      * - PRIMARY_ONLY: ONLY the selected organization (no groups, no followed users, no org-as-groups)
      * - SELECTED_GROUPS: ONLY selected groups (no orgs, no followed users, no org-as-groups)
