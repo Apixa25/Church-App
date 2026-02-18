@@ -437,7 +437,17 @@ public class PostService {
     /**
      * Get feed for a specific organization
      */
-    public Page<Post> getOrganizationFeed(UUID organizationId, Pageable pageable) {
+    public Page<Post> getOrganizationFeed(UUID organizationId, UUID currentUserId, Pageable pageable) {
+        // Optional enhancement: treat The Gathering org endpoint as universal catch-all feed.
+        // This mirrors EVERYTHING filter behavior for endpoint-driven consumers.
+        if (GLOBAL_ORG_ID.equals(organizationId)) {
+            List<UUID> blockedUserIds = currentUserId != null
+                ? userBlockService.getMutuallyBlockedUserIds(currentUserId)
+                : List.of();
+            List<UUID> blockedIds = blockedUserIds.isEmpty() ? null : blockedUserIds;
+            return postRepository.findMainPostsForFeed(blockedIds, currentUserId, pageable);
+        }
+
         return postRepository.findByOrganizationId(organizationId, pageable);
     }
 

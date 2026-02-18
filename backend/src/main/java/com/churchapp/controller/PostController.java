@@ -353,8 +353,9 @@ public class PostController {
 
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<Post> posts = postService.getOrganizationFeed(orgId, pageable);
-            Page<PostResponse> responses = postResponseMapper.mapPage(posts, resolveUserId(user));
+            UUID viewerId = resolveUserId(user);
+            Page<Post> posts = postService.getOrganizationFeed(orgId, viewerId, pageable);
+            Page<PostResponse> responses = postResponseMapper.mapPage(posts, viewerId);
 
             return ResponseEntity.ok(responses);
 
