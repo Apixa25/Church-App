@@ -23,7 +23,7 @@ import { useGroup } from '../contexts/GroupContext';
 // ============================================================================
 
 const SwitcherContainer = styled.div`
-  position: relative;
+  position: static;
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
@@ -162,7 +162,7 @@ const PortalDropdown = styled.div<{ $isOpen: boolean }>`
 const Dropdown = styled.div<{ $isOpen: boolean }>`
   position: absolute;
   top: calc(100% + 8px);
-  left: 0;
+  left: 50%;
   right: auto;
   min-width: 260px;
   max-width: min(420px, calc(100vw - 24px));
@@ -174,7 +174,9 @@ const Dropdown = styled.div<{ $isOpen: boolean }>`
   overflow: hidden;
   opacity: ${props => props.$isOpen ? 1 : 0};
   visibility: ${props => props.$isOpen ? 'visible' : 'hidden'};
-  transform: ${props => props.$isOpen ? 'translateY(0) scale(1)' : 'translateY(-10px) scale(0.95)'};
+  transform: ${props => props.$isOpen
+    ? 'translateX(-50%) translateY(0) scale(1)'
+    : 'translateX(-50%) translateY(-10px) scale(0.95)'};
   transition: all 0.2s ease;
 
   @media (max-width: 480px) {
