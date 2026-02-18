@@ -162,8 +162,10 @@ const PortalDropdown = styled.div<{ $isOpen: boolean }>`
 const Dropdown = styled.div<{ $isOpen: boolean }>`
   position: absolute;
   top: calc(100% + 8px);
-  right: 0;
+  left: 0;
+  right: auto;
   min-width: 260px;
+  max-width: min(420px, calc(100vw - 24px));
   background: var(--bg-tertiary, #1e1e2e);
   border: 1px solid var(--border-primary, #3a3a4e);
   border-radius: 12px;
