@@ -120,9 +120,10 @@ const PortalDropdown = styled.div<{ $isOpen: boolean }>`
 const Dropdown = styled.div<{ $isOpen: boolean }>`
   position: absolute;
   top: calc(100% + 8px);
-  right: 0;
+  left: 0;
+  right: auto;
   min-width: 320px;
-  max-width: 400px;
+  max-width: min(400px, calc(100vw - 32px));
   background: white;
   border: 2px solid #e0e0e0;
   border-radius: 12px;
