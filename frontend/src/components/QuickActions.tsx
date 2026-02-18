@@ -32,7 +32,8 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions, isLoading }) => {
       upload: '📁',
       music: '🎵',
       create: '✏️',
-      chart: '📊'
+      chart: '📊',
+      marketplace: '🧺'
     };
     return iconMap[iconType] || '📝';
   };

@@ -36,6 +36,7 @@ const QuickActionsPage: React.FC = () => {
         const resourceQuickActions = dashboardApi.getResourceQuickActions();
         const donationQuickActions = dashboardApi.getDonationQuickActions(userRole);
         const worshipQuickActions = dashboardApi.getWorshipQuickActions();
+        const marketplaceQuickActions = dashboardApi.getMarketplaceQuickActions();
 
         const newActions = [
           ...prayerQuickActions,
@@ -43,7 +44,8 @@ const QuickActionsPage: React.FC = () => {
           ...eventQuickActions,
           ...resourceQuickActions,
           ...donationQuickActions,
-          ...worshipQuickActions
+          ...worshipQuickActions,
+          ...marketplaceQuickActions
         ].filter(action => !existingActionUrls.includes(action.actionUrl));
 
         actions = [...actions, ...newActions];

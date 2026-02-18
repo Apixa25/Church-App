@@ -44,6 +44,7 @@ import GroupSettings from './components/GroupSettings';
 import InviteLinkJoinPage from './components/InviteLinkJoinPage';
 import WebSocketStatusIndicator from './components/WebSocketStatusIndicator';
 import QuickActionsPage from './components/QuickActionsPage';
+import MarketplacePage from './components/MarketplacePage';
 import BottomNav from './components/BottomNav';
 import PostComposer from './components/PostComposer';
 import CameraCapture from './components/CameraCapture';
@@ -547,6 +548,15 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <QuickActionsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/marketplace"
+              element={
+                <ProtectedRoute>
+                  <MarketplacePage />
                 </ProtectedRoute>
               }
             />

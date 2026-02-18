@@ -446,6 +446,20 @@ const dashboardApi = {
     ];
   },
 
+  getMarketplaceQuickActions: (): QuickAction[] => {
+    return [
+      {
+        id: 'marketplace',
+        title: 'Economy of Giving',
+        description: 'Donation, sharing, and for sale listings for your community',
+        actionUrl: '/marketplace',
+        iconType: 'marketplace',
+        buttonText: 'Open Marketplace',
+        requiresAuth: true
+      }
+    ];
+  },
+
   /**
    * Get dashboard data with all features.
    * @param hasPrimaryOrgOverride - Optional: If you already know whether the user has a primary org
@@ -526,6 +540,7 @@ const dashboardApi = {
           dashboardData.userRole || localStorage.getItem('userRole')
         );
         const worshipQuickActions = dashboardApi.getWorshipQuickActions();
+        const marketplaceQuickActions = dashboardApi.getMarketplaceQuickActions();
 
         newActions = [
           ...prayerQuickActions,
@@ -533,7 +548,8 @@ const dashboardApi = {
           ...eventQuickActions,
           ...resourceQuickActions,
           ...donationQuickActions,
-          ...worshipQuickActions
+          ...worshipQuickActions,
+          ...marketplaceQuickActions
         ].filter(action =>
           !existingActionUrls.includes(action.actionUrl)
         );

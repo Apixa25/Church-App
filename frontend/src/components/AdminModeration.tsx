@@ -641,6 +641,7 @@ const AdminModeration: React.FC = () => {
                     <option value="all">All Content</option>
                     <option value="post">Posts</option>
                     <option value="comment">Comments</option>
+                    <option value="marketplace">Marketplace Listings</option>
                     <option value="user">Users</option>
                   </select>
                   <input

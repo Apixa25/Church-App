@@ -2,9 +2,12 @@ package com.churchapp.service;
 
 import com.churchapp.dto.ModerationResponse;
 import com.churchapp.entity.ContentReport;
+import com.churchapp.entity.MarketplaceListing;
+import com.churchapp.entity.MarketplaceListingStatus;
 import com.churchapp.entity.Post;
 import com.churchapp.entity.User;
 import com.churchapp.repository.ContentReportRepository;
+import com.churchapp.repository.MarketplaceListingRepository;
 import com.churchapp.repository.PostBookmarkRepository;
 import com.churchapp.repository.PostCommentRepository;
 import com.churchapp.repository.PostLikeRepository;
@@ -36,6 +39,7 @@ public class ContentModerationService {
     private final PostLikeRepository postLikeRepository;
     private final PostBookmarkRepository postBookmarkRepository;
     private final PostShareRepository postShareRepository;
+    private final MarketplaceListingRepository marketplaceListingRepository;
     private final UserRepository userRepository;
     private final com.churchapp.service.UserManagementService userManagementService;
 
@@ -65,7 +69,6 @@ public class ContentModerationService {
                     // Continue with other reports even if one fails
                 }
             }
-
             log.debug("Successfully converted {} reports to response DTOs", responseList.size());
 
             return new PageImpl<>(responseList, pageable, reports.getTotalElements());
@@ -271,6 +274,26 @@ public class ContentModerationService {
                     builder.contentPreview("(User has been deleted or not found)");
                     builder.isVisible(false);
                 }
+            } else if ("MARKETPLACE".equalsIgnoreCase(report.getContentType())) {
+                Optional<MarketplaceListing> listingOpt = marketplaceListingRepository.findById(report.getContentId());
+                if (listingOpt.isPresent()) {
+                    MarketplaceListing listing = listingOpt.get();
+                    builder.contentPreview(buildMarketplacePreview(listing));
+                    builder.category(listing.getCategory());
+                    builder.contentCreatedAt(listing.getCreatedAt());
+                    builder.contentAuthor(listing.getOwner().getName());
+                    builder.contentAuthorId(listing.getOwner().getId());
+                    if (listing.getImageUrls() != null && !listing.getImageUrls().isEmpty()) {
+                        builder.mediaUrls(listing.getImageUrls());
+                        builder.mediaTypes(Collections.nCopies(listing.getImageUrls().size(), "image"));
+                    }
+                    builder.isVisible(!Boolean.TRUE.equals(listing.getIsDeleted()));
+                    builder.isHidden(listing.getStatus() == MarketplaceListingStatus.REMOVED);
+                } else {
+                    builder.contentPreview("(Marketplace listing not found)");
+                    builder.isVisible(false);
+                    builder.isHidden(false);
+                }
             }
             // Add other content types (COMMENT, PRAYER, etc.) as needed
         } catch (Exception e) {
@@ -339,6 +362,9 @@ public class ContentModerationService {
                 break;
             case "COMMENT":
                 moderateComment(contentId, action, reason);
+                break;
+            case "MARKETPLACE":
+                moderateMarketplaceListing(contentId, action, reason);
                 break;
             default:
                 throw new IllegalArgumentException("Unsupported content type: " + contentType);
@@ -628,6 +654,12 @@ public class ContentModerationService {
                 case "USER":
                     // For USER content type, contentId IS the userId
                     return contentId;
+                case "MARKETPLACE":
+                    Optional<MarketplaceListing> listingOpt = marketplaceListingRepository.findById(contentId);
+                    if (listingOpt.isPresent() && listingOpt.get().getOwner() != null) {
+                        return listingOpt.get().getOwner().getId();
+                    }
+                    break;
                 // Add other content types as needed (COMMENT, PRAYER, etc.)
                 default:
                     log.warn("Unknown content type for getting author: {}", contentType);
@@ -794,5 +826,63 @@ public class ContentModerationService {
     private void moderateComment(UUID commentId, String action, String reason) {
         // TODO: Implement comment moderation
         log.info("Moderating comment {} with action: {}", commentId, action);
+    }
+
+    private String buildMarketplacePreview(MarketplaceListing listing) {
+        StringBuilder preview = new StringBuilder();
+        preview.append("Section: ").append(listing.getSectionType()).append("\n");
+        preview.append("Post Type: ").append(listing.getPostType()).append("\n");
+        preview.append("Title: ").append(listing.getTitle()).append("\n");
+        if (listing.getDescription() != null && !listing.getDescription().isBlank()) {
+            preview.append("Description: ").append(listing.getDescription()).append("\n");
+        }
+        if (listing.getCategory() != null && !listing.getCategory().isBlank()) {
+            preview.append("Category: ").append(listing.getCategory()).append("\n");
+        }
+        if (listing.getPriceAmount() != null) {
+            preview.append("Price: ").append(listing.getCurrency()).append(" ").append(listing.getPriceAmount()).append("\n");
+        }
+        if (listing.getLocationLabel() != null && !listing.getLocationLabel().isBlank()) {
+            preview.append("Location: ").append(listing.getLocationLabel()).append("\n");
+        }
+        preview.append("Status: ").append(listing.getStatus());
+        return preview.toString();
+    }
+
+    private void moderateMarketplaceListing(UUID listingId, String action, String reason) {
+        Optional<MarketplaceListing> listingOpt = marketplaceListingRepository.findById(listingId);
+        if (listingOpt.isEmpty()) {
+            log.warn("Marketplace listing {} not found for moderation. Action: {}", listingId, action);
+            return;
+        }
+
+        MarketplaceListing listing = listingOpt.get();
+        String upperAction = action.toUpperCase();
+
+        switch (upperAction) {
+            case "REMOVE":
+                listing.setIsDeleted(true);
+                listing.setStatus(MarketplaceListingStatus.REMOVED);
+                break;
+            case "HIDE":
+                listing.setStatus(MarketplaceListingStatus.REMOVED);
+                break;
+            case "UNHIDE":
+            case "APPROVE":
+                if (!Boolean.TRUE.equals(listing.getIsDeleted())) {
+                    listing.setStatus(MarketplaceListingStatus.ACTIVE);
+                }
+                break;
+            case "WARN":
+                // No direct content mutation for warn, warning is handled elsewhere.
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown moderation action: " + action);
+        }
+
+        if (reason != null && reason.toUpperCase().contains("SCAM")) {
+            listing.setIsFlagged(true);
+        }
+        marketplaceListingRepository.save(listing);
     }
 }
