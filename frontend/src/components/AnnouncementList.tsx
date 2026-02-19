@@ -279,7 +279,15 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
                       {canManageAnnouncement(announcement) && (
                         <>
                           <button 
-                            onClick={() => onEdit?.(announcement)}
+                            onClick={() => {
+                              console.log('[AnnouncementDebug] Pinned announcement edit clicked', {
+                                announcementId: announcement.id,
+                                organizationId: announcement.organizationId,
+                                userId: user?.userId,
+                                userRole: user?.role
+                              });
+                              onEdit?.(announcement);
+                            }}
                             className="btn-icon edit"
                             title="Edit"
                           >
@@ -408,7 +416,15 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
                       {canManageAnnouncement(announcement) && (
                         <>
                           <button 
-                            onClick={() => onEdit?.(announcement)}
+                            onClick={() => {
+                              console.log('[AnnouncementDebug] Announcement edit clicked', {
+                                announcementId: announcement.id,
+                                organizationId: announcement.organizationId,
+                                userId: user?.userId,
+                                userRole: user?.role
+                              });
+                              onEdit?.(announcement);
+                            }}
                             className="btn-icon edit"
                             title="Edit"
                           >
