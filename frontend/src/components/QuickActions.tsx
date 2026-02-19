@@ -10,6 +10,10 @@ interface QuickActionsProps {
 
 const QuickActions: React.FC<QuickActionsProps> = ({ actions, isLoading }) => {
   const navigate = useNavigate();
+  // Defensive cleanup: hide legacy moderation quick action even if stale/cached data still includes it.
+  const visibleActions = actions.filter(
+    (action) => action.id !== 'moderate_content' && action.actionUrl !== '/moderate'
+  );
 
   const getActionIcon = (iconType: string) => {
     const iconMap: Record<string, string> = {
@@ -71,9 +75,9 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions, isLoading }) => {
       <h3>⚡ Quick Actions</h3>
       
       {/* 🎯 Emoji Shortcuts Bar */}
-      {actions.length > 0 && (
+      {visibleActions.length > 0 && (
         <div className="emoji-shortcuts-bar">
-          {actions.map((action) => (
+          {visibleActions.map((action) => (
             <button
               key={`emoji-${action.id}`}
               className="emoji-shortcut"
@@ -88,7 +92,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ actions, isLoading }) => {
       )}
 
       <div className="actions-grid">
-        {actions.map((action) => (
+        {visibleActions.map((action) => (
           <div 
             key={action.id} 
             className="action-card"
