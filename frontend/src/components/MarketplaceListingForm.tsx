@@ -94,7 +94,8 @@ const MarketplaceListingForm: React.FC<MarketplaceListingFormProps> = ({
 
       const payload: MarketplaceListingRequest = {
         sectionType,
-        postType,
+        // For sale listings should not expose Give/Ask semantics.
+        postType: isForSale ? 'GIVE' : postType,
         title: title.trim(),
         description: description.trim() || undefined,
         category: category.trim() || undefined,
@@ -138,14 +139,16 @@ const MarketplaceListingForm: React.FC<MarketplaceListingFormProps> = ({
           </select>
         </label>
 
-        <label>
-          Post Type
-          <select value={postType} onChange={(e) => setPostType(e.target.value as MarketplacePostType)}>
-            {postTypeOptions.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </label>
+        {!isForSale && (
+          <label>
+            Post Type
+            <select value={postType} onChange={(e) => setPostType(e.target.value as MarketplacePostType)}>
+              {postTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <label className="marketplace-form-full">
           Title
