@@ -60,6 +60,7 @@ const MarketplaceList: React.FC<MarketplaceListProps> = ({
         const firstImage = listing.imageUrls?.[0];
         const status = listing.status as MarketplaceListingStatus;
         const isAvailable = status === 'ACTIVE' || status === 'RESERVED';
+        const isOwner = Boolean(listing.isOwner ?? listing.owner);
 
         return (
           <article key={listing.id} className="marketplace-card">
@@ -107,7 +108,7 @@ const MarketplaceList: React.FC<MarketplaceListProps> = ({
             </div>
 
             <div className="marketplace-actions">
-              {listing.isOwner ? (
+              {isOwner ? (
                 <>
                   <button onClick={() => onMarkCompleted(listing)} disabled={!isAvailable}>Mark Completed</button>
                   <button onClick={() => onDelete(listing)} className="danger">Remove</button>

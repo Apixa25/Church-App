@@ -29,7 +29,8 @@ export interface MarketplaceListing {
   interestCount: number;
   messageCount: number;
   rankingScore?: number;
-  isOwner: boolean;
+  isOwner?: boolean;
+  owner?: boolean; // Backward-compatibility for legacy boolean serialization
   expiresAt?: string;
   completedAt?: string;
   createdAt: string | number[];

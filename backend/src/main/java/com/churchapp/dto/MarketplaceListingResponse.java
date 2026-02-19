@@ -3,6 +3,7 @@ package com.churchapp.dto;
 import com.churchapp.entity.MarketplaceListingStatus;
 import com.churchapp.entity.MarketplacePostType;
 import com.churchapp.entity.MarketplaceSectionType;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
 
@@ -41,6 +42,7 @@ public class MarketplaceListingResponse {
     private Integer interestCount;
     private Integer messageCount;
     private Double rankingScore;
+    @JsonProperty("isOwner")
     private boolean isOwner;
 
     private LocalDateTime expiresAt;

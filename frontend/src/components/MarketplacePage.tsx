@@ -19,6 +19,8 @@ const sectionTabs: Array<{ id: MarketplaceSectionType; label: string; emoji: str
   { id: 'FOR_SALE', label: 'For Sale', emoji: '🏷️' }
 ];
 
+const isListingOwner = (listing: MarketplaceListing): boolean => Boolean(listing.isOwner ?? listing.owner);
+
 const MarketplacePage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -99,6 +101,11 @@ const MarketplacePage: React.FC = () => {
   };
 
   const handleExpressInterest = async (listing: MarketplaceListing) => {
+    if (isListingOwner(listing)) {
+      setError('This is your listing. Use owner controls instead.');
+      return;
+    }
+
     try {
       await marketplaceApi.expressInterest(listing.id);
       setStatusMessage('Interest sent. Continue the conversation respectfully.');
@@ -109,6 +116,11 @@ const MarketplacePage: React.FC = () => {
   };
 
   const handleMessageSeller = async (listing: MarketplaceListing) => {
+    if (isListingOwner(listing)) {
+      setError('This is your listing. Use owner controls instead.');
+      return;
+    }
+
     try {
       const result = await marketplaceApi.messageSeller(listing.id);
       setStatusMessage(`Opened chat with ${listing.ownerName}.`);
@@ -134,6 +146,11 @@ const MarketplacePage: React.FC = () => {
   };
 
   const handleMarkCompleted = async (listing: MarketplaceListing) => {
+    if (!isListingOwner(listing)) {
+      setError('Only listing owners can mark this as completed.');
+      return;
+    }
+
     try {
       await marketplaceApi.updateListingStatus(listing.id, 'COMPLETED');
       setStatusMessage('Listing marked as completed.');
@@ -144,6 +161,11 @@ const MarketplacePage: React.FC = () => {
   };
 
   const handleDelete = async (listing: MarketplaceListing) => {
+    if (!isListingOwner(listing)) {
+      setError('Only listing owners can remove this listing.');
+      return;
+    }
+
     const confirmed = window.confirm(`Remove "${listing.title}" from marketplace?`);
     if (!confirmed) {
       return;
