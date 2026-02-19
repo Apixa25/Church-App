@@ -1,6 +1,7 @@
 export interface Announcement {
   id: string;
   userId: string;
+  organizationId?: string;
   userName: string;
   userProfilePicUrl?: string;
   userRole: string;

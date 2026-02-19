@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import { Announcement, AnnouncementCategory } from '../types/Announcement';
 import { announcementAPI } from '../services/announcementApi';
 import { safeParseDate } from '../utils/dateUtils';
@@ -30,12 +31,24 @@ const AnnouncementDetail: React.FC<AnnouncementDetailProps> = ({
   onBack
 }) => {
   const { user } = useAuth();
+  const { allMemberships } = useOrganization();
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const isAdmin = user?.role === 'PLATFORM_ADMIN' || user?.role === 'MODERATOR';
-  const canEdit = isAdmin || announcement?.userId === user?.userId;
+  const isPlatformAdmin = user?.role === 'PLATFORM_ADMIN';
+  const isModerator = user?.role === 'MODERATOR';
+  const orgAdminOrganizationIds = new Set(
+    allMemberships
+      .filter((membership) => membership.role === 'ORG_ADMIN')
+      .map((membership) => membership.organizationId)
+  );
+  const canEdit = !!announcement && (
+    isPlatformAdmin ||
+    isModerator ||
+    announcement.userId === user?.userId ||
+    (!!announcement.organizationId && orgAdminOrganizationIds.has(announcement.organizationId))
+  );
 
   const loadAnnouncement = useCallback(async () => {
     try {

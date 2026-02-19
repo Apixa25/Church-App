@@ -15,6 +15,7 @@ public class AnnouncementResponse {
     
     private UUID id;
     private UUID userId;
+    private UUID organizationId;
     private String userName;
     private String userProfilePicUrl;
     private String userRole;
@@ -30,6 +31,7 @@ public class AnnouncementResponse {
         return new AnnouncementResponse(
             announcement.getId(),
             announcement.getUser().getId(),
+            announcement.getOrganization() != null ? announcement.getOrganization().getId() : null,
             announcement.getUser().getName(),
             announcement.getUser().getProfilePicUrl(),
             announcement.getUser().getRole().toString(),

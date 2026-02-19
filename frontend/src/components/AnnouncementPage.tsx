@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Announcement } from '../types/Announcement';
+import { announcementAPI } from '../services/announcementApi';
 import AnnouncementList from './AnnouncementList';
 import AnnouncementForm from './AnnouncementForm';
 import AnnouncementDetail from './AnnouncementDetail';
@@ -26,7 +27,11 @@ const AnnouncementPage: React.FC = () => {
   // Check admin roles for edit/delete permissions
   const isPlatformAdmin = user?.role === 'PLATFORM_ADMIN';
   const isModerator = user?.role === 'MODERATOR';
-  const isOrgAdmin = allMemberships.some(m => m.role === 'ORG_ADMIN');
+  const orgAdminOrganizationIds = new Set(
+    allMemberships
+      .filter((membership) => membership.role === 'ORG_ADMIN')
+      .map((membership) => membership.organizationId)
+  );
   
   // PLATFORM_ADMIN can create system-wide announcements without primary org
   // Regular users need a primary organization to create announcements
@@ -42,13 +47,37 @@ const AnnouncementPage: React.FC = () => {
       // The detail component will load the announcement
     } else if (mode === 'create' && canCreateAnnouncements) {
       setViewMode('create');
-    } else if (mode === 'edit' && selectedAnnouncement) {
+    } else if (mode === 'edit' && (selectedAnnouncement || announcementId)) {
       setViewMode('edit');
     } else {
       setViewMode('list');
       setSearchParams({}); // Clear any invalid params
     }
   }, [searchParams, canCreateAnnouncements, selectedAnnouncement, setSearchParams]);
+
+  useEffect(() => {
+    const loadAnnouncementForEdit = async () => {
+      const mode = searchParams.get('mode');
+      const announcementId = searchParams.get('id');
+
+      if (mode !== 'edit' || !announcementId) {
+        return;
+      }
+
+      if (selectedAnnouncement?.id === announcementId) {
+        return;
+      }
+
+      try {
+        const response = await announcementAPI.getAnnouncement(announcementId);
+        setSelectedAnnouncement(response.data);
+      } catch (err: any) {
+        setError(err.response?.data?.error || 'Failed to load announcement for editing');
+      }
+    };
+
+    loadAnnouncementForEdit();
+  }, [searchParams, selectedAnnouncement]);
 
   const handleCreateNew = () => {
     if (!hasPrimaryOrg && !isPlatformAdmin) {
@@ -62,8 +91,9 @@ const AnnouncementPage: React.FC = () => {
   };
 
   const handleEdit = (announcement: Announcement) => {
-    // Allow edit if user is creator, platform admin, moderator, or org admin
-    const canEdit = isPlatformAdmin || isModerator || isOrgAdmin || announcement.userId === user?.userId;
+    // Allow edit if user is creator, platform admin, moderator, or ORG_ADMIN of this announcement's org
+    const isOrgAdminForAnnouncement = !!announcement.organizationId && orgAdminOrganizationIds.has(announcement.organizationId);
+    const canEdit = isPlatformAdmin || isModerator || isOrgAdminForAnnouncement || announcement.userId === user?.userId;
     
     if (!canEdit) {
       setError('You do not have permission to edit this announcement');
@@ -164,14 +194,27 @@ const AnnouncementPage: React.FC = () => {
           />
         );
       case 'edit':
-        return selectedAnnouncement ? (
-          <AnnouncementForm
-            mode="edit"
-            existingAnnouncement={selectedAnnouncement}
-            onSuccess={handleSuccess}
-            onCancel={handleCancel}
-          />
-        ) : (
+        if (selectedAnnouncement) {
+          return (
+            <AnnouncementForm
+              mode="edit"
+              existingAnnouncement={selectedAnnouncement}
+              onSuccess={handleSuccess}
+              onCancel={handleCancel}
+            />
+          );
+        }
+
+        if (searchParams.get('id')) {
+          return (
+            <div className="announcement-list-loading">
+              <div className="loading-spinner"></div>
+              <p>Loading announcement for editing...</p>
+            </div>
+          );
+        }
+
+        return (
           <div className="error-state">
             <p>No announcement selected for editing.</p>
             <button onClick={handleCancel} className="btn-secondary">

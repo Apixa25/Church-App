@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import { useNavigate } from 'react-router-dom';
 import { Announcement, AnnouncementCategory } from '../types/Announcement';
 import { announcementAPI } from '../services/announcementApi';
@@ -36,6 +37,7 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
   showFilters = true
 }) => {
   const { user } = useAuth();
+  const { allMemberships } = useOrganization();
   const navigate = useNavigate();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [pinnedAnnouncements, setPinnedAnnouncements] = useState<Announcement[]>([]);
@@ -53,9 +55,19 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<AnnouncementCategory | ''>('');
   const [searchText, setSearchText] = useState('');
 
-  const isAdmin = user?.role === 'PLATFORM_ADMIN' || user?.role === 'MODERATOR';
+  const isPlatformAdmin = user?.role === 'PLATFORM_ADMIN';
   const isModerator = user?.role === 'MODERATOR';
-  const canManageAnnouncements = isAdmin || isModerator;
+  const orgAdminOrganizationIds = new Set(
+    allMemberships
+      .filter((membership) => membership.role === 'ORG_ADMIN')
+      .map((membership) => membership.organizationId)
+  );
+  const canManageAnnouncement = (announcement: Announcement) =>
+    isPlatformAdmin ||
+    isModerator ||
+    announcement.userId === user?.userId ||
+    (!!announcement.organizationId && orgAdminOrganizationIds.has(announcement.organizationId));
+  const canManageAnnouncements = isPlatformAdmin || isModerator || orgAdminOrganizationIds.size > 0;
 
   const loadPinnedAnnouncements = useCallback(async () => {
     try {
@@ -137,7 +149,7 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
   };
 
   const handlePin = async (announcementId: string) => {
-    if (!isAdmin) return;
+    if (!isPlatformAdmin) return;
 
     try {
       await announcementAPI.pinAnnouncement(announcementId);
@@ -149,7 +161,7 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
   };
 
   const handleUnpin = async (announcementId: string) => {
-    if (!isAdmin) return;
+    if (!isPlatformAdmin) return;
 
     try {
       await announcementAPI.unpinAnnouncement(announcementId);
@@ -253,29 +265,35 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
                   >
                     {CATEGORY_LABELS[announcement.category]}
                   </span>
-                  {isAdmin && showActions && (
+                  {showActions && (
                     <>
-                      <button 
-                        onClick={() => handleUnpin(announcement.id)}
-                        className="btn-icon unpin"
-                        title="Unpin"
-                      >
-                        📌
-                      </button>
-                      <button 
-                        onClick={() => onEdit?.(announcement)}
-                        className="btn-icon edit"
-                        title="Edit"
-                      >
-                        ✏️
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(announcement.id)}
-                        className="btn-icon delete"
-                        title="Delete"
-                      >
-                        🗑️
-                      </button>
+                      {isPlatformAdmin && (
+                        <button 
+                          onClick={() => handleUnpin(announcement.id)}
+                          className="btn-icon unpin"
+                          title="Unpin"
+                        >
+                          📌
+                        </button>
+                      )}
+                      {canManageAnnouncement(announcement) && (
+                        <>
+                          <button 
+                            onClick={() => onEdit?.(announcement)}
+                            className="btn-icon edit"
+                            title="Edit"
+                          >
+                            ✏️
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(announcement.id)}
+                            className="btn-icon delete"
+                            title="Delete"
+                          >
+                            🗑️
+                          </button>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
@@ -378,7 +396,7 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
                   </span>
                   {showActions && (
                     <>
-                      {isAdmin && !announcement.isPinned && (
+                      {isPlatformAdmin && !announcement.isPinned && (
                         <button 
                           onClick={() => handlePin(announcement.id)}
                           className="btn-icon pin"
@@ -387,7 +405,7 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
                           📌
                         </button>
                       )}
-                      {(isAdmin || announcement.userId === user?.userId) && (
+                      {canManageAnnouncement(announcement) && (
                         <>
                           <button 
                             onClick={() => onEdit?.(announcement)}
