@@ -44,15 +44,15 @@ if (Test-Path $envFile) {
     
     $portInUse = Get-NetTCPConnection -LocalPort $appPort -State Listen -ErrorAction SilentlyContinue
     if ($portInUse) {
-        $pid = $portInUse.OwningProcess
-        $process = Get-Process -Id $pid -ErrorAction SilentlyContinue
+        $processId = $portInUse.OwningProcess
+        $process = Get-Process -Id $processId -ErrorAction SilentlyContinue
         
         Write-Host "  [WARNING] Port $appPort is already in use!" -ForegroundColor Yellow
         if ($process) {
-            Write-Host "  Process: $($process.ProcessName) (PID: $pid)" -ForegroundColor Yellow
+            Write-Host "  Process: $($process.ProcessName) (PID: $processId)" -ForegroundColor Yellow
             Write-Host "  Memory: $([math]::Round($process.WorkingSet64 / 1MB, 2)) MB" -ForegroundColor Yellow
         } else {
-            Write-Host "  Process ID: $pid (process details unavailable)" -ForegroundColor Yellow
+            Write-Host "  Process ID: $processId (process details unavailable)" -ForegroundColor Yellow
         }
         
         Write-Host "`n  Would you like to kill this process? (Y/N): " -ForegroundColor Cyan -NoNewline
@@ -60,8 +60,8 @@ if (Test-Path $envFile) {
         
         if ($response -eq 'Y' -or $response -eq 'y') {
             try {
-                Stop-Process -Id $pid -Force -ErrorAction Stop
-                Write-Host "  [OK] Process $pid terminated successfully!`n" -ForegroundColor Green
+                Stop-Process -Id $processId -Force -ErrorAction Stop
+                Write-Host "  [OK] Process $processId terminated successfully!`n" -ForegroundColor Green
                 Start-Sleep -Seconds 1  # Brief pause to let port release
             } catch {
                 Write-Host "  [ERROR] Failed to kill process: $_`n" -ForegroundColor Red
