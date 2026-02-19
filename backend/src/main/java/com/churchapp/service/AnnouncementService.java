@@ -360,6 +360,59 @@ public class AnnouncementService {
         
         return AnnouncementResponse.fromAnnouncement(updatedAnnouncement);
     }
+
+    public AnnouncementResponse updateAnnouncementWithImage(UUID announcementId, UUID userId, AnnouncementRequest request, MultipartFile imageFile) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        Announcement announcement = announcementRepository.findById(announcementId)
+            .orElseThrow(() -> new RuntimeException("Announcement not found with id: " + announcementId));
+
+        if (announcement.isDeleted()) {
+            throw new RuntimeException("Cannot update deleted announcement");
+        }
+
+        // Only the creator or admin can update
+        if (!canModifyAnnouncement(user, announcement)) {
+            throw new AccessDeniedException("User does not have permission to update this announcement");
+        }
+
+        // Update core fields
+        announcement.setTitle(request.getTitle().trim());
+        announcement.setContent(request.getContent().trim());
+        announcement.setCategory(request.getCategory() != null ? request.getCategory() : announcement.getCategory());
+
+        // Handle uploaded image file (preferred when provided)
+        if (imageFile != null && !imageFile.isEmpty()) {
+            try {
+                String contentType = imageFile.getContentType();
+                if (contentType == null || !contentType.startsWith("image/")) {
+                    throw new RuntimeException("File must be an image");
+                }
+
+                String imageUrl = fileUploadService.uploadFile(imageFile, "announcements");
+                announcement.setImageUrl(imageUrl);
+            } catch (Exception e) {
+                log.error("Error uploading image for announcement update: {}", e.getMessage(), e);
+                throw new RuntimeException("Failed to upload image: " + e.getMessage(), e);
+            }
+        } else if (request.getImageUrl() != null) {
+            // Allow explicit URL updates/removal when no file is uploaded
+            String imageUrl = request.getImageUrl().trim();
+            announcement.setImageUrl(imageUrl.isEmpty() ? null : imageUrl);
+        }
+
+        // Only platform admins can pin/unpin announcements
+        if (request.getIsPinned() != null && user.getRole() == User.Role.PLATFORM_ADMIN) {
+            announcement.setIsPinned(request.getIsPinned());
+        }
+
+        Announcement updatedAnnouncement = announcementRepository.save(announcement);
+        log.info("Announcement updated with image flow with id: {} by user: {} (uploadedImage: {})",
+            announcementId, userId, imageFile != null && !imageFile.isEmpty());
+
+        return AnnouncementResponse.fromAnnouncement(updatedAnnouncement);
+    }
     
     public void deleteAnnouncement(UUID announcementId, UUID userId) {
         User user = userRepository.findById(userId)

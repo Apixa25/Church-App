@@ -125,6 +125,29 @@ export const announcementAPI = {
   updateAnnouncement: (id: string, data: AnnouncementUpdateRequest) => 
     api.put<Announcement>(`/${id}`, data),
 
+  // Update announcement with image
+  updateAnnouncementWithImage: (id: string, data: AnnouncementUpdateRequest, imageFile?: File) => {
+    const formData = new FormData();
+    formData.append('title', data.title);
+    formData.append('content', data.content);
+    formData.append('category', data.category);
+    if (data.imageUrl !== undefined) {
+      formData.append('imageUrl', data.imageUrl ?? '');
+    }
+    if (data.isPinned !== undefined) {
+      formData.append('isPinned', data.isPinned.toString());
+    }
+    if (imageFile) {
+      formData.append('image', imageFile);
+    }
+
+    return api.put<Announcement>(`/${id}/with-image`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  },
+
   // Delete announcement
   deleteAnnouncement: (id: string) => 
     api.delete(`/${id}`),

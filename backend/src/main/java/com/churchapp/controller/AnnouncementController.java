@@ -184,6 +184,54 @@ public class AnnouncementController {
             return ResponseEntity.badRequest().body(error);
         }
     }
+
+    @PutMapping(value = "/{announcementId}/with-image", consumes = {"multipart/form-data"})
+    public ResponseEntity<?> updateAnnouncementWithImage(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID announcementId,
+            @RequestParam("title") String title,
+            @RequestParam("content") String content,
+            @RequestParam(value = "category", required = false) String category,
+            @RequestParam(value = "imageUrl", required = false) String imageUrl,
+            @RequestParam(value = "isPinned", required = false, defaultValue = "false") Boolean isPinned,
+            @RequestParam(value = "image", required = false) MultipartFile imageFile) {
+        try {
+            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+
+            AnnouncementRequest request = new AnnouncementRequest();
+            request.setTitle(title);
+            request.setContent(content);
+            request.setImageUrl(imageUrl);
+            request.setIsPinned(isPinned != null ? isPinned : false);
+
+            if (category != null && !category.trim().isEmpty()) {
+                try {
+                    request.setCategory(Announcement.AnnouncementCategory.valueOf(category.toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    request.setCategory(Announcement.AnnouncementCategory.GENERAL);
+                }
+            } else {
+                request.setCategory(Announcement.AnnouncementCategory.GENERAL);
+            }
+
+            AnnouncementResponse updatedAnnouncement = announcementService.updateAnnouncementWithImage(
+                announcementId, currentProfile.getUserId(), request, imageFile);
+            return ResponseEntity.ok(updatedAnnouncement);
+        } catch (AccessDeniedException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Insufficient permissions: " + e.getMessage());
+            return ResponseEntity.status(403).body(error);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        } catch (Exception e) {
+            log.error("Error updating announcement with image: {}", e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update announcement: " + e.getMessage());
+            return ResponseEntity.status(500).body(error);
+        }
+    }
     
     @DeleteMapping("/{announcementId}")
     public ResponseEntity<?> deleteAnnouncement(@AuthenticationPrincipal User user,

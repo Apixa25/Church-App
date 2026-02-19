@@ -207,12 +207,14 @@ const AnnouncementForm: React.FC<AnnouncementFormProps> = ({
         const updateRequest: AnnouncementUpdateRequest = {
           title: data.title.trim(),
           content: data.content.trim(),
-          imageUrl: data.imageUrl?.trim() || undefined,
+          imageUrl: data.imageUrl?.trim() || '',
           category: data.category,
           isPinned: canPin ? data.isPinned : existingAnnouncement.isPinned // Only admins/org admins can change pin status
         };
 
-        const response = await announcementAPI.updateAnnouncement(existingAnnouncement.id, updateRequest);
+        const response = selectedImageFile
+          ? await announcementAPI.updateAnnouncementWithImage(existingAnnouncement.id, updateRequest, selectedImageFile)
+          : await announcementAPI.updateAnnouncement(existingAnnouncement.id, updateRequest);
         result = response.data;
         setSuccess('Announcement updated successfully!');
       }
