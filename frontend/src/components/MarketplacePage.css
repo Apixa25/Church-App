@@ -7,6 +7,21 @@
   gap: 1rem;
 }
 
+.marketplace-back-btn {
+  width: fit-content;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-radius: var(--border-radius-pill);
+  padding: 0.45rem 0.8rem;
+  cursor: pointer;
+}
+
+.marketplace-back-btn:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
 .marketplace-header {
   display: flex;
   justify-content: space-between;

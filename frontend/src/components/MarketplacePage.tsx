@@ -128,6 +128,14 @@ const MarketplacePage: React.FC = () => {
 
   return (
     <div className="marketplace-page">
+      <button
+        className="marketplace-back-btn"
+        onClick={() => navigate('/dashboard')}
+        aria-label="Back to home"
+      >
+        ← Back to Home
+      </button>
+
       <header className="marketplace-header">
         <div>
           <h1>🧺 Economy of Giving and Sharing</h1>
