@@ -395,19 +395,6 @@ public class DashboardService {
             ));
         }
         
-        // Moderator and Admin actions
-        if (currentUser.getRole() == User.Role.PLATFORM_ADMIN || currentUser.getRole() == User.Role.MODERATOR) {
-            actions.add(QuickAction.createForRole(
-                "moderate_content",
-                "Content Moderation",
-                "Review and moderate community content",
-                "/moderate",
-                "flag",
-                "Moderate",
-                "MODERATOR"
-            ));
-        }
-        
         return actions;
     }
     
