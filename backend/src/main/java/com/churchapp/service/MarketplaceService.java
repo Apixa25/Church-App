@@ -40,6 +40,8 @@ public class MarketplaceService {
     private final ChatService chatService;
 
     public MarketplaceListingResponse createListing(String userEmail, MarketplaceListingRequest request) {
+        log.info("Marketplace createListing start: userEmail={}, sectionType={}, postType={}, title={}, organizationId={}",
+            userEmail, request.getSectionType(), request.getPostType(), request.getTitle(), request.getOrganizationId());
         User user = getUserByEmail(userEmail);
         Organization org = resolveOrganizationContext(request.getOrganizationId(), user);
 
@@ -65,6 +67,8 @@ public class MarketplaceService {
         listing.setIsFlagged(false);
 
         MarketplaceListing saved = marketplaceListingRepository.save(listing);
+        log.info("Marketplace createListing success: listingId={}, sectionType={}, ownerUserId={}",
+            saved.getId(), saved.getSectionType(), user.getId());
         return toResponse(saved, user.getId(), 0.0d);
     }
 
@@ -235,6 +239,8 @@ public class MarketplaceService {
         int page,
         int size
     ) {
+        log.info("Marketplace getListings start: userEmail={}, organizationId={}, sectionType={}, postType={}, status={}, category={}, query={}, minPrice={}, maxPrice={}, page={}, size={}",
+            userEmail, organizationId, sectionType, postType, status, category, query, minPrice, maxPrice, page, size);
         User viewer = getUserByEmail(userEmail);
         List<UUID> blockedUserIds = userBlockService.getMutuallyBlockedUserIds(viewer.getId());
         boolean excludeBlocked = blockedUserIds != null && !blockedUserIds.isEmpty();
@@ -243,14 +249,16 @@ public class MarketplaceService {
         }
 
         MarketplaceListingStatus effectiveStatus = status != null ? status : MarketplaceListingStatus.ACTIVE;
+        String normalizedCategory = normalizeFilterForCaseInsensitiveMatch(category);
+        String normalizedQuery = normalizeFilterForCaseInsensitiveMatch(query);
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<MarketplaceListing> listings = marketplaceListingRepository.searchListings(
             organizationId,
             sectionType,
             postType,
             effectiveStatus,
-            category,
-            query,
+            normalizedCategory,
+            normalizedQuery,
             minPrice,
             maxPrice,
             excludeBlocked,
@@ -263,6 +271,8 @@ public class MarketplaceService {
             .sorted(Comparator.comparing(MarketplaceListingResponse::getRankingScore, Comparator.nullsLast(Double::compareTo)).reversed())
             .toList();
 
+        log.info("Marketplace getListings success: resultCount={}, totalElements={}, requestedPage={}",
+            responses.size(), listings.getTotalElements(), page);
         return new PageImpl<>(responses, pageable, listings.getTotalElements());
     }
 
@@ -350,6 +360,11 @@ public class MarketplaceService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String normalizeFilterForCaseInsensitiveMatch(String value) {
+        String trimmed = safeTrim(value);
+        return trimmed == null ? "" : trimmed.toLowerCase(Locale.ROOT);
     }
 
     private boolean isBlockedForViewer(UUID viewerId, UUID ownerId) {

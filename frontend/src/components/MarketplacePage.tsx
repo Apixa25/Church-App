@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useActiveContext } from '../contexts/ActiveContextContext';
@@ -44,9 +44,33 @@ const MarketplacePage: React.FC = () => {
     size: 18
   }), [activeOrganizationId, activeSection, postTypeFilter, query, locationQuery, page]);
 
+  useEffect(() => {
+    console.log('[MarketplacePage] filters updated', filters);
+  }, [filters]);
+
   const listingsQuery = useQuery({
     queryKey: ['marketplace-listings', filters],
-    queryFn: () => marketplaceApi.getListings(filters)
+    queryFn: async () => {
+      console.log('[MarketplacePage] listingsQuery:fetch:start', { filters });
+      try {
+        const data = await marketplaceApi.getListings(filters);
+        console.log('[MarketplacePage] listingsQuery:fetch:success', {
+          contentCount: data.content.length,
+          totalElements: data.totalElements,
+          page: data.number,
+          totalPages: data.totalPages
+        });
+        return data;
+      } catch (queryError: any) {
+        console.error('[MarketplacePage] listingsQuery:fetch:error', {
+          message: queryError?.message,
+          status: queryError?.response?.status,
+          data: queryError?.response?.data,
+          filters
+        });
+        throw queryError;
+      }
+    }
   });
 
   const metricsQuery = useQuery({
@@ -55,12 +79,20 @@ const MarketplacePage: React.FC = () => {
   });
 
   const refreshListings = async () => {
+    console.log('[MarketplacePage] refreshListings:start');
     await queryClient.invalidateQueries({ queryKey: ['marketplace-listings'] });
     await queryClient.invalidateQueries({ queryKey: ['marketplace-metrics'] });
+    console.log('[MarketplacePage] refreshListings:complete');
   };
 
   const handleCreateListing = async (payload: MarketplaceListingRequest) => {
-    await marketplaceApi.createListing(payload);
+    console.log('[MarketplacePage] handleCreateListing:start', payload);
+    const created = await marketplaceApi.createListing(payload);
+    console.log('[MarketplacePage] handleCreateListing:created', {
+      id: created.id,
+      sectionType: created.sectionType,
+      title: created.title
+    });
     setShowCreateForm(false);
     setStatusMessage('Listing published successfully.');
     await refreshListings();

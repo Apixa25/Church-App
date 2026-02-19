@@ -52,9 +52,20 @@ const MarketplaceListingForm: React.FC<MarketplaceListingFormProps> = ({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    console.log('[MarketplaceListingForm] submit:start', {
+      sectionType,
+      postType,
+      title,
+      hasDescription: Boolean(description.trim()),
+      category,
+      locationLabel,
+      mediaCount: mediaFiles.length,
+      activeOrganizationId
+    });
 
     if (!title.trim()) {
       setError('Title is required.');
+      console.warn('[MarketplaceListingForm] submit:blocked - empty title');
       return;
     }
 
@@ -62,6 +73,7 @@ const MarketplaceListingForm: React.FC<MarketplaceListingFormProps> = ({
       const numericPrice = Number(priceAmount);
       if (!priceAmount || Number.isNaN(numericPrice) || numericPrice <= 0) {
         setError('For Sale listings require a valid price greater than 0.');
+        console.warn('[MarketplaceListingForm] submit:blocked - invalid for sale price', { priceAmount });
         return;
       }
     }
@@ -72,10 +84,12 @@ const MarketplaceListingForm: React.FC<MarketplaceListingFormProps> = ({
 
       let uploadedImageUrls = initialValue?.imageUrls || [];
       if (mediaFiles.length > 0) {
+        console.log('[MarketplaceListingForm] submit:upload:start', { mediaCount: mediaFiles.length });
         uploadedImageUrls = await uploadMediaDirect(
           mediaFiles.map((media) => media.file),
           'marketplace'
         );
+        console.log('[MarketplaceListingForm] submit:upload:success', { uploadedCount: uploadedImageUrls.length });
       }
 
       const payload: MarketplaceListingRequest = {
@@ -93,12 +107,15 @@ const MarketplaceListingForm: React.FC<MarketplaceListingFormProps> = ({
         organizationId: activeOrganizationId || undefined
       };
 
+      console.log('[MarketplaceListingForm] submit:onSave:start', payload);
       await onSave(payload);
+      console.log('[MarketplaceListingForm] submit:onSave:success');
     } catch (submitError: any) {
       console.error('Failed to save marketplace listing:', submitError);
       setError(submitError?.response?.data?.message || submitError?.message || 'Failed to save listing');
     } finally {
       setIsSaving(false);
+      console.log('[MarketplaceListingForm] submit:complete');
     }
   };
 

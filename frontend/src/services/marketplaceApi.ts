@@ -91,8 +91,27 @@ export interface MarketplaceMetrics {
 
 const marketplaceApi = {
   getListings: async (filters: MarketplaceFilters = {}): Promise<MarketplaceListingsPage> => {
-    const response = await api.get('/marketplace/listings', { params: filters });
-    return response.data;
+    const startedAt = Date.now();
+    console.log('[MarketplaceAPI] getListings:start', { filters, startedAt });
+    try {
+      const response = await api.get('/marketplace/listings', { params: filters });
+      console.log('[MarketplaceAPI] getListings:success', {
+        status: response.status,
+        count: response.data?.content?.length ?? 0,
+        totalElements: response.data?.totalElements ?? 0,
+        durationMs: Date.now() - startedAt
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('[MarketplaceAPI] getListings:error', {
+        message: error?.message,
+        status: error?.response?.status,
+        data: error?.response?.data,
+        filters,
+        durationMs: Date.now() - startedAt
+      });
+      throw error;
+    }
   },
 
   getListingById: async (listingId: string): Promise<MarketplaceListing> => {
@@ -101,8 +120,27 @@ const marketplaceApi = {
   },
 
   createListing: async (request: MarketplaceListingRequest): Promise<MarketplaceListing> => {
-    const response = await api.post('/marketplace/listings', request);
-    return response.data;
+    const startedAt = Date.now();
+    console.log('[MarketplaceAPI] createListing:start', { request, startedAt });
+    try {
+      const response = await api.post('/marketplace/listings', request);
+      console.log('[MarketplaceAPI] createListing:success', {
+        status: response.status,
+        listingId: response.data?.id,
+        sectionType: response.data?.sectionType,
+        durationMs: Date.now() - startedAt
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('[MarketplaceAPI] createListing:error', {
+        message: error?.message,
+        status: error?.response?.status,
+        data: error?.response?.data,
+        request,
+        durationMs: Date.now() - startedAt
+      });
+      throw error;
+    }
   },
 
   updateListing: async (listingId: string, request: MarketplaceListingUpdateRequest): Promise<MarketplaceListing> => {
