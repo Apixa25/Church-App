@@ -26,7 +26,7 @@ const MarketplacePage: React.FC = () => {
   const queryClient = useQueryClient();
   const { activeOrganizationId } = useActiveContext();
 
-  const [activeSection, setActiveSection] = useState<MarketplaceSectionType>('SHARING');
+  const [activeSection, setActiveSection] = useState<MarketplaceSectionType>('FOR_SALE');
   const [postTypeFilter, setPostTypeFilter] = useState<MarketplacePostType | 'ALL'>('ALL');
   const [query, setQuery] = useState('');
   const [locationQuery, setLocationQuery] = useState('');

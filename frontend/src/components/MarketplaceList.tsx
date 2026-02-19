@@ -103,7 +103,9 @@ const MarketplaceList: React.FC<MarketplaceListProps> = ({
                     ? formatMoney(listing.priceAmount, listing.currency)
                     : 'Gift Economy Listing'}
                 </strong>
-                <span className="marketplace-post-type">{listing.postType}</span>
+                {listing.sectionType !== 'FOR_SALE' && (
+                  <span className="marketplace-post-type">{listing.postType}</span>
+                )}
               </div>
             </div>
 
