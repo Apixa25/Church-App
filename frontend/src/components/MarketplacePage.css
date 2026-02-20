@@ -118,6 +118,25 @@
   cursor: pointer;
 }
 
+.marketplace-location-btn-compact {
+  border-radius: var(--border-radius-pill) !important;
+  background: var(--bg-tertiary) !important;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.marketplace-location-btn-compact:hover {
+  border-color: var(--accent-primary);
+  background: var(--bg-elevated);
+  color: var(--accent-primary);
+  box-shadow: 0 0 12px var(--button-primary-glow);
+}
+
+.marketplace-location-btn-compact:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
 .marketplace-banner {
   border-radius: var(--border-radius-md);
   padding: 0.65rem 0.75rem;

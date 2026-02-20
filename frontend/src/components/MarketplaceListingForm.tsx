@@ -30,6 +30,10 @@ const postTypeOptions: Array<{ value: MarketplacePostType; label: string }> = [
 ];
 
 const RADIUS_MILES_OPTIONS = [5, 10, 15, 25, 50];
+const MIN_LATITUDE = -90;
+const MAX_LATITUDE = 90;
+const MIN_LONGITUDE = -180;
+const MAX_LONGITUDE = 180;
 
 const MarketplaceListingForm: React.FC<MarketplaceListingFormProps> = ({
   initialValue,
@@ -145,6 +149,24 @@ const MarketplaceListingForm: React.FC<MarketplaceListingFormProps> = ({
       return;
     }
 
+    const trimmedLocationLabel = locationLabel.trim();
+    const hasCoordinates = latitude != null && longitude != null;
+    const hasValidCoordinates = hasCoordinates
+      && latitude >= MIN_LATITUDE
+      && latitude <= MAX_LATITUDE
+      && longitude >= MIN_LONGITUDE
+      && longitude <= MAX_LONGITUDE;
+
+    if (!trimmedLocationLabel || !hasValidCoordinates) {
+      setError('A valid location is required. Use Profile Location or Use Current GPS before publishing.');
+      console.warn('[MarketplaceListingForm] submit:blocked - invalid location payload', {
+        locationLabel: trimmedLocationLabel,
+        latitude,
+        longitude
+      });
+      return;
+    }
+
     if (isForSale) {
       const numericPrice = Number(priceAmount);
       if (!priceAmount || Number.isNaN(numericPrice) || numericPrice <= 0) {
@@ -178,12 +200,12 @@ const MarketplaceListingForm: React.FC<MarketplaceListingFormProps> = ({
         itemCondition: itemCondition.trim() || undefined,
         priceAmount: isForSale ? Number(priceAmount) : undefined,
         currency: isForSale ? 'USD' : undefined,
-        locationLabel: locationLabel.trim() || undefined,
+        locationLabel: trimmedLocationLabel,
         distanceRadiusKm: distanceRadiusMiles ? Math.round(Number(distanceRadiusMiles) * 1.60934) : undefined,
         latitude,
         longitude,
         locationSource,
-        geocodeStatus: latitude != null && longitude != null ? 'COORDINATES_CAPTURED' : undefined,
+        geocodeStatus: 'COORDINATES_CAPTURED',
         imageUrls: uploadedImageUrls,
         organizationId: activeOrganizationId || undefined
       };
@@ -285,9 +307,13 @@ const MarketplaceListingForm: React.FC<MarketplaceListingFormProps> = ({
               ? `Coordinates attached (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`
               : 'No coordinates attached yet'}
           </small>
-          <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-            <button type="button" onClick={handleUseProfileLocation}>Use Profile Location</button>
-            <button type="button" onClick={handleUseCurrentLocation}>Use Current GPS</button>
+          <div className="marketplace-location-actions">
+            <button type="button" className="marketplace-location-btn" onClick={handleUseProfileLocation}>
+              Use Profile Location
+            </button>
+            <button type="button" className="marketplace-location-btn" onClick={handleUseCurrentLocation}>
+              Use Current GPS
+            </button>
           </div>
         </label>
 

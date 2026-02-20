@@ -31,6 +31,10 @@ import java.util.*;
 public class MarketplaceService {
 
     private static final UUID GLOBAL_ORG_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    private static final BigDecimal MIN_LATITUDE = BigDecimal.valueOf(-90);
+    private static final BigDecimal MAX_LATITUDE = BigDecimal.valueOf(90);
+    private static final BigDecimal MIN_LONGITUDE = BigDecimal.valueOf(-180);
+    private static final BigDecimal MAX_LONGITUDE = BigDecimal.valueOf(180);
 
     private final MarketplaceListingRepository marketplaceListingRepository;
     private final MarketplaceListingInterestRepository marketplaceListingInterestRepository;
@@ -60,10 +64,20 @@ public class MarketplaceService {
         listing.setCurrency((request.getCurrency() == null || request.getCurrency().isBlank()) ? "USD" : request.getCurrency().toUpperCase());
         listing.setLocationLabel(safeTrim(request.getLocationLabel()));
         listing.setDistanceRadiusKm(request.getDistanceRadiusKm());
-        listing.setLatitude(resolveListingLatitude(request.getLatitude(), user));
-        listing.setLongitude(resolveListingLongitude(request.getLongitude(), user));
-        listing.setLocationSource(normalizeLocationSource(request.getLocationSource(), request.getLatitude(), request.getLongitude()));
-        listing.setGeocodeStatus(safeTrim(request.getGeocodeStatus()));
+        BigDecimal resolvedLatitude = resolveListingLatitude(request.getLatitude(), user);
+        BigDecimal resolvedLongitude = resolveListingLongitude(request.getLongitude(), user);
+        String normalizedLocationSource = normalizeLocationSource(
+            request.getLocationSource(),
+            resolvedLatitude,
+            resolvedLongitude
+        );
+        String normalizedGeocodeStatus = normalizeGeocodeStatus(request.getGeocodeStatus(), resolvedLatitude, resolvedLongitude);
+        validateLocationRequirements(request.getLocationLabel(), resolvedLatitude, resolvedLongitude, normalizedGeocodeStatus);
+
+        listing.setLatitude(resolvedLatitude);
+        listing.setLongitude(resolvedLongitude);
+        listing.setLocationSource(normalizedLocationSource);
+        listing.setGeocodeStatus(normalizedGeocodeStatus);
         listing.setImageUrls(normalizeImageUrls(request.getImageUrls()));
         listing.setExpiresAt(request.getExpiresAt());
         listing.setStatus(MarketplaceListingStatus.ACTIVE);
@@ -152,6 +166,12 @@ public class MarketplaceService {
         }
 
         validatePricingRules(listing.getSectionType(), listing.getPriceAmount());
+        validateLocationRequirements(
+            listing.getLocationLabel(),
+            listing.getLatitude(),
+            listing.getLongitude(),
+            listing.getGeocodeStatus()
+        );
 
         MarketplaceListing saved = marketplaceListingRepository.save(listing);
         return toResponse(saved, user.getId(), calculateRankingScore(saved, null), null);
@@ -460,6 +480,42 @@ public class MarketplaceService {
             return normalized;
         }
         return (latitude != null && longitude != null) ? "LISTING_PROVIDED_OR_PROFILE_DEFAULT" : null;
+    }
+
+    private String normalizeGeocodeStatus(String geocodeStatus, BigDecimal latitude, BigDecimal longitude) {
+        String normalized = safeTrim(geocodeStatus);
+        if (normalized != null) {
+            return normalized;
+        }
+        return (latitude != null && longitude != null) ? "COORDINATES_CAPTURED" : null;
+    }
+
+    private void validateLocationRequirements(
+        String locationLabel,
+        BigDecimal latitude,
+        BigDecimal longitude,
+        String geocodeStatus
+    ) {
+        String normalizedLocationLabel = safeTrim(locationLabel);
+        if (normalizedLocationLabel == null) {
+            throw new RuntimeException("Location is required for all marketplace listings");
+        }
+
+        if (latitude == null || longitude == null) {
+            throw new RuntimeException("Location coordinates are required for all marketplace listings");
+        }
+
+        if (latitude.compareTo(MIN_LATITUDE) < 0 || latitude.compareTo(MAX_LATITUDE) > 0) {
+            throw new RuntimeException("Latitude is out of range");
+        }
+
+        if (longitude.compareTo(MIN_LONGITUDE) < 0 || longitude.compareTo(MAX_LONGITUDE) > 0) {
+            throw new RuntimeException("Longitude is out of range");
+        }
+
+        if (safeTrim(geocodeStatus) == null) {
+            throw new RuntimeException("Location capture status is required for all marketplace listings");
+        }
     }
 
     private boolean isWithinRadius(MarketplaceListing listing, BigDecimal viewerLatitude, BigDecimal viewerLongitude, Double radiusMiles) {

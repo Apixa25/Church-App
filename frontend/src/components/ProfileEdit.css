@@ -305,6 +305,56 @@
   min-height: 100px;
 }
 
+.gps-onboarding-prompt {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(91, 127, 255, 0.45);
+  background: rgba(91, 127, 255, 0.1);
+  border-radius: var(--border-radius-md);
+}
+
+.gps-onboarding-prompt p {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.profile-location-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.profile-location-btn {
+  border-radius: var(--border-radius-pill);
+  border: 1px solid var(--border-primary);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.profile-location-btn:hover {
+  border-color: var(--accent-primary);
+  background: var(--bg-elevated);
+  color: var(--accent-primary);
+  box-shadow: 0 0 12px var(--button-primary-glow);
+}
+
+.profile-location-btn.subtle {
+  opacity: 0.92;
+}
+
+.profile-location-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
 .spiritual-gifts-group {
   background: var(--bg-secondary);
   border: 2px dashed var(--border-primary);

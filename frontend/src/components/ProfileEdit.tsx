@@ -8,6 +8,8 @@ import { processImageForUpload, isValidImageFile } from '../utils/imageUtils';
 import LoadingSpinner from './LoadingSpinner';
 import './ProfileEdit.css';
 
+const PROFILE_GPS_PROMPT_DISMISSED_KEY = 'profile_gps_prompt_dismissed_v1';
+
 const SPIRITUAL_GIFTS = [
   'Prophecy',
   'Teaching',
@@ -101,6 +103,8 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
   const [bannerImageFile, setBannerImageFile] = useState<File | null>(null);
   const [bannerImagePreview, setBannerImagePreview] = useState<string>('');
   const [newInterest, setNewInterest] = useState('');
+  const [isProfileLoaded, setIsProfileLoaded] = useState(false);
+  const [showGpsPrompt, setShowGpsPrompt] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -161,8 +165,36 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
       if ((profileToUse as any).bannerImageUrl) {
         setBannerImagePreview((profileToUse as any).bannerImageUrl);
       }
+      setIsProfileLoaded(true);
     }
   }, [user, externalProfile]);
+
+  useEffect(() => {
+    if (!isProfileLoaded) return;
+
+    const hasCoordinates = Boolean(formData.latitude.trim() && formData.longitude.trim());
+    if (hasCoordinates) {
+      setShowGpsPrompt(false);
+      return;
+    }
+
+    let dismissed = false;
+    try {
+      dismissed = window.localStorage.getItem(PROFILE_GPS_PROMPT_DISMISSED_KEY) === 'true';
+    } catch (storageError) {
+      console.warn('Could not read GPS prompt preference:', storageError);
+    }
+    setShowGpsPrompt(!dismissed);
+  }, [formData.latitude, formData.longitude, isProfileLoaded]);
+
+  const dismissGpsPrompt = () => {
+    setShowGpsPrompt(false);
+    try {
+      window.localStorage.setItem(PROFILE_GPS_PROMPT_DISMISSED_KEY, 'true');
+    } catch (storageError) {
+      console.warn('Could not save GPS prompt preference:', storageError);
+    }
+  };
 
   const handleInputChange = (field: keyof ProfileFormData, value: string | string[]) => {
     setFormData(prev => ({
@@ -192,6 +224,7 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
           longitude,
           geocodeStatus: 'GPS_CAPTURED'
         }));
+        dismissGpsPrompt();
         setSuccess('Current GPS location captured. Save profile to persist it.');
       },
       (geoError) => {
@@ -787,8 +820,21 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
                 maxLength={100}
                 className="form-input"
               />
-              <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
-                <button type="button" className="cancel-btn" onClick={handleUseCurrentGps}>
+              {showGpsPrompt && (
+                <div className="gps-onboarding-prompt">
+                  <p>Use current GPS for nearby listings and stronger location matching.</p>
+                  <div className="profile-location-actions">
+                    <button type="button" className="profile-location-btn" onClick={handleUseCurrentGps}>
+                      Use Current GPS
+                    </button>
+                    <button type="button" className="profile-location-btn subtle" onClick={dismissGpsPrompt}>
+                      Not now
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div className="profile-location-actions">
+                <button type="button" className="profile-location-btn" onClick={handleUseCurrentGps}>
                   Use Current GPS
                 </button>
                 <small className="field-help">

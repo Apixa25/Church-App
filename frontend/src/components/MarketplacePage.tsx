@@ -293,7 +293,9 @@ const MarketplacePage: React.FC = () => {
               <option key={miles} value={miles}>{miles} miles</option>
             ))}
           </select>
-          <button type="button" onClick={handleUseCurrentLocation}>Use Current GPS</button>
+          <button type="button" className="marketplace-location-btn-compact" onClick={handleUseCurrentLocation}>
+            Use Current GPS
+          </button>
           <select
             value={postTypeFilter}
             onChange={(e) => setPostTypeFilter(e.target.value as MarketplacePostType | 'ALL')}
