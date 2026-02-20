@@ -29,6 +29,29 @@ const postTypeOptions: Array<{ value: MarketplacePostType; label: string }> = [
   { value: 'ASK', label: 'Ask' }
 ];
 
+const categoryOptions = [
+  'Furniture',
+  'Electronics',
+  'Home & Garden',
+  'Clothing & Shoes',
+  'Baby & Kids',
+  'Sports & Outdoors',
+  'Automotive',
+  'Tools & Hardware',
+  'Health & Beauty',
+  'Pet Supplies',
+  'Books & Media',
+  'Toys & Games',
+  'Office Supplies',
+  'Appliances',
+  'Jewelry & Accessories',
+  'Musical Instruments',
+  'Collectibles',
+  'Other'
+];
+
+const conditionOptions = ['New', 'Good', 'Fair', 'Needs Repair'];
+
 const RADIUS_MILES_OPTIONS = [5, 10, 15, 25, 50];
 const MIN_LATITUDE = -90;
 const MAX_LATITUDE = 90;
@@ -146,6 +169,18 @@ const MarketplaceListingForm: React.FC<MarketplaceListingFormProps> = ({
     if (!title.trim()) {
       setError('Title is required.');
       console.warn('[MarketplaceListingForm] submit:blocked - empty title');
+      return;
+    }
+
+    if (!category.trim()) {
+      setError('Please choose a category.');
+      console.warn('[MarketplaceListingForm] submit:blocked - missing category');
+      return;
+    }
+
+    if (!itemCondition.trim()) {
+      setError('Please choose an item condition.');
+      console.warn('[MarketplaceListingForm] submit:blocked - missing condition');
       return;
     }
 
@@ -276,22 +311,32 @@ const MarketplaceListingForm: React.FC<MarketplaceListingFormProps> = ({
 
         <label>
           Category
-          <input
-            type="text"
+          <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            placeholder="Example: Furniture, Childcare, Tools"
-          />
+          >
+            <option value="">Select category</option>
+            {categoryOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label>
           Condition
-          <input
-            type="text"
+          <select
             value={itemCondition}
             onChange={(e) => setItemCondition(e.target.value)}
-            placeholder="New, Good, Fair, Needs Repair"
-          />
+          >
+            <option value="">Select condition</option>
+            {conditionOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label>
