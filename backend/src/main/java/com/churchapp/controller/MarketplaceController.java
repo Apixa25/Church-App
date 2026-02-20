@@ -54,6 +54,9 @@ public class MarketplaceController {
         @RequestParam(required = false) BigDecimal minPrice,
         @RequestParam(required = false) BigDecimal maxPrice,
         @RequestParam(required = false) String locationQuery,
+        @RequestParam(required = false) BigDecimal viewerLatitude,
+        @RequestParam(required = false) BigDecimal viewerLongitude,
+        @RequestParam(required = false) Double radiusMiles,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size,
         Authentication authentication
@@ -69,6 +72,9 @@ public class MarketplaceController {
             minPrice,
             maxPrice,
             locationQuery,
+            viewerLatitude,
+            viewerLongitude,
+            radiusMiles,
             page,
             size
         );

@@ -87,6 +87,9 @@ const MarketplaceList: React.FC<MarketplaceListProps> = ({
                 <span>👤 {listing.ownerName}</span>
                 {listing.category && <span>🏷️ {listing.category}</span>}
                 {listing.locationLabel && <span>📍 {listing.locationLabel}</span>}
+                {listing.distanceMiles !== undefined && listing.distanceMiles !== null && (
+                  <span>📏 {listing.distanceMiles.toFixed(1)} mi away</span>
+                )}
                 <span>⏱️ {formatRelativeDate(listing.createdAt)}</span>
               </div>
 

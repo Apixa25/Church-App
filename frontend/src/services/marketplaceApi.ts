@@ -24,6 +24,11 @@ export interface MarketplaceListing {
   currency: string;
   locationLabel?: string;
   distanceRadiusKm?: number;
+  latitude?: number;
+  longitude?: number;
+  locationSource?: string;
+  geocodeStatus?: string;
+  distanceMiles?: number;
   imageUrls: string[];
   viewCount: number;
   interestCount: number;
@@ -48,6 +53,10 @@ export interface MarketplaceListingRequest {
   currency?: string;
   locationLabel?: string;
   distanceRadiusKm?: number;
+  latitude?: number;
+  longitude?: number;
+  locationSource?: string;
+  geocodeStatus?: string;
   imageUrls?: string[];
   expiresAt?: string;
   organizationId?: string;
@@ -75,6 +84,9 @@ export interface MarketplaceFilters {
   minPrice?: number;
   maxPrice?: number;
   locationQuery?: string;
+  viewerLatitude?: number;
+  viewerLongitude?: number;
+  radiusMiles?: number;
   page?: number;
   size?: number;
 }

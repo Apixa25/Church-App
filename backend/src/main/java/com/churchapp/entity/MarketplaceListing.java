@@ -72,6 +72,18 @@ public class MarketplaceListing {
     @Column(name = "distance_radius_km")
     private Integer distanceRadiusKm;
 
+    @Column(name = "latitude", precision = 9, scale = 6)
+    private BigDecimal latitude;
+
+    @Column(name = "longitude", precision = 9, scale = 6)
+    private BigDecimal longitude;
+
+    @Column(name = "location_source", length = 30)
+    private String locationSource;
+
+    @Column(name = "geocode_status", length = 50)
+    private String geocodeStatus;
+
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(
         name = "marketplace_listing_images",

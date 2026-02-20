@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useActiveContext } from '../contexts/ActiveContextContext';
+import { useAuth } from '../contexts/AuthContext';
 import marketplaceApi, {
   MarketplaceListing,
   MarketplaceListingRequest,
@@ -20,16 +21,22 @@ const sectionTabs: Array<{ id: MarketplaceSectionType; label: string; emoji: str
 ];
 
 const isListingOwner = (listing: MarketplaceListing): boolean => Boolean(listing.isOwner ?? listing.owner);
+const RADIUS_MILES_OPTIONS = [5, 10, 15, 25, 50];
 
 const MarketplacePage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { activeOrganizationId } = useActiveContext();
+  const { user } = useAuth();
 
   const [activeSection, setActiveSection] = useState<MarketplaceSectionType>('FOR_SALE');
   const [postTypeFilter, setPostTypeFilter] = useState<MarketplacePostType | 'ALL'>('ALL');
   const [query, setQuery] = useState('');
   const [locationQuery, setLocationQuery] = useState('');
+  const [radiusMiles, setRadiusMiles] = useState<number>(10);
+  const [useNearbyFilter, setUseNearbyFilter] = useState<boolean>(true);
+  const [viewerLatitude, setViewerLatitude] = useState<number | undefined>(user?.latitude);
+  const [viewerLongitude, setViewerLongitude] = useState<number | undefined>(user?.longitude);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [error, setError] = useState('');
@@ -42,9 +49,19 @@ const MarketplacePage: React.FC = () => {
     status: 'ACTIVE' as MarketplaceListingStatus,
     query: query || undefined,
     locationQuery: locationQuery || undefined,
+    viewerLatitude: useNearbyFilter ? viewerLatitude : undefined,
+    viewerLongitude: useNearbyFilter ? viewerLongitude : undefined,
+    radiusMiles: useNearbyFilter ? radiusMiles : undefined,
     page,
     size: 18
-  }), [activeOrganizationId, activeSection, postTypeFilter, query, locationQuery, page]);
+  }), [activeOrganizationId, activeSection, postTypeFilter, query, locationQuery, useNearbyFilter, viewerLatitude, viewerLongitude, radiusMiles, page]);
+
+  useEffect(() => {
+    if (user?.latitude != null && user?.longitude != null) {
+      setViewerLatitude(user.latitude);
+      setViewerLongitude(user.longitude);
+    }
+  }, [user?.latitude, user?.longitude]);
 
   useEffect(() => {
     console.log('[MarketplacePage] filters updated', filters);
@@ -180,6 +197,29 @@ const MarketplacePage: React.FC = () => {
     }
   };
 
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by this browser.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setViewerLatitude(position.coords.latitude);
+        setViewerLongitude(position.coords.longitude);
+        setUseNearbyFilter(true);
+      },
+      (geoError) => {
+        setError(`Unable to capture your location: ${geoError.message}`);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
+
   return (
     <div className="marketplace-page">
       <button
@@ -236,6 +276,24 @@ const MarketplacePage: React.FC = () => {
             onChange={(e) => setLocationQuery(e.target.value)}
             placeholder="Location preference"
           />
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <input
+              type="checkbox"
+              checked={useNearbyFilter}
+              onChange={(e) => setUseNearbyFilter(e.target.checked)}
+            />
+            Near me
+          </label>
+          <select
+            value={radiusMiles}
+            onChange={(e) => setRadiusMiles(Number(e.target.value))}
+            disabled={!useNearbyFilter}
+          >
+            {RADIUS_MILES_OPTIONS.map((miles) => (
+              <option key={miles} value={miles}>{miles} miles</option>
+            ))}
+          </select>
+          <button type="button" onClick={handleUseCurrentLocation}>Use Current GPS</button>
           <select
             value={postTypeFilter}
             onChange={(e) => setPostTypeFilter(e.target.value as MarketplacePostType | 'ALL')}

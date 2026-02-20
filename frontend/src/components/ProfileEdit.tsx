@@ -173,6 +173,38 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
     setSuccess('');
   };
 
+  const handleUseCurrentGps = () => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by this browser.');
+      return;
+    }
+
+    setError('');
+    setSuccess('');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const latitude = position.coords.latitude.toFixed(6);
+        const longitude = position.coords.longitude.toFixed(6);
+
+        setFormData(prev => ({
+          ...prev,
+          latitude,
+          longitude,
+          geocodeStatus: 'GPS_CAPTURED'
+        }));
+        setSuccess('Current GPS location captured. Save profile to persist it.');
+      },
+      (geoError) => {
+        setError(`Unable to capture your location: ${geoError.message}`);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
+
   const handleProfilePicChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -755,6 +787,16 @@ const ProfileEdit: React.FC<ProfileEditProps> = ({
                 maxLength={100}
                 className="form-input"
               />
+              <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+                <button type="button" className="cancel-btn" onClick={handleUseCurrentGps}>
+                  Use Current GPS
+                </button>
+                <small className="field-help">
+                  {formData.latitude && formData.longitude
+                    ? `Coordinates: ${formData.latitude}, ${formData.longitude}`
+                    : 'No coordinates saved yet'}
+                </small>
+              </div>
             </div>
 
             <div className="form-group">

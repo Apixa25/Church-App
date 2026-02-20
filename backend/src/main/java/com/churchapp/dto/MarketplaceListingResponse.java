@@ -36,6 +36,11 @@ public class MarketplaceListingResponse {
     private String currency;
     private String locationLabel;
     private Integer distanceRadiusKm;
+    private BigDecimal latitude;
+    private BigDecimal longitude;
+    private String locationSource;
+    private String geocodeStatus;
+    private Double distanceMiles;
     private List<String> imageUrls;
 
     private Integer viewCount;

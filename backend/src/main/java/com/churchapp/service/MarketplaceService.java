@@ -60,6 +60,10 @@ public class MarketplaceService {
         listing.setCurrency((request.getCurrency() == null || request.getCurrency().isBlank()) ? "USD" : request.getCurrency().toUpperCase());
         listing.setLocationLabel(safeTrim(request.getLocationLabel()));
         listing.setDistanceRadiusKm(request.getDistanceRadiusKm());
+        listing.setLatitude(resolveListingLatitude(request.getLatitude(), user));
+        listing.setLongitude(resolveListingLongitude(request.getLongitude(), user));
+        listing.setLocationSource(normalizeLocationSource(request.getLocationSource(), request.getLatitude(), request.getLongitude()));
+        listing.setGeocodeStatus(safeTrim(request.getGeocodeStatus()));
         listing.setImageUrls(normalizeImageUrls(request.getImageUrls()));
         listing.setExpiresAt(request.getExpiresAt());
         listing.setStatus(MarketplaceListingStatus.ACTIVE);
@@ -69,7 +73,7 @@ public class MarketplaceService {
         MarketplaceListing saved = marketplaceListingRepository.save(listing);
         log.info("Marketplace createListing success: listingId={}, sectionType={}, ownerUserId={}",
             saved.getId(), saved.getSectionType(), user.getId());
-        return toResponse(saved, user.getId(), 0.0d);
+        return toResponse(saved, user.getId(), 0.0d, null);
     }
 
     @Transactional(readOnly = true)
@@ -82,7 +86,7 @@ public class MarketplaceService {
             throw new RuntimeException("Marketplace listing not available");
         }
 
-        return toResponse(listing, viewer.getId(), calculateRankingScore(listing, null));
+        return toResponse(listing, viewer.getId(), calculateRankingScore(listing, null), null);
     }
 
     public MarketplaceListingResponse updateListing(String userEmail, UUID listingId, MarketplaceListingUpdateRequest request) {
@@ -122,6 +126,18 @@ public class MarketplaceService {
         if (request.getDistanceRadiusKm() != null) {
             listing.setDistanceRadiusKm(request.getDistanceRadiusKm());
         }
+        if (request.getLatitude() != null) {
+            listing.setLatitude(request.getLatitude());
+        }
+        if (request.getLongitude() != null) {
+            listing.setLongitude(request.getLongitude());
+        }
+        if (request.getLocationSource() != null) {
+            listing.setLocationSource(safeTrim(request.getLocationSource()));
+        }
+        if (request.getGeocodeStatus() != null) {
+            listing.setGeocodeStatus(safeTrim(request.getGeocodeStatus()));
+        }
         if (request.getImageUrls() != null) {
             listing.setImageUrls(normalizeImageUrls(request.getImageUrls()));
         }
@@ -138,7 +154,7 @@ public class MarketplaceService {
         validatePricingRules(listing.getSectionType(), listing.getPriceAmount());
 
         MarketplaceListing saved = marketplaceListingRepository.save(listing);
-        return toResponse(saved, user.getId(), calculateRankingScore(saved, null));
+        return toResponse(saved, user.getId(), calculateRankingScore(saved, null), null);
     }
 
     public MarketplaceListingResponse updateStatus(String userEmail, UUID listingId, MarketplaceListingStatus status) {
@@ -152,7 +168,7 @@ public class MarketplaceService {
             listing.setCompletedAt(LocalDateTime.now());
         }
         MarketplaceListing saved = marketplaceListingRepository.save(listing);
-        return toResponse(saved, user.getId(), calculateRankingScore(saved, null));
+        return toResponse(saved, user.getId(), calculateRankingScore(saved, null), null);
     }
 
     public void deleteListing(String userEmail, UUID listingId) {
@@ -236,11 +252,14 @@ public class MarketplaceService {
         BigDecimal minPrice,
         BigDecimal maxPrice,
         String locationQuery,
+        BigDecimal viewerLatitude,
+        BigDecimal viewerLongitude,
+        Double radiusMiles,
         int page,
         int size
     ) {
-        log.info("Marketplace getListings start: userEmail={}, organizationId={}, sectionType={}, postType={}, status={}, category={}, query={}, minPrice={}, maxPrice={}, page={}, size={}",
-            userEmail, organizationId, sectionType, postType, status, category, query, minPrice, maxPrice, page, size);
+        log.info("Marketplace getListings start: userEmail={}, organizationId={}, sectionType={}, postType={}, status={}, category={}, query={}, minPrice={}, maxPrice={}, radiusMiles={}, page={}, size={}",
+            userEmail, organizationId, sectionType, postType, status, category, query, minPrice, maxPrice, radiusMiles, page, size);
         User viewer = getUserByEmail(userEmail);
         List<UUID> blockedUserIds = userBlockService.getMutuallyBlockedUserIds(viewer.getId());
         boolean excludeBlocked = blockedUserIds != null && !blockedUserIds.isEmpty();
@@ -266,8 +285,22 @@ public class MarketplaceService {
             pageable
         );
 
+        BigDecimal effectiveViewerLatitude = viewerLatitude != null ? viewerLatitude : viewer.getLatitude();
+        BigDecimal effectiveViewerLongitude = viewerLongitude != null ? viewerLongitude : viewer.getLongitude();
+        boolean applyRadiusFilter = radiusMiles != null && radiusMiles > 0
+            && effectiveViewerLatitude != null && effectiveViewerLongitude != null;
+
         List<MarketplaceListingResponse> responses = listings.getContent().stream()
-            .map(listing -> toResponse(listing, viewer.getId(), calculateRankingScore(listing, locationQuery)))
+            .filter(listing -> !applyRadiusFilter || isWithinRadius(listing, effectiveViewerLatitude, effectiveViewerLongitude, radiusMiles))
+            .map(listing -> {
+                Double distanceMiles = calculateDistanceMiles(
+                    effectiveViewerLatitude,
+                    effectiveViewerLongitude,
+                    listing.getLatitude(),
+                    listing.getLongitude()
+                );
+                return toResponse(listing, viewer.getId(), calculateRankingScore(listing, locationQuery), distanceMiles);
+            })
             .sorted(Comparator.comparing(MarketplaceListingResponse::getRankingScore, Comparator.nullsLast(Double::compareTo)).reversed())
             .toList();
 
@@ -372,7 +405,7 @@ public class MarketplaceService {
         return blockedUserIds != null && blockedUserIds.contains(ownerId);
     }
 
-    private MarketplaceListingResponse toResponse(MarketplaceListing listing, UUID viewerId, Double score) {
+    private MarketplaceListingResponse toResponse(MarketplaceListing listing, UUID viewerId, Double score, Double distanceMiles) {
         User owner = listing.getOwner();
         Organization organization = listing.getOrganization();
         return MarketplaceListingResponse.builder()
@@ -395,6 +428,11 @@ public class MarketplaceService {
             .currency(listing.getCurrency())
             .locationLabel(listing.getLocationLabel())
             .distanceRadiusKm(listing.getDistanceRadiusKm())
+            .latitude(listing.getLatitude())
+            .longitude(listing.getLongitude())
+            .locationSource(listing.getLocationSource())
+            .geocodeStatus(listing.getGeocodeStatus())
+            .distanceMiles(distanceMiles == null ? null : roundToTwoDecimals(distanceMiles))
             .imageUrls(listing.getImageUrls() == null ? List.of() : listing.getImageUrls())
             .viewCount(listing.getViewCount())
             .interestCount(listing.getInterestCount())
@@ -406,6 +444,47 @@ public class MarketplaceService {
             .createdAt(listing.getCreatedAt())
             .updatedAt(listing.getUpdatedAt())
             .build();
+    }
+
+    private BigDecimal resolveListingLatitude(BigDecimal requestedLatitude, User user) {
+        return requestedLatitude != null ? requestedLatitude : user.getLatitude();
+    }
+
+    private BigDecimal resolveListingLongitude(BigDecimal requestedLongitude, User user) {
+        return requestedLongitude != null ? requestedLongitude : user.getLongitude();
+    }
+
+    private String normalizeLocationSource(String locationSource, BigDecimal latitude, BigDecimal longitude) {
+        String normalized = safeTrim(locationSource);
+        if (normalized != null) {
+            return normalized;
+        }
+        return (latitude != null && longitude != null) ? "LISTING_PROVIDED_OR_PROFILE_DEFAULT" : null;
+    }
+
+    private boolean isWithinRadius(MarketplaceListing listing, BigDecimal viewerLatitude, BigDecimal viewerLongitude, Double radiusMiles) {
+        Double distance = calculateDistanceMiles(viewerLatitude, viewerLongitude, listing.getLatitude(), listing.getLongitude());
+        return distance != null && distance <= radiusMiles;
+    }
+
+    private Double calculateDistanceMiles(BigDecimal viewerLatitude, BigDecimal viewerLongitude, BigDecimal listingLatitude, BigDecimal listingLongitude) {
+        if (viewerLatitude == null || viewerLongitude == null || listingLatitude == null || listingLongitude == null) {
+            return null;
+        }
+
+        double lat1 = Math.toRadians(viewerLatitude.doubleValue());
+        double lon1 = Math.toRadians(viewerLongitude.doubleValue());
+        double lat2 = Math.toRadians(listingLatitude.doubleValue());
+        double lon2 = Math.toRadians(listingLongitude.doubleValue());
+
+        double dLat = lat2 - lat1;
+        double dLon = lon2 - lon1;
+
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+            + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        double earthRadiusMiles = 3958.7613;
+        return earthRadiusMiles * c;
     }
 
     private double calculateRankingScore(MarketplaceListing listing, String locationQuery) {

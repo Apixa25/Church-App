@@ -37,6 +37,16 @@ public class MarketplaceListingUpdateRequest {
 
     private Integer distanceRadiusKm;
 
+    private BigDecimal latitude;
+
+    private BigDecimal longitude;
+
+    @Size(max = 30)
+    private String locationSource;
+
+    @Size(max = 50)
+    private String geocodeStatus;
+
     private List<String> imageUrls;
 
     private MarketplaceListingStatus status;

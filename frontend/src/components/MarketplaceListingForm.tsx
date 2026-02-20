@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import MediaUploader from './MediaUploader';
 import { MediaFile } from '../types/Post';
 import { uploadMediaDirect } from '../services/postApi';
@@ -8,6 +8,7 @@ import {
   MarketplacePostType,
   MarketplaceSectionType
 } from '../services/marketplaceApi';
+import { useAuth } from '../contexts/AuthContext';
 import { useActiveContext } from '../contexts/ActiveContextContext';
 import './MarketplaceListingForm.css';
 
@@ -28,12 +29,27 @@ const postTypeOptions: Array<{ value: MarketplacePostType; label: string }> = [
   { value: 'ASK', label: 'Ask' }
 ];
 
+const RADIUS_MILES_OPTIONS = [5, 10, 15, 25, 50];
+
 const MarketplaceListingForm: React.FC<MarketplaceListingFormProps> = ({
   initialValue,
   onSave,
   onCancel
 }) => {
+  const { user } = useAuth();
   const { activeOrganizationId } = useActiveContext();
+  const profileLocationLabel = useMemo(() => {
+    if (user?.location) return user.location;
+    const cityState = [user?.city, user?.stateProvince].filter(Boolean).join(', ');
+    return cityState || '';
+  }, [user?.city, user?.location, user?.stateProvince]);
+
+  const initialRadiusMiles = useMemo(() => {
+    if (!initialValue?.distanceRadiusKm) return '10';
+    const miles = Math.max(1, Math.round(initialValue.distanceRadiusKm / 1.60934));
+    return String(miles);
+  }, [initialValue?.distanceRadiusKm]);
+
   const [sectionType, setSectionType] = useState<MarketplaceSectionType>(initialValue?.sectionType || 'SHARING');
   const [postType, setPostType] = useState<MarketplacePostType>(initialValue?.postType || 'GIVE');
   const [title, setTitle] = useState(initialValue?.title || '');
@@ -41,14 +57,70 @@ const MarketplaceListingForm: React.FC<MarketplaceListingFormProps> = ({
   const [category, setCategory] = useState(initialValue?.category || '');
   const [itemCondition, setItemCondition] = useState(initialValue?.itemCondition || '');
   const [priceAmount, setPriceAmount] = useState(initialValue?.priceAmount?.toString() || '');
-  const [locationLabel, setLocationLabel] = useState(initialValue?.locationLabel || '');
-  const [distanceRadiusKm, setDistanceRadiusKm] = useState(initialValue?.distanceRadiusKm?.toString() || '');
+  const [locationLabel, setLocationLabel] = useState(initialValue?.locationLabel || profileLocationLabel);
+  const [distanceRadiusMiles, setDistanceRadiusMiles] = useState(initialRadiusMiles);
+  const [latitude, setLatitude] = useState<number | undefined>(initialValue?.latitude ?? user?.latitude);
+  const [longitude, setLongitude] = useState<number | undefined>(initialValue?.longitude ?? user?.longitude);
+  const [locationSource, setLocationSource] = useState<string>(
+    initialValue?.locationSource || (user?.latitude != null && user?.longitude != null ? 'PROFILE_DEFAULT' : 'MANUAL')
+  );
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
   const isForSale = sectionType === 'FOR_SALE';
   const titleLimitRemaining = useMemo(() => Math.max(0, 140 - title.length), [title.length]);
+
+  useEffect(() => {
+    if (initialValue) return;
+    if (!locationLabel && profileLocationLabel) {
+      setLocationLabel(profileLocationLabel);
+    }
+    if (latitude == null && user?.latitude != null) {
+      setLatitude(user.latitude);
+    }
+    if (longitude == null && user?.longitude != null) {
+      setLongitude(user.longitude);
+    }
+  }, [initialValue, latitude, locationLabel, longitude, profileLocationLabel, user?.latitude, user?.longitude]);
+
+  const handleUseProfileLocation = () => {
+    if (!user) {
+      setError('Please sign in to use profile location defaults.');
+      return;
+    }
+
+    const fallbackLabel = profileLocationLabel || locationLabel;
+    setLocationLabel(fallbackLabel);
+    setLatitude(user.latitude);
+    setLongitude(user.longitude);
+    setLocationSource('PROFILE_DEFAULT');
+    setError('');
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by this browser.');
+      return;
+    }
+
+    setError('');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLatitude(position.coords.latitude);
+        setLongitude(position.coords.longitude);
+        setLocationSource('BROWSER_GPS');
+      },
+      (geoError) => {
+        setError(`Unable to capture your location: ${geoError.message}`);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -59,6 +131,10 @@ const MarketplaceListingForm: React.FC<MarketplaceListingFormProps> = ({
       hasDescription: Boolean(description.trim()),
       category,
       locationLabel,
+      distanceRadiusMiles,
+      latitude,
+      longitude,
+      locationSource,
       mediaCount: mediaFiles.length,
       activeOrganizationId
     });
@@ -103,7 +179,11 @@ const MarketplaceListingForm: React.FC<MarketplaceListingFormProps> = ({
         priceAmount: isForSale ? Number(priceAmount) : undefined,
         currency: isForSale ? 'USD' : undefined,
         locationLabel: locationLabel.trim() || undefined,
-        distanceRadiusKm: distanceRadiusKm ? Number(distanceRadiusKm) : undefined,
+        distanceRadiusKm: distanceRadiusMiles ? Math.round(Number(distanceRadiusMiles) * 1.60934) : undefined,
+        latitude,
+        longitude,
+        locationSource,
+        geocodeStatus: latitude != null && longitude != null ? 'COORDINATES_CAPTURED' : undefined,
         imageUrls: uploadedImageUrls,
         organizationId: activeOrganizationId || undefined
       };
@@ -200,17 +280,29 @@ const MarketplaceListingForm: React.FC<MarketplaceListingFormProps> = ({
             onChange={(e) => setLocationLabel(e.target.value)}
             placeholder="General area only (no exact address)"
           />
+          <small>
+            {latitude != null && longitude != null
+              ? `Coordinates attached (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`
+              : 'No coordinates attached yet'}
+          </small>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+            <button type="button" onClick={handleUseProfileLocation}>Use Profile Location</button>
+            <button type="button" onClick={handleUseCurrentLocation}>Use Current GPS</button>
+          </div>
         </label>
 
         <label>
-          Radius (km)
-          <input
-            type="number"
-            min={1}
-            value={distanceRadiusKm}
-            onChange={(e) => setDistanceRadiusKm(e.target.value)}
-            placeholder="10"
-          />
+          Radius (miles)
+          <select
+            value={distanceRadiusMiles}
+            onChange={(e) => setDistanceRadiusMiles(e.target.value)}
+          >
+            {RADIUS_MILES_OPTIONS.map((miles) => (
+              <option key={miles} value={String(miles)}>
+                {miles} miles
+              </option>
+            ))}
+          </select>
         </label>
 
         <label>
