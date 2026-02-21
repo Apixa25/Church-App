@@ -21,6 +21,7 @@ interface Organization {
   memberCount?: number;
   primaryMemberCount?: number;
   stripeConnectAccountId?: string;
+  metadata?: Record<string, any>;
 }
 
 interface GroupData {
@@ -83,6 +84,17 @@ const AdminOrganizationManagement: React.FC = () => {
   const [stripeStatuses, setStripeStatuses] = useState<Record<string, StripeAccountStatus>>({});
   const [membersOrg, setMembersOrg] = useState<Organization | null>(null);
   const [showingGroups, setShowingGroups] = useState(false);
+
+  const getOrgMetadataValue = (org: Organization, key: string): any => {
+    if (!org.metadata || typeof org.metadata !== 'object') return undefined;
+    return org.metadata[key];
+  };
+
+  const isOrgPendingBankingReview = (org: Organization): boolean => {
+    const bankingReviewStatus = String(getOrgMetadataValue(org, 'bankingReviewStatus') || '');
+    const hasStripeAccount = Boolean(org.stripeConnectAccountId && org.stripeConnectAccountId.trim());
+    return bankingReviewStatus.toUpperCase() === 'PENDING_CONTACT' && !hasStripeAccount;
+  };
 
   useEffect(() => {
     if (filterType === 'GROUPS') {
@@ -440,6 +452,8 @@ const AdminOrganizationManagement: React.FC = () => {
     return matchesSearch;
   });
 
+  const pendingBankingReviewOrganizations = organizations.filter(isOrgPendingBankingReview);
+
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -569,6 +583,35 @@ const AdminOrganizationManagement: React.FC = () => {
       </Controls>
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
+
+      {!showingGroups && pendingBankingReviewOrganizations.length > 0 && (
+        <BankingQueueCard>
+          <BankingQueueHeader>
+            <h3>🏦 Banking Outreach Queue</h3>
+            <span>{pendingBankingReviewOrganizations.length} pending</span>
+          </BankingQueueHeader>
+          {pendingBankingReviewOrganizations.slice(0, 6).map(org => (
+            <BankingQueueItem key={org.id}>
+              <div>
+                <strong>{org.name}</strong>
+                <p>
+                  Admin: {String(getOrgMetadataValue(org, 'adminContactName') || 'Not provided')} •{' '}
+                  {String(getOrgMetadataValue(org, 'adminContactEmail') || 'No email')} •{' '}
+                  {String(getOrgMetadataValue(org, 'adminContactPhone') || 'No phone')}
+                </p>
+              </div>
+              <DonationButton
+                onClick={() => setStripeConnectOrg(org)}
+                title="Start Stripe Connect setup"
+                $status="not-configured"
+              >
+                <StripeStatusBadge $status="not-configured">⚠</StripeStatusBadge>
+                💳 Setup Banking
+              </DonationButton>
+            </BankingQueueItem>
+          ))}
+        </BankingQueueCard>
+      )}
 
       {isLoading ? (
         <LoadingMessage>Loading {showingGroups ? 'groups' : 'organizations'}...</LoadingMessage>
@@ -753,6 +796,7 @@ const AdminOrganizationManagement: React.FC = () => {
                       const isFullyConfigured = stripeStatus?.chargesEnabled && stripeStatus?.payoutsEnabled;
                       const hasAccount = org.stripeConnectAccountId;
                       const needsOnboarding = hasAccount && !isFullyConfigured;
+                      const pendingBankingReview = isOrgPendingBankingReview(org);
                       
                       let title = "Setup Stripe Connect for donations";
                       let statusBadge = "⚠";
@@ -766,6 +810,10 @@ const AdminOrganizationManagement: React.FC = () => {
                         title = "Complete Stripe onboarding to accept donations";
                         statusBadge = "⏳";
                         buttonStatus = 'pending';
+                      } else if (pendingBankingReview) {
+                        title = "Banking outreach pending - contact admin and complete Stripe setup";
+                        statusBadge = "📨";
+                        buttonStatus = 'not-configured';
                       }
                       
                       return (
@@ -850,6 +898,52 @@ const Controls = styled.div`
   display: flex;
   gap: 12px;
   margin-bottom: 20px;
+`;
+
+const BankingQueueCard = styled.div`
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: var(--border-radius-md);
+  padding: 16px;
+  margin-bottom: 20px;
+`;
+
+const BankingQueueHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    color: var(--text-primary);
+  }
+
+  span {
+    font-size: 13px;
+    color: var(--warning);
+    font-weight: 600;
+  }
+`;
+
+const BankingQueueItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border-primary);
+
+  &:first-of-type {
+    border-top: none;
+  }
+
+  p {
+    margin: 4px 0 0 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
 `;
 
 const SearchInput = styled.input`

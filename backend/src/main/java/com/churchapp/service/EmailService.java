@@ -1,6 +1,8 @@
 package com.churchapp.service;
 
 import com.churchapp.entity.Donation;
+import com.churchapp.entity.Organization;
+import com.churchapp.entity.User;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -391,6 +393,35 @@ public class EmailService {
     }
 
     /**
+     * Send new organization notification to support/platform owner so banking outreach can begin.
+     */
+    public void sendNewOrganizationBankingReviewNotification(Organization organization, User creator) {
+        if (!emailEnabled) {
+            log.info("📧 [EMAIL DISABLED] Would send new organization banking review notification for org {}",
+                organization.getId());
+            return;
+        }
+
+        try {
+            log.info("Sending new organization banking review notification for org {}", organization.getId());
+
+            MimeMessage emailMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(emailMessage, false, "UTF-8");
+
+            helper.setFrom(fromEmail, churchName);
+            helper.setTo(churchEmail);
+            helper.setSubject(String.format("New Organization Created - Banking Review Needed: %s", organization.getName()));
+            helper.setText(buildNewOrganizationNotificationBody(organization, creator), true);
+
+            mailSender.send(emailMessage);
+            log.info("New organization banking review notification sent for org {}", organization.getId());
+        } catch (Exception e) {
+            log.error("Failed to send new organization banking review notification for org {}: {}",
+                organization.getId(), e.getMessage(), e);
+        }
+    }
+
+    /**
      * Send account deletion confirmation email
      */
     public void sendAccountDeletionConfirmationEmail(String userName, String userEmail,
@@ -492,6 +523,67 @@ public class EmailService {
             </html>
             """,
             userName, churchName, confirmationUrl, churchEmail, churchEmail
+        );
+    }
+
+    private String buildNewOrganizationNotificationBody(Organization organization, User creator) {
+        java.util.Map<String, Object> metadata = organization.getMetadata() != null
+            ? organization.getMetadata()
+            : java.util.Collections.emptyMap();
+        String adminName = String.valueOf(metadata.getOrDefault("adminContactName", "Not provided"));
+        String adminPhone = String.valueOf(metadata.getOrDefault("adminContactPhone", "Not provided"));
+        String adminEmail = String.valueOf(metadata.getOrDefault("adminContactEmail", "Not provided"));
+        String adminAddress = String.valueOf(metadata.getOrDefault("adminContactAddress", "Not provided"));
+        String bankingStatus = String.valueOf(metadata.getOrDefault("bankingReviewStatus", "PENDING_CONTACT"));
+
+        return String.format("""
+            <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 700px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #4682B4;">New Organization Created - Banking Outreach Needed</h2>
+                    <p>A new organization has been created and is pending Stripe/banking outreach.</p>
+
+                    <div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #4682B4; margin: 20px 0;">
+                        <h3 style="margin-top: 0;">Organization Details</h3>
+                        <ul style="margin-bottom: 0;">
+                            <li><strong>Organization:</strong> %s</li>
+                            <li><strong>Organization ID:</strong> %s</li>
+                            <li><strong>Slug:</strong> %s</li>
+                            <li><strong>Type:</strong> %s</li>
+                            <li><strong>Created At:</strong> %s</li>
+                            <li><strong>Banking Review Status:</strong> %s</li>
+                        </ul>
+                    </div>
+
+                    <div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #8b5cf6; margin: 20px 0;">
+                        <h3 style="margin-top: 0;">Creator + Admin Contact</h3>
+                        <ul style="margin-bottom: 0;">
+                            <li><strong>Creator Name:</strong> %s</li>
+                            <li><strong>Creator Email:</strong> %s</li>
+                            <li><strong>Admin Name:</strong> %s</li>
+                            <li><strong>Admin Phone:</strong> %s</li>
+                            <li><strong>Admin Email:</strong> %s</li>
+                            <li><strong>Admin Address:</strong> %s</li>
+                        </ul>
+                    </div>
+
+                    <p>Please contact this organization promptly if they want Stripe/banking connected for donations.</p>
+                </div>
+            </body>
+            </html>
+            """,
+            organization.getName(),
+            organization.getId(),
+            organization.getSlug(),
+            organization.getType() != null ? organization.getType().name() : "UNKNOWN",
+            organization.getCreatedAt(),
+            bankingStatus,
+            creator.getName(),
+            creator.getEmail(),
+            adminName,
+            adminPhone,
+            adminEmail,
+            adminAddress
         );
     }
 }

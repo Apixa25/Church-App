@@ -60,6 +60,15 @@ public class StripeSubscriptionService {
             throw new RuntimeException("Cannot create subscription without an organization. Please select an organization first.");
         }
 
+        // Policy: family organizations cannot collect donations unless explicitly approved.
+        if (organization.getType() == Organization.OrganizationType.FAMILY) {
+            boolean familyDonationsApproved = organization.getMetadata() != null
+                && Boolean.TRUE.equals(organization.getMetadata().get("familyDonationsApproved"));
+            if (!familyDonationsApproved) {
+                throw new RuntimeException("Donations are disabled for family organizations until explicitly approved.");
+            }
+        }
+
         // Get or create Stripe customer
         Customer customer = stripeCustomerService.getOrCreateCustomer(user);
 

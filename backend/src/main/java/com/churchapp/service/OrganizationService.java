@@ -38,6 +38,7 @@ public class OrganizationService {
     private final DonationRepository donationRepository;
     private final DonationSubscriptionRepository donationSubscriptionRepository;
     private final GroupRepository groupRepository;
+    private final EmailService emailService;
 
     // Cooldown removed! Users can now switch organizations freely like real life!
     // private static final int ORG_SWITCH_COOLDOWN_DAYS = 30;  // DEPRECATED - no more cooldown
@@ -104,6 +105,18 @@ public class OrganizationService {
         organization.setCreatedAt(LocalDateTime.now());
         organization.setUpdatedAt(LocalDateTime.now());
 
+        // Ensure required banking-review metadata exists on every newly created organization.
+        java.util.Map<String, Object> metadata = organization.getMetadata() != null
+            ? new java.util.HashMap<>(organization.getMetadata())
+            : new java.util.HashMap<>();
+        metadata.putIfAbsent("bankingReviewStatus", "PENDING_CONTACT");
+        metadata.putIfAbsent("bankingReviewCreatedAt", LocalDateTime.now().toString());
+        metadata.putIfAbsent("familyDonationsApproved", false);
+        metadata.putIfAbsent("creatorUserId", creator.getId().toString());
+        metadata.putIfAbsent("creatorName", creator.getName());
+        metadata.putIfAbsent("creatorEmail", creator.getEmail());
+        organization.setMetadata(metadata);
+
         Organization saved = organizationRepository.save(organization);
         log.info("Organization created successfully: {} (ID: {})", saved.getName(), saved.getId());
 
@@ -134,6 +147,14 @@ public class OrganizationService {
             log.info("User {} set as Church Primary ORG_ADMIN of organization {}", creator.getId(), saved.getId());
         }
         userRepository.save(creator);
+
+        // Notify platform owner/support so banking outreach can start immediately.
+        try {
+            emailService.sendNewOrganizationBankingReviewNotification(saved, creator);
+        } catch (Exception e) {
+            // Do not fail organization creation if email delivery fails.
+            log.warn("Failed to send new organization banking notification for org {}: {}", saved.getId(), e.getMessage());
+        }
 
         return saved;
     }

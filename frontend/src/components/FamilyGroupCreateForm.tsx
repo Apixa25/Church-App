@@ -16,6 +16,10 @@ const FamilyGroupCreateForm: React.FC<FamilyGroupCreateFormProps> = ({ onSuccess
   const [nameType, setNameType] = useState<'text' | 'emoji'>('text');
   const [textName, setTextName] = useState('');
   const [emojiName, setEmojiName] = useState('');
+  const [adminContactName, setAdminContactName] = useState('');
+  const [adminContactPhone, setAdminContactPhone] = useState('');
+  const [adminContactEmail, setAdminContactEmail] = useState('');
+  const [adminContactAddress, setAdminContactAddress] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -141,6 +145,27 @@ const FamilyGroupCreateForm: React.FC<FamilyGroupCreateFormProps> = ({ onSuccess
       }
     }
 
+    if (!adminContactName.trim()) {
+      setError('Administrator name is required');
+      return;
+    }
+    if (!adminContactPhone.trim()) {
+      setError('Administrator phone is required');
+      return;
+    }
+    if (!adminContactEmail.trim()) {
+      setError('Administrator email is required');
+      return;
+    }
+    if (!/\S+@\S+\.\S+/.test(adminContactEmail.trim())) {
+      setError('Please enter a valid administrator email');
+      return;
+    }
+    if (!adminContactAddress.trim()) {
+      setError('Administrator address is required');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -174,6 +199,10 @@ const FamilyGroupCreateForm: React.FC<FamilyGroupCreateFormProps> = ({ onSuccess
       formData.append('name', finalName);
       formData.append('slug', slug);
       formData.append('type', 'FAMILY');
+      formData.append('adminContactName', adminContactName.trim());
+      formData.append('adminContactPhone', adminContactPhone.trim());
+      formData.append('adminContactEmail', adminContactEmail.trim());
+      formData.append('adminContactAddress', adminContactAddress.trim());
       formData.append('description', `Family group created by user`);
       
       // Append logo file if selected
@@ -200,6 +229,10 @@ const FamilyGroupCreateForm: React.FC<FamilyGroupCreateFormProps> = ({ onSuccess
       setTextName('');
       setEmojiName('');
       setNameType('text');
+      setAdminContactName('');
+      setAdminContactPhone('');
+      setAdminContactEmail('');
+      setAdminContactAddress('');
       setLogoFile(null);
       setLogoPreview(null);
     } catch (err: any) {
@@ -228,6 +261,7 @@ const FamilyGroupCreateForm: React.FC<FamilyGroupCreateFormProps> = ({ onSuccess
         <div>
           <strong>Create Your Family Group</strong>
           <p>Start a family group to connect with your extended family! You can use regular text or choose emojis as your family name. Perfect for families with multiple last names!</p>
+          <p>Administrator contact details are required so banking and accountability outreach can be handled quickly.</p>
           <p style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
             <strong>Example:</strong> Instead of "The Sills Family", you could use "❤️🍌🐵" to represent all family members regardless of last name.
           </p>
@@ -341,6 +375,57 @@ const FamilyGroupCreateForm: React.FC<FamilyGroupCreateFormProps> = ({ onSuccess
             </FormGroup>
           </>
         )}
+
+        <FormGroup>
+          <Label htmlFor="adminContactName">Administrator Name *</Label>
+          <Input
+            type="text"
+            id="adminContactName"
+            value={adminContactName}
+            onChange={(e) => setAdminContactName(e.target.value)}
+            placeholder="e.g., Jane Doe"
+            required
+            disabled={isSubmitting}
+          />
+        </FormGroup>
+
+        <FormGroup>
+          <Label htmlFor="adminContactPhone">Administrator Phone *</Label>
+          <Input
+            type="tel"
+            id="adminContactPhone"
+            value={adminContactPhone}
+            onChange={(e) => setAdminContactPhone(e.target.value)}
+            placeholder="e.g., (555) 123-4567"
+            required
+            disabled={isSubmitting}
+          />
+        </FormGroup>
+
+        <FormGroup>
+          <Label htmlFor="adminContactEmail">Administrator Email *</Label>
+          <Input
+            type="email"
+            id="adminContactEmail"
+            value={adminContactEmail}
+            onChange={(e) => setAdminContactEmail(e.target.value)}
+            placeholder="e.g., admin@example.org"
+            required
+            disabled={isSubmitting}
+          />
+        </FormGroup>
+
+        <FormGroup>
+          <Label htmlFor="adminContactAddress">Administrator Address *</Label>
+          <TextArea
+            id="adminContactAddress"
+            value={adminContactAddress}
+            onChange={(e) => setAdminContactAddress(e.target.value)}
+            placeholder="Street, city, state/province, postal code, country"
+            required
+            disabled={isSubmitting}
+          />
+        </FormGroup>
 
         <FormGroup>
           <Label htmlFor="logo">Organization Logo / Profile Picture</Label>
@@ -476,6 +561,28 @@ const Input = styled.input`
   transition: border-color 0.2s;
   background: var(--bg-secondary, white);
   color: var(--text-primary, #333);
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent-primary, #4a90e2);
+  }
+
+  &:disabled {
+    background: var(--bg-tertiary, #f5f5f5);
+    cursor: not-allowed;
+  }
+`;
+
+const TextArea = styled.textarea`
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid var(--border-primary, #ddd);
+  border-radius: var(--border-radius-md, 4px);
+  transition: border-color 0.2s;
+  background: var(--bg-secondary, white);
+  color: var(--text-primary, #333);
+  min-height: 70px;
+  resize: vertical;
 
   &:focus {
     outline: none;

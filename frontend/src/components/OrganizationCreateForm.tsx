@@ -22,6 +22,10 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({
   const [slug, setSlug] = useState('');
   const [type, setType] = useState<'CHURCH' | 'MINISTRY' | 'NONPROFIT' | 'FAMILY' | 'GENERAL'>('CHURCH');
   const [description, setDescription] = useState('');
+  const [adminContactName, setAdminContactName] = useState('');
+  const [adminContactPhone, setAdminContactPhone] = useState('');
+  const [adminContactEmail, setAdminContactEmail] = useState('');
+  const [adminContactAddress, setAdminContactAddress] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -99,6 +103,31 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({
       return;
     }
 
+    if (!adminContactName.trim()) {
+      setError('Administrator name is required');
+      return;
+    }
+
+    if (!adminContactPhone.trim()) {
+      setError('Administrator phone is required');
+      return;
+    }
+
+    if (!adminContactEmail.trim()) {
+      setError('Administrator email is required');
+      return;
+    }
+
+    if (!/\S+@\S+\.\S+/.test(adminContactEmail.trim())) {
+      setError('Please enter a valid administrator email');
+      return;
+    }
+
+    if (!adminContactAddress.trim()) {
+      setError('Administrator address is required');
+      return;
+    }
+
     // Validate slug format
     if (!/^[a-z0-9-]+$/.test(slug)) {
       setError('Slug can only contain lowercase letters, numbers, and hyphens');
@@ -115,6 +144,10 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({
       formData.append('name', name.trim());
       formData.append('slug', slug.trim());
       formData.append('type', type);
+      formData.append('adminContactName', adminContactName.trim());
+      formData.append('adminContactPhone', adminContactPhone.trim());
+      formData.append('adminContactEmail', adminContactEmail.trim());
+      formData.append('adminContactAddress', adminContactAddress.trim());
       if (description.trim()) {
         formData.append('description', description.trim());
       }
@@ -142,6 +175,10 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({
       setSlug('');
       setType('CHURCH');
       setDescription('');
+      setAdminContactName('');
+      setAdminContactPhone('');
+      setAdminContactEmail('');
+      setAdminContactAddress('');
       setLogoFile(null);
       setLogoPreview(null);
       setSlugTouched(false);
@@ -168,7 +205,8 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({
         <div>
           <strong>You will become the Organization Admin</strong>
           <p>As the creator, you'll automatically receive full administrative control over this organization. 
-          You can manage members, content, donations, and all organization settings.</p>
+          You can manage members, content, donations, and all organization settings. Administrator contact
+          details are required so banking outreach can happen quickly when needed.</p>
         </div>
       </InfoMessage>
 
@@ -234,6 +272,58 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Describe this organization..."
             rows={3}
+            disabled={isSubmitting}
+          />
+        </FormGroup>
+
+        <FormGroup>
+          <Label htmlFor="adminContactName">Administrator Name *</Label>
+          <Input
+            type="text"
+            id="adminContactName"
+            value={adminContactName}
+            onChange={(e) => setAdminContactName(e.target.value)}
+            placeholder="e.g., Jane Doe"
+            required
+            disabled={isSubmitting}
+          />
+        </FormGroup>
+
+        <FormGroup>
+          <Label htmlFor="adminContactPhone">Administrator Phone *</Label>
+          <Input
+            type="tel"
+            id="adminContactPhone"
+            value={adminContactPhone}
+            onChange={(e) => setAdminContactPhone(e.target.value)}
+            placeholder="e.g., (555) 123-4567"
+            required
+            disabled={isSubmitting}
+          />
+        </FormGroup>
+
+        <FormGroup>
+          <Label htmlFor="adminContactEmail">Administrator Email *</Label>
+          <Input
+            type="email"
+            id="adminContactEmail"
+            value={adminContactEmail}
+            onChange={(e) => setAdminContactEmail(e.target.value)}
+            placeholder="e.g., admin@example.org"
+            required
+            disabled={isSubmitting}
+          />
+        </FormGroup>
+
+        <FormGroup>
+          <Label htmlFor="adminContactAddress">Administrator Address *</Label>
+          <TextArea
+            id="adminContactAddress"
+            value={adminContactAddress}
+            onChange={(e) => setAdminContactAddress(e.target.value)}
+            placeholder="Street, city, state/province, postal code, country"
+            rows={2}
+            required
             disabled={isSubmitting}
           />
         </FormGroup>

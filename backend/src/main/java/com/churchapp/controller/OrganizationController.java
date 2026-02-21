@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.UUID;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @RestController
@@ -50,6 +51,8 @@ public class OrganizationController {
         Organization.OrganizationType.FAMILY,
         Organization.OrganizationType.GENERAL
     );
+    private static final Pattern SIMPLE_EMAIL_PATTERN =
+        Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
 
     // Helper method to get user ID from Spring Security User
     private UUID getUserId(User securityUser) {
@@ -68,12 +71,55 @@ public class OrganizationController {
     // ORGANIZATION CRUD
     // ========================================================================
 
+    private void validateAdminContactFields(
+            String adminContactName,
+            String adminContactPhone,
+            String adminContactEmail,
+            String adminContactAddress) {
+        if (adminContactName == null || adminContactName.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Administrator name is required");
+        }
+        if (adminContactPhone == null || adminContactPhone.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Administrator phone is required");
+        }
+        if (adminContactEmail == null || adminContactEmail.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Administrator email is required");
+        }
+        if (!SIMPLE_EMAIL_PATTERN.matcher(adminContactEmail.trim()).matches()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Administrator email must be valid");
+        }
+        if (adminContactAddress == null || adminContactAddress.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Administrator address is required");
+        }
+    }
+
+    private Map<String, Object> buildMetadataWithAdminContact(
+            String description,
+            String adminContactName,
+            String adminContactPhone,
+            String adminContactEmail,
+            String adminContactAddress) {
+        Map<String, Object> metadata = new HashMap<>();
+        if (description != null && !description.trim().isEmpty()) {
+            metadata.put("description", description.trim());
+        }
+        metadata.put("adminContactName", adminContactName.trim());
+        metadata.put("adminContactPhone", adminContactPhone.trim());
+        metadata.put("adminContactEmail", adminContactEmail.trim());
+        metadata.put("adminContactAddress", adminContactAddress.trim());
+        return metadata;
+    }
+
     @PostMapping(consumes = {"multipart/form-data"})
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<OrganizationResponse> createOrganization(
             @RequestParam("name") String name,
             @RequestParam("slug") String slug,
             @RequestParam("type") String type,
+            @RequestParam("adminContactName") String adminContactName,
+            @RequestParam("adminContactPhone") String adminContactPhone,
+            @RequestParam("adminContactEmail") String adminContactEmail,
+            @RequestParam("adminContactAddress") String adminContactAddress,
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "logo", required = false) MultipartFile logoFile,
             @AuthenticationPrincipal User userDetails) {
@@ -81,6 +127,13 @@ public class OrganizationController {
         log.info("Creating organization: {} by system admin: {}", name, userDetails.getUsername());
 
         try {
+            validateAdminContactFields(
+                adminContactName,
+                adminContactPhone,
+                adminContactEmail,
+                adminContactAddress
+            );
+
             // Upload logo if provided
             String logoUrl = null;
             if (logoFile != null && !logoFile.isEmpty()) {
@@ -96,12 +149,13 @@ public class OrganizationController {
             request.setType(type);
             request.setLogoUrl(logoUrl);
             
-            // Add description to metadata if provided
-            if (description != null && !description.trim().isEmpty()) {
-                Map<String, Object> metadata = new HashMap<>();
-                metadata.put("description", description.trim());
-                request.setMetadata(metadata);
-            }
+            request.setMetadata(buildMetadataWithAdminContact(
+                description,
+                adminContactName,
+                adminContactPhone,
+                adminContactEmail,
+                adminContactAddress
+            ));
 
             Organization org = request.toOrganization();
             com.churchapp.entity.User creator = getCurrentUserEntity(userDetails);
@@ -124,6 +178,12 @@ public class OrganizationController {
             @AuthenticationPrincipal User userDetails) {
 
         log.info("Creating organization (JSON): {} by system admin: {}", request.getName(), userDetails.getUsername());
+        validateAdminContactFields(
+            request.getAdminContactName(),
+            request.getAdminContactPhone(),
+            request.getAdminContactEmail(),
+            request.getAdminContactAddress()
+        );
 
         Organization org = request.toOrganization();
         com.churchapp.entity.User creator = getCurrentUserEntity(userDetails);
@@ -138,6 +198,10 @@ public class OrganizationController {
             @RequestParam("name") String name,
             @RequestParam("slug") String slug,
             @RequestParam("type") String type,
+            @RequestParam("adminContactName") String adminContactName,
+            @RequestParam("adminContactPhone") String adminContactPhone,
+            @RequestParam("adminContactEmail") String adminContactEmail,
+            @RequestParam("adminContactAddress") String adminContactAddress,
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "logo", required = false) MultipartFile logoFile,
             @AuthenticationPrincipal User userDetails) {
@@ -145,6 +209,13 @@ public class OrganizationController {
         log.info("User {} creating organization: {}", userDetails.getUsername(), name);
 
         try {
+            validateAdminContactFields(
+                adminContactName,
+                adminContactPhone,
+                adminContactEmail,
+                adminContactAddress
+            );
+
             Organization.OrganizationType requestedType;
             try {
                 requestedType = Organization.OrganizationType.valueOf(type.toUpperCase());
@@ -172,11 +243,13 @@ public class OrganizationController {
             request.setType(requestedType.name());
             request.setLogoUrl(logoUrl);
 
-            if (description != null && !description.trim().isEmpty()) {
-                Map<String, Object> metadata = new HashMap<>();
-                metadata.put("description", description.trim());
-                request.setMetadata(metadata);
-            }
+            request.setMetadata(buildMetadataWithAdminContact(
+                description,
+                adminContactName,
+                adminContactPhone,
+                adminContactEmail,
+                adminContactAddress
+            ));
 
             Organization org = request.toOrganization();
             com.churchapp.entity.User creator = getCurrentUserEntity(userDetails);
@@ -205,6 +278,10 @@ public class OrganizationController {
     public ResponseEntity<OrganizationResponse> createFamilyGroup(
             @RequestParam("name") String name,
             @RequestParam("slug") String slug,
+            @RequestParam("adminContactName") String adminContactName,
+            @RequestParam("adminContactPhone") String adminContactPhone,
+            @RequestParam("adminContactEmail") String adminContactEmail,
+            @RequestParam("adminContactAddress") String adminContactAddress,
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "logo", required = false) MultipartFile logoFile,
             @AuthenticationPrincipal User userDetails) {
@@ -212,6 +289,13 @@ public class OrganizationController {
         log.info("Creating family group: {} by user: {}", name, userDetails.getUsername());
 
         try {
+            validateAdminContactFields(
+                adminContactName,
+                adminContactPhone,
+                adminContactEmail,
+                adminContactAddress
+            );
+
             // Upload logo if provided
             String logoUrl = null;
             if (logoFile != null && !logoFile.isEmpty()) {
@@ -230,12 +314,13 @@ public class OrganizationController {
             request.setType("FAMILY"); // Force FAMILY type
             request.setLogoUrl(logoUrl);
             
-            // Add description to metadata if provided
-            if (description != null && !description.trim().isEmpty()) {
-                Map<String, Object> metadata = new HashMap<>();
-                metadata.put("description", description.trim());
-                request.setMetadata(metadata);
-            }
+            request.setMetadata(buildMetadataWithAdminContact(
+                description,
+                adminContactName,
+                adminContactPhone,
+                adminContactEmail,
+                adminContactAddress
+            ));
 
             Organization org = request.toOrganization();
             

@@ -71,6 +71,15 @@ public class StripePaymentService {
             throw new RuntimeException("Organization " + organization.getName() + " has not configured donation processing. Please contact your organization administrator.");
         }
 
+        // Policy: family organizations cannot collect donations unless explicitly approved.
+        if (organization.getType() == Organization.OrganizationType.FAMILY) {
+            boolean familyDonationsApproved = organization.getMetadata() != null
+                && Boolean.TRUE.equals(organization.getMetadata().get("familyDonationsApproved"));
+            if (!familyDonationsApproved) {
+                throw new RuntimeException("Donations are disabled for family organizations until explicitly approved.");
+            }
+        }
+
         log.info("Routing donation to organization {} with Stripe Connect account {}",
             organization.getId(), organization.getStripeConnectAccountId());
 

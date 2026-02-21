@@ -35,6 +35,14 @@ public class OrganizationRequest {
     private UUID parentOrganizationId;
     private String logoUrl;
 
+    private String adminContactName;
+
+    private String adminContactPhone;
+
+    private String adminContactEmail;
+
+    private String adminContactAddress;
+
     public Organization toOrganization() {
         Organization org = new Organization();
         org.setName(this.name);
@@ -56,7 +64,27 @@ public class OrganizationRequest {
         org.setStatus(Organization.OrganizationStatus.TRIAL);
 
         org.setSettings(this.settings);
-        org.setMetadata(this.metadata);
+
+        // Preserve existing metadata and include admin contact details when provided.
+        Map<String, Object> mergedMetadata = new java.util.HashMap<>();
+        if (this.metadata != null) {
+            mergedMetadata.putAll(this.metadata);
+        }
+        if (this.adminContactName != null && !this.adminContactName.trim().isEmpty()) {
+            mergedMetadata.put("adminContactName", this.adminContactName.trim());
+        }
+        if (this.adminContactPhone != null && !this.adminContactPhone.trim().isEmpty()) {
+            mergedMetadata.put("adminContactPhone", this.adminContactPhone.trim());
+        }
+        if (this.adminContactEmail != null && !this.adminContactEmail.trim().isEmpty()) {
+            mergedMetadata.put("adminContactEmail", this.adminContactEmail.trim());
+        }
+        if (this.adminContactAddress != null && !this.adminContactAddress.trim().isEmpty()) {
+            mergedMetadata.put("adminContactAddress", this.adminContactAddress.trim());
+        }
+        if (!mergedMetadata.isEmpty()) {
+            org.setMetadata(mergedMetadata);
+        }
 
         // Parent org relationship set separately by service layer
 
