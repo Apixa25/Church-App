@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useActiveContext } from '../contexts/ActiveContextContext';
 import { useOrganization } from '../contexts/OrganizationContext';
+import { getApiUrl } from '../config/runtimeConfig';
+import { convertImageToJpeg } from '../utils/imageUtils';
 import AdminModeration from './AdminModeration';
 import AdminOrganizationManagement from './AdminOrganizationManagement';
 import AnalyticsDashboard from './AnalyticsDashboard';
@@ -23,6 +27,9 @@ import {
 } from '../services/adminApi';
 import './AdminDashboard.css';
 
+const API_BASE_URL = getApiUrl();
+const MAX_LOGO_UPLOAD_BYTES = 1024 * 1024; // 1MB safety cap for reliability
+
 interface AdminDashboardProps {
   initialTab?: 'overview' | 'users' | 'organizations' | 'content' | 'analytics' | 'metrics' | 'audit' | 'settings';
 }
@@ -40,6 +47,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoUploadStatus, setLogoUploadStatus] = useState<string>('');
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [currentOrgLogoUrl, setCurrentOrgLogoUrl] = useState<string | null>(null);
+  const [logoRefreshKey, setLogoRefreshKey] = useState<number>(Date.now());
 
   // Filters and pagination
   const [userSearch, setUserSearch] = useState('');
@@ -174,11 +187,112 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   // Check if user has any admin access (Platform Admin, Moderator, or Org Admin)
-  const { allMemberships } = useOrganization();
+  const { allMemberships, getOrganizationById } = useOrganization();
+  const { activeOrganizationId, activeOrganizationName, activeContext } = useActiveContext();
   const isPlatformAdmin = currentUser?.role === 'PLATFORM_ADMIN';
   const isModerator = currentUser?.role === 'MODERATOR';
   const isOrgAdmin = allMemberships.some(membership => membership.role === 'ORG_ADMIN');
+  const activeOrgAdminMembership = allMemberships.find(
+    membership => membership.organizationId === activeOrganizationId && membership.role === 'ORG_ADMIN'
+  );
+  const canManageActiveOrgLogo = Boolean(
+    activeOrganizationId && (isPlatformAdmin || activeOrgAdminMembership)
+  );
   const hasAdminAccess = isPlatformAdmin || isModerator || isOrgAdmin;
+
+  useEffect(() => {
+    const loadCurrentOrgLogo = async () => {
+      if (!activeOrganizationId || activeContext === 'group' || activeContext === 'gathering') {
+        setCurrentOrgLogoUrl(null);
+        return;
+      }
+
+      try {
+        const org = await getOrganizationById(activeOrganizationId);
+        setCurrentOrgLogoUrl(org.logoUrl || null);
+      } catch (err) {
+        console.warn('Failed to load active organization logo from API, using membership fallback:', err);
+        setCurrentOrgLogoUrl(activeOrgAdminMembership?.organizationLogoUrl || null);
+      }
+    };
+
+    loadCurrentOrgLogo();
+  }, [activeOrganizationId, activeContext, getOrganizationById, activeOrgAdminMembership?.organizationLogoUrl]);
+
+  const handleLogoFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setLogoUploadStatus('Please select an image file.');
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      setLogoUploadStatus('Please choose an image smaller than 20MB.');
+      return;
+    }
+
+    let processedFile = file;
+    try {
+      processedFile = await convertImageToJpeg(file, 1024, 1024, 0.82);
+      if (processedFile.size > MAX_LOGO_UPLOAD_BYTES) {
+        processedFile = await convertImageToJpeg(processedFile, 768, 768, 0.74);
+      }
+    } catch (processingError) {
+      console.warn('Admin logo processing failed, using original file:', processingError);
+    }
+
+    if (processedFile.size > MAX_LOGO_UPLOAD_BYTES) {
+      setLogoUploadStatus('Logo is still too large after optimization. Please choose a smaller image (~1MB or less).');
+      return;
+    }
+
+    setLogoFile(processedFile);
+    setLogoUploadStatus(`Ready to upload: ${processedFile.name} (${(processedFile.size / 1024).toFixed(0)} KB)`);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setLogoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(processedFile);
+  };
+
+  const handleUploadOrganizationLogo = async () => {
+    if (!activeOrganizationId || !logoFile || !canManageActiveOrgLogo) return;
+
+    try {
+      setLogoUploading(true);
+      setLogoUploadStatus('');
+
+      const token = localStorage.getItem('authToken');
+      const formData = new FormData();
+      formData.append('logo', logoFile);
+
+      const response = await axios.put(`${API_BASE_URL}/organizations/${activeOrganizationId}`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      setCurrentOrgLogoUrl(response.data?.logoUrl || null);
+      setLogoRefreshKey(Date.now());
+      setLogoFile(null);
+      setLogoPreview(null);
+      setLogoUploadStatus('Organization logo updated successfully.');
+    } catch (err: any) {
+      console.error('Failed to update organization logo:', err);
+      if (err.response?.status === 413) {
+        setLogoUploadStatus('Logo upload is too large for the server gateway. Please choose a smaller image.');
+      } else if (err.response?.status === 403) {
+        setLogoUploadStatus('You do not have permission to update this organization logo.');
+      } else {
+        setLogoUploadStatus(err.response?.data?.message || 'Failed to update logo. Please try again.');
+      }
+    } finally {
+      setLogoUploading(false);
+    }
+  };
 
   if (!currentUser || !hasAdminAccess) {
     return (
@@ -679,6 +793,65 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <div className="section-header">
               <h2>⚙️ Admin Settings</h2>
               <p>Configure system settings and preferences</p>
+            </div>
+
+            <div className="org-logo-settings">
+              <h3>🖼️ Organization Logo</h3>
+              <p className="org-logo-settings-help">
+                Manage the logo shown for your active organization context.
+              </p>
+
+              <div className="org-logo-panel">
+                <div className="org-logo-preview">
+                  {logoPreview ? (
+                    <img src={logoPreview} alt="New organization logo preview" />
+                  ) : currentOrgLogoUrl ? (
+                    <img
+                      src={`${currentOrgLogoUrl}${currentOrgLogoUrl.includes('?') ? '&' : '?'}v=${logoRefreshKey}`}
+                      alt="Current organization logo"
+                    />
+                  ) : (
+                    <div className="org-logo-placeholder">
+                      {(activeOrganizationName || 'ORG').slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+
+                <div className="org-logo-actions">
+                  <div className="org-logo-meta">
+                    <strong>
+                      {activeOrganizationName || 'No active organization selected'}
+                    </strong>
+                    <span>
+                      {canManageActiveOrgLogo
+                        ? 'Choose a logo image to update this organization.'
+                        : 'Switch to an organization where you are an ORG_ADMIN to change logo.'}
+                    </span>
+                  </div>
+
+                  <label className={`org-logo-file-label ${(!canManageActiveOrgLogo || logoUploading) ? 'disabled' : ''}`}>
+                    Select New Logo
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoFileChange}
+                      disabled={!canManageActiveOrgLogo || logoUploading}
+                    />
+                  </label>
+
+                  <button
+                    className="save-settings-btn"
+                    onClick={handleUploadOrganizationLogo}
+                    disabled={!canManageActiveOrgLogo || !logoFile || logoUploading}
+                  >
+                    {logoUploading ? '⏳ Uploading...' : '💾 Update Logo'}
+                  </button>
+                </div>
+              </div>
+
+              {logoUploadStatus && (
+                <div className="org-logo-status">{logoUploadStatus}</div>
+              )}
             </div>
 
             <div className="settings-grid">

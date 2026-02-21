@@ -4,6 +4,7 @@ import com.churchapp.dto.*;
 import com.churchapp.entity.Organization;
 import com.churchapp.entity.UserOrganizationMembership;
 import com.churchapp.repository.UserRepository;
+import com.churchapp.service.AdminAuthorizationService;
 import com.churchapp.service.AuditLogService;
 import com.churchapp.service.MetricsSnapshotService;
 import com.churchapp.service.OrganizationService;
@@ -43,6 +44,7 @@ public class OrganizationController {
     private final OrganizationService organizationService;
     private final UserRepository userRepository;
     private final FileUploadService fileUploadService;
+    private final AdminAuthorizationService adminAuthorizationService;
     private final com.churchapp.service.OrganizationMetricsService metricsService;
     private final MetricsSnapshotService metricsSnapshotService;
     private final StorageLimitService storageLimitService;
@@ -501,7 +503,7 @@ public class OrganizationController {
 
     // Update organization with logo upload (multipart/form-data)
     @PutMapping(value = "/{orgId}", consumes = {"multipart/form-data"})
-    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    @PreAuthorize("@adminAuthorizationService.hasAnyAdminAccess(principal)")
     public ResponseEntity<OrganizationResponse> updateOrganizationWithLogo(
             @PathVariable UUID orgId,
             @RequestParam(value = "name", required = false) String name,
@@ -511,6 +513,9 @@ public class OrganizationController {
         log.info("Updating organization {} logo by admin: {}", orgId, userDetails.getUsername());
 
         try {
+            com.churchapp.entity.User currentUser = getCurrentUserEntity(userDetails);
+            adminAuthorizationService.requireOrgAdminAccess(currentUser, orgId);
+
             Organization org = organizationService.getOrganizationById(orgId);
             
             // Upload new logo if provided

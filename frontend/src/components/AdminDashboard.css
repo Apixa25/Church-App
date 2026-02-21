@@ -714,6 +714,129 @@
   box-shadow: var(--shadow-md);
 }
 
+.org-logo-settings {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  padding: 1.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+}
+
+.org-logo-settings h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.org-logo-settings-help {
+  margin: 0 0 1rem 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.org-logo-panel {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.org-logo-preview {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.org-logo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.org-logo-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gradient-primary);
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.org-logo-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 280px;
+}
+
+.org-logo-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.org-logo-meta strong {
+  color: var(--text-primary);
+}
+
+.org-logo-meta span {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.org-logo-file-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: fit-content;
+  padding: 0.65rem 1rem;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-primary);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.org-logo-file-label input[type="file"] {
+  display: none;
+}
+
+.org-logo-file-label:hover {
+  border-color: var(--border-glow);
+  box-shadow: 0 0 12px var(--button-primary-glow);
+}
+
+.org-logo-file-label.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.org-logo-status {
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--border-radius-sm);
+  background: rgba(91, 127, 255, 0.12);
+  border: 1px solid rgba(91, 127, 255, 0.35);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
 .settings-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
