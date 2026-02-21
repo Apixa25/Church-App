@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { STRIPE_CONFIG, DonationCategory, RecurringFrequency } from '../config/stripe';
 import { useActiveContext } from '../contexts/ActiveContextContext';
+import { getApiUrl } from '../config/runtimeConfig';
 import AmountSelector from './AmountSelector';
 import CategorySelector from './CategorySelector';
 import RecurringSelector from './RecurringSelector';
@@ -15,6 +17,7 @@ import './DonationPage.css';
 
 // Initialize Stripe
 const stripePromise = loadStripe(STRIPE_CONFIG.publicKey);
+const API_BASE_URL = getApiUrl();
 
 interface DonationFormData {
   amount: number;
@@ -24,6 +27,14 @@ interface DonationFormData {
   isRecurring: boolean;
   frequency: RecurringFrequency;
   notes: string;
+}
+
+interface ActiveOrganizationDetails {
+  id: string;
+  name: string;
+  type: string;
+  stripeConnectAccountId?: string;
+  metadata?: Record<string, any>;
 }
 
 type DonationTab = 'donate' | 'history' | 'subscriptions';
@@ -49,8 +60,10 @@ const DonationPage: React.FC = () => {
     frequency: RecurringFrequency.MONTHLY,
     notes: '',
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeOrganization, setActiveOrganization] = useState<ActiveOrganizationDetails | null>(null);
+  const [isLoadingOrganization, setIsLoadingOrganization] = useState(false);
 
   // Update form data when location state changes
   useEffect(() => {
@@ -71,7 +84,68 @@ const DonationPage: React.FC = () => {
     }
   }, [locationState]);
 
+  useEffect(() => {
+    const fetchActiveOrganization = async () => {
+      if (!activeOrganizationId) {
+        setActiveOrganization(null);
+        return;
+      }
+
+      try {
+        setIsLoadingOrganization(true);
+        const token = localStorage.getItem('authToken');
+        const response = await axios.get(`${API_BASE_URL}/organizations/${activeOrganizationId}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        setActiveOrganization(response.data);
+      } catch (fetchError) {
+        console.error('Failed to fetch active organization details for donation checks:', fetchError);
+        setActiveOrganization(null);
+      } finally {
+        setIsLoadingOrganization(false);
+      }
+    };
+
+    fetchActiveOrganization();
+  }, [activeOrganizationId]);
+
+  const getDonationDisabledMessage = (): string | null => {
+    if (activeContext === 'group') {
+      return 'Donations are organization-scoped. Switch to a Church or Family context to donate.';
+    }
+    if (!activeOrganizationId) {
+      return 'No active organization selected. Choose an organization context to donate.';
+    }
+    if (isLoadingOrganization) {
+      return 'Checking donation setup for your organization...';
+    }
+    if (!activeOrganization) {
+      return 'Unable to verify donation setup right now. Please refresh and try again.';
+    }
+
+    const hasStripeConnectAccount = Boolean(activeOrganization.stripeConnectAccountId?.trim());
+    if (!hasStripeConnectAccount) {
+      return 'Donations are not enabled yet for this organization. Admin banking outreach has been triggered and setup is pending.';
+    }
+
+    if (activeOrganization.type === 'FAMILY') {
+      const familyDonationsApproved = Boolean(activeOrganization.metadata?.familyDonationsApproved === true);
+      if (!familyDonationsApproved) {
+        return 'Donations are disabled for Family organizations unless explicitly approved by platform administration.';
+      }
+    }
+
+    return null;
+  };
+
+  const donationDisabledMessage = getDonationDisabledMessage();
+  const canProceedToPayment = !donationDisabledMessage;
+
   const handleFormSubmit = (data: DonationFormData) => {
+    if (!canProceedToPayment) {
+      setError(donationDisabledMessage || 'Donations are currently unavailable for this organization.');
+      return;
+    }
     setFormData(data);
     setStep('payment');
     setError(null);
@@ -170,11 +244,20 @@ const DonationPage: React.FC = () => {
                 </div>
               )}
 
+              {donationDisabledMessage && (
+                <div className="donation-status-message">
+                  <span className="donation-status-icon">ℹ️</span>
+                  <span>{donationDisabledMessage}</span>
+                </div>
+              )}
+
               {step === 'form' && (
                 <DonationForm
                   initialData={formData}
                   onSubmit={handleFormSubmit}
                   isLoading={isLoading}
+                  disableSubmission={!canProceedToPayment}
+                  disabledMessage={donationDisabledMessage}
                 />
               )}
 
@@ -234,9 +317,17 @@ interface DonationFormProps {
   initialData: DonationFormData;
   onSubmit: (data: DonationFormData) => void;
   isLoading: boolean;
+  disableSubmission?: boolean;
+  disabledMessage?: string | null;
 }
 
-const DonationForm: React.FC<DonationFormProps> = ({ initialData, onSubmit, isLoading }) => {
+const DonationForm: React.FC<DonationFormProps> = ({
+  initialData,
+  onSubmit,
+  isLoading,
+  disableSubmission = false,
+  disabledMessage = null,
+}) => {
   const [formData, setFormData] = useState<DonationFormData>(initialData);
   const [errors, setErrors] = useState<Partial<DonationFormData>>({});
 
@@ -348,9 +439,10 @@ const DonationForm: React.FC<DonationFormProps> = ({ initialData, onSubmit, isLo
         <button
           type="submit"
           className="btn btn-primary btn-large"
-          disabled={isLoading || !formData.amount}
+          disabled={isLoading || !formData.amount || disableSubmission}
+          title={disableSubmission && disabledMessage ? disabledMessage : undefined}
         >
-          {isLoading ? 'Processing...' : 'Continue to Payment'}
+          {isLoading ? 'Processing...' : disableSubmission ? 'Donations Temporarily Unavailable' : 'Continue to Payment'}
         </button>
       </div>
     </form>

@@ -216,6 +216,24 @@
   flex-shrink: 0;
 }
 
+.donation-status-message {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem;
+  padding: 1rem 1.25rem;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid var(--warning);
+  border-radius: var(--border-radius-md);
+  color: var(--warning);
+  font-weight: 500;
+}
+
+.donation-status-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
 .error-close {
   background: none;
   border: none;

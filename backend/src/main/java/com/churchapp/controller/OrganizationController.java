@@ -4,6 +4,7 @@ import com.churchapp.dto.*;
 import com.churchapp.entity.Organization;
 import com.churchapp.entity.UserOrganizationMembership;
 import com.churchapp.repository.UserRepository;
+import com.churchapp.service.AuditLogService;
 import com.churchapp.service.MetricsSnapshotService;
 import com.churchapp.service.OrganizationService;
 import com.churchapp.service.StorageLimitService;
@@ -22,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import com.churchapp.service.FileUploadService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -44,6 +46,7 @@ public class OrganizationController {
     private final com.churchapp.service.OrganizationMetricsService metricsService;
     private final MetricsSnapshotService metricsSnapshotService;
     private final StorageLimitService storageLimitService;
+    private final AuditLogService auditLogService;
     private static final Set<Organization.OrganizationType> USER_CREATABLE_ORG_TYPES = Set.of(
         Organization.OrganizationType.CHURCH,
         Organization.OrganizationType.MINISTRY,
@@ -110,6 +113,32 @@ public class OrganizationController {
         return metadata;
     }
 
+    private void logCreateOrganizationPendingBankingReview(
+            com.churchapp.entity.User creator,
+            Organization createdOrg,
+            String adminContactName,
+            String adminContactEmail,
+            HttpServletRequest servletRequest) {
+        Map<String, String> details = new HashMap<>();
+        details.put("organizationId", String.valueOf(createdOrg.getId()));
+        details.put("organizationName", createdOrg.getName());
+        details.put("organizationType", createdOrg.getType() != null ? createdOrg.getType().name() : "UNKNOWN");
+        details.put("bankingReviewStatus", "PENDING_CONTACT");
+        details.put("creatorUserId", String.valueOf(creator.getId()));
+        details.put("creatorEmail", creator.getEmail());
+        details.put("adminContactName", adminContactName != null ? adminContactName : "");
+        details.put("adminContactEmail", adminContactEmail != null ? adminContactEmail : "");
+
+        auditLogService.logAction(
+            creator.getId(),
+            "CREATE_ORGANIZATION_PENDING_BANKING_REVIEW",
+            details,
+            "ORGANIZATION",
+            createdOrg.getId(),
+            servletRequest
+        );
+    }
+
     @PostMapping(consumes = {"multipart/form-data"})
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<OrganizationResponse> createOrganization(
@@ -122,7 +151,8 @@ public class OrganizationController {
             @RequestParam("adminContactAddress") String adminContactAddress,
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "logo", required = false) MultipartFile logoFile,
-            @AuthenticationPrincipal User userDetails) {
+            @AuthenticationPrincipal User userDetails,
+            HttpServletRequest servletRequest) {
 
         log.info("Creating organization: {} by system admin: {}", name, userDetails.getUsername());
 
@@ -160,6 +190,13 @@ public class OrganizationController {
             Organization org = request.toOrganization();
             com.churchapp.entity.User creator = getCurrentUserEntity(userDetails);
             Organization created = organizationService.createOrganization(org, creator);
+            logCreateOrganizationPendingBankingReview(
+                creator,
+                created,
+                adminContactName,
+                adminContactEmail,
+                servletRequest
+            );
 
             OrganizationResponse response = OrganizationResponse.fromOrganization(created);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -175,7 +212,8 @@ public class OrganizationController {
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public ResponseEntity<OrganizationResponse> createOrganizationJson(
             @Valid @RequestBody OrganizationRequest request,
-            @AuthenticationPrincipal User userDetails) {
+            @AuthenticationPrincipal User userDetails,
+            HttpServletRequest servletRequest) {
 
         log.info("Creating organization (JSON): {} by system admin: {}", request.getName(), userDetails.getUsername());
         validateAdminContactFields(
@@ -188,6 +226,13 @@ public class OrganizationController {
         Organization org = request.toOrganization();
         com.churchapp.entity.User creator = getCurrentUserEntity(userDetails);
         Organization created = organizationService.createOrganization(org, creator);
+        logCreateOrganizationPendingBankingReview(
+            creator,
+            created,
+            request.getAdminContactName(),
+            request.getAdminContactEmail(),
+            servletRequest
+        );
 
         OrganizationResponse response = OrganizationResponse.fromOrganization(created);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -204,7 +249,8 @@ public class OrganizationController {
             @RequestParam("adminContactAddress") String adminContactAddress,
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "logo", required = false) MultipartFile logoFile,
-            @AuthenticationPrincipal User userDetails) {
+            @AuthenticationPrincipal User userDetails,
+            HttpServletRequest servletRequest) {
 
         log.info("User {} creating organization: {}", userDetails.getUsername(), name);
 
@@ -254,6 +300,13 @@ public class OrganizationController {
             Organization org = request.toOrganization();
             com.churchapp.entity.User creator = getCurrentUserEntity(userDetails);
             Organization created = organizationService.createOrganization(org, creator);
+            logCreateOrganizationPendingBankingReview(
+                creator,
+                created,
+                adminContactName,
+                adminContactEmail,
+                servletRequest
+            );
 
             OrganizationResponse response = OrganizationResponse.fromOrganization(created);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -284,7 +337,8 @@ public class OrganizationController {
             @RequestParam("adminContactAddress") String adminContactAddress,
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "logo", required = false) MultipartFile logoFile,
-            @AuthenticationPrincipal User userDetails) {
+            @AuthenticationPrincipal User userDetails,
+            HttpServletRequest servletRequest) {
 
         log.info("Creating family group: {} by user: {}", name, userDetails.getUsername());
 
@@ -331,6 +385,13 @@ public class OrganizationController {
 
             // Create the organization with the creator
             Organization created = organizationService.createOrganization(org, creator);
+            logCreateOrganizationPendingBankingReview(
+                creator,
+                created,
+                adminContactName,
+                adminContactEmail,
+                servletRequest
+            );
 
             OrganizationResponse response = OrganizationResponse.fromOrganization(created);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
