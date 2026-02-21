@@ -599,13 +599,10 @@ const OrganizationBrowser: React.FC = () => {
 
   // Infinite scroll state for browse mode
   const [allOrganizations, setAllOrganizations] = useState<Organization[]>([]); // Full browse list
-  const [currentPage, setCurrentPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [showCreateOrganizationModal, setShowCreateOrganizationModal] = useState(false);
-  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Same curated list of family-friendly emojis from FamilyGroupCreateForm
   const familyEmojis = [
@@ -630,24 +627,14 @@ const OrganizationBrowser: React.FC = () => {
 
   // Load more organizations for infinite scroll (browse mode)
   const loadMoreOrganizations = async () => {
-    if (isLoadingRef.current || !hasMore) return;
+    if (isLoadingRef.current) return;
     isLoadingRef.current = true;
     setLoadingMore(true);
 
     try {
-      const result = await getAllOrganizations(currentPage, 7);
-
-      if (result.content.length < 7) {
-        setHasMore(false);
-      }
-
-      // Deduplicate by id when adding new organizations
-      setAllOrganizations(prev => {
-        const existingIds = new Set(prev.map(org => org.id));
-        const newOrgs = result.content.filter(org => !existingIds.has(org.id));
-        return [...prev, ...newOrgs];
-      });
-      setCurrentPage(prev => prev + 1);
+      // Load everything in one request so "Find Organizations" reflects the full system list.
+      const result = await getAllOrganizations(0, 1000);
+      setAllOrganizations(result.content || []);
       setInitialLoadDone(true);
     } catch (err) {
       console.error('Error loading organizations:', err);
@@ -663,24 +650,6 @@ const OrganizationBrowser: React.FC = () => {
       loadMoreOrganizations();
     }
   }, []);
-
-  // Intersection Observer for infinite scroll
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoadingRef.current && !isSearchMode && initialLoadDone) {
-          loadMoreOrganizations();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [hasMore, loadingMore, isSearchMode, initialLoadDone, currentPage]);
 
   // Close emoji picker when clicking outside
   useEffect(() => {
@@ -1407,12 +1376,11 @@ const OrganizationBrowser: React.FC = () => {
                 ))}
               </OrganizationGrid>
 
-              {/* Infinite scroll trigger */}
-              <div ref={loadMoreRef} style={{ padding: '20px', textAlign: 'center' }}>
-                {loadingMore && <LoadingSpinner>Loading more...</LoadingSpinner>}
-                {!hasMore && allOrganizations.length > 0 && (
+              <div style={{ padding: '20px', textAlign: 'center' }}>
+                {loadingMore && <LoadingSpinner>Loading organizations...</LoadingSpinner>}
+                {!loadingMore && allOrganizations.length > 0 && (
                   <EmptyStateText style={{ color: 'var(--text-secondary)' }}>
-                    You've seen all organizations
+                    Showing all organizations
                   </EmptyStateText>
                 )}
               </div>

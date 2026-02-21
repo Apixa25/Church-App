@@ -444,7 +444,9 @@ public class OrganizationController {
             @AuthenticationPrincipal User userDetails) {
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<Organization> orgs = organizationService.getAllActiveOrganizations(pageable);
+        // "Find Organizations" should include newly created TRIAL orgs too.
+        // Return all non-deleted organizations regardless of status.
+        Page<Organization> orgs = organizationService.getAllNonDeletedOrganizations(pageable);
 
         Page<OrganizationResponse> response = orgs.map(OrganizationResponse::publicFromOrganization);
         return ResponseEntity.ok(response);
