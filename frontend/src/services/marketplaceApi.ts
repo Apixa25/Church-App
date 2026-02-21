@@ -105,13 +105,18 @@ export interface MarketplaceMetrics {
 const marketplaceApi = {
   getListings: async (filters: MarketplaceFilters = {}): Promise<MarketplaceListingsPage> => {
     const startedAt = Date.now();
-    console.log('[MarketplaceAPI] getListings:start', { filters, startedAt });
+    console.log('[MarketplaceAPI] getListings:start', {
+      filters,
+      apiBaseUrl: api.defaults.baseURL,
+      startedAt
+    });
     try {
       const response = await api.get('/marketplace/listings', { params: filters });
       console.log('[MarketplaceAPI] getListings:success', {
         status: response.status,
         count: response.data?.content?.length ?? 0,
         totalElements: response.data?.totalElements ?? 0,
+        listingIds: (response.data?.content ?? []).map((listing: MarketplaceListing) => listing.id),
         durationMs: Date.now() - startedAt
       });
       return response.data;

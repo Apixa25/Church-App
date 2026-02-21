@@ -86,7 +86,12 @@ const MarketplacePage: React.FC = () => {
           contentCount: data.content.length,
           totalElements: data.totalElements,
           page: data.number,
-          totalPages: data.totalPages
+          totalPages: data.totalPages,
+          listingIds: data.content.map((listing) => listing.id),
+          listingImages: data.content.map((listing) => ({
+            id: listing.id,
+            imageCount: listing.imageUrls?.length ?? 0
+          }))
         });
         return data;
       } catch (queryError: any) {
