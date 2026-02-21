@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useActiveContext } from '../contexts/ActiveContextContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import marketplaceApi, {
   MarketplaceListing,
   MarketplaceListingRequest,
@@ -28,6 +29,14 @@ const MarketplacePage: React.FC = () => {
   const queryClient = useQueryClient();
   const { activeOrganizationId } = useActiveContext();
   const { user } = useAuth();
+  const { allMemberships } = useOrganization();
+
+  const isPlatformAdmin = user?.role === 'PLATFORM_ADMIN';
+  const isModerator = user?.role === 'MODERATOR';
+  const isActiveOrgAdmin = Boolean(activeOrganizationId) && allMemberships.some(
+    (membership) => membership.organizationId === activeOrganizationId && membership.role === 'ORG_ADMIN'
+  );
+  const canViewAdminMetrics = isPlatformAdmin || isModerator || isActiveOrgAdmin;
 
   const [activeSection, setActiveSection] = useState<MarketplaceSectionType>('FOR_SALE');
   const [postTypeFilter, setPostTypeFilter] = useState<MarketplacePostType | 'ALL'>('ALL');
@@ -93,7 +102,8 @@ const MarketplacePage: React.FC = () => {
   });
 
   const metricsQuery = useQuery({
-    queryKey: ['marketplace-metrics'],
+    queryKey: ['marketplace-metrics', activeOrganizationId, canViewAdminMetrics],
+    enabled: canViewAdminMetrics,
     queryFn: () => marketplaceApi.getMetrics()
   });
 
@@ -240,12 +250,14 @@ const MarketplacePage: React.FC = () => {
         </button>
       </header>
 
-      <section className="marketplace-metrics">
-        <div className="metric-card"><strong>{metricsQuery.data?.activeListings ?? 0}</strong><span>Active</span></div>
-        <div className="metric-card"><strong>{metricsQuery.data?.completedListings ?? 0}</strong><span>Completed</span></div>
-        <div className="metric-card"><strong>{metricsQuery.data?.completionRate ?? 0}%</strong><span>Completion Rate</span></div>
-        <div className="metric-card"><strong>{metricsQuery.data?.avgInterestPerListing ?? 0}</strong><span>Avg Interest</span></div>
-      </section>
+      {canViewAdminMetrics && (
+        <section className="marketplace-metrics">
+          <div className="metric-card"><strong>{metricsQuery.data?.activeListings ?? 0}</strong><span>Active</span></div>
+          <div className="metric-card"><strong>{metricsQuery.data?.completedListings ?? 0}</strong><span>Completed</span></div>
+          <div className="metric-card"><strong>{metricsQuery.data?.completionRate ?? 0}%</strong><span>Completion Rate</span></div>
+          <div className="metric-card"><strong>{metricsQuery.data?.avgInterestPerListing ?? 0}</strong><span>Avg Interest</span></div>
+        </section>
+      )}
 
       <section className="marketplace-controls">
         <div className="section-tabs">
