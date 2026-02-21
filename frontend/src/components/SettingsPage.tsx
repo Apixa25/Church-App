@@ -28,11 +28,11 @@ import LoadingSpinner from './LoadingSpinner';
 import './SettingsPage.css';
 
 interface SettingsPageProps {
-  initialTab?: 'notifications' | 'privacy' | 'appearance' | 'account' | 'help' | 'about';
+  initialTab?: 'support' | 'notifications' | 'privacy' | 'appearance' | 'account' | 'help' | 'about';
 }
 
 const SettingsPage: React.FC<SettingsPageProps> = ({
-  initialTab = 'notifications'
+  initialTab = 'support'
 }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -109,7 +109,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 
       console.log('🟢 [Settings Debug] State updated with new settings');
 
-      if (activeTab === 'help') {
+      if (activeTab === 'help' || activeTab === 'support') {
         console.log('🟢 [Settings Debug] Loading help content...');
         const helpData = await getHelpContent(selectedHelpCategory, searchQuery);
         setHelpContent(helpData);
@@ -486,6 +486,12 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 
         {/* Navigation Tabs */}
         <div className="settings-tabs">
+          <button
+            className={`tab-btn ${activeTab === 'support' ? 'active' : ''}`}
+            onClick={() => navigate('/settings/support')}
+          >
+            📞 Contact Support
+          </button>
           <button
             className={`tab-btn ${activeTab === 'notifications' ? 'active' : ''}`}
             onClick={() => navigate('/settings/notifications')}
@@ -1308,77 +1314,16 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
           </div>
         )}
 
-        {/* Help Tab */}
-        {activeTab === 'help' && (
-          <div className="help-section">
+        {/* Contact Support Tab */}
+        {activeTab === 'support' && (
+          <div className="support-tab-section">
             <div className="section-header">
-              <h2>❓ Help & Support</h2>
-              <p>Find answers to common questions and get support</p>
+              <h2>📞 Contact Support</h2>
+              <p>Reach us quickly and send feedback in one place</p>
             </div>
 
-            {/* Help Search */}
-            <div className="help-search">
-              <div className="settings-help-search-container">
-                <input
-                  type="text"
-                  placeholder="Search help articles..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="settings-help-search-input"
-                />
-                <button
-                  onClick={handleHelpSearch}
-                  className="settings-help-search-btn"
-                >
-                  🔍 Search
-                </button>
-              </div>
-
-              <div className="help-categories">
-                <button
-                  className={`category-btn ${selectedHelpCategory === '' ? 'active' : ''}`}
-                  onClick={() => {
-                    setSelectedHelpCategory('');
-                    handleHelpSearch();
-                  }}
-                >
-                  All Categories
-                </button>
-                {helpContent?.categories?.map((category: any) => (
-                  <button
-                    key={category.id}
-                    className={`category-btn ${selectedHelpCategory === category.id ? 'active' : ''}`}
-                    onClick={() => {
-                      setSelectedHelpCategory(category.id);
-                      handleHelpSearch();
-                    }}
-                  >
-                    {category.icon} {category.title}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* FAQ Items */}
-            <div className="faq-section">
-              <h3>📋 Frequently Asked Questions</h3>
-              <div className="faq-items">
-                {helpContent?.faqItems?.map((item: any) => (
-                  <details key={item.id} className="faq-item">
-                    <summary className="faq-question">
-                      {item.question}
-                    </summary>
-                    <div className="faq-answer">
-                      <p>{item.answer}</p>
-                    </div>
-                  </details>
-                ))}
-              </div>
-            </div>
-
-            {/* Contact Support */}
             <div className="support-section">
-              <h3>📞 Contact Support</h3>
+              <h3>📞 Contact Options</h3>
               <div className="support-options">
                 <div className="support-option">
                   <div className="support-icon">📧</div>
@@ -1490,6 +1435,77 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                 </form>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Help Tab */}
+        {activeTab === 'help' && (
+          <div className="help-section">
+            <div className="section-header">
+              <h2>❓ Help Center</h2>
+              <p>Find answers to common questions</p>
+            </div>
+
+            {/* Help Search */}
+            <div className="help-search">
+              <div className="settings-help-search-container">
+                <input
+                  type="text"
+                  placeholder="Search help articles..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="settings-help-search-input"
+                />
+                <button
+                  onClick={handleHelpSearch}
+                  className="settings-help-search-btn"
+                >
+                  🔍 Search
+                </button>
+              </div>
+
+              <div className="help-categories">
+                <button
+                  className={`category-btn ${selectedHelpCategory === '' ? 'active' : ''}`}
+                  onClick={() => {
+                    setSelectedHelpCategory('');
+                    handleHelpSearch();
+                  }}
+                >
+                  All Categories
+                </button>
+                {helpContent?.categories?.map((category: any) => (
+                  <button
+                    key={category.id}
+                    className={`category-btn ${selectedHelpCategory === category.id ? 'active' : ''}`}
+                    onClick={() => {
+                      setSelectedHelpCategory(category.id);
+                      handleHelpSearch();
+                    }}
+                  >
+                    {category.icon} {category.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* FAQ Items */}
+            <div className="faq-section">
+              <h3>📋 Frequently Asked Questions</h3>
+              <div className="faq-items">
+                {helpContent?.faqItems?.map((item: any) => (
+                  <details key={item.id} className="faq-item">
+                    <summary className="faq-question">
+                      {item.question}
+                    </summary>
+                    <div className="faq-answer">
+                      <p>{item.answer}</p>
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </div>
+
           </div>
         )}
 
