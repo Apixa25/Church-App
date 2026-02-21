@@ -1,7 +1,6 @@
 package com.churchapp.service;
 
 import com.churchapp.entity.Donation;
-import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +19,7 @@ public class EmailService {
     @Value("${church.name:The Gathering}")
     private String churchName;
 
-    @Value("${church.email:support@thegathrd.com}")
+    @Value("${church.email:stevensills2@gmail.com}")
     private String churchEmail;
 
     @Value("${spring.mail.username:noreply@thegathrd.com}")

@@ -47,6 +47,12 @@ public class SettingsService {
     @Value("${account.deletion.grace-period-days:7}")
     private int gracePeriodDays;
 
+    @Value("${church.email:stevensills2@gmail.com}")
+    private String supportEmail;
+
+    @Value("${church.phone:707-954-8087}")
+    private String supportPhone;
+
     public UserSettingsResponse getUserSettings(UUID userId) {
         UserSettings settings = userSettingsRepository.findByUserId(userId)
             .orElse(createDefaultSettings(userId));
@@ -498,8 +504,8 @@ public class SettingsService {
 
         helpContent.put("categories", categories);
         helpContent.put("faqItems", faqItems);
-        helpContent.put("supportEmail", "support@yourchurch.org");
-        helpContent.put("supportPhone", "+1 (555) 123-4567");
+        helpContent.put("supportEmail", supportEmail);
+        helpContent.put("supportPhone", supportPhone);
 
         return helpContent;
     }
@@ -751,7 +757,11 @@ public class SettingsService {
                 "Try refreshing the app, checking your internet connection, or clearing your browser cache. If issues persist, please contact our support team."),
 
             createFaqItem("contact", "How do I contact support?",
-                "You can reach our support team through the feedback form in Settings, email us at support@yourchurch.org, or call us at (555) 123-4567 during business hours.")
+                String.format(
+                    "You can reach our support team through the feedback form in Settings, email us at %s, or call us at %s during business hours.",
+                    supportEmail,
+                    supportPhone
+                ))
         );
     }
 

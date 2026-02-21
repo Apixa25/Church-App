@@ -1285,17 +1285,17 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 
             {/* Help Search */}
             <div className="help-search">
-              <div className="search-container">
+              <div className="settings-help-search-container">
                 <input
                   type="text"
                   placeholder="Search help articles..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="search-input"
+                  className="settings-help-search-input"
                 />
                 <button
                   onClick={handleHelpSearch}
-                  className="search-btn"
+                  className="settings-help-search-btn"
                 >
                   🔍 Search
                 </button>
@@ -1351,7 +1351,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                   <div className="support-icon">📧</div>
                   <div className="support-info">
                     <h4>Email Support</h4>
-                    <p>{helpContent?.supportEmail || 'support@yourchurch.org'}</p>
+                    <p>{helpContent?.supportEmail || 'stevensills2@gmail.com'}</p>
                   </div>
                 </div>
 
@@ -1359,7 +1359,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                   <div className="support-icon">📞</div>
                   <div className="support-info">
                     <h4>Phone Support</h4>
-                    <p>{helpContent?.supportPhone || '+1 (555) 123-4567'}</p>
+                    <p>{helpContent?.supportPhone || '707-954-8087'}</p>
                   </div>
                 </div>
               </div>
@@ -1367,6 +1367,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
               {/* Feedback Form */}
               <div className="feedback-form">
                 <h4>💌 Send Feedback</h4>
+                {user?.role === 'ADMIN' && (
+                  <p className="feedback-destination-hint">
+                    Admin note: Feedback is sent to <strong>stevensills2@gmail.com</strong>
+                  </p>
+                )}
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
