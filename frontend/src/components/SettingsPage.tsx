@@ -431,6 +431,18 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
     );
   }
 
+  // Support contact fallback guard:
+  // If backend returns legacy placeholders, show configured owner contact info.
+  const supportEmailDisplay =
+    helpContent?.supportEmail && helpContent.supportEmail !== 'support@yourchurch.org'
+      ? helpContent.supportEmail
+      : 'stevensills2@gmail.com';
+
+  const supportPhoneDisplay =
+    helpContent?.supportPhone && helpContent.supportPhone !== '+1 (555) 123-4567'
+      ? helpContent.supportPhone
+      : '707-954-8087';
+
   return (
     <div className="settings-page">
       {/* Header */}
@@ -1351,7 +1363,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                   <div className="support-icon">📧</div>
                   <div className="support-info">
                     <h4>Email Support</h4>
-                    <p>{helpContent?.supportEmail || 'stevensills2@gmail.com'}</p>
+                    <p>{supportEmailDisplay}</p>
                   </div>
                 </div>
 
@@ -1359,7 +1371,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                   <div className="support-icon">📞</div>
                   <div className="support-info">
                     <h4>Phone Support</h4>
-                    <p>{helpContent?.supportPhone || '707-954-8087'}</p>
+                    <p>{supportPhoneDisplay}</p>
                   </div>
                 </div>
               </div>
