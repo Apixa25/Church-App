@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
 import { getApiUrl } from '../config/runtimeConfig';
+import { convertImageToJpeg } from '../utils/imageUtils';
 
 const API_BASE_URL = getApiUrl();
+const MAX_LOGO_UPLOAD_BYTES = 1024 * 1024; // 1MB safety cap to avoid proxy 413s
 
 interface OrganizationCreateFormProps {
   onSuccess?: (organization: any) => void;
@@ -57,7 +59,7 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({
     setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''));
   };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // Validate file type
@@ -65,22 +67,37 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({
         setError('Please select an image file');
         return;
       }
-      
-      // Validate file size (100MB max)
-      if (file.size > 100 * 1024 * 1024) {
-        setError('Image size must be less than 100MB');
+
+      // Keep originals bounded for fast browser processing.
+      if (file.size > 20 * 1024 * 1024) {
+        setError('Please choose an image smaller than 20MB');
         return;
       }
 
-      setLogoFile(file);
+      let processedFile = file;
+      try {
+        processedFile = await convertImageToJpeg(file, 1024, 1024, 0.82);
+        if (processedFile.size > MAX_LOGO_UPLOAD_BYTES) {
+          processedFile = await convertImageToJpeg(processedFile, 768, 768, 0.74);
+        }
+      } catch (processingError) {
+        console.warn('Logo processing failed, using original file:', processingError);
+      }
+
+      if (processedFile.size > MAX_LOGO_UPLOAD_BYTES) {
+        setError('Logo is still too large after optimization. Please use a smaller image (around 1MB or less).');
+        return;
+      }
+
+      setLogoFile(processedFile);
       setError(null); // Clear any previous errors
-      
+
       // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setLogoPreview(reader.result as string);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(processedFile);
     }
   };
 
@@ -186,8 +203,12 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({
       console.error('Error creating organization:', err);
       if (err.response?.status === 403) {
         setError(permissionErrorMessage);
+      } else if (err.response?.status === 413) {
+        setError('Logo upload is too large for the server gateway. Please choose a smaller image and try again.');
       } else if (err.response?.status === 409 || err.response?.data?.message?.includes('slug')) {
         setError('This organization slug is already taken. Please choose a different one.');
+      } else if (logoFile && err?.message === 'Network Error') {
+        setError('Upload failed at the network gateway (often a size limit). Please try a smaller logo image.');
       } else {
         setError(err.response?.data?.message || 'Failed to create organization. Please try again.');
       }
@@ -237,7 +258,7 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({
             value={slug}
             onChange={handleSlugChange}
             placeholder="e.g., first-baptist-church"
-            pattern="[a-z0-9-]+"
+            pattern="[-a-z0-9]+"
             required
             disabled={isSubmitting}
           />
@@ -351,7 +372,7 @@ const OrganizationCreateForm: React.FC<OrganizationCreateFormProps> = ({
                   <UploadIcon>📷</UploadIcon>
                   <span>Click to upload logo</span>
                   <span style={{ fontSize: '12px', color: '#666' }}>
-                    PNG, JPG, GIF up to 15MB
+                    PNG/JPG/GIF (auto-optimized to ~1MB for upload reliability)
                   </span>
                 </LogoUploadLabel>
               </LogoUploadArea>
