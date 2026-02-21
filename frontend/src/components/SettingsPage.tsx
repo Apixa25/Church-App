@@ -335,25 +335,36 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 
   const handleFeedbackSubmit = async (feedback: any) => {
     try {
+      console.log('📨 [Feedback Debug] Submit started', {
+        type: feedback?.type,
+        subject: feedback?.subject,
+        messageLength: feedback?.message?.length || 0,
+        email: feedback?.email
+      });
       setError('');
       setSuccessMessage('');
       setIsSaving(true);
       
+      console.log('📨 [Feedback Debug] Calling submitFeedback API...');
       const result = await submitFeedback(feedback);
+      console.log('✅ [Feedback Debug] submitFeedback API success', result);
       setSuccessMessage(`Feedback submitted successfully! 🎫 Ticket ID: ${result.ticketId}. We'll review your feedback and get back to you soon.`);
       setTimeout(() => setSuccessMessage(''), 6000);
       
-      // Reset feedback form
-      const form = document.querySelector('.feedback-form form') as HTMLFormElement;
-      if (form) {
-        form.reset();
-      }
+      return { ok: true, ticketId: result.ticketId };
     } catch (err: any) {
+      console.error('❌ [Feedback Debug] submitFeedback API failed');
+      console.error('❌ [Feedback Debug] Error object:', err);
+      console.error('❌ [Feedback Debug] Error message:', err?.message);
+      console.error('❌ [Feedback Debug] Error response status:', err?.response?.status);
+      console.error('❌ [Feedback Debug] Error response data:', err?.response?.data);
       const errorMessage = handleApiError(err);
       setError(errorMessage || 'Failed to submit feedback. Please try again or contact support directly.');
       setTimeout(() => setError(''), 7000);
+      return { ok: false, error: err };
     } finally {
       setIsSaving(false);
+      console.log('📨 [Feedback Debug] Submit finished');
     }
   };
 
@@ -1385,7 +1396,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                   </p>
                 )}
                 <form
-                  onSubmit={(e) => {
+                  onSubmit={async (e) => {
                     e.preventDefault();
                     const formData = new FormData(e.target as HTMLFormElement);
                     const feedback = {
@@ -1394,8 +1405,14 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                       message: formData.get('message') as string,
                       email: user?.email || ''
                     };
-                    handleFeedbackSubmit(feedback);
-                    (e.target as HTMLFormElement).reset();
+                    console.log('📨 [Feedback Debug] Form submit captured in SettingsPage');
+                    const submitResult = await handleFeedbackSubmit(feedback);
+                    if (submitResult?.ok) {
+                      console.log('✅ [Feedback Debug] Form reset after successful submit');
+                      (e.target as HTMLFormElement).reset();
+                    } else {
+                      console.warn('⚠️ [Feedback Debug] Form NOT reset due to submit failure');
+                    }
                   }}
                 >
                   <div className="form-group">

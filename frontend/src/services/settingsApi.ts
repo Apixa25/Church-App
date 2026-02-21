@@ -214,7 +214,17 @@ export const getHelpContent = async (
 export const submitFeedback = async (
   feedback: FeedbackRequest
 ): Promise<{ message: string; ticketId: string }> => {
+  console.log('📡 [Feedback Debug] settingsApi.submitFeedback called', {
+    type: feedback?.type,
+    subject: feedback?.subject,
+    messageLength: feedback?.message?.length || 0,
+    email: feedback?.email
+  });
   const response = await api.post('/settings/feedback', feedback);
+  console.log('📡 [Feedback Debug] settingsApi.submitFeedback response', {
+    status: response.status,
+    data: response.data
+  });
   return response.data;
 };
 
