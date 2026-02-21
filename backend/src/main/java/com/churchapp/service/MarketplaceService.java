@@ -192,14 +192,31 @@ public class MarketplaceService {
     }
 
     public void deleteListing(String userEmail, UUID listingId) {
+        log.info("Marketplace deleteListing start: listingId={}, userEmail={}", listingId, userEmail);
         User user = getUserByEmail(userEmail);
         MarketplaceListing listing = marketplaceListingRepository.findByIdAndIsDeletedFalse(listingId)
             .orElseThrow(() -> new RuntimeException("Marketplace listing not found"));
 
+        log.info("Marketplace deleteListing target-state-before: listingId={}, ownerUserId={}, status={}, isDeleted={}, imageCount={}",
+            listing.getId(),
+            listing.getOwner().getId(),
+            listing.getStatus(),
+            listing.getIsDeleted(),
+            listing.getImageUrls() == null ? 0 : listing.getImageUrls().size()
+        );
+
         ensureOwnerOrPlatformAdmin(user, listing);
         listing.setIsDeleted(true);
         listing.setStatus(MarketplaceListingStatus.REMOVED);
-        marketplaceListingRepository.save(listing);
+        MarketplaceListing saved = marketplaceListingRepository.save(listing);
+
+        log.info("Marketplace deleteListing success: listingId={}, userEmail={}, status={}, isDeleted={}, imageCount={}",
+            saved.getId(),
+            userEmail,
+            saved.getStatus(),
+            saved.getIsDeleted(),
+            saved.getImageUrls() == null ? 0 : saved.getImageUrls().size()
+        );
     }
 
     public Map<String, Object> expressInterest(String userEmail, UUID listingId) {

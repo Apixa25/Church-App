@@ -167,7 +167,26 @@ const marketplaceApi = {
   },
 
   deleteListing: async (listingId: string): Promise<void> => {
-    await api.delete(`/marketplace/listings/${listingId}`);
+    const startedAt = Date.now();
+    console.log('[MarketplaceAPI] deleteListing:start', { listingId, startedAt });
+    try {
+      const response = await api.delete(`/marketplace/listings/${listingId}`);
+      console.log('[MarketplaceAPI] deleteListing:success', {
+        listingId,
+        status: response.status,
+        data: response.data,
+        durationMs: Date.now() - startedAt
+      });
+    } catch (error: any) {
+      console.error('[MarketplaceAPI] deleteListing:error', {
+        listingId,
+        message: error?.message,
+        status: error?.response?.status,
+        data: error?.response?.data,
+        durationMs: Date.now() - startedAt
+      });
+      throw error;
+    }
   },
 
   expressInterest: async (listingId: string): Promise<{ message: string; interestCount: number }> => {

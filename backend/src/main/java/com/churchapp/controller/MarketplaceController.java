@@ -118,8 +118,14 @@ public class MarketplaceController {
         @PathVariable UUID listingId,
         Authentication authentication
     ) {
+        log.info("Marketplace deleteListing request: listingId={}, userEmail={}", listingId, authentication.getName());
         marketplaceService.deleteListing(authentication.getName(), listingId);
-        return ResponseEntity.ok(Map.of("message", "Listing removed"));
+        Map<String, String> response = Map.of(
+            "message", "Listing removed",
+            "listingId", listingId.toString()
+        );
+        log.info("Marketplace deleteListing response: listingId={}, userEmail={}, result={}", listingId, authentication.getName(), response);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/listings/{listingId}/interest")

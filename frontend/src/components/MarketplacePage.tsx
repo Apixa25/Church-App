@@ -188,21 +188,42 @@ const MarketplacePage: React.FC = () => {
   };
 
   const handleDelete = async (listing: MarketplaceListing) => {
+    console.log('[MarketplacePage] handleDelete:prompt', {
+      listingId: listing.id,
+      title: listing.title,
+      status: listing.status,
+      imageCount: listing.imageUrls?.length ?? 0
+    });
+
     if (!isListingOwner(listing)) {
       setError('Only listing owners can remove this listing.');
+      console.warn('[MarketplacePage] handleDelete:blocked-non-owner', {
+        listingId: listing.id,
+        ownerUserId: listing.ownerUserId,
+        viewerUserId: user?.userId
+      });
       return;
     }
 
     const confirmed = window.confirm(`Remove "${listing.title}" from marketplace?`);
     if (!confirmed) {
+      console.log('[MarketplacePage] handleDelete:cancelled', { listingId: listing.id });
       return;
     }
 
     try {
+      console.log('[MarketplacePage] handleDelete:request:start', { listingId: listing.id });
       await marketplaceApi.deleteListing(listing.id);
+      console.log('[MarketplacePage] handleDelete:request:success', { listingId: listing.id });
       setStatusMessage('Listing removed.');
       await refreshListings();
     } catch (deleteError: any) {
+      console.error('[MarketplacePage] handleDelete:request:error', {
+        listingId: listing.id,
+        message: deleteError?.message,
+        status: deleteError?.response?.status,
+        data: deleteError?.response?.data
+      });
       setError(deleteError?.response?.data?.message || 'Could not remove listing.');
     }
   };
