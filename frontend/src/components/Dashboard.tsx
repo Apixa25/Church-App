@@ -27,7 +27,7 @@ import { getBannerImageUrl, getBannerImageS3Fallback } from '../utils/imageUrlUt
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
-  const { user, logout, updateUser } = useAuth();
+  const { user, updateUser } = useAuth();
   // Dual Primary System - use both organization context and active context
   const { churchPrimary, familyPrimary, hasChurchPrimary, hasFamilyPrimary } = useOrganization();
   const {
@@ -178,9 +178,8 @@ const Dashboard: React.FC = () => {
   // Convert query error to string for compatibility
   const error = queryError ? 'Failed to load dashboard data. Please try again.' : null;
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleFindOrganizations = () => {
+    navigate('/organizations');
   };
 
   const handleRefresh = async () => {
@@ -515,8 +514,13 @@ const Dashboard: React.FC = () => {
                   <EventNotifications />
                 </>
               )}
-              <button onClick={handleLogout} className="logout-button">
-                🚪
+              <button
+                onClick={handleFindOrganizations}
+                className="logout-button"
+                title="Find Organizations"
+                aria-label="Find Organizations"
+              >
+                🏛️
               </button>
             </div>
           </div>
