@@ -435,6 +435,18 @@
   margin-bottom: 1rem;
 }
 
+.contact-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
+.form-hint {
+  margin: -0.35rem 0 0.9rem 0;
+  color: var(--warning);
+  font-size: 0.82rem;
+}
+
 /* Theme Selector */
 .theme-selector {
   margin-top: 1rem;
@@ -619,6 +631,13 @@
   background: var(--accent-secondary);
   color: white;
   box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .export-btn:hover, .backup-btn:hover, .test-btn:hover, .submit-btn:hover {

@@ -51,6 +51,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
   const [showResetModal, setShowResetModal] = useState(false);
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
   const [updateCheckMessage, setUpdateCheckMessage] = useState<string | null>(null);
+  const [feedbackEmail, setFeedbackEmail] = useState('');
+  const [feedbackPhone, setFeedbackPhone] = useState('');
 
   useEffect(() => {
     loadData();
@@ -71,6 +73,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
       setActiveTab(tab);
     }
   }, [tab]);
+
+  // Keep feedback email pre-filled from signed-in user for convenience
+  useEffect(() => {
+    setFeedbackEmail(user?.email || '');
+  }, [user?.email]);
 
   const loadData = async () => {
     console.log('🟢 [Settings Debug] loadData called...');
@@ -339,7 +346,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
         type: feedback?.type,
         subject: feedback?.subject,
         messageLength: feedback?.message?.length || 0,
-        email: feedback?.email
+        email: feedback?.email,
+        phone: feedback?.phone
       });
       setError('');
       setSuccessMessage('');
@@ -453,6 +461,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
     helpContent?.supportPhone && helpContent.supportPhone !== '+1 (555) 123-4567'
       ? helpContent.supportPhone
       : '707-954-8087';
+
+  const hasFeedbackContact = feedbackEmail.trim() !== '' || feedbackPhone.trim() !== '';
 
   return (
     <div className="settings-page">
@@ -1403,13 +1413,16 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                       type: formData.get('type') as string,
                       subject: formData.get('subject') as string,
                       message: formData.get('message') as string,
-                      email: user?.email || ''
+                      email: feedbackEmail.trim(),
+                      phone: feedbackPhone.trim()
                     };
                     console.log('📨 [Feedback Debug] Form submit captured in SettingsPage');
                     const submitResult = await handleFeedbackSubmit(feedback);
                     if (submitResult?.ok) {
                       console.log('✅ [Feedback Debug] Form reset after successful submit');
                       (e.target as HTMLFormElement).reset();
+                      setFeedbackPhone('');
+                      setFeedbackEmail(user?.email || '');
                     } else {
                       console.warn('⚠️ [Feedback Debug] Form NOT reset due to submit failure');
                     }
@@ -1436,6 +1449,31 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                     />
                   </div>
 
+                  <div className="form-group contact-fields">
+                    <input
+                      name="contactEmail"
+                      type="email"
+                      placeholder="Contact email (required if no phone)"
+                      value={feedbackEmail}
+                      onChange={(e) => setFeedbackEmail(e.target.value)}
+                      className="form-input"
+                    />
+                    <input
+                      name="contactPhone"
+                      type="tel"
+                      placeholder="Contact phone (required if no email)"
+                      value={feedbackPhone}
+                      onChange={(e) => setFeedbackPhone(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+
+                  {!hasFeedbackContact && (
+                    <div className="form-hint">
+                      Please provide at least one way to contact you back: email or phone.
+                    </div>
+                  )}
+
                   <div className="form-group">
                     <textarea
                       name="message"
@@ -1446,8 +1484,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                     ></textarea>
                   </div>
 
-                  <button type="submit" className="submit-btn">
-                    📤 Send Feedback
+                  <button type="submit" className="submit-btn" disabled={!hasFeedbackContact || isSaving}>
+                    {isSaving ? '⏳ Sending...' : '📤 Send Feedback'}
                   </button>
                 </form>
               </div>

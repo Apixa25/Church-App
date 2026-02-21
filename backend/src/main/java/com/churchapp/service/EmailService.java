@@ -362,7 +362,7 @@ public class EmailService {
      * Send feedback notification to support team
      */
     public void sendFeedbackNotification(String ticketId, String userName, String userEmail,
-                                        String type, String subject, String message) {
+                                        String userPhone, String type, String subject, String message) {
         if (!emailEnabled) {
             log.info("📧 [EMAIL DISABLED] Would send feedback notification for ticket {} to support team", ticketId);
             return;
@@ -377,7 +377,7 @@ public class EmailService {
             helper.setFrom(fromEmail, churchName);
             helper.setTo(churchEmail);
             helper.setSubject(String.format("[%s] New Feedback: %s", ticketId, subject));
-            helper.setText(buildFeedbackEmailBody(ticketId, userName, userEmail, type, subject, message), true);
+            helper.setText(buildFeedbackEmailBody(ticketId, userName, userEmail, userPhone, type, subject, message), true);
 
             mailSender.send(emailMessage);
 
@@ -424,7 +424,8 @@ public class EmailService {
     }
 
     private String buildFeedbackEmailBody(String ticketId, String userName, String userEmail,
-                                         String type, String subject, String message) {
+                                         String userPhone, String type, String subject, String message) {
+        String safePhone = (userPhone == null || userPhone.trim().isEmpty()) ? "Not provided" : userPhone;
         return String.format("""
             <html>
             <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -435,6 +436,7 @@ public class EmailService {
                         <p><strong>Ticket ID:</strong> %s</p>
                         <p><strong>Type:</strong> %s</p>
                         <p><strong>From:</strong> %s (%s)</p>
+                        <p><strong>Phone:</strong> %s</p>
                         <p><strong>Subject:</strong> %s</p>
                     </div>
 
@@ -448,7 +450,7 @@ public class EmailService {
             </body>
             </html>
             """,
-            ticketId, type, userName, userEmail, subject, message
+            ticketId, type, userName, userEmail, safePhone, subject, message
         );
     }
 

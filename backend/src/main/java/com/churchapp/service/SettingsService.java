@@ -525,11 +525,18 @@ public class SettingsService {
             String type = feedback.getOrDefault("type", "other");
             String subject = feedback.getOrDefault("subject", "No Subject");
             String message = feedback.getOrDefault("message", "");
-            String email = feedback.getOrDefault("email", user.getEmail());
+            String email = normalizeContact(feedback.get("email"));
+            String phone = normalizeContact(feedback.get("phone"));
+
+            // If user didn't provide an email, use account email for traceability
+            String emailForTicket = (email == null || email.isBlank()) ? user.getEmail() : email;
 
             // Validate required fields
             if (message == null || message.trim().isEmpty()) {
                 throw new RuntimeException("Feedback message is required");
+            }
+            if ((email == null || email.isBlank()) && (phone == null || phone.isBlank())) {
+                throw new RuntimeException("Please provide at least one contact method: email or phone.");
             }
 
             // Create feedback record
@@ -538,7 +545,8 @@ public class SettingsService {
                 .type(type)
                 .subject(subject)
                 .message(message)
-                .email(email)
+                .email(emailForTicket)
+                .phone(phone)
                 .ticketId(ticketId)
                 .status("PENDING")
                 .createdAt(LocalDateTime.now())
@@ -551,7 +559,8 @@ public class SettingsService {
                 emailService.sendFeedbackNotification(
                     ticketId,
                     user.getName(),
-                    email,
+                    emailForTicket,
+                    phone,
                     type,
                     subject,
                     message
@@ -763,6 +772,14 @@ public class SettingsService {
                     supportPhone
                 ))
         );
+    }
+
+    private String normalizeContact(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private Map<String, Object> createFaqItem(String category, String question, String answer) {

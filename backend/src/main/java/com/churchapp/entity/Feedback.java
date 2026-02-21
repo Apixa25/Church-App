@@ -43,6 +43,9 @@ public class Feedback {
     @Column(name = "email", length = 255)
     private String email;
 
+    @Column(name = "phone", length = 50)
+    private String phone;
+
     @Column(name = "ticket_id", unique = true, length = 50)
     private String ticketId;
 

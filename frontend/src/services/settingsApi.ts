@@ -85,6 +85,7 @@ export interface FeedbackRequest {
   subject: string;
   message: string;
   email: string;
+  phone?: string;
 }
 
 // API Functions
@@ -218,7 +219,8 @@ export const submitFeedback = async (
     type: feedback?.type,
     subject: feedback?.subject,
     messageLength: feedback?.message?.length || 0,
-    email: feedback?.email
+    email: feedback?.email,
+    phone: feedback?.phone
   });
   const response = await api.post('/settings/feedback', feedback);
   console.log('📡 [Feedback Debug] settingsApi.submitFeedback response', {
