@@ -328,6 +328,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
     }
   };
 
+  const handleManualLogout = () => {
+    // Keep logout centralized in AuthContext (clears tokens + redirects to /login)
+    logout();
+  };
+
   const handleFeedbackSubmit = async (feedback: any) => {
     try {
       setError('');
@@ -1223,6 +1228,20 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
               <div className="settings-group danger-zone">
                 <h3>⚠️ Danger Zone</h3>
                 <div className="danger-actions">
+                  <div className="danger-item">
+                    <div className="danger-info">
+                      <h4>🚪 Log Out</h4>
+                      <p>Sign out of this device and return to login</p>
+                    </div>
+                    <button
+                      onClick={handleManualLogout}
+                      className="danger-btn logout"
+                      disabled={isSaving}
+                    >
+                      Log Out
+                    </button>
+                  </div>
+
                   <div className="danger-item">
                     <div className="danger-info">
                       <h4>🔄 Reset All Settings</h4>

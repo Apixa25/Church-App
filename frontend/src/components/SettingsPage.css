@@ -723,6 +723,12 @@
   box-shadow: 0 2px 8px var(--error-glow);
 }
 
+.danger-btn.logout {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+}
+
 .danger-btn:hover {
   transform: translateY(-1px);
   opacity: 0.9;
