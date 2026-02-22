@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
 import { getApiUrl } from '../config/runtimeConfig';
+import { convertImageToJpeg } from '../utils/imageUtils';
 
 const API_BASE_URL = getApiUrl();
+const MAX_LOGO_UPLOAD_BYTES = 15 * 1024 * 1024; // 15MB cap for admin logo updates
 
 interface Organization {
   id: string;
@@ -41,7 +43,7 @@ const OrganizationEditForm: React.FC<OrganizationEditFormProps> = ({
     }
   }, [organization.logoUrl]);
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // Validate file type
@@ -50,13 +52,28 @@ const OrganizationEditForm: React.FC<OrganizationEditFormProps> = ({
         return;
       }
       
-      // Validate file size (100MB max)
-      if (file.size > 100 * 1024 * 1024) {
-        setError('Image size must be less than 100MB');
+      // Keep originals bounded for fast browser processing.
+      if (file.size > 20 * 1024 * 1024) {
+        setError('Please choose an image smaller than 20MB');
         return;
       }
 
-      setLogoFile(file);
+      let processedFile = file;
+      try {
+        processedFile = await convertImageToJpeg(file, 1024, 1024, 0.82);
+        if (processedFile.size > MAX_LOGO_UPLOAD_BYTES) {
+          processedFile = await convertImageToJpeg(processedFile, 768, 768, 0.74);
+        }
+      } catch (processingError) {
+        console.warn('Organization logo processing failed, using original file:', processingError);
+      }
+
+      if (processedFile.size > MAX_LOGO_UPLOAD_BYTES) {
+        setError('Logo is still too large after optimization. Please choose a smaller image (~15MB or less).');
+        return;
+      }
+
+      setLogoFile(processedFile);
       setError(null); // Clear any previous errors
       
       // Create preview
@@ -64,7 +81,7 @@ const OrganizationEditForm: React.FC<OrganizationEditFormProps> = ({
       reader.onloadend = () => {
         setLogoPreview(reader.result as string);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(processedFile);
     }
   };
 
@@ -113,6 +130,10 @@ const OrganizationEditForm: React.FC<OrganizationEditFormProps> = ({
       console.error('Error updating organization:', err);
       if (err.response?.status === 403) {
         setError('You do not have permission to update organizations. System admin access required.');
+      } else if (err.response?.status === 413) {
+        setError('Logo upload is too large for the server gateway. Please choose a smaller image and try again.');
+      } else if (logoFile && err?.message === 'Network Error') {
+        setError('Upload failed at the network gateway (often a size limit). Please try a smaller logo image.');
       } else {
         setError(err.response?.data?.message || 'Failed to update organization. Please try again.');
       }
@@ -195,7 +216,7 @@ const OrganizationEditForm: React.FC<OrganizationEditFormProps> = ({
                       <UploadIcon>📷</UploadIcon>
                       <span>Click to upload logo</span>
                       <span style={{ fontSize: '12px', color: '#666' }}>
-                        PNG, JPG, GIF up to 15MB
+                        PNG, JPG, GIF. Images are auto-optimized for upload reliability.
                       </span>
                     </LogoUploadLabel>
                   </LogoUploadArea>

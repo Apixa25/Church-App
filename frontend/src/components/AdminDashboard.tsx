@@ -28,7 +28,7 @@ import {
 import './AdminDashboard.css';
 
 const API_BASE_URL = getApiUrl();
-const MAX_LOGO_UPLOAD_BYTES = 1024 * 1024; // 1MB safety cap for reliability
+const MAX_LOGO_UPLOAD_BYTES = 15 * 1024 * 1024; // 15MB cap for admin logo updates
 
 interface AdminDashboardProps {
   initialTab?: 'overview' | 'users' | 'organizations' | 'content' | 'analytics' | 'metrics' | 'audit' | 'settings';
@@ -243,7 +243,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
 
     if (processedFile.size > MAX_LOGO_UPLOAD_BYTES) {
-      setLogoUploadStatus('Logo is still too large after optimization. Please choose a smaller image (~1MB or less).');
+      setLogoUploadStatus('Logo is still too large after optimization. Please choose a smaller image (~15MB or less).');
       return;
     }
 
