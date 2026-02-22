@@ -329,7 +329,7 @@ const SmallLeaveButton = styled.button`
   }
 `;
 
-const SmallActionButton = styled.button<{ variant?: 'primary' | 'secondary' }>`
+const SmallActionButton = styled.button<{ $variant?: 'primary' | 'secondary' }>`
   padding: 3px 10px;
   font-size: 9px;
   font-weight: 600;
@@ -340,7 +340,7 @@ const SmallActionButton = styled.button<{ variant?: 'primary' | 'secondary' }>`
   white-space: nowrap;
   flex-shrink: 0;
 
-  ${props => props.variant === 'primary' ? `
+  ${props => props.$variant === 'primary' ? `
     background: var(--gradient-primary);
     color: white;
     &:hover {
@@ -417,7 +417,7 @@ const ButtonGroup = styled.div`
   margin-top: 16px;
 `;
 
-const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'danger' | 'outline' }>`
+const Button = styled.button<{ $variant?: 'primary' | 'secondary' | 'danger' | 'outline' }>`
   flex: 1;
   padding: 10px 16px;
   font-size: 14px;
@@ -428,7 +428,7 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'danger' | 'o
   transition: all var(--transition-base);
 
   ${props => {
-    switch (props.variant) {
+    switch (props.$variant) {
       case 'primary':
         return `
           background: var(--gradient-primary);
@@ -1130,7 +1130,7 @@ const OrganizationBrowser: React.FC = () => {
                 </SecondaryBadge>
                 {orgGroup.isMuted ? (
                   <SmallActionButton
-                    variant="primary"
+                    $variant="primary"
                     onClick={() => handleUnmuteOrgGroup(orgGroup.organization.id, orgGroup.organization.name)}
                     disabled={actionLoading === orgGroup.organization.id}
                   >
@@ -1138,7 +1138,7 @@ const OrganizationBrowser: React.FC = () => {
                   </SmallActionButton>
                 ) : (
                   <SmallActionButton
-                    variant="secondary"
+                    $variant="secondary"
                     onClick={() => handleMuteOrgGroup(orgGroup.organization.id, orgGroup.organization.name)}
                     disabled={actionLoading === orgGroup.organization.id}
                   >
@@ -1204,7 +1204,7 @@ const OrganizationBrowser: React.FC = () => {
                       <>
                         <Button disabled>Secondary Member</Button>
                         <Button
-                          variant="danger"
+                          $variant="danger"
                           onClick={() => handleLeave(org.id, org.name)}
                           disabled={actionLoading === org.id}
                         >
@@ -1218,7 +1218,7 @@ const OrganizationBrowser: React.FC = () => {
                 ) : (
                   <ButtonGroup>
                     <Button
-                      variant="primary"
+                      $variant="primary"
                       onClick={() => handleJoinAsPrimary(org.id, org.name, org.type)}
                       disabled={actionLoading === org.id}
                       title={
@@ -1238,7 +1238,7 @@ const OrganizationBrowser: React.FC = () => {
                         : 'Join as Primary'}
                     </Button>
                     <Button
-                      variant="secondary"
+                      $variant="secondary"
                       onClick={() => handleJoinAsSecondary(org.id, org.name)}
                       disabled={actionLoading === org.id}
                       title="Join as secondary to see public posts in your feed"
@@ -1246,7 +1246,7 @@ const OrganizationBrowser: React.FC = () => {
                       {actionLoading === org.id ? 'Joining...' : 'Join as Secondary'}
                     </Button>
                     <Button
-                      variant="outline"
+                      $variant="outline"
                       onClick={() => handleSeeGroupPosts(org.id, org.name)}
                       disabled={actionLoading === org.id || followedAsGroups.has(org.id) || isPrimary(org.id)}
                       title={
@@ -1311,7 +1311,7 @@ const OrganizationBrowser: React.FC = () => {
                           <>
                             <Button disabled>Secondary Member</Button>
                             <Button
-                              variant="danger"
+                              $variant="danger"
                               onClick={() => handleLeave(org.id, org.name)}
                               disabled={actionLoading === org.id}
                             >
@@ -1325,7 +1325,7 @@ const OrganizationBrowser: React.FC = () => {
                     ) : (
                       <ButtonGroup>
                         <Button
-                          variant="primary"
+                          $variant="primary"
                           onClick={() => handleJoinAsPrimary(org.id, org.name, org.type)}
                           disabled={actionLoading === org.id}
                           title={
@@ -1345,7 +1345,7 @@ const OrganizationBrowser: React.FC = () => {
                             : 'Join as Primary'}
                         </Button>
                         <Button
-                          variant="secondary"
+                          $variant="secondary"
                           onClick={() => handleJoinAsSecondary(org.id, org.name)}
                           disabled={actionLoading === org.id}
                           title="Join as secondary to see public posts in your feed"
@@ -1353,7 +1353,7 @@ const OrganizationBrowser: React.FC = () => {
                           {actionLoading === org.id ? 'Joining...' : 'Join as Secondary'}
                         </Button>
                         <Button
-                          variant="outline"
+                          $variant="outline"
                           onClick={() => handleSeeGroupPosts(org.id, org.name)}
                           disabled={actionLoading === org.id || followedAsGroups.has(org.id) || isPrimary(org.id)}
                           title={
