@@ -111,6 +111,34 @@
   font-size: 0.8rem;
 }
 
+.marketplace-owner-trust {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+}
+
+.trust-heart {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.trust-heart-low {
+  color: #9e9e9e;
+}
+
+.trust-heart-medium {
+  color: #42a5f5;
+}
+
+.trust-heart-high {
+  color: #ffd54f;
+}
+
+.trust-score {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
 .marketplace-price-row {
   display: flex;
   justify-content: space-between;

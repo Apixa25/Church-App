@@ -54,6 +54,16 @@ const MarketplaceList: React.FC<MarketplaceListProps> = ({
     }).format(amount);
   };
 
+  const getTrustTier = (heartsCount: number): 'low' | 'medium' | 'high' => {
+    if (heartsCount >= 50) {
+      return 'high';
+    }
+    if (heartsCount >= 10) {
+      return 'medium';
+    }
+    return 'low';
+  };
+
   return (
     <div className="marketplace-grid">
       {listings.map((listing) => {
@@ -61,6 +71,8 @@ const MarketplaceList: React.FC<MarketplaceListProps> = ({
         const status = listing.status as MarketplaceListingStatus;
         const isAvailable = status === 'ACTIVE' || status === 'RESERVED';
         const isOwner = Boolean(listing.isOwner ?? listing.owner);
+        const ownerHeartsCount = listing.ownerHeartsCount ?? 0;
+        const trustTier = getTrustTier(ownerHeartsCount);
 
         return (
           <article key={listing.id} className="marketplace-card">
@@ -84,7 +96,17 @@ const MarketplaceList: React.FC<MarketplaceListProps> = ({
               </p>
 
               <div className="marketplace-meta">
-                <span>👤 {listing.ownerName}</span>
+                <span className="marketplace-owner-trust">
+                  <span
+                    className={`trust-heart trust-heart-${trustTier}`}
+                    title={`Trust score: ${ownerHeartsCount}`}
+                    aria-label={`Trust score ${ownerHeartsCount}`}
+                  >
+                    ❤
+                  </span>
+                  <span className="trust-score">{ownerHeartsCount}</span>
+                  <span className="trust-owner-name">{listing.ownerName}</span>
+                </span>
                 {listing.category && <span>🏷️ {listing.category}</span>}
                 {listing.locationLabel && <span>📍 {listing.locationLabel}</span>}
                 {listing.distanceMiles !== undefined && listing.distanceMiles !== null && (
