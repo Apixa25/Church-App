@@ -111,6 +111,7 @@ public class OrganizationService {
             : new java.util.HashMap<>();
         metadata.putIfAbsent("bankingReviewStatus", "PENDING_CONTACT");
         metadata.putIfAbsent("bankingReviewCreatedAt", LocalDateTime.now().toString());
+        metadata.putIfAbsent("bankingQueueEnteredAt", LocalDateTime.now().toString());
         metadata.putIfAbsent("familyDonationsApproved", false);
         metadata.putIfAbsent("creatorUserId", creator.getId().toString());
         metadata.putIfAbsent("creatorName", creator.getName());
@@ -216,8 +217,12 @@ public class OrganizationService {
         if (updates.getSettings() != null) {
             org.setSettings(updates.getSettings());
         }
-        if (updates.getMetadata() != null) {
-            org.setMetadata(updates.getMetadata());
+        if (updates.getMetadata() != null && !updates.getMetadata().isEmpty()) {
+            java.util.Map<String, Object> mergedMetadata = org.getMetadata() != null
+                ? new java.util.HashMap<>(org.getMetadata())
+                : new java.util.HashMap<>();
+            mergedMetadata.putAll(updates.getMetadata());
+            org.setMetadata(mergedMetadata);
         }
         if (updates.getStatus() != null) {
             org.setStatus(updates.getStatus());
@@ -230,6 +235,23 @@ public class OrganizationService {
             org.setLogoUrl(updates.getLogoUrl());
         }
 
+        org.setUpdatedAt(LocalDateTime.now());
+        return organizationRepository.save(org);
+    }
+
+    public Organization markBankingReviewClicked(UUID orgId) {
+        Organization org = getOrganizationById(orgId);
+        java.util.Map<String, Object> metadata = org.getMetadata() != null
+            ? new java.util.HashMap<>(org.getMetadata())
+            : new java.util.HashMap<>();
+
+        metadata.put("bankingReviewStatus", "CONTACT_INITIATED");
+        metadata.put("bankingQueueDismissedAt", LocalDateTime.now().toString());
+        metadata.putIfAbsent("bankingQueueEnteredAt", org.getCreatedAt() != null
+            ? org.getCreatedAt().toString()
+            : LocalDateTime.now().toString());
+
+        org.setMetadata(metadata);
         org.setUpdatedAt(LocalDateTime.now());
         return organizationRepository.save(org);
     }

@@ -8,6 +8,7 @@ import OrganizationMembers from './OrganizationMembers';
 import { getApiUrl } from '../config/runtimeConfig';
 
 const API_BASE_URL = getApiUrl();
+const BANKING_QUEUE_VISIBILITY_DAYS = 7;
 
 interface Organization {
   id: string;
@@ -91,9 +92,45 @@ const AdminOrganizationManagement: React.FC = () => {
   };
 
   const isOrgPendingBankingReview = (org: Organization): boolean => {
-    const bankingReviewStatus = String(getOrgMetadataValue(org, 'bankingReviewStatus') || '');
+    const bankingReviewStatus = String(getOrgMetadataValue(org, 'bankingReviewStatus') || '').toUpperCase();
     const hasStripeAccount = Boolean(org.stripeConnectAccountId && org.stripeConnectAccountId.trim());
-    return bankingReviewStatus.toUpperCase() === 'PENDING_CONTACT' && !hasStripeAccount;
+    const dismissedAtRaw = getOrgMetadataValue(org, 'bankingQueueDismissedAt');
+    const queueEnteredAtRaw =
+      getOrgMetadataValue(org, 'bankingQueueEnteredAt') ||
+      getOrgMetadataValue(org, 'bankingReviewCreatedAt') ||
+      org.createdAt;
+
+    if (dismissedAtRaw) return false;
+    if (bankingReviewStatus !== 'PENDING_CONTACT') return false;
+    if (hasStripeAccount) return false;
+
+    const enteredAt = new Date(String(queueEnteredAtRaw));
+    if (isNaN(enteredAt.getTime())) return false;
+
+    const ageInDays = (Date.now() - enteredAt.getTime()) / (1000 * 60 * 60 * 24);
+    return ageInDays <= BANKING_QUEUE_VISIBILITY_DAYS;
+  };
+
+  const handleBankingQueueSetupClick = async (org: Organization) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await axios.patch(
+        `${API_BASE_URL}/organizations/${org.id}/banking-review/clicked`,
+        null,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+
+      const updatedOrg: Organization = response.data;
+      setOrganizations(prev =>
+        prev.map(existing =>
+          existing.id === updatedOrg.id ? { ...existing, ...updatedOrg } : existing
+        )
+      );
+      setStripeConnectOrg(updatedOrg);
+    } catch (err: any) {
+      console.error('Error marking banking queue click:', err);
+      setError(err.response?.data?.message || 'Failed to start banking setup');
+    }
   };
 
   useEffect(() => {
@@ -590,7 +627,7 @@ const AdminOrganizationManagement: React.FC = () => {
             <h3>🏦 Banking Outreach Queue</h3>
             <span>{pendingBankingReviewOrganizations.length} pending</span>
           </BankingQueueHeader>
-          {pendingBankingReviewOrganizations.slice(0, 6).map(org => (
+          {pendingBankingReviewOrganizations.map(org => (
             <BankingQueueItem key={org.id}>
               <div>
                 <strong>{org.name}</strong>
@@ -601,7 +638,7 @@ const AdminOrganizationManagement: React.FC = () => {
                 </p>
               </div>
               <DonationButton
-                onClick={() => setStripeConnectOrg(org)}
+                onClick={() => handleBankingQueueSetupClick(org)}
                 title="Start Stripe Connect setup"
                 $status="not-configured"
               >

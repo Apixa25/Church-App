@@ -586,6 +586,20 @@ public class OrganizationController {
         }
     }
 
+    @PatchMapping("/{orgId}/banking-review/clicked")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    public ResponseEntity<OrganizationResponse> markBankingReviewClicked(
+            @PathVariable UUID orgId,
+            @AuthenticationPrincipal User userDetails) {
+        log.info("Admin {} marked banking review clicked for organization {}", userDetails.getUsername(), orgId);
+
+        Organization updated = organizationService.markBankingReviewClicked(orgId);
+        OrganizationResponse response = OrganizationResponse.fromOrganization(updated);
+        response.setMemberCount(organizationService.getMemberCount(orgId));
+        response.setPrimaryMemberCount(organizationService.getPrimaryMemberCount(orgId));
+        return ResponseEntity.ok(response);
+    }
+
     // Delete organization (admin only) - deletes all related data
     @DeleteMapping("/{orgId}")
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
