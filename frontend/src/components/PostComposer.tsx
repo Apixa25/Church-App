@@ -13,7 +13,7 @@ import {
   detectPlatform,
   SocialMediaPlatform 
 } from '../utils/socialMediaUtils';
-import { processImageForUpload } from '../utils/imageUtils';
+import { createStableUploadFile, processImageForUpload } from '../utils/imageUtils';
 import './PostComposer.css';
 
 // ============================================================================
@@ -21,6 +21,9 @@ import './PostComposer.css';
 // ============================================================================
 const SHOW_POST_TYPE_SELECTOR = false; // Set to true to enable different post types
 // ============================================================================
+
+const isAndroidBrowser = (): boolean =>
+  typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
 
 interface PostComposerProps {
   onPostCreated?: (post: any) => void;
@@ -111,26 +114,67 @@ const PostComposer: React.FC<PostComposerProps> = ({
   const maxContentLength = 2000;
   const maxMediaFiles = 4;
   
+  const prepareFileForUpload = useCallback(async (file: File): Promise<File> => {
+    const fileType = file.type.toLowerCase();
+    const fileName = file.name.toLowerCase();
+    const isAndroidImage = fileType.startsWith('image/') ||
+      fileName.endsWith('.jpg') ||
+      fileName.endsWith('.jpeg') ||
+      fileName.endsWith('.png') ||
+      fileName.endsWith('.webp') ||
+      fileName.endsWith('.heic') ||
+      fileName.endsWith('.heif');
+
+    if (!isAndroidBrowser() || !isAndroidImage) {
+      return file;
+    }
+
+    try {
+      return await createStableUploadFile(file);
+    } catch (err) {
+      console.warn('⚠️ Android stable file copy failed, using original file:', err);
+      return file;
+    }
+  }, []);
+
   // Handle initial media file from camera capture (passed from App.tsx)
   useEffect(() => {
-    if (initialMediaFile && !initialFileProcessedRef.current) {
+    let isCancelled = false;
+
+    const addInitialMediaFile = async () => {
+      if (!initialMediaFile || initialFileProcessedRef.current) {
+        return;
+      }
+
       console.log('📸 PostComposer: Processing initial media file from props:', initialMediaFile.name);
       initialFileProcessedRef.current = true;
-      
+
+      const uploadFile = await prepareFileForUpload(initialMediaFile);
+
+      if (isCancelled) {
+        return;
+      }
+
       // Create media file object
-      const objectUrl = URL.createObjectURL(initialMediaFile);
+      const objectUrl = URL.createObjectURL(uploadFile);
       const mediaFile: MediaFile = {
-        file: initialMediaFile,
+        file: uploadFile,
         url: objectUrl,
-        type: initialMediaFile.type.startsWith('image/') ? 'image' : 'video',
-        name: initialMediaFile.name,
-        size: initialMediaFile.size
+        type: uploadFile.type.startsWith('image/') ? 'image' : 'video',
+        name: uploadFile.name,
+        size: uploadFile.size
       };
-      
+
       setMediaFiles([mediaFile]);
       console.log('📸 PostComposer: Initial media file added successfully');
-    }
-  }, [initialMediaFile]);
+    };
+
+    addInitialMediaFile();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [initialMediaFile, prepareFileForUpload]);
 
   // Sync selected organization when memberships load (Family Primary takes precedence)
   useEffect(() => {
@@ -196,12 +240,14 @@ const PostComposer: React.FC<PostComposerProps> = ({
         continue;
       }
 
+      const uploadFile = await prepareFileForUpload(file);
+
       // Process image for upload (converts HEIC from iPhone, compresses large files)
-      let processedFile = file;
+      let processedFile = uploadFile;
       if (isImage) {
         try {
-          console.log('📷 Processing image for post:', file.name);
-          processedFile = await processImageForUpload(file, 1920, 1920, 5 * 1024 * 1024);
+          console.log('📷 Processing image for post:', uploadFile.name);
+          processedFile = await processImageForUpload(uploadFile, 1920, 1920, 5 * 1024 * 1024);
         } catch (err) {
           console.error('❌ Image processing failed, using original:', err);
         }
@@ -244,8 +290,10 @@ const PostComposer: React.FC<PostComposerProps> = ({
       return;
     }
     
+    const uploadFile = await prepareFileForUpload(file);
+
     // Process image for upload (converts HEIC from iPhone, compresses large files)
-    let processedFile = file;
+    let processedFile = uploadFile;
     const isImage = file.type.startsWith('image/') || 
       file.name.toLowerCase().endsWith('.heic') || 
       file.name.toLowerCase().endsWith('.heif');
@@ -253,7 +301,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
     if (isImage) {
       try {
         console.log('📸 PostComposer: Processing camera capture image...');
-        processedFile = await processImageForUpload(file, 1920, 1920, 5 * 1024 * 1024);
+        processedFile = await processImageForUpload(uploadFile, 1920, 1920, 5 * 1024 * 1024);
         console.log('📸 PostComposer: Image processed successfully');
       } catch (err) {
         console.error('❌ PostComposer: Image processing failed, using original:', err);
@@ -297,7 +345,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
     setShowCamera(false);
     
     console.log('📸 PostComposer: handleCameraCapture completed successfully');
-  }, [maxMediaFiles]);
+  }, [maxMediaFiles, prepareFileForUpload]);
   
   // Keep the ref updated with the latest handler
   useEffect(() => {

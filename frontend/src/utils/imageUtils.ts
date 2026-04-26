@@ -31,6 +31,27 @@ const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, errorMessage: st
   ]);
 };
 
+/**
+ * Android Chrome/PWA can throw net::ERR_UPLOAD_FILE_CHANGED when uploading
+ * directly from a photo-picker backed File. Copying the bytes immediately gives
+ * fetch() a stable app-owned Blob to upload.
+ */
+export const createStableUploadFile = async (file: File): Promise<File> => {
+  const buffer = await file.arrayBuffer();
+  const stableFile = new File([buffer], file.name || `upload-${Date.now()}`, {
+    type: file.type || 'application/octet-stream',
+    lastModified: Date.now()
+  });
+
+  console.log('📱 Created stable upload file copy:', {
+    name: stableFile.name,
+    type: stableFile.type,
+    size: (stableFile.size / 1024 / 1024).toFixed(2) + 'MB'
+  });
+
+  return stableFile;
+};
+
 export const convertImageToJpeg = async (
   file: File, 
   maxWidth = 1920, 
@@ -218,7 +239,6 @@ export const processImageForUpload = async (
   
   try {
     const fileType = file.type.toLowerCase();
-    const fileName = file.name.toLowerCase();
     const isJpeg = fileType === 'image/jpeg' || fileType === 'image/jpg';
     const isHeic = needsImageConversion(file);
     const isLarge = file.size > sizeThreshold;

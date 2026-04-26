@@ -72,8 +72,11 @@ const PostFeed: React.FC<PostFeedProps> = ({
   const lastFetchTimeRef = useRef<number>(0);
 
   const POSTS_PER_PAGE = 20;
-  const INITIAL_BATCH_SIZE = 5; // 🚀 Load 5 posts first for instant display (progressive loading)
   const PULL_THRESHOLD = 80; // pixels to pull before triggering refresh
+
+  const hasMorePages = (response: FeedResponse): boolean => {
+    return !response.last && response.content.length > 0;
+  };
 
   // 🚀 React Query for caching posts - only fetch when explicitly requested
   const { 
@@ -104,62 +107,29 @@ const PostFeed: React.FC<PostFeedProps> = ({
       const currentPage = reset ? 0 : pageRef.current;
       
       if (reset) {
-        // 🚀 PROGRESSIVE LOADING: Load small batch first for instant display
         setLoading(true);
         setPage(0);
         pageRef.current = 0;
         setHasMore(true);
         setError('');
         setHasNewContent(false);
-        
-        // Step 1: Load initial small batch (5 posts) for immediate display
-        const initialResponse: FeedResponse = await getFeed(
+
+        const response: FeedResponse = await getFeed(
           feedTypeString,
           0,
-          INITIAL_BATCH_SIZE
+          POSTS_PER_PAGE
         );
-        
-        // Show first batch immediately - don't wait for all 20!
-        if (initialResponse.content.length > 0) {
-          setPosts(initialResponse.content);
-          queryClient.setQueryData(queryKey, initialResponse.content);
-          setLoading(false); // ✅ Stop showing spinner - user can see posts now!
-          lastFetchTimeRef.current = Date.now();
-          
-          // Step 2: Load remaining posts in background (non-blocking)
-          // Continue loading the rest of the page (15 more posts)
-          if (initialResponse.content.length === INITIAL_BATCH_SIZE) {
-            // Load remaining posts asynchronously - don't block UI
-            getFeed(
-              feedTypeString,
-              0,
-              POSTS_PER_PAGE
-            ).then((fullResponse: FeedResponse) => {
-              // Only update if we got more posts than the initial batch
-              if (fullResponse.content.length > initialResponse.content.length) {
-                setPosts(fullResponse.content);
-                queryClient.setQueryData(queryKey, fullResponse.content);
-                lastFetchTimeRef.current = Date.now();
-              }
-              setHasMore(fullResponse.content.length === POSTS_PER_PAGE && !maxPosts);
-            }).catch((err) => {
-              console.error('Error loading remaining posts:', err);
-              // Don't show error to user - they already have posts visible
-              // Just set hasMore to false to prevent further loading attempts
-              setHasMore(false);
-            });
-          } else {
-            // Got fewer than expected, so no more to load
-            setHasMore(false);
-          }
-        } else {
-          // No posts at all
-          setPosts([]);
-          setLoading(false);
-          setHasMore(false);
-        }
+
+        setPosts(response.content);
+        queryClient.setQueryData(queryKey, response.content);
+        lastFetchTimeRef.current = Date.now();
+        setHasMore(hasMorePages(response) && !maxPosts);
+
+        const nextPage = response.number + 1;
+        setPage(nextPage);
+        pageRef.current = nextPage;
+        setLoading(false);
       } else {
-        // Loading more (pagination) - keep existing behavior
         setLoadingMore(true);
         
         const response: FeedResponse = await getFeed(
@@ -168,9 +138,13 @@ const PostFeed: React.FC<PostFeedProps> = ({
           POSTS_PER_PAGE
         );
 
-        setPosts(prev => [...prev, ...response.content]);
-        setHasMore(response.content.length === POSTS_PER_PAGE && !maxPosts);
-        const nextPage = currentPage + 1;
+        setPosts(prev => {
+          const existingPostIds = new Set(prev.map(post => post.id));
+          const newPosts = response.content.filter(post => !existingPostIds.has(post.id));
+          return [...prev, ...newPosts];
+        });
+        setHasMore(hasMorePages(response) && !maxPosts);
+        const nextPage = response.number + 1;
         setPage(nextPage);
         pageRef.current = nextPage;
         setLoadingMore(false);
@@ -182,7 +156,7 @@ const PostFeed: React.FC<PostFeedProps> = ({
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [feedType, maxPosts, feedTypeString, queryKey, queryClient]); // Stable dependencies
+  }, [maxPosts, feedTypeString, queryKey, queryClient]); // Stable dependencies
 
   // Update the ref whenever loadPosts changes
   loadPostsRef.current = loadPosts;
