@@ -1,5 +1,5 @@
 import React from 'react';
-import { DonationCategory, RecurringFrequency, CATEGORY_LABELS, FREQUENCY_LABELS } from '../config/stripe';
+import { DonationCategory, RecurringFrequency, CATEGORY_LABELS } from '../config/stripe';
 import { formatCurrency } from '../services/donationApi';
 import './DonationSummary.css';
 

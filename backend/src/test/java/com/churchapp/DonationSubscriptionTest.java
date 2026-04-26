@@ -102,7 +102,7 @@ public class DonationSubscriptionTest {
             eq(RecurringFrequency.MONTHLY),
             eq("Monthly tithe"),
             eq("pm_test123"),
-            any(UUID.class)
+            nullable(UUID.class)
         )).thenReturn(testSubscription);
 
         // Act & Assert
@@ -124,7 +124,7 @@ public class DonationSubscriptionTest {
             eq(RecurringFrequency.MONTHLY),
             eq("Monthly tithe"),
             eq("pm_test123"),
-            any(UUID.class)
+            nullable(UUID.class)
         );
     }
 
@@ -245,7 +245,7 @@ public class DonationSubscriptionTest {
             request.setPaymentMethodId("pm_test123");
 
             testSubscription.setFrequency(frequency);
-            when(stripeSubscriptionService.createSubscription(any(), any(), any(), eq(frequency), any(), any(), any(UUID.class)))
+            when(stripeSubscriptionService.createSubscription(any(), any(), any(), eq(frequency), any(), any(), nullable(UUID.class)))
                 .thenReturn(testSubscription);
 
             mockMvc.perform(post("/donations/subscriptions")
@@ -268,7 +268,7 @@ public class DonationSubscriptionTest {
             request.setPaymentMethodId("pm_test123");
 
             testSubscription.setCategory(category);
-            when(stripeSubscriptionService.createSubscription(any(), any(), eq(category), any(), any(), any(), any(UUID.class)))
+            when(stripeSubscriptionService.createSubscription(any(), any(), eq(category), any(), any(), any(), nullable(UUID.class)))
                 .thenReturn(testSubscription);
 
             mockMvc.perform(post("/donations/subscriptions")

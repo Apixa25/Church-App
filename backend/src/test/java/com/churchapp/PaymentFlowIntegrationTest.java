@@ -141,7 +141,7 @@ public class PaymentFlowIntegrationTest {
             eq(DonationCategory.TITHES),
             eq("Weekly tithe"),
             any(),
-            any(UUID.class)
+            nullable(UUID.class)
         )).thenReturn(mockPaymentIntent);
 
         // Execute Step 1
@@ -173,7 +173,7 @@ public class PaymentFlowIntegrationTest {
             eq(DonationCategory.TITHES),
             eq("Weekly tithe"),
             any(),
-            any(UUID.class)
+            nullable(UUID.class)
         );
         verify(stripePaymentService).confirmPayment("pi_test123", testUser);
         verify(receiptService).generateAndEmailReceipt(testDonation);
@@ -196,7 +196,7 @@ public class PaymentFlowIntegrationTest {
             eq(RecurringFrequency.MONTHLY),
             eq("Monthly tithe"),
             eq("pm_test123"),
-            any(UUID.class)
+            nullable(UUID.class)
         )).thenReturn(testSubscription);
 
         // Execute Step 1: Create Subscription
@@ -239,7 +239,7 @@ public class PaymentFlowIntegrationTest {
             eq(RecurringFrequency.MONTHLY),
             eq("Monthly tithe"),
             eq("pm_test123"),
-            any(UUID.class)
+            nullable(UUID.class)
         );
         verify(stripeSubscriptionService).cancelSubscription(testSubscription.getId().toString(), testUser);
     }
@@ -256,7 +256,7 @@ public class PaymentFlowIntegrationTest {
         when(mockPaymentIntent.getId()).thenReturn("pi_test456");
         when(mockPaymentIntent.getStatus()).thenReturn("requires_payment_method");
 
-        when(stripePaymentService.createPaymentIntent(any(), any(), any(), any(), any(), any(UUID.class)))
+        when(stripePaymentService.createPaymentIntent(any(), any(), any(), any(), any(), nullable(UUID.class)))
             .thenReturn(mockPaymentIntent);
 
         mockMvc.perform(post("/donations/create-payment-intent")
@@ -287,7 +287,7 @@ public class PaymentFlowIntegrationTest {
         subscriptionRequest.setFrequency(RecurringFrequency.WEEKLY);
         subscriptionRequest.setPaymentMethodId("pm_original123");
 
-        when(stripeSubscriptionService.createSubscription(any(), any(), any(), any(), any(), any(), any(UUID.class)))
+        when(stripeSubscriptionService.createSubscription(any(), any(), any(), any(), any(), any(), nullable(UUID.class)))
             .thenReturn(testSubscription);
 
         mockMvc.perform(post("/donations/subscriptions")

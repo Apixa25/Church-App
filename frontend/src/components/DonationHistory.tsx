@@ -25,7 +25,6 @@ const DonationHistory: React.FC<DonationHistoryProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
   const [filters, setFilters] = useState<FilterState>({
     category: 'all',
     dateRange: 'all',
@@ -84,7 +83,6 @@ const DonationHistory: React.FC<DonationHistoryProps> = ({
 
       setDonations(filteredDonations);
       setTotalPages(response.totalPages);
-      setTotalElements(response.totalElements);
 
     } catch (err: any) {
       console.error('Error loading donations:', err);
@@ -96,7 +94,7 @@ const DonationHistory: React.FC<DonationHistoryProps> = ({
 
   const handleDownloadReceipt = async (donation: DonationResponse) => {
     try {
-      const filename = `Receipt_${formatDate(donation.timestamp).replace(/[^\w\-_\.]/g, '_')}_${donation.transactionId}.pdf`;
+      const filename = `Receipt_${formatDate(donation.timestamp).replace(/[^\w.-]/g, '_')}_${donation.transactionId}.pdf`;
       await downloadReceiptFile(donation.id, filename);
     } catch (err) {
       console.error('Error downloading receipt:', err);

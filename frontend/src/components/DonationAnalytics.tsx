@@ -4,12 +4,10 @@ import {
   donationApi,
   DonationAnalytics as AnalyticsData,
   TopDonor,
-  CategoryBreakdown,
-  MonthlyTrend,
   formatCurrency,
   formatDate
 } from '../services/donationApi';
-import { DonationCategory, CATEGORY_LABELS } from '../config/stripe';
+import { DonationCategory } from '../config/stripe';
 import './DonationAnalytics.css';
 
 interface DonationAnalyticsProps {

@@ -44,6 +44,19 @@ public class OrganizationRequest {
     private String adminContactAddress;
 
     public Organization toOrganization() {
+        Organization org = toOrganizationUpdate();
+
+        if (this.tier == null) {
+            org.setTier(Organization.SubscriptionTier.BASIC); // Default
+        }
+
+        // Status defaults to TRIAL for new orgs only.
+        org.setStatus(Organization.OrganizationStatus.TRIAL);
+
+        return org;
+    }
+
+    public Organization toOrganizationUpdate() {
         Organization org = new Organization();
         org.setName(this.name);
         org.setSlug(this.slug);
@@ -56,12 +69,7 @@ public class OrganizationRequest {
 
         if (this.tier != null) {
             org.setTier(Organization.SubscriptionTier.valueOf(this.tier.toUpperCase()));
-        } else {
-            org.setTier(Organization.SubscriptionTier.BASIC); // Default
         }
-
-        // Status defaults to TRIAL for new orgs
-        org.setStatus(Organization.OrganizationStatus.TRIAL);
 
         org.setSettings(this.settings);
 

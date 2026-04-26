@@ -79,11 +79,7 @@ const PostFeed: React.FC<PostFeedProps> = ({
   };
 
   // 🚀 React Query for caching posts - only fetch when explicitly requested
-  const { 
-    data: cachedPosts, 
-    isLoading: queryLoading,
-    refetch: refetchPosts 
-  } = useQuery({
+  useQuery({
     queryKey,
     queryFn: async () => {
       const response: FeedResponse = await getFeed(
@@ -610,10 +606,6 @@ const PostFeed: React.FC<PostFeedProps> = ({
 
   const handleRetry = () => {
     loadPosts(true);
-  };
-
-  const handleRefresh = async () => {
-    await loadPosts(true);
   };
 
   // Filter posts if maxPosts is set

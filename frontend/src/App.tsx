@@ -42,7 +42,6 @@ import GroupBrowser from './components/GroupBrowser';
 import GroupPage from './components/GroupPage';
 import GroupSettings from './components/GroupSettings';
 import InviteLinkJoinPage from './components/InviteLinkJoinPage';
-import WebSocketStatusIndicator from './components/WebSocketStatusIndicator';
 import QuickActionsPage from './components/QuickActionsPage';
 import MarketplacePage from './components/MarketplacePage';
 import BottomNav from './components/BottomNav';

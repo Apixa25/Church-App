@@ -43,4 +43,6 @@ class StatusBarService {
   }
 }
 
-export default new StatusBarService();
+const statusBarService = new StatusBarService();
+
+export default statusBarService;

@@ -494,9 +494,10 @@ public class OrganizationController {
             @Valid @RequestBody OrganizationRequest request,
             @AuthenticationPrincipal User userDetails) {
 
-        // TODO: Add authorization check - only org admins can update
+        com.churchapp.entity.User currentUser = getCurrentUserEntity(userDetails);
+        adminAuthorizationService.requireOrgAdminAccess(currentUser, orgId);
 
-        Organization updates = request.toOrganization();
+        Organization updates = request.toOrganizationUpdate();
         Organization updated = organizationService.updateOrganization(orgId, updates);
 
         OrganizationResponse response = OrganizationResponse.fromOrganization(updated);
@@ -934,9 +935,17 @@ public class OrganizationController {
      */
     @GetMapping("/users/{userId}/memberships")
     public ResponseEntity<List<MembershipResponse>> getUserMemberships(
-            @PathVariable UUID userId) {
+            @PathVariable UUID userId,
+            @AuthenticationPrincipal User userDetails) {
 
         log.info("Requesting memberships for user {}", userId);
+        com.churchapp.entity.User currentUser = getCurrentUserEntity(userDetails);
+        boolean isSelf = currentUser.getId().equals(userId);
+        boolean isAdmin = adminAuthorizationService.hasAnyAdminAccess(currentUser);
+        if (!isSelf && !isAdmin) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only view your own organization memberships");
+        }
+
         List<UserOrganizationMembership> memberships = organizationService.getAllMemberships(userId);
 
         List<MembershipResponse> response = memberships.stream()
@@ -955,7 +964,12 @@ public class OrganizationController {
             @PathVariable UUID orgId,
             @AuthenticationPrincipal User userDetails) {
 
-        // TODO: Add authorization check - only members can view stats
+        com.churchapp.entity.User currentUser = getCurrentUserEntity(userDetails);
+        boolean canViewStats = adminAuthorizationService.hasOrgAdminAccess(currentUser, orgId)
+            || organizationService.isMember(currentUser.getId(), orgId);
+        if (!canViewStats) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You must be a member to view organization stats");
+        }
 
         OrganizationStatsResponse stats = new OrganizationStatsResponse();
         stats.setOrganizationId(orgId);

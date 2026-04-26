@@ -114,7 +114,7 @@ public class DonationControllerTest {
             eq(DonationCategory.TITHES),
             eq("Weekly tithe"),
             any(),
-            any(UUID.class)
+            nullable(UUID.class)
         )).thenReturn(mockPaymentIntent);
 
         // Act & Assert
@@ -134,7 +134,7 @@ public class DonationControllerTest {
             eq(DonationCategory.TITHES),
             eq("Weekly tithe"),
             any(),
-            any(UUID.class)
+            nullable(UUID.class)
         );
     }
 

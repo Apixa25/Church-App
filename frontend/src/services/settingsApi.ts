@@ -336,7 +336,7 @@ export const applyAccessibilitySettings = (settings: Partial<UserSettings>) => {
 };
 
 // Export default object for convenience
-export default {
+const settingsApi = {
   getUserSettings,
   updateUserSettings,
   updateNotificationSettings,
@@ -357,3 +357,5 @@ export default {
   applyAccessibilitySettings,
   applyStoredSettings
 };
+
+export default settingsApi;

@@ -194,11 +194,6 @@ const PostComposer: React.FC<PostComposerProps> = ({
     { type: PostType.ANNOUNCEMENT, label: 'Announcement', icon: '📢', description: 'Church announcements' }
   ];
 
-  const categories = [
-    'Praise Report', 'Prayer Request', 'Bible Study', 'Youth Group',
-    'Worship', 'Outreach', 'Fellowship', 'Ministry Update'
-  ];
-
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     if (value.length <= maxContentLength) {
@@ -531,21 +526,6 @@ const PostComposer: React.FC<PostComposerProps> = ({
 
     if (onCancel) {
       onCancel();
-    }
-  };
-
-  const insertEmoji = (emoji: string) => {
-    if (textareaRef.current) {
-      const start = textareaRef.current.selectionStart;
-      const end = textareaRef.current.selectionEnd;
-      const newContent = content.substring(0, start) + emoji + content.substring(end);
-      setContent(newContent);
-
-      // Focus back to textarea and set cursor position
-      setTimeout(() => {
-        textareaRef.current?.focus();
-        textareaRef.current?.setSelectionRange(start + emoji.length, start + emoji.length);
-      }, 0);
     }
   };
 

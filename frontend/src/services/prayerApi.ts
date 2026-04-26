@@ -207,13 +207,13 @@ export const prayerAPI = {
           
           if (!fetchResponse.ok) {
             const errorData = await fetchResponse.json().catch(() => ({ error: fetchResponse.statusText }));
-            throw {
+            throw Object.assign(new Error(fetchResponse.statusText), {
               response: {
                 status: fetchResponse.status,
                 statusText: fetchResponse.statusText,
                 data: errorData
               }
-            };
+            });
           }
           
           const responseData = await fetchResponse.json();
