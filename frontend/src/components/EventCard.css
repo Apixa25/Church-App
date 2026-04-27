@@ -1,9 +1,11 @@
 /* EventCard Component Styles - Dark Modern Theme */
 
 .event-card {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--border-radius-md);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.025)),
+    rgba(20, 20, 32, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius-lg);
   padding: 20px;
   box-shadow: var(--shadow-sm);
   cursor: pointer;
@@ -16,12 +18,17 @@
 
 .event-card:hover {
   transform: translateY(-2px);
-  border-color: var(--border-glow);
-  box-shadow: var(--shadow-md), var(--glow-blue);
+  border-color: rgba(123, 159, 255, 0.42);
+  box-shadow: var(--shadow-lg), 0 18px 44px rgba(91, 127, 255, 0.14);
 }
 
 .event-card.compact {
-  padding: 15px;
+  padding: 14px;
+  border-radius: var(--border-radius-lg);
+  background:
+    linear-gradient(135deg, rgba(91, 127, 255, 0.08), rgba(139, 92, 246, 0.05)),
+    rgba(10, 10, 15, 0.34);
+  border-left-width: 3px;
 }
 
 .event-card.past {
@@ -31,8 +38,10 @@
 
 .event-card.today {
   border-left-color: var(--accent-primary);
-  background: linear-gradient(135deg, var(--bg-tertiary) 0%, rgba(91, 127, 255, 0.1) 100%);
-  box-shadow: var(--shadow-md), 0 0 20px rgba(91, 127, 255, 0.2);
+  background:
+    linear-gradient(135deg, rgba(91, 127, 255, 0.16), rgba(139, 92, 246, 0.08)),
+    rgba(20, 20, 32, 0.9);
+  box-shadow: var(--shadow-md), 0 16px 38px rgba(91, 127, 255, 0.18);
 }
 
 /* Event Header */
@@ -136,13 +145,14 @@
 }
 
 .event-card.compact .event-title h3 {
-  font-size: 1rem;
-  margin-bottom: 5px;
+  font-size: 0.98rem;
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
 }
 
 .event-description {
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   line-height: 1.5;
   margin: 0;
   display: -webkit-box;
@@ -174,7 +184,8 @@
 
 .event-card.compact .detail-item {
   font-size: 0.8rem;
-  gap: 20px; /* Increased spacing for compact cards while maintaining readability */
+  gap: 12px;
+  color: var(--text-tertiary);
 }
 
 .detail-icon {
@@ -194,9 +205,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 15px;
-  border-top: 1px solid var(--border-primary);
-  margin-bottom: 15px;
+  padding-top: 13px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 13px;
 }
 
 .creator-info {
@@ -242,8 +253,8 @@
 
 /* RSVP Section */
 .event-rsvp {
-  border-top: 1px solid var(--border-primary);
-  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 13px;
 }
 
 .event-rsvp.compact {
@@ -304,9 +315,9 @@
   color: var(--text-secondary);
   font-weight: 500;
   padding: 8px 16px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--border-radius-sm);
+  background: rgba(10, 10, 15, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--border-radius-md);
 }
 
 .rsvp-buttons {
@@ -324,8 +335,8 @@
 .rsvp-btn {
   flex: 1;
   padding: 8px 12px;
-  border: 2px solid transparent;
-  border-radius: var(--border-radius-sm);
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-md);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;

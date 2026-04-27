@@ -230,6 +230,11 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
         <div className="header-title">
           <h1>🗓 Calendar & Events</h1>
           <p>Manage and view events</p>
+          <div className="calendar-hero-pills" aria-label="Calendar highlights">
+            <span>Shared church calendar</span>
+            <span>Real-time updates</span>
+            <span>RSVP friendly</span>
+          </div>
         </div>
         <div className="view-toggle">
           <button

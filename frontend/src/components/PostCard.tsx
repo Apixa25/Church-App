@@ -42,6 +42,24 @@ const updateReactionCounts = (
   return nextCounts;
 };
 
+const REACTION_SUMMARY_OPTIONS = [
+  { type: PostReactionType.HEART, emoji: '❤️', label: 'Love' },
+  { type: PostReactionType.LIKE, emoji: '👍', label: 'Like' },
+  { type: PostReactionType.DISLIKE, emoji: '👎', label: 'Dislike' },
+  { type: PostReactionType.LAUGH, emoji: '😆', label: 'Laugh' },
+  { type: PostReactionType.WOW, emoji: '😮', label: 'Wow' },
+  { type: PostReactionType.SAD, emoji: '😢', label: 'Sad' },
+  { type: PostReactionType.ANGRY, emoji: '😠', label: 'Angry' }
+];
+
+const getReactionSummaryItems = (counts: PostReactionCounts) =>
+  REACTION_SUMMARY_OPTIONS
+    .map(option => ({
+      ...option,
+      count: counts[option.type] || 0
+    }))
+    .filter(option => option.count > 0);
+
 interface PostCardProps {
   post: Post;
   onPostUpdate?: (updatedPost: Post) => void;
@@ -103,6 +121,8 @@ const PostCard: React.FC<PostCardProps> = ({
   // Ref for impression tracking via IntersectionObserver
   const postCardRef = useRef<HTMLDivElement>(null);
   const impressionTrackedRef = useRef(false);
+  const reactionSummaryItems = getReactionSummaryItems(reactionCounts);
+  const shouldShowReactionSummaryOnMedia = Boolean(post.mediaUrls?.length && reactionSummaryItems.length > 0);
 
   useEffect(() => {
     // Only sync from props if not currently loading (to avoid overriding optimistic updates)
@@ -737,6 +757,23 @@ const PostCard: React.FC<PostCardProps> = ({
     }
   }, [post.id]);
 
+  const renderReactionSummary = () => {
+    if (!shouldShowReactionSummaryOnMedia) {
+      return null;
+    }
+
+    return (
+      <div className="media-reaction-summary" aria-label="Post reactions">
+        {reactionSummaryItems.map(item => (
+          <div className="media-reaction-summary-item" key={item.type} title={`${item.label}: ${item.count}`}>
+            <span className="media-reaction-summary-emoji" aria-hidden="true">{item.emoji}</span>
+            <span className="media-reaction-summary-count">{item.count}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const renderMedia = () => {
     if (!post.mediaUrls || post.mediaUrls.length === 0) {
       return null;
@@ -930,6 +967,7 @@ const PostCard: React.FC<PostCardProps> = ({
                 )}
               </div>
             )}
+            {renderReactionSummary()}
           </div>
         </div>
       );
@@ -1132,6 +1170,7 @@ const PostCard: React.FC<PostCardProps> = ({
             );
           })}
         </div>
+        {renderReactionSummary()}
       </div>
     );
   };
@@ -1325,6 +1364,7 @@ const PostCard: React.FC<PostCardProps> = ({
           currentReaction={currentReaction}
           reactionCounts={reactionCounts}
           totalCount={likesCount}
+          showTotalCount={!shouldShowReactionSummaryOnMedia}
           disabled={isLoading}
           onReactionSelect={handleReactionSelect}
         />

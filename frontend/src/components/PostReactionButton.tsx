@@ -25,6 +25,7 @@ interface PostReactionButtonProps {
   currentReaction?: PostReactionType | null;
   reactionCounts?: PostReactionCounts;
   totalCount: number;
+  showTotalCount?: boolean;
   disabled?: boolean;
   onReactionSelect: (reaction: PostReactionType | null) => Promise<void> | void;
 }
@@ -36,6 +37,7 @@ const PostReactionButton: React.FC<PostReactionButtonProps> = ({
   currentReaction,
   reactionCounts,
   totalCount,
+  showTotalCount = true,
   disabled = false,
   onReactionSelect
 }) => {
@@ -74,6 +76,25 @@ const PostReactionButton: React.FC<PostReactionButtonProps> = ({
       clearTimers();
     };
   }, []);
+
+  useEffect(() => {
+    if (!isPickerOpen) return;
+
+    const closePickerOnScroll = () => {
+      setIsPickerOpen(false);
+      clearTimers();
+    };
+
+    window.addEventListener('scroll', closePickerOnScroll, true);
+    window.addEventListener('wheel', closePickerOnScroll, { passive: true });
+    window.addEventListener('touchmove', closePickerOnScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', closePickerOnScroll, true);
+      window.removeEventListener('wheel', closePickerOnScroll);
+      window.removeEventListener('touchmove', closePickerOnScroll);
+    };
+  }, [isPickerOpen]);
 
   const handleQuickReaction = async () => {
     if (disabled || isSubmitting) return;
@@ -230,7 +251,7 @@ const PostReactionButton: React.FC<PostReactionButtonProps> = ({
             ))}
           </span>
         )}
-        {totalCount > 0 && <span className="reaction-total">{totalCount}</span>}
+        {showTotalCount && totalCount > 0 && <span className="reaction-total">{totalCount}</span>}
       </button>
     </div>
   );

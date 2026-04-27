@@ -90,8 +90,8 @@
   position: absolute;
   left: 50%;
   bottom: 48px;
-  width: 164px;
-  height: 164px;
+  width: 172px;
+  height: 172px;
   transform: translateX(-50%);
   z-index: 100;
   pointer-events: auto;
@@ -110,6 +110,8 @@
 
 .reaction-petal {
   position: absolute;
+  left: 50%;
+  top: 50%;
   width: 48px;
   height: 48px;
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -121,12 +123,13 @@
   justify-content: center;
   cursor: pointer;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.32);
+  transform: translate(-50%, -50%) translate(var(--petal-x), var(--petal-y));
   transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
 }
 
 .reaction-petal:hover,
 .reaction-petal:focus {
-  transform: scale(1.16);
+  transform: translate(-50%, -50%) translate(var(--petal-x), var(--petal-y)) scale(1.16);
   border-color: var(--accent-primary);
   outline: none;
 }
@@ -147,38 +150,38 @@
 }
 
 .reaction-petal-0 {
-  left: 58px;
-  top: 58px;
+  --petal-x: 0px;
+  --petal-y: 0px;
 }
 
 .reaction-petal-1 {
-  left: 58px;
-  top: 0;
+  --petal-x: 0px;
+  --petal-y: -64px;
 }
 
 .reaction-petal-2 {
-  left: 58px;
-  bottom: 0;
+  --petal-x: 0px;
+  --petal-y: 64px;
 }
 
 .reaction-petal-3 {
-  left: 10px;
-  top: 30px;
+  --petal-x: -55px;
+  --petal-y: -32px;
 }
 
 .reaction-petal-4 {
-  right: 10px;
-  top: 30px;
+  --petal-x: 55px;
+  --petal-y: -32px;
 }
 
 .reaction-petal-5 {
-  left: 20px;
-  bottom: 14px;
+  --petal-x: -55px;
+  --petal-y: 32px;
 }
 
 .reaction-petal-6 {
-  right: 20px;
-  bottom: 14px;
+  --petal-x: 55px;
+  --petal-y: 32px;
 }
 
 @media (max-width: 768px) {

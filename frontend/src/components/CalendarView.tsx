@@ -210,6 +210,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 <div className="events-list">
                   {selectedDateEvents.length === 0 ? (
                     <div className="no-events">
+                      <div className="no-events-icon" aria-hidden="true">✨</div>
                       <p>No events scheduled for this date</p>
                       <button 
                         className="btn btn-primary btn-sm"
@@ -341,6 +342,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               <div className="day-timeline">
                 {selectedDateEvents.length === 0 ? (
                   <div className="no-events">
+                    <div className="no-events-icon" aria-hidden="true">✨</div>
                     <p>No events scheduled for this day</p>
                     <button 
                       className="btn btn-primary btn-sm"
@@ -406,6 +408,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               <div className="events-list">
                 {selectedDateEvents.length === 0 ? (
                   <div className="no-events">
+                    <div className="no-events-icon" aria-hidden="true">✨</div>
                     <p>No events scheduled for this date</p>
                     <button 
                       className="btn btn-primary btn-sm"
