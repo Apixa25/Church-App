@@ -5,10 +5,12 @@ import com.churchapp.dto.AuthResponse;
 import com.churchapp.dto.LoginRequest;
 import com.churchapp.dto.RefreshTokenRequest;
 import com.churchapp.service.AuthService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,19 +21,25 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
+@Slf4j
 public class AuthController {
     
     private final AuthService authService;
     
     @Value("${frontend.url:http://localhost:3000}")
     private String frontendUrl;
+
+    @Value("${cors.allowed-origins:http://localhost:3000}")
+    private String allowedOrigins;
     
     @RequestMapping(value = "/register", method = RequestMethod.OPTIONS)
     public ResponseEntity<?> handleOptionsRegister() {
@@ -71,8 +79,10 @@ public class AuthController {
     
     @GetMapping("/oauth2/success")
     public void handleOAuth2Success(@AuthenticationPrincipal OAuth2User oAuth2User, 
+                                   HttpServletRequest request,
                                    HttpServletResponse response) throws IOException {
         try {
+            log.info("OAuth2 success handler reached. Principal present: {}", oAuth2User != null);
             AuthResponse authResponse = authService.handleOAuth2Login(oAuth2User);
             
             // URL encode all parameters to handle special characters
@@ -85,10 +95,9 @@ public class AuthController {
             String profilePicUrl = URLEncoder.encode(authResponse.getProfilePicUrl() != null ? authResponse.getProfilePicUrl() : "", StandardCharsets.UTF_8);
             String isNewUser = String.valueOf(authResponse.isNewUser());
             
-            // Remove trailing slash from frontendUrl if present
-            String cleanFrontendUrl = frontendUrl.endsWith("/") 
-                ? frontendUrl.substring(0, frontendUrl.length() - 1) 
-                : frontendUrl;
+            String cleanFrontendUrl = resolveFrontendUrl(request);
+            clearOAuthFrontendCookie(response);
+            log.info("OAuth2 success redirecting to frontend origin: {}", cleanFrontendUrl);
             
             // Redirect to frontend with token as URL parameter
             String redirectUrl = String.format(
@@ -106,10 +115,9 @@ public class AuthController {
             
             response.sendRedirect(redirectUrl);
         } catch (Exception e) {
-            // Remove trailing slash from frontendUrl if present
-            String cleanFrontendUrl = frontendUrl.endsWith("/") 
-                ? frontendUrl.substring(0, frontendUrl.length() - 1) 
-                : frontendUrl;
+            String cleanFrontendUrl = resolveFrontendUrl(request);
+            clearOAuthFrontendCookie(response);
+            log.error("OAuth2 success handling failed. Redirecting to auth error on {}", cleanFrontendUrl, e);
             String errorMessage = URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
             response.sendRedirect(cleanFrontendUrl + "/auth/error?message=" + errorMessage);
         }
@@ -120,7 +128,56 @@ public class AuthController {
         String error = request.getParameter("error");
         String errorMessage = error != null ? error : "OAuth2 authentication failed";
         String encodedError = URLEncoder.encode(errorMessage, StandardCharsets.UTF_8);
-        response.sendRedirect(frontendUrl + "/auth/error?message=" + encodedError);
+        String cleanFrontendUrl = resolveFrontendUrl(request);
+        clearOAuthFrontendCookie(response);
+        log.warn("OAuth2 failure redirecting to frontend origin: {} with error: {}", cleanFrontendUrl, errorMessage);
+        response.sendRedirect(cleanFrontendUrl + "/auth/error?message=" + encodedError);
+    }
+
+    private String resolveFrontendUrl(HttpServletRequest request) {
+        String cookieFrontendUrl = getCookieValue(request, "oauth_frontend_url");
+        if (cookieFrontendUrl != null && isAllowedFrontendOrigin(cookieFrontendUrl)) {
+            return trimTrailingSlash(cookieFrontendUrl);
+        }
+
+        return trimTrailingSlash(frontendUrl);
+    }
+
+    private String getCookieValue(HttpServletRequest request, String cookieName) {
+        if (request.getCookies() == null) {
+            return null;
+        }
+
+        return Arrays.stream(request.getCookies())
+            .filter(cookie -> cookieName.equals(cookie.getName()))
+            .map(Cookie::getValue)
+            .findFirst()
+            .map(value -> URLDecoder.decode(value, StandardCharsets.UTF_8))
+            .orElse(null);
+    }
+
+    private boolean isAllowedFrontendOrigin(String origin) {
+        String cleanOrigin = trimTrailingSlash(origin);
+        return Arrays.stream(allowedOrigins.split(","))
+            .map(String::trim)
+            .map(this::trimTrailingSlash)
+            .anyMatch(cleanOrigin::equals);
+    }
+
+    private String trimTrailingSlash(String value) {
+        if (value == null || value.isBlank()) {
+            return frontendUrl;
+        }
+
+        return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
+    }
+
+    private void clearOAuthFrontendCookie(HttpServletResponse response) {
+        Cookie cookie = new Cookie("oauth_frontend_url", "");
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        cookie.setHttpOnly(false);
+        response.addCookie(cookie);
     }
     
     @GetMapping("/me")

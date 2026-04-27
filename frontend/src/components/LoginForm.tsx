@@ -42,6 +42,7 @@ const LoginForm: React.FC = () => {
   const handleGoogleLogin = () => {
     const { getApiUrl } = require('../config/runtimeConfig');
     const apiUrl = getApiUrl();
+    document.cookie = `oauth_frontend_url=${encodeURIComponent(window.location.origin)}; path=/; max-age=300; SameSite=Lax`;
     window.location.href = `${apiUrl}/oauth2/authorization/google`;
   };
 
