@@ -10,6 +10,7 @@ import {
   FeedResponse,
   CommentsResponse,
   FeedType,
+  PostReactionType,
   PostStats,
   PostSearchFilters
 } from '../types/Post';
@@ -222,6 +223,14 @@ export const likePost = async (postId: string): Promise<void> => {
 
 export const unlikePost = async (postId: string): Promise<void> => {
   await api.delete(`/posts/${postId}/like`);
+};
+
+export const setPostReaction = async (postId: string, type: PostReactionType): Promise<void> => {
+  await api.put(`/posts/${postId}/reaction`, { type });
+};
+
+export const removePostReaction = async (postId: string): Promise<void> => {
+  await api.delete(`/posts/${postId}/reaction`);
 };
 
 export const addComment = async (

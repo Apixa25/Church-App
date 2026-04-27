@@ -2,6 +2,7 @@ package com.churchapp.controller;
 
 import com.churchapp.dto.*;
 import com.churchapp.entity.Post;
+import com.churchapp.entity.PostReactionType;
 import com.churchapp.entity.PostComment;
 import com.churchapp.repository.PostRepository;
 import com.churchapp.repository.UserRepository;
@@ -516,7 +517,10 @@ public class PostController {
 
         try {
             postInteractionService.likePost(user.getUsername(), postId);
-            notificationService.notifyPostLike(postId, UUID.randomUUID()); // Placeholder user ID
+            UUID userId = resolveUserId(user);
+            if (userId != null) {
+                notificationService.notifyPostLike(postId, userId);
+            }
             return ResponseEntity.ok().build();
 
         } catch (Exception e) {
@@ -536,6 +540,47 @@ public class PostController {
 
         } catch (Exception e) {
             log.error("Error unliking post {}: {}", postId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PutMapping("/{postId}/reaction")
+    public ResponseEntity<Void> setPostReaction(
+            @PathVariable UUID postId,
+            @RequestBody PostReactionRequest request,
+            @AuthenticationPrincipal User user) {
+
+        try {
+            PostReactionType reactionType = request != null ? request.getType() : null;
+            postInteractionService.setPostReaction(user.getUsername(), postId, reactionType);
+
+            UUID userId = resolveUserId(user);
+            if (userId != null && reactionType == PostReactionType.HEART) {
+                notificationService.notifyPostLike(postId, userId);
+            }
+
+            return ResponseEntity.ok().build();
+
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid reaction request for post {}: {}", postId, e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            log.error("Error reacting to post {}: {}", postId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @DeleteMapping("/{postId}/reaction")
+    public ResponseEntity<Void> removePostReaction(
+            @PathVariable UUID postId,
+            @AuthenticationPrincipal User user) {
+
+        try {
+            postInteractionService.removePostReaction(user.getUsername(), postId);
+            return ResponseEntity.ok().build();
+
+        } catch (Exception e) {
+            log.error("Error removing reaction from post {}: {}", postId, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

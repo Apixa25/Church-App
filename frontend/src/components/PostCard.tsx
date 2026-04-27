@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback, memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Post, PostType, Comment, SharePostRequest } from '../types/Post';
-import { likePost, unlikePost, bookmarkPost, unbookmarkPost, deletePost, blockUser, unblockUser, getBlockStatus, followUser, unfollowUser, getFollowStatus, reportContent, getNewCommentCount, markCommentsAsRead } from '../services/postApi';
+import { Post, PostType, Comment, SharePostRequest, PostReactionCounts, PostReactionType } from '../types/Post';
+import { setPostReaction, removePostReaction, bookmarkPost, unbookmarkPost, deletePost, blockUser, unblockUser, getBlockStatus, followUser, unfollowUser, getFollowStatus, reportContent, getNewCommentCount, markCommentsAsRead } from '../services/postApi';
 import { impressionTracker } from '../services/impressionTracker';
 import CommentThread from './CommentThread';
 import { formatRelativeDate } from '../utils/dateUtils';
@@ -14,11 +14,33 @@ import ClickableAvatar from './ClickableAvatar';
 import MediaViewer from './MediaViewer';
 import LoadingSpinner from './LoadingSpinner';
 import SocialMediaEmbedCard from './SocialMediaEmbedCard';
+import PostReactionButton from './PostReactionButton';
 import { isVideoIncompatibleWithIOS, getVideoErrorMessage } from '../utils/videoUtils';
 import './PostCard.css';
 
 // Default placeholder for videos without thumbnails (iOS Safari fix)
 const DEFAULT_VIDEO_PLACEHOLDER = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQ1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMxYTFhMWE7c3RvcC1vcGFjaXR5OjEiIC8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMmQyZDJkO3N0b3Atb3BhY2l0eToxIiAvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNDUwIiBmaWxsPSJ1cmwoI2dyYWQpIi8+PHBhdGggZD0iTTQwMCAxNTBMMzAwIDI1MCA1MDAgMjUwIFoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIgLz48L3N2Zz4=';
+
+const resolveCurrentReaction = (post: Post): PostReactionType | null =>
+  post.currentUserReaction ?? (post.isLikedByCurrentUser ? PostReactionType.HEART : null);
+
+const updateReactionCounts = (
+  counts: PostReactionCounts,
+  previousReaction: PostReactionType | null,
+  nextReaction: PostReactionType | null
+): PostReactionCounts => {
+  const nextCounts: PostReactionCounts = { ...counts };
+
+  if (previousReaction) {
+    nextCounts[previousReaction] = Math.max(0, (nextCounts[previousReaction] || 0) - 1);
+  }
+
+  if (nextReaction) {
+    nextCounts[nextReaction] = (nextCounts[nextReaction] || 0) + 1;
+  }
+
+  return nextCounts;
+};
 
 interface PostCardProps {
   post: Post;
@@ -41,7 +63,9 @@ const PostCard: React.FC<PostCardProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const { setFilter } = useFeedFilter();
-  const [isLiked, setIsLiked] = useState(post.isLikedByCurrentUser || false);
+  const [currentReaction, setCurrentReaction] = useState<PostReactionType | null>(resolveCurrentReaction(post));
+  const [reactionCounts, setReactionCounts] = useState<PostReactionCounts>(post.reactionCounts || {});
+  const [isLiked, setIsLiked] = useState(Boolean(resolveCurrentReaction(post)));
   const [isBookmarked, setIsBookmarked] = useState(post.isBookmarkedByCurrentUser || false);
   const [likesCount, setLikesCount] = useState(post.likesCount);
   const [commentsCount, setCommentsCount] = useState(post.commentsCount);
@@ -87,7 +111,10 @@ const PostCard: React.FC<PostCardProps> = ({
       const hasRecentOptimisticUpdate = optimisticUpdateRef.current && 
         (Date.now() - optimisticUpdateRef.current.timestamp) < 2000; // 2 second window
       
-      setIsLiked(post.isLikedByCurrentUser || false);
+      const nextCurrentReaction = resolveCurrentReaction(post);
+      setCurrentReaction(nextCurrentReaction);
+      setReactionCounts(post.reactionCounts || {});
+      setIsLiked(Boolean(nextCurrentReaction));
       setIsBookmarked(post.isBookmarkedByCurrentUser || false);
       
       // Only sync likesCount if:
@@ -114,6 +141,8 @@ const PostCard: React.FC<PostCardProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     post.id,
+    post.currentUserReaction,
+    post.reactionCounts,
     post.isLikedByCurrentUser,
     post.isBookmarkedByCurrentUser,
     post.likesCount,
@@ -240,28 +269,36 @@ const PostCard: React.FC<PostCardProps> = ({
     user.role === 'MODERATOR'
   );
 
-  const handleLike = async () => {
+  const handleReactionSelect = async (nextReaction: PostReactionType | null) => {
     if (isLoading) return;
 
     setIsLoading(true);
-    const wasLiked = isLiked;
+    const previousReaction = currentReaction;
     // Store original values for potential revert
     const originalLikesCount = likesCount;
-    // Calculate new count before state updates (to avoid stale closure)
-    const newLikesCount = wasLiked ? likesCount - 1 : likesCount + 1;
+    const originalReaction = currentReaction;
+    const originalReactionCounts = reactionCounts;
+    const originalLiked = isLiked;
+    const newLikesCount = Math.max(
+      0,
+      likesCount + (previousReaction ? 0 : nextReaction ? 1 : 0) - (previousReaction && !nextReaction ? 1 : 0)
+    );
+    const newReactionCounts = updateReactionCounts(reactionCounts, previousReaction, nextReaction);
 
     try {
       // Mark optimistic update
       optimisticUpdateRef.current = { type: 'like', timestamp: Date.now() };
       
       // Optimistic update
-      setIsLiked(!wasLiked);
+      setCurrentReaction(nextReaction);
+      setReactionCounts(newReactionCounts);
+      setIsLiked(Boolean(nextReaction));
       setLikesCount(newLikesCount);
 
-      if (wasLiked) {
-        await unlikePost(post.id);
+      if (nextReaction) {
+        await setPostReaction(post.id, nextReaction);
       } else {
-        await likePost(post.id);
+        await removePostReaction(post.id);
       }
 
       // Update parent component if callback provided
@@ -270,7 +307,9 @@ const PostCard: React.FC<PostCardProps> = ({
         const updatedPost = {
           ...post,
           likesCount: newLikesCount,
-          isLikedByCurrentUser: !wasLiked
+          isLikedByCurrentUser: Boolean(nextReaction),
+          currentUserReaction: nextReaction,
+          reactionCounts: newReactionCounts
         };
         onPostUpdate(updatedPost);
       }
@@ -283,7 +322,9 @@ const PostCard: React.FC<PostCardProps> = ({
       }, 3000); // 3 second window
     } catch (error) {
       // Revert optimistic update on error
-      setIsLiked(wasLiked);
+      setCurrentReaction(originalReaction);
+      setReactionCounts(originalReactionCounts);
+      setIsLiked(originalLiked);
       setLikesCount(originalLikesCount); // Revert to original count
       optimisticUpdateRef.current = null; // Clear on error
     } finally {
@@ -1280,14 +1321,13 @@ const PostCard: React.FC<PostCardProps> = ({
 
       {/* Post Actions */}
       <div className="post-actions">
-        <button
-          className={`action-button like-button ${isLiked ? 'liked' : ''}`}
-          onClick={handleLike}
+        <PostReactionButton
+          currentReaction={currentReaction}
+          reactionCounts={reactionCounts}
+          totalCount={likesCount}
           disabled={isLoading}
-          aria-label={isLiked ? 'Unlike post' : 'Like post'}
-        >
-          ❤️ {likesCount > 0 && likesCount}
-        </button>
+          onReactionSelect={handleReactionSelect}
+        />
 
         <button
           className="action-button comment-button"
@@ -1427,6 +1467,8 @@ const MemoizedPostCard = memo(PostCard, (prevProps, nextProps) => {
   if (prevPost.commentsCount !== nextPost.commentsCount) return false;
   if (prevPost.sharesCount !== nextPost.sharesCount) return false;
   if (prevPost.isLikedByCurrentUser !== nextPost.isLikedByCurrentUser) return false;
+  if (prevPost.currentUserReaction !== nextPost.currentUserReaction) return false;
+  if (prevPost.reactionCounts !== nextPost.reactionCounts) return false;
   if (prevPost.isBookmarkedByCurrentUser !== nextPost.isBookmarkedByCurrentUser) return false;
   if (prevPost.content !== nextPost.content) return false;
   if (prevPost.updatedAt !== nextPost.updatedAt) return false;

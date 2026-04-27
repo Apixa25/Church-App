@@ -24,6 +24,10 @@ public class PostLike implements Serializable {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reaction_type", nullable = false, length = 32)
+    private PostReactionType reactionType = PostReactionType.HEART;
+
     @Embeddable
     @Data
     @NoArgsConstructor

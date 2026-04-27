@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Post, FeedType, FeedResponse } from '../types/Post';
+import { Post, FeedType, FeedResponse, PostReactionType } from '../types/Post';
 import { getFeed } from '../services/postApi';
 import webSocketService, { PostUpdate, PostInteractionUpdate, CommentUpdate } from '../services/websocketService';
 import PostCard from './PostCard';
@@ -208,9 +208,21 @@ const PostFeed: React.FC<PostFeedProps> = ({
           switch (update.type) {
             case 'post_like':
               updatedPost.likesCount += 1;
+              updatedPost.reactionCounts = {
+                ...(updatedPost.reactionCounts || {}),
+                [update.reactionType || PostReactionType.HEART]:
+                  ((updatedPost.reactionCounts || {})[update.reactionType || PostReactionType.HEART] || 0) + 1
+              };
               break;
             case 'post_unlike':
               updatedPost.likesCount = Math.max(0, updatedPost.likesCount - 1);
+              updatedPost.reactionCounts = {
+                ...(updatedPost.reactionCounts || {}),
+                [update.reactionType || PostReactionType.HEART]: Math.max(
+                  0,
+                  ((updatedPost.reactionCounts || {})[update.reactionType || PostReactionType.HEART] || 0) - 1
+                )
+              };
               break;
             case 'post_comment':
               updatedPost.commentsCount += 1;

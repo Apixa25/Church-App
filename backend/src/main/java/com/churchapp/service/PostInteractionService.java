@@ -30,38 +30,61 @@ public class PostInteractionService {
 
     @Transactional
     public void likePost(String userEmail, UUID postId) {
+        setPostReaction(userEmail, postId, PostReactionType.HEART);
+    }
+
+    @Transactional
+    public void setPostReaction(String userEmail, UUID postId, PostReactionType reactionType) {
+        if (reactionType == null) {
+            throw new IllegalArgumentException("Reaction type is required");
+        }
+
         User user = getUserByEmail(userEmail);
         Post post = getPostById(postId);
 
         validatePostAccess(post);
 
-        // Make operation idempotent: if already liked, just return success
-        if (postLikeRepository.existsById_PostIdAndId_UserId(postId, user.getId())) {
-            log.debug("User {} already liked post {} - idempotent operation", userEmail, postId);
+        Optional<PostLike> existingReaction = postLikeRepository.findById_PostIdAndId_UserId(postId, user.getId());
+        if (existingReaction.isPresent()) {
+            PostLike reaction = existingReaction.get();
+            if (reactionType.equals(reaction.getReactionType())) {
+                log.debug("User {} already reacted to post {} with {} - idempotent operation", userEmail, postId, reactionType);
+                return;
+            }
+
+            reaction.setReactionType(reactionType);
+            postLikeRepository.save(reaction);
+            log.info("User {} changed reaction on post {} to {}", userEmail, postId, reactionType);
             return;
         }
 
         PostLike.PostLikeId likeId = new PostLike.PostLikeId(postId, user.getId());
         PostLike like = new PostLike();
         like.setId(likeId);
+        like.setReactionType(reactionType);
         postLikeRepository.save(like);
 
         post.incrementLikesCount();
         postRepository.save(post);
 
-        log.info("User {} liked post {}", userEmail, postId);
+        log.info("User {} reacted to post {} with {}", userEmail, postId, reactionType);
     }
 
     @Transactional
     public void unlikePost(String userEmail, UUID postId) {
+        removePostReaction(userEmail, postId);
+    }
+
+    @Transactional
+    public void removePostReaction(String userEmail, UUID postId) {
         User user = getUserByEmail(userEmail);
         Post post = getPostById(postId);
 
         Optional<PostLike> like = postLikeRepository.findById_PostIdAndId_UserId(postId, user.getId());
         
-        // Make operation idempotent: if not liked, just return success
+        // Make operation idempotent: if not reacted, just return success
         if (like.isEmpty()) {
-            log.debug("User {} hasn't liked post {} - idempotent operation", userEmail, postId);
+            log.debug("User {} hasn't reacted to post {} - idempotent operation", userEmail, postId);
             return;
         }
 
@@ -69,7 +92,7 @@ public class PostInteractionService {
         post.decrementLikesCount();
         postRepository.save(post);
 
-        log.info("User {} unliked post {}", userEmail, postId);
+        log.info("User {} removed reaction from post {}", userEmail, postId);
     }
 
     public boolean isPostLikedByUser(UUID postId, UUID userId) {
@@ -160,7 +183,7 @@ public class PostInteractionService {
 
     @Transactional
     public void likeComment(String userEmail, UUID commentId) {
-        User user = getUserByEmail(userEmail);
+        getUserByEmail(userEmail);
         PostComment comment = getCommentById(commentId);
 
         // Note: For simplicity, we're not tracking comment likes separately

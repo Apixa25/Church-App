@@ -47,6 +47,18 @@ export enum FeedType {
   FOR_YOU = 'FOR_YOU'
 }
 
+export enum PostReactionType {
+  HEART = 'HEART',
+  LIKE = 'LIKE',
+  DISLIKE = 'DISLIKE',
+  LAUGH = 'LAUGH',
+  WOW = 'WOW',
+  SAD = 'SAD',
+  ANGRY = 'ANGRY'
+}
+
+export type PostReactionCounts = Partial<Record<PostReactionType, number>>;
+
 export interface Post {
   id: string;
   userId: string;
@@ -79,6 +91,8 @@ export interface Post {
 
   // Computed fields (populated by frontend)
   isLikedByCurrentUser?: boolean;
+  currentUserReaction?: PostReactionType | null;
+  reactionCounts?: PostReactionCounts;
   isBookmarkedByCurrentUser?: boolean;
 
   // Organization and Group info for post labeling
@@ -122,6 +136,7 @@ export interface PostLike {
   id: string;
   postId: string;
   userId: string;
+  reactionType?: PostReactionType;
   createdAt: string;
 }
 

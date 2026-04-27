@@ -5,6 +5,7 @@ import com.churchapp.entity.MediaFile;
 import com.churchapp.entity.Post;
 import com.churchapp.entity.PostBookmark;
 import com.churchapp.entity.PostLike;
+import com.churchapp.entity.PostReactionType;
 import com.churchapp.repository.MediaFileRepository;
 import com.churchapp.repository.PostBookmarkRepository;
 import com.churchapp.repository.PostLikeRepository;
@@ -16,7 +17,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -51,28 +54,38 @@ public class PostResponseMapper {
             return Collections.emptyList();
         }
 
-        if (viewerId == null) {
-            return posts.stream()
-                .map(this::mapPostWithOptimizedUrls)
-                .collect(Collectors.toList());
-        }
-
         List<UUID> postIds = posts.stream()
             .map(Post::getId)
             .collect(Collectors.toList());
 
-        Set<UUID> likedPostIds = postLikeRepository.findById_UserIdAndId_PostIdIn(viewerId, postIds).stream()
-            .map(PostLike::getId)
-            .map(PostLike.PostLikeId::getPostId)
-            .collect(Collectors.toSet());
+        Map<UUID, Map<PostReactionType, Integer>> reactionCountsByPostId = getReactionCountsByPostId(postIds);
 
-        Set<UUID> bookmarkedPostIds = postBookmarkRepository.findById_UserIdAndId_PostIdIn(viewerId, postIds).stream()
-            .map(PostBookmark::getId)
-            .map(PostBookmark.PostBookmarkId::getPostId)
-            .collect(Collectors.toSet());
+        Map<UUID, PostLike> reactionsByPostId = Collections.emptyMap();
+        Set<UUID> bookmarkedPostIds = Collections.emptySet();
+
+        if (viewerId != null) {
+            reactionsByPostId = postLikeRepository.findById_UserIdAndId_PostIdIn(viewerId, postIds).stream()
+                .collect(Collectors.toMap(
+                    like -> like.getId().getPostId(),
+                    like -> like
+                ));
+
+            bookmarkedPostIds = postBookmarkRepository.findById_UserIdAndId_PostIdIn(viewerId, postIds).stream()
+                .map(PostBookmark::getId)
+                .map(PostBookmark.PostBookmarkId::getPostId)
+                .collect(Collectors.toSet());
+        }
+
+        Map<UUID, PostLike> currentUserReactionsByPostId = reactionsByPostId;
+        Set<UUID> currentUserBookmarkedPostIds = bookmarkedPostIds;
 
         return posts.stream()
-            .map(post -> mapPostInternal(post, likedPostIds.contains(post.getId()), bookmarkedPostIds.contains(post.getId())))
+            .map(post -> mapPostInternal(
+                post,
+                currentUserReactionsByPostId.get(post.getId()),
+                currentUserBookmarkedPostIds.contains(post.getId()),
+                reactionCountsByPostId.getOrDefault(post.getId(), emptyReactionCounts())
+            ))
             .collect(Collectors.toList());
     }
 
@@ -81,20 +94,48 @@ public class PostResponseMapper {
             return null;
         }
 
-        if (viewerId == null) {
-            return mapPostWithOptimizedUrls(post);
-        }
-
-        boolean liked = postLikeRepository.existsById_PostIdAndId_UserId(post.getId(), viewerId);
-        boolean bookmarked = postBookmarkRepository.existsById_PostIdAndId_UserId(post.getId(), viewerId);
-        return mapPostInternal(post, liked, bookmarked);
+        PostLike currentReaction = viewerId != null
+            ? postLikeRepository.findById_PostIdAndId_UserId(post.getId(), viewerId).orElse(null)
+            : null;
+        boolean bookmarked = viewerId != null && postBookmarkRepository.existsById_PostIdAndId_UserId(post.getId(), viewerId);
+        Map<PostReactionType, Integer> reactionCounts = getReactionCountsByPostId(List.of(post.getId()))
+            .getOrDefault(post.getId(), emptyReactionCounts());
+        return mapPostInternal(post, currentReaction, bookmarked, reactionCounts);
     }
 
-    private PostResponse mapPostInternal(Post post, boolean liked, boolean bookmarked) {
+    private PostResponse mapPostInternal(
+            Post post,
+            PostLike currentReaction,
+            boolean bookmarked,
+            Map<PostReactionType, Integer> reactionCounts) {
         PostResponse response = mapPostWithOptimizedUrls(post);
-        response.setLikedByCurrentUser(liked);
+        response.setLikedByCurrentUser(currentReaction != null);
+        response.setCurrentUserReaction(currentReaction != null ? currentReaction.getReactionType() : null);
+        response.setReactionCounts(reactionCounts);
         response.setBookmarkedByCurrentUser(bookmarked);
         return response;
+    }
+
+    private Map<UUID, Map<PostReactionType, Integer>> getReactionCountsByPostId(List<UUID> postIds) {
+        if (postIds == null || postIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<UUID, Map<PostReactionType, Integer>> countsByPostId = new java.util.HashMap<>();
+        for (PostLikeRepository.ReactionCountView count : postLikeRepository.countReactionsByPostIds(postIds)) {
+            countsByPostId
+                .computeIfAbsent(count.getPostId(), ignored -> emptyReactionCounts())
+                .put(count.getReactionType(), Math.toIntExact(count.getCount()));
+        }
+        return countsByPostId;
+    }
+
+    private Map<PostReactionType, Integer> emptyReactionCounts() {
+        Map<PostReactionType, Integer> counts = new EnumMap<>(PostReactionType.class);
+        for (PostReactionType type : PostReactionType.values()) {
+            counts.put(type, 0);
+        }
+        return counts;
     }
     
     /**

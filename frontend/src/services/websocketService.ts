@@ -113,6 +113,7 @@ export interface PostInteractionUpdate {
   userId: string;
   userName?: string;
   content?: string;
+  reactionType?: import('../types/Post').PostReactionType;
   timestamp: string;
 }
 

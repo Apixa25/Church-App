@@ -1,12 +1,14 @@
 package com.churchapp.dto;
 
 import com.churchapp.entity.Post;
+import com.churchapp.entity.PostReactionType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Data
@@ -45,6 +47,8 @@ public class PostResponse {
 
     // Additional computed fields
     private boolean isLikedByCurrentUser;
+    private PostReactionType currentUserReaction;
+    private Map<PostReactionType, Integer> reactionCounts;
     private boolean isBookmarkedByCurrentUser;
 
     // Organization and Group info for post labeling

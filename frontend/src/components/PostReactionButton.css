@@ -1,0 +1,189 @@
+.post-reaction-control {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.post-reaction-trigger {
+  position: relative;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.post-reaction-trigger.liked {
+  color: var(--error) !important;
+}
+
+.selected-reaction {
+  font-size: 21px;
+  line-height: 1;
+}
+
+.reaction-total {
+  color: inherit;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.mini-reaction-flower {
+  position: relative;
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  transform: scale(0.88);
+}
+
+.mini-reaction-petal {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 9px;
+  line-height: 1;
+}
+
+.mini-reaction-petal-0 {
+  left: 5px;
+  top: 5px;
+  z-index: 2;
+  transform: scale(1.1);
+}
+
+.mini-reaction-petal-1 {
+  left: 5px;
+  top: -3px;
+}
+
+.mini-reaction-petal-2 {
+  left: 5px;
+  bottom: -3px;
+}
+
+.mini-reaction-petal-3 {
+  left: -2px;
+  top: 4px;
+}
+
+.mini-reaction-petal-4 {
+  right: -2px;
+  top: 4px;
+}
+
+.mini-reaction-petal-5 {
+  left: 0;
+  bottom: 1px;
+}
+
+.mini-reaction-petal-6 {
+  right: 0;
+  bottom: 1px;
+}
+
+.reaction-picker {
+  position: absolute;
+  left: 50%;
+  bottom: 48px;
+  width: 164px;
+  height: 164px;
+  transform: translateX(-50%);
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.reaction-picker::before {
+  content: '';
+  position: absolute;
+  inset: 28px;
+  border-radius: 50%;
+  background: rgba(22, 24, 32, 0.96);
+  border: 1px solid var(--border-primary);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(10px);
+}
+
+.reaction-petal {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  background: rgba(30, 33, 45, 0.98);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.32);
+  transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.reaction-petal:hover,
+.reaction-petal:focus {
+  transform: scale(1.16);
+  border-color: var(--accent-primary);
+  outline: none;
+}
+
+.reaction-petal.selected {
+  border-color: var(--error);
+  background: rgba(255, 77, 109, 0.18);
+}
+
+.reaction-petal:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.reaction-petal-emoji {
+  font-size: 25px;
+  line-height: 1;
+}
+
+.reaction-petal-0 {
+  left: 58px;
+  top: 58px;
+}
+
+.reaction-petal-1 {
+  left: 58px;
+  top: 0;
+}
+
+.reaction-petal-2 {
+  left: 58px;
+  bottom: 0;
+}
+
+.reaction-petal-3 {
+  left: 10px;
+  top: 30px;
+}
+
+.reaction-petal-4 {
+  right: 10px;
+  top: 30px;
+}
+
+.reaction-petal-5 {
+  left: 20px;
+  bottom: 14px;
+}
+
+.reaction-petal-6 {
+  right: 20px;
+  bottom: 14px;
+}
+
+@media (max-width: 768px) {
+  .reaction-picker {
+    left: 0;
+    transform: none;
+  }
+}

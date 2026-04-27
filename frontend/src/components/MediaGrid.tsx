@@ -118,7 +118,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({ userId, isOwnProfile = false }) =
                   )}
                   <div className="media-overlay">
                     <div className="media-stats">
-                      <span>❤️ {post.likesCount}</span>
+                      <span>🌸 {post.likesCount}</span>
                       <span>💬 {post.commentsCount}</span>
                       <span>🔄 {post.sharesCount}</span>
                     </div>
@@ -159,7 +159,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({ userId, isOwnProfile = false }) =
             <div className="media-viewer-info">
               <p className="media-viewer-caption">{selectedMedia.post.content}</p>
               <div className="media-viewer-stats">
-                <span>❤️ {selectedMedia.post.likesCount}</span>
+                <span>🌸 {selectedMedia.post.likesCount}</span>
                 <span>💬 {selectedMedia.post.commentsCount}</span>
                 <span>🔄 {selectedMedia.post.sharesCount}</span>
               </div>

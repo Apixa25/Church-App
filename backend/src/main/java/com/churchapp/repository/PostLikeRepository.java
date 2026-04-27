@@ -1,6 +1,7 @@
 package com.churchapp.repository;
 
 import com.churchapp.entity.PostLike;
+import com.churchapp.entity.PostReactionType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -13,6 +14,12 @@ import java.util.UUID;
 
 @Repository
 public interface PostLikeRepository extends JpaRepository<PostLike, PostLike.PostLikeId> {
+
+    interface ReactionCountView {
+        UUID getPostId();
+        PostReactionType getReactionType();
+        long getCount();
+    }
 
     // Find likes by post
     List<PostLike> findById_PostIdOrderByCreatedAtDesc(UUID postId);
@@ -29,6 +36,14 @@ public interface PostLikeRepository extends JpaRepository<PostLike, PostLike.Pos
 
     // Count likes for a post
     long countById_PostId(UUID postId);
+
+    @Query("""
+        SELECT pl.id.postId AS postId, pl.reactionType AS reactionType, COUNT(pl) AS count
+        FROM PostLike pl
+        WHERE pl.id.postId IN :postIds
+        GROUP BY pl.id.postId, pl.reactionType
+        """)
+    List<ReactionCountView> countReactionsByPostIds(@Param("postIds") List<UUID> postIds);
 
     // Count likes by user
     long countById_UserId(UUID userId);

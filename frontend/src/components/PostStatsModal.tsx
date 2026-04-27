@@ -77,7 +77,7 @@ const PostStatsModal: React.FC<PostStatsModalProps> = ({ postId, isOpen, onClose
                 <div className="stat-card">
                   <div className="stat-icon">❤️</div>
                   <div className="stat-value">{stats.likes || 0}</div>
-                  <div className="stat-label">Likes</div>
+                  <div className="stat-label">Reactions</div>
                 </div>
                 <div className="stat-card">
                   <div className="stat-icon">💬</div>
