@@ -24,14 +24,14 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   compact = false
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string>('');
   const [uploadedFiles, setUploadedFiles] = useState<MediaFile[]>([]);
+  const isUploading = false;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
-  const validateFile = (file: File): string | null => {
+  const validateFile = useCallback((file: File): string | null => {
     // Check file type
     const isValidType = acceptedTypes.some(type => {
       if (type.endsWith('/*')) {
@@ -57,7 +57,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     }
 
     return null;
-  };
+  }, [acceptedTypes, maxFileSize]);
 
   const processFiles = useCallback(async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
@@ -102,7 +102,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       setError('');
       onFilesSelected(newFiles);
     }
-  }, [uploadedFiles, maxFiles, maxFileSize, acceptedTypes, onFilesSelected]);
+  }, [uploadedFiles, maxFiles, validateFile, onFilesSelected]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();

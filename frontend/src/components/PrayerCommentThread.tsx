@@ -222,9 +222,7 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
       currentUserId === comment.userId ||
       (!!currentUserEmail && currentUserEmail === comment.userId);
 
-    const authorInitial = comment.userName?.charAt(0)?.toUpperCase() ?? 'U';
     const replyCount = typeof comment.replyCount === 'number' ? comment.replyCount : null;
-    const scoreDisplay = replyCount !== null && replyCount > 0 ? replyCount.toString() : '·';
     const scoreLabel =
       replyCount !== null && replyCount > 0
         ? `${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}`

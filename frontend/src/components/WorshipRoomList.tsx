@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { worshipAPI } from '../services/worshipApi';
-import { WorshipRoom, PlaybackStatus, RoomType, WorshipPlaylist, formatScheduledTime, isScheduledSoon, extractYouTubeVideoId } from '../types/Worship';
+import { WorshipRoom, PlaybackStatus, RoomType, formatScheduledTime, isScheduledSoon, extractYouTubeVideoId } from '../types/Worship';
 import websocketService from '../services/websocketService';
 import LoadingSpinner from './LoadingSpinner';
 import './WorshipRoomList.css';
@@ -47,7 +47,6 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
   const [playingRooms, setPlayingRooms] = useState<WorshipRoom[]>([]);
   const [templateRooms, setTemplateRooms] = useState<WorshipRoom[]>([]);
   const [liveEventRooms, setLiveEventRooms] = useState<WorshipRoom[]>([]);
-  const [playlists, setPlaylists] = useState<WorshipPlaylist[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'playing' | 'myRooms' | 'public' | 'playlists' | 'liveEvents'>('playing');
@@ -107,25 +106,25 @@ const WorshipRoomList: React.FC<WorshipRoomListProps> = ({ onRoomSelect, selecte
         clearInterval(pollInterval);
       }
     };
+    // Room list subscriptions are initialized once; refreshes are event-driven.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadRooms = async () => {
     try {
       setLoading(true);
-      const [myRooms, availableRooms, currentlyPlaying, templates, liveEvents, publicPlaylists] = await Promise.all([
+      const [myRooms, availableRooms, currentlyPlaying, templates, liveEvents] = await Promise.all([
         worshipAPI.getUserRooms(),
         worshipAPI.getPublicRooms(),
         worshipAPI.getCurrentlyPlayingRooms(),
         worshipAPI.getTemplateRooms(),
         worshipAPI.getLiveEventRooms(),
-        worshipAPI.getPublicPlaylists(),
       ]);
       setRooms(myRooms.data);
       setPublicRooms(availableRooms.data);
       setPlayingRooms(currentlyPlaying.data);
       setTemplateRooms(templates.data);
       setLiveEventRooms(liveEvents.data);
-      setPlaylists(publicPlaylists.data);
     } catch (err) {
       setError('Failed to load worship rooms');
       console.error('Error loading rooms:', err);

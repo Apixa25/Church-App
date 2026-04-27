@@ -77,6 +77,8 @@ const FollowersList: React.FC<FollowersListProps> = ({
       setHasMore(true);
       setError(null);
     }
+    // Fetch followers only when the modal opens for a new user.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, userId]);
 
   const loadFollowers = async (reset: boolean = false) => {

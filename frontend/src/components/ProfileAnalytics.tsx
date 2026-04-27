@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { getProfileViews, getFollowerGrowth } from '../services/postApi';
-import { UserProfile } from '../types/Profile';
 import ClickableAvatar from './ClickableAvatar';
 import FollowerGrowthChart from './FollowerGrowthChart';
 import './ProfileAnalytics.css';
@@ -32,6 +31,8 @@ const ProfileAnalytics: React.FC<ProfileAnalyticsProps> = ({ userId, isOwnProfil
     } else if (isOwnProfile && activeTab === 'growth') {
       loadFollowerGrowth();
     }
+    // Analytics reload when the selected tab/profile changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, isOwnProfile, userId]);
 
   const loadProfileViews = async (reset: boolean = false) => {

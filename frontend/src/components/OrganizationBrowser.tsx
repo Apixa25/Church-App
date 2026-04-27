@@ -199,32 +199,6 @@ const EmojiPickerItem = styled.button`
   }
 `;
 
-const FilterTabs = styled.div`
-  display: flex;
-  gap: 12px;
-  margin-top: 20px;
-  flex-wrap: wrap;
-`;
-
-const FilterTab = styled.button<{ active: boolean }>`
-  padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 500;
-  border: 1px solid ${props => props.active ? 'var(--accent-primary)' : 'var(--border-primary)'};
-  background: ${props => props.active ? 'var(--gradient-primary)' : 'var(--bg-tertiary)'};
-  color: ${props => props.active ? 'white' : 'var(--text-secondary)'};
-  border-radius: var(--border-radius-pill);
-  cursor: pointer;
-  transition: all var(--transition-base);
-  box-shadow: ${props => props.active ? '0 2px 8px var(--button-primary-glow)' : 'none'};
-
-  &:hover {
-    border-color: var(--accent-primary);
-    background: ${props => props.active ? 'var(--gradient-primary)' : 'var(--bg-elevated)'};
-    transform: translateY(-1px);
-  }
-`;
-
 const MyMembershipsSection = styled.div`
   margin-bottom: 40px;
   padding: 20px;
@@ -555,8 +529,6 @@ const CooldownWarning = styled.div`
   font-size: 14px;
 `;
 
-type OrgTypeFilter = 'ALL' | 'CHURCH' | 'MINISTRY' | 'NONPROFIT' | 'FAMILY' | 'GENERAL';
-
 const OrganizationBrowser: React.FC = () => {
   const navigate = useNavigate();
   const {
@@ -581,7 +553,6 @@ const OrganizationBrowser: React.FC = () => {
   } = useOrganization();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<OrgTypeFilter>('ALL');
   const [organizations, setOrganizations] = useState<Organization[]>([]); // Search results
   const [searchLoading, setSearchLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -593,9 +564,7 @@ const OrganizationBrowser: React.FC = () => {
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [followedAsGroups, setFollowedAsGroups] = useState<Set<string>>(new Set());
-  const [checkingFollowedOrgs, setCheckingFollowedOrgs] = useState(true);
   const [followedOrgGroups, setFollowedOrgGroups] = useState<OrganizationGroup[]>([]);
-  const [loadingFollowedOrgs, setLoadingFollowedOrgs] = useState(false);
 
   // Infinite scroll state for browse mode
   const [allOrganizations, setAllOrganizations] = useState<Organization[]>([]); // Full browse list
@@ -649,6 +618,8 @@ const OrganizationBrowser: React.FC = () => {
     if (!initialLoadDone && !isSearchMode) {
       loadMoreOrganizations();
     }
+    // Initial browse load happens once; subsequent refreshes are user-driven.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Close emoji picker when clicking outside
@@ -689,17 +660,12 @@ const OrganizationBrowser: React.FC = () => {
   useEffect(() => {
     const checkFollowedOrgs = async () => {
       try {
-        setCheckingFollowedOrgs(true);
-        setLoadingFollowedOrgs(true);
         const orgGroups = await organizationGroupApi.getFollowedOrganizations();
         const orgIds = new Set(orgGroups.map(og => og.organization.id));
         setFollowedAsGroups(orgIds);
         setFollowedOrgGroups(orgGroups);
       } catch (err) {
         console.error('Error checking followed orgs:', err);
-      } finally {
-        setCheckingFollowedOrgs(false);
-        setLoadingFollowedOrgs(false);
       }
     };
     checkFollowedOrgs();

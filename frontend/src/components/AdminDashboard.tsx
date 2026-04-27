@@ -58,11 +58,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [userSearch, setUserSearch] = useState('');
   const [userRole, setUserRole] = useState('');
   const [bannedFilter, setBannedFilter] = useState<boolean | null>(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [timeRange, setTimeRange] = useState('30d');
+  const [currentPage] = useState(0);
+  const [timeRange] = useState('30d');
 
   useEffect(() => {
     loadData();
+    // Preserve the existing load timing; loadData fans out based on activeTab.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, currentPage, userSearch, userRole, bannedFilter, timeRange]);
 
   const loadData = async () => {

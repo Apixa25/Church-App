@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { useGlobalSearch } from './global-search/GlobalSearchProvider';
 import chatApi from '../services/chatApi';
 
@@ -20,14 +19,11 @@ interface UserListProps {
 
 const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
   const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [creatingDM, setCreatingDM] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
-  const { user: currentUser } = useAuth();
   const navigate = useNavigate();
   const { open: openGlobalSearch } = useGlobalSearch();
 
@@ -54,7 +50,6 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
   const loadUsers = useCallback(async (reset: boolean = false) => {
     try {
       if (reset) {
-        setLoading(true);
         setUsers([]);
         setPage(0);
         setHasMore(false);
@@ -84,10 +79,9 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
       setError('Failed to load directory members');
       console.error('Error loading users:', err);
     } finally {
-      setLoading(false);
       setIsFetching(false);
     }
-  }, [currentUser?.email, query, page]);
+  }, [query, page]);
 
   // Debounce search so typing isn't interrupted
   useEffect(() => {
@@ -105,7 +99,6 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
 
   const handleUserClick = async (user: User) => {
     try {
-      setCreatingDM(user.id);
       setError(null);
       
       if (onUserSelect) {
@@ -122,7 +115,7 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
       const errorMessage = err.response?.data?.error || 'Failed to start direct message';
       setError(`Failed to start conversation with ${user.name}: ${errorMessage}`);
     } finally {
-      setCreatingDM(null);
+      // No local cleanup needed; navigation hands off to the chat room.
     }
   };
 

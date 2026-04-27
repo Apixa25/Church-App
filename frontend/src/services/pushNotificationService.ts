@@ -109,7 +109,7 @@ class PushNotificationService {
    * Handle notification click - navigate to appropriate screen
    */
   private handleNotificationClick(data: any): void {
-    const { type, postId, prayerId, eventId, chatId } = data;
+    const { type, prayerId, eventId, chatId } = data;
 
     // This would integrate with your router
     // For now, just log the action

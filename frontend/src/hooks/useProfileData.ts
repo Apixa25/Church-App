@@ -6,7 +6,7 @@ import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { getUserPosts, getCommentsReceivedOnPosts, getUserMediaPosts } from '../services/postApi';
 import { getUserComments } from '../services/postApi';
 import { prayerInteractionAPI } from '../services/prayerApi';
-import { Comment, Post } from '../types/Post';
+import { Comment } from '../types/Post';
 import { PrayerInteraction } from '../types/Prayer';
 
 // ========== Types ==========

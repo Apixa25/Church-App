@@ -36,6 +36,8 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
       return;
     }
     loadGroups();
+    // Reload only when organization availability changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organizationLoading, hasAnyOrganization]);
 
   const loadGroups = async (shouldFetchJoinable: boolean = hasAnyOrganization) => {

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useWebSocket } from '../contexts/WebSocketContext';
-import webSocketService, { PrayerRequestUpdate, PrayerInteractionUpdate, WebSocketMessage } from '../services/websocketService';
+import webSocketService, { PrayerInteractionUpdate, WebSocketMessage } from '../services/websocketService';
 
 export interface PrayerNotification {
   id: string;

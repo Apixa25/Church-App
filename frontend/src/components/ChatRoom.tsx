@@ -107,6 +107,8 @@ const ChatRoom: React.FC = () => {
     } catch (err) {
       console.error('Failed to connect to WebSocket:', err);
     }
+    // Subscriptions are scoped to group/user changes; callbacks call stable state setters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId, user?.email]); // Add dependencies for loadMembers later
 
   const loadChatRoom = useCallback(async () => {
@@ -212,6 +214,8 @@ const ChatRoom: React.FC = () => {
         scrollToBottom();
       }, 100);
     }
+    // Only trigger on initial loading transition so active chats do not jump on every message.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, scrollToBottom]); // Only trigger when loading state changes
 
   const handleSendMessage = async (content: string, file?: File, parentMessageId?: string) => {

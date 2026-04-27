@@ -51,6 +51,8 @@ const ResourcePage: React.FC = () => {
         setViewMode('edit');
       }
     }
+    // Initial URL mode parsing should run only once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on initial mount
 
   const handleCreateNew = () => {

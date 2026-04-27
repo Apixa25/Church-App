@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { donationApi, SubscriptionResponse, formatCurrency, formatDate } from '../services/donationApi';
-import { DonationCategory, RecurringFrequency, CATEGORY_LABELS, FREQUENCY_LABELS } from '../config/stripe';
+import { DonationCategory, RecurringFrequency } from '../config/stripe';
 import './SubscriptionManager.css';
 
 const SubscriptionManager: React.FC = () => {

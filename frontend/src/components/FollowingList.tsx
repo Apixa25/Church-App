@@ -77,6 +77,8 @@ const FollowingList: React.FC<FollowingListProps> = ({
       setHasMore(true);
       setError(null);
     }
+    // Fetch following only when the modal opens for a new user.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, userId]);
 
   const loadFollowing = async (reset: boolean = false) => {

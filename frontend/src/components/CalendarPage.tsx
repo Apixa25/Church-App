@@ -82,6 +82,8 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
     } else {
       loadEvents();
     }
+    // Keep debounce behavior stable while filters and org context drive reloads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, activeOrganizationId]); // Re-fetch when organization context changes
 
   // WebSocket subscriptions for real-time updates
@@ -129,6 +131,8 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
     return () => {
       // WebSocket subscriptions will be cleaned up automatically
     };
+    // Subscribe once per mount; handlers call the latest fetch logic through state updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleEventCreated = (newEvent: Event) => {

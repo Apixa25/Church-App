@@ -141,6 +141,8 @@ const AdminOrganizationManagement: React.FC = () => {
       setShowingGroups(false);
       fetchOrganizations();
     }
+    // Fetch functions intentionally follow the selected filter without recreating effect dependencies.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterType]);
 
   // Re-fetch groups when search term changes (with debounce)
@@ -151,6 +153,8 @@ const AdminOrganizationManagement: React.FC = () => {
       }, 300);
       return () => clearTimeout(timer);
     }
+    // Debounce group search only while the groups view is active.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, showingGroups]);
 
   useEffect(() => {

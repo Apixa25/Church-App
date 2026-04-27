@@ -20,6 +20,8 @@ const PostStatsModal: React.FC<PostStatsModalProps> = ({ postId, isOpen, onClose
       setStats(null);
       setError('');
     }
+    // Stats load only when the modal opens for a specific post.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, postId]);
 
   const loadStats = async () => {

@@ -97,23 +97,6 @@ const EventList: React.FC<EventListProps> = ({
     return grouped;
   }, [sortedEvents, groupBy]);
 
-  const formatEventTime = (event: Event) => {
-    const startTime = new Date(event.startTime);
-    const endTime = event.endTime ? new Date(event.endTime) : null;
-    
-    const timeOptions: Intl.DateTimeFormatOptions = {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    };
-    
-    if (endTime) {
-      return `${startTime.toLocaleTimeString('en-US', timeOptions)} - ${endTime.toLocaleTimeString('en-US', timeOptions)}`;
-    }
-    
-    return startTime.toLocaleTimeString('en-US', timeOptions);
-  };
-
   if (loading) {
     return (
       <div className="event-list-loading">

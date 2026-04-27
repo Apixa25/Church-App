@@ -1,7 +1,4 @@
 import api from './api';
-import { getApiUrl } from '../config/runtimeConfig';
-
-const API_BASE_URL = getApiUrl();
 
 // Types
 export interface StripeConnectAccount {
@@ -101,7 +98,7 @@ export const disconnectAccount = async (organizationId: string): Promise<{ succe
 };
 
 // Export all functions as default
-export default {
+const stripeConnectApi = {
   createConnectAccount,
   getAccountStatus,
   createOnboardingLink,
@@ -109,4 +106,6 @@ export default {
   createPayout,
   disconnectAccount
 };
+
+export default stripeConnectApi;
 

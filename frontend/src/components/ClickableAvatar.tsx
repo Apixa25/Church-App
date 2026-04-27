@@ -53,7 +53,6 @@ const ClickableAvatar: React.FC<ClickableAvatarProps> = ({
   
   // Only use connection status if showConnectionStatus is true
   const isConnected = showConnectionStatus ? wsContext.isConnected : false;
-  const connectionStatus = showConnectionStatus ? wsContext.connectionStatus : { reconnectAttempts: -1 };
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent parent click handlers from firing

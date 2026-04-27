@@ -33,6 +33,8 @@ const OrganizationMembers: React.FC<OrganizationMembersProps> = ({
 
   useEffect(() => {
     fetchMembers();
+    // Reload members when switching organization pages.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organizationId]);
 
   const fetchMembers = async () => {

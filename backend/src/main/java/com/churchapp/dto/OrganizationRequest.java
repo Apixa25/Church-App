@@ -58,6 +58,9 @@ public class OrganizationRequest {
 
     public Organization toOrganizationUpdate() {
         Organization org = new Organization();
+        org.setTier(null);
+        org.setStatus(null);
+        org.setMetadata(null);
         org.setName(this.name);
         org.setSlug(this.slug);
         org.setLogoUrl(this.logoUrl);

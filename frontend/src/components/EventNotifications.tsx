@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useEventNotifications, EventNotification } from '../hooks/useEventNotifications';
 import { formatRelativeDate } from '../utils/dateUtils';
-import { useWebSocket } from '../contexts/WebSocketContext';
 import PendingInvitationsModal from './PendingInvitationsModal';
 import './EventNotifications.css';
 

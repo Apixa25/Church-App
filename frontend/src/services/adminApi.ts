@@ -427,7 +427,7 @@ export const handleApiError = (error: any): string => {
 };
 
 // Export default object for convenience
-export default {
+const adminServiceApi = {
   // User Management
   getUsers,
   getUserDetails,
@@ -462,3 +462,5 @@ export default {
   // Utilities
   handleApiError
 };
+
+export default adminServiceApi;

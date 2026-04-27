@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { profileAPI } from '../services/api';
-import { UserProfile, ProfileCompletionStatus } from '../types/Profile';
+import { UserProfile } from '../types/Profile';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileEdit from './ProfileEdit';
 import { Post } from '../types/Post';
@@ -38,7 +38,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   const location = useLocation();
   const userId = propUserId || paramUserId;
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [completionStatus, setCompletionStatus] = useState<ProfileCompletionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -89,7 +88,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
 
   // Organization memberships state (for viewing other users' profiles)
   const [organizationMemberships, setOrganizationMemberships] = useState<Membership[]>([]);
-  const [membershipsLoading, setMembershipsLoading] = useState(false);
 
   const isOwnProfile = !userId || userId === user?.userId;
   const targetUserId = userId || user?.userId || '';
@@ -205,14 +203,11 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
 
         // Fetch organization memberships for other user's profile
         try {
-          setMembershipsLoading(true);
           const response = await profileAPI.getUserMemberships(userId);
           setOrganizationMemberships(response.data || []);
         } catch (err) {
           console.error('Error fetching organization memberships:', err);
           setOrganizationMemberships([]);
-        } finally {
-          setMembershipsLoading(false);
         }
       } else {
         // Reset memberships when viewing own profile (will use context)
@@ -293,9 +288,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
 
   useEffect(() => {
     fetchProfile();
-    if (isOwnProfile) {
-      fetchCompletionStatus();
-    }
   }, [userId, isOwnProfile, fetchProfile]);
 
   useEffect(() => {
@@ -349,15 +341,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
     }
   }, [location.state, navigate, location.pathname]);
 
-  const fetchCompletionStatus = async () => {
-    try {
-      const response = await profileAPI.getProfileCompletionStatus();
-      setCompletionStatus(response.data);
-    } catch (err) {
-      console.error('Failed to fetch completion status:', err);
-    }
-  };
-
   const handleProfileUpdate = (updatedProfile: UserProfile) => {
     setProfile(updatedProfile);
     setImageError(false); // Reset image error when profile updates
@@ -382,9 +365,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
     }
     
     setIsEditing(false);
-    if (isOwnProfile) {
-      fetchCompletionStatus();
-    }
   };
 
   const handleBookmarkPostUpdate = useCallback((updatedPost: Post) => {
@@ -581,16 +561,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   };
 
   // Removed local formatDate function - now using robust dateUtils.formatFullDate
-
-  const getRoleDisplay = (role: string) => {
-    const roleMap = {
-      MEMBER: '👤 Member',
-      MODERATOR: '⭐ Moderator',
-      ADMIN: '👑 Administrator',
-    };
-
-    return roleMap[role as keyof typeof roleMap] || role;
-  };
 
   const formatStructuredAddress = (userProfile: UserProfile) => {
     const segments: string[] = [];

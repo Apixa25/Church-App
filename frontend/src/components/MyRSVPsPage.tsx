@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { eventAPI } from '../services/eventApi';
 import { EventRsvp, RsvpResponse, getRsvpResponseDisplay } from '../types/Event';
 import './MyRSVPsPage.css';
 
 const MyRSVPsPage: React.FC = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [rsvps, setRsvps] = useState<EventRsvp[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +38,8 @@ const MyRSVPsPage: React.FC = () => {
 
   useEffect(() => {
     loadRSVPs();
+    // RSVPs reload when the selected list filter changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]); // Reload when filter changes
 
   // Filter RSVPs based on current filters
@@ -56,7 +56,6 @@ const MyRSVPsPage: React.FC = () => {
     // For 'past' and 'all' filters, apply time-based filtering
     const now = new Date();
     const eventDate = new Date(rsvp.eventStartTime);
-    const isUpcoming = eventDate > now;
     const isPast = eventDate <= now;
 
     // Time filter

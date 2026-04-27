@@ -382,7 +382,6 @@ export const useEventNotifications = () => {
   // Helper functions for chat notifications
   const getChatNotificationTitle = (update: EventUpdate): string => {
     const senderName = update.senderName || 'Someone';
-    const groupName = update.chatGroupName || 'a chat';
     return `💬 New Message from ${senderName}`;
   };
 

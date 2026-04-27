@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
-import { useOrganization } from '../contexts/OrganizationContext';
-import { useActiveContext, ActiveContextType } from '../contexts/ActiveContextContext';
+import { useActiveContext } from '../contexts/ActiveContextContext';
 import { useFeedFilter } from '../contexts/FeedFilterContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import dashboardApi, { DashboardResponse } from '../services/dashboardApi';
+import dashboardApi from '../services/dashboardApi';
 import ActivityFeed from './ActivityFeed';
 import PostFeed from './PostFeed';
 import PostComposer from './PostComposer';
@@ -28,8 +27,7 @@ import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
   const { user, updateUser } = useAuth();
-  // Dual Primary System - use both organization context and active context
-  const { churchPrimary, familyPrimary, hasChurchPrimary, hasFamilyPrimary } = useOrganization();
+  // Dual Primary System - use active context for dashboard scope
   const {
     activeContext,
     activeMembership,
@@ -45,7 +43,7 @@ const Dashboard: React.FC = () => {
   } = useActiveContext();
   
   // Feed filter context - to auto-update filter when context changes
-  const { setFilter, activeFilter, resetFilter } = useFeedFilter();
+  const { setFilter, resetFilter } = useFeedFilter();
   
   // Legacy compatibility: primaryMembership maps to the currently active context
   const primaryMembership = activeMembership;

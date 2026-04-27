@@ -31,6 +31,8 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({
 
   useEffect(() => {
     loadAccountStatus();
+    // Reload Stripe Connect status when switching organizations.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organizationId]);
 
   const loadAccountStatus = async () => {

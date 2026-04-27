@@ -389,6 +389,8 @@ export const OrganizationProvider: React.FC<OrganizationProviderProps> = ({ chil
   // Initialize memberships on mount and when auth changes
   useEffect(() => {
     fetchMemberships();
+    // Refresh organization context when authentication state/token changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, token]);
 
   const value: OrganizationContextType = {

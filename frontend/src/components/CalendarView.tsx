@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import DatePicker from 'react-datepicker';
-import { Event, getEventCategoryDisplay, getEventStatusDisplay } from '../types/Event';
+import { Event } from '../types/Event';
 import EventCard from './EventCard';
 import { getDateKey, expandRecurringEvent } from '../utils/dateUtils';
 import 'react-datepicker/dist/react-datepicker.css';

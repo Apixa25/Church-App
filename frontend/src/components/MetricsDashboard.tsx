@@ -65,6 +65,8 @@ const MetricsDashboard: React.FC = () => {
 
   useEffect(() => {
     loadMetrics();
+    // Metrics reload only when the selected range changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRange]);
 
   const loadMetrics = async () => {

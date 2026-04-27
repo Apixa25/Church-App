@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback, memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Post, PostType, Comment, SharePostRequest } from '../types/Post';
-import { likePost, unlikePost, addComment, bookmarkPost, unbookmarkPost, deletePost, blockUser, unblockUser, getBlockStatus, followUser, unfollowUser, getFollowStatus, reportContent, getNewCommentCount, markCommentsAsRead } from '../services/postApi';
+import { likePost, unlikePost, bookmarkPost, unbookmarkPost, deletePost, blockUser, unblockUser, getBlockStatus, followUser, unfollowUser, getFollowStatus, reportContent, getNewCommentCount, markCommentsAsRead } from '../services/postApi';
 import { impressionTracker } from '../services/impressionTracker';
 import CommentThread from './CommentThread';
 import { formatRelativeDate } from '../utils/dateUtils';
@@ -49,10 +49,8 @@ const PostCard: React.FC<PostCardProps> = ({
   const [viewsCount, setViewsCount] = useState(post.viewsCount || 0);
   const [newCommentsCount, setNewCommentsCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [showCommentForm, setShowCommentForm] = useState(false);
   const [showCommentThread, setShowCommentThread] = useState(false);
-  const [commentText, setCommentText] = useState('');
-  const [comments, setComments] = useState<Comment[]>([]);
+  const comments: Comment[] = [];
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   
@@ -446,36 +444,6 @@ const PostCard: React.FC<PostCardProps> = ({
     }
   };
 
-  const handleComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!commentText.trim() || isLoading) return;
-
-    setIsLoading(true);
-    try {
-      const newComment = await addComment(post.id, {
-        content: commentText.trim(),
-        anonymous: false
-      });
-
-      setComments(prev => [newComment, ...prev]);
-      setCommentsCount(prev => prev + 1);
-      setCommentText('');
-      setShowCommentForm(false);
-
-      // Update parent component
-      if (onPostUpdate) {
-        onPostUpdate({
-          ...post,
-          commentsCount: commentsCount + 1
-        });
-      }
-    } catch (error) {
-      console.error('Error adding comment:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const getPostTypeIcon = (postType: PostType): string => {
     switch (postType) {
       case PostType.PRAYER:
@@ -486,19 +454,6 @@ const PostCard: React.FC<PostCardProps> = ({
         return '📢';
       default:
         return '💬';
-    }
-  };
-
-  const getPostTypeLabel = (postType: PostType): string => {
-    switch (postType) {
-      case PostType.PRAYER:
-        return 'Prayer Request';
-      case PostType.TESTIMONY:
-        return 'Testimony';
-      case PostType.ANNOUNCEMENT:
-        return 'Announcement';
-      default:
-        return 'Post';
     }
   };
 

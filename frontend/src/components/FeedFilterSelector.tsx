@@ -308,13 +308,6 @@ const ApplyButton = styled.button`
   }
 `;
 
-const LoadingSpinner = styled.div`
-  padding: 16px;
-  text-align: center;
-  color: #666;
-  font-size: 13px;
-`;
-
 const EmptyState = styled.div`
   padding: 16px;
   text-align: center;
@@ -347,7 +340,6 @@ const FeedFilterSelector: React.FC = () => {
   const {
     activeFilter,
     selectedGroupIds,
-    hasPrimaryOrg,
     loading: filterLoading,
     setFilter,
   } = useFeedFilter();

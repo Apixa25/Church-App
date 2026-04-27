@@ -214,7 +214,6 @@ const CommentThread: React.FC<CommentThreadProps> = ({
       currentUserId === comment.userId ||
       (!!currentUserEmail && currentUserEmail === comment.userId);
 
-    const authorInitial = comment.userName?.charAt(0)?.toUpperCase() ?? 'U';
     const replyCount = typeof comment.repliesCount === 'number' ? comment.repliesCount : null;
     const scoreLabel =
       replyCount !== null && replyCount > 0

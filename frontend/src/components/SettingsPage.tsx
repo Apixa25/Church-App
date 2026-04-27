@@ -56,6 +56,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 
   useEffect(() => {
     loadData();
+    // Settings data reloads when switching tabs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   // Debug: Log when settings state changes
@@ -72,6 +74,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
     if (tab && tab !== activeTab) {
       setActiveTab(tab);
     }
+    // Only respond to route tab changes; activeTab is checked to avoid loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
   // Keep feedback email pre-filled from signed-in user for convenience

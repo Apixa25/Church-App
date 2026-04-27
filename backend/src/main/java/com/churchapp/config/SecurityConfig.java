@@ -76,10 +76,7 @@ public class SecurityConfig {
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/oauth2/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
-                .requestMatchers("/h2-console/**").permitAll()
-                .requestMatchers("/test/**").permitAll()  // Keep test endpoint public for now
                 .requestMatchers("/ws/**").permitAll()    // Allow WebSocket handshake - auth handled in WebSocketConfig
-                .requestMatchers("/announcements/**").permitAll()  // Allow public access to announcements for now
                 .requestMatchers("/media/webhook/mediaconvert").permitAll()  // MediaConvert SNS webhook (context-path=/api, so full URL is /api/media/...)
                 .requestMatchers("/donations/webhook/stripe").permitAll()  // Stripe webhook (context-path=/api, so full URL is /api/donations/...)
                 .requestMatchers("/posts/impressions").permitAll()  // Public endpoint for view counting (fire-and-forget, no auth needed)

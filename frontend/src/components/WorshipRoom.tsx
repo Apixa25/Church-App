@@ -7,7 +7,6 @@ import {
   WorshipQueueEntry,
   WorshipRoomParticipant,
   WorshipPlayHistory,
-  PlaybackStatus,
   PlaybackAction,
   ParticipantRole,
   canControlPlayback as canControl,
@@ -109,6 +108,8 @@ const WorshipRoom: React.FC = () => {
         console.warn('Failed to send offline presence:', err);
       }
     };
+    // Initialize room subscriptions once for this roomId.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, navigate]);
 
   const loadRoomData = async () => {
@@ -177,6 +178,8 @@ const WorshipRoom: React.FC = () => {
       unsubPlayback();
       unsubSync();
     };
+    // Handlers intentionally read current component state through React setters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId]);
 
   const handleRoomUpdate = (update: any) => {

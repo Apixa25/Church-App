@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import {
   getReportedContent,
   moderateContent,
@@ -10,7 +9,6 @@ import {
   getAuditLogs,
   getUsers,
   getReportedContent as getContentReports,
-  PageResponse,
   AuditLog,
   User
 } from '../services/adminApi';
@@ -18,7 +16,6 @@ import LoadingSpinner from './LoadingSpinner';
 import './AdminModeration.css';
 
 const AdminModeration: React.FC = () => {
-  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'reports' | 'users' | 'content' | 'stats'>('reports');
   const [reportedContent, setReportedContent] = useState<any[]>([]);
   const [moderationStats, setModerationStats] = useState<any | null>(null);
@@ -31,15 +28,15 @@ const AdminModeration: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [bannedUsers, setBannedUsers] = useState<User[]>([]);
   const [userSearchQuery, setUserSearchQuery] = useState<string>('');
-  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   
   // Content Moderation state
   const [contentSearchQuery, setContentSearchQuery] = useState<string>('');
   const [contentTypeFilter, setContentTypeFilter] = useState<string>('all');
-  const [contentStats, setContentStats] = useState<any>(null);
 
   useEffect(() => {
     loadData();
+    // Keep reloads tied to tab changes to avoid extra moderation API churn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   const loadData = async () => {
@@ -73,9 +70,6 @@ const AdminModeration: React.FC = () => {
           setUsers([]);
         }
       } else if (activeTab === 'content') {
-        // Load content statistics from moderation stats
-        setContentStats(moderationStats);
-        
         // Load content reports if searching
         if (contentSearchQuery || contentTypeFilter !== 'all') {
           const contentType = contentTypeFilter !== 'all' ? contentTypeFilter.toUpperCase() : undefined;
@@ -161,16 +155,6 @@ const AdminModeration: React.FC = () => {
       setError('Failed to perform user action');
     } finally {
       setActionLoading(null);
-    }
-  };
-
-  const getActionColor = (action: string) => {
-    switch (action?.toLowerCase()) {
-      case 'approve': return '#4caf50';
-      case 'remove': return '#f44336';
-      case 'hide': return '#ff9800';
-      case 'warn': return '#ff5722';
-      default: return '#2196f3';
     }
   };
 

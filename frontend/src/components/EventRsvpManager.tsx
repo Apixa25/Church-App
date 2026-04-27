@@ -51,6 +51,8 @@ const EventRsvpManager: React.FC<EventRsvpManagerProps> = ({
   useEffect(() => {
     loadUserRsvp();
     loadEventRsvps();
+    // Reload RSVP data when switching events.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event.id]);
 
   const loadUserRsvp = async () => {

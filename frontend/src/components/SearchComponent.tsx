@@ -49,7 +49,6 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
   const [activeTab, setActiveTab] = useState<'search' | 'trending'>('search');
   const [selectedContentType, setSelectedContentType] = useState<PostType | null | 'users' | 'organizations' | 'families' | 'groups'>(null);
   const [searchFilters, setSearchFilters] = useState<PostSearchFilters>({});
-  const [showFilters, setShowFilters] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -64,14 +63,6 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
     '🌟', '⭐', '✨', '💫', '🌙', '☀️', '🌈', '☁️', '🌺', '🌻',
     '🏠', '💒', '🎂', '🎉', '🎈', '🎁', '🕯️', '🦋', '🐝', '🌿'
   ];
-
-  // Count visual emojis (helper function from FamilyGroupCreateForm)
-  const countVisualEmojis = (str: string): number => {
-    if (!str) return 0;
-    const emojiMatches = str.match(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]|[\u{200D}]|[\u{FE0F}]/gu);
-    if (!emojiMatches) return 0;
-    return emojiMatches.filter(e => !/[\u{200D}\u{FE0F}]/u.test(e)).length;
-  };
 
   type FilterValue = PostType | 'users' | 'organizations' | 'families' | 'groups';
 
@@ -304,7 +295,6 @@ const SearchComponent: React.FC<SearchComponentProps> = ({
   };
 
   const handleAllFilter = (fromDropdownOrEvent?: boolean | React.MouseEvent<HTMLButtonElement>) => {
-    const fromDropdown = typeof fromDropdownOrEvent === 'boolean' ? fromDropdownOrEvent : false;
     console.log('🔘 handleAllFilter called - clearing filter');
     setSelectedContentType(null);
     setActiveTab('search');

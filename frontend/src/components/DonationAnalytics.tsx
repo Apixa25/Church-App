@@ -33,12 +33,16 @@ const DonationAnalytics: React.FC<DonationAnalyticsProps> = ({
     if (isAdmin) {
       loadAnalytics();
     }
+    // Analytics should reload when the selected range or admin access changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateRange, isAdmin]);
 
   useEffect(() => {
     if (isAdmin && activeTab === 'donors') {
       loadDonors();
     }
+    // Donor list loads only when opening the donor tab.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, isAdmin]);
 
   const loadAnalytics = async () => {

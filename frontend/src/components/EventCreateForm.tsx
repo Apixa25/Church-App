@@ -91,7 +91,6 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
   const bringListEnabled = watch('bringListEnabled') || false;
   const bringItems = (watch('bringItems') as EventBringItemInput[] | undefined) || [];
   const isRecurring = watch('isRecurring') || false;
-  const recurrenceType = watch('recurrenceType');
 
   const handleBringItemsChange = (items: EventBringItemInput[]) => {
     setValue('bringItems', items, { shouldDirty: true, shouldValidate: false });

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Camera, Video, RefreshCw, X, Check, RotateCcw } from 'lucide-react';
 import './CameraCapture.css';
 
@@ -53,6 +53,8 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose }) => 
     return () => {
       stopCamera();
     };
+    // Restart camera only when switching between front and rear cameras.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facingMode]); // Removed captureMode - no need to restart camera
 
   const startCamera = async () => {

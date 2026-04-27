@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Event, getEventCategoryDisplay, getEventStatusDisplay, getRsvpResponseDisplay } from '../types/Event';
-import { eventAPI } from '../services/eventApi';
+import { Event, getEventCategoryDisplay, getEventStatusDisplay } from '../types/Event';
 import EventRsvpManager from './EventRsvpManager';
 import { formatEventDate, formatEventTime, formatEventDuration, isEventPast, formatAnnouncementDate } from '../utils/dateUtils';
 import './EventCard.css';
@@ -26,7 +25,6 @@ const EventCard: React.FC<EventCardProps> = ({
   showDate = true,
   showTime = true
 }) => {
-  const [isRsvpLoading, setIsRsvpLoading] = useState(false);
   const [showRsvpManager, setShowRsvpManager] = useState(false);
 
   // Use centralized date utilities for consistent parsing
@@ -60,26 +58,6 @@ const EventCard: React.FC<EventCardProps> = ({
     const eventDate = new Date(event.startTime).toDateString();
     const today = new Date().toDateString();
     return eventDate === today;
-  };
-
-  const handleRsvpClick = async (response: 'YES' | 'NO' | 'MAYBE') => {
-    try {
-      setIsRsvpLoading(true);
-      await eventAPI.createOrUpdateRsvp(event.id, {
-        response: response as any,
-        guestCount: 0,
-        notes: ''
-      });
-      
-      // Refresh event data to get updated RSVP summary
-      const updatedEvent = await eventAPI.getEvent(event.id);
-      onUpdate(updatedEvent.data);
-    } catch (error: any) {
-      console.error('Failed to RSVP:', error);
-      // Could add toast notification here
-    } finally {
-      setIsRsvpLoading(false);
-    }
   };
 
   return (

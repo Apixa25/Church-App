@@ -85,37 +85,6 @@ const DropdownTitle = styled.div`
   margin-bottom: 8px;
 `;
 
-const CurrentOrgCard = styled.div`
-  background: #f0f7ff;
-  border: 2px solid #4a90e2;
-  border-radius: 8px;
-  padding: 12px;
-`;
-
-const CurrentOrgName = styled.div`
-  font-size: 16px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 4px;
-`;
-
-const CurrentOrgMeta = styled.div`
-  font-size: 13px;
-  color: #666;
-  display: flex;
-  gap: 8px;
-`;
-
-const PrimaryBadge = styled.span`
-  display: inline-block;
-  padding: 2px 8px;
-  background: #4a90e2;
-  color: white;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 600;
-`;
-
 const DropdownSection = styled.div`
   padding: 12px;
   border-bottom: 1px solid #e0e0e0;
@@ -258,22 +227,6 @@ const HelpText = styled.div`
   line-height: 1.4;
 `;
 
-const CooldownNotice = styled.div`
-  padding: 8px 12px;
-  background: #fff3cd;
-  border-radius: 6px;
-  font-size: 12px;
-  color: #856404;
-  margin-top: 8px;
-`;
-
-const LoadingSpinner = styled.div`
-  padding: 16px;
-  text-align: center;
-  color: #666;
-  font-size: 13px;
-`;
-
 interface OrganizationSelectorProps {
   onBrowseClick?: () => void;
 }
@@ -286,19 +239,12 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
     // Dual Primary System - use new methods
     setChurchPrimary,
     setFamilyPrimary,
-    canBeChurchPrimary,
     canBeFamilyPrimary,
-    // Legacy (no longer needed but keep for reference)
-    switchPrimaryOrganization,
-    canSwitchPrimary,
-    getDaysUntilCanSwitch,
   } = useOrganization();
 
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [switching, setSwitching] = useState<string | null>(null);
-  const [canSwitch, setCanSwitch] = useState(true);
-  const [daysUntilSwitch, setDaysUntilSwitch] = useState(0);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -328,26 +274,6 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({ onBrowseCli
       });
     }
   }, [isOpen]);
-
-  // Check switch eligibility
-  useEffect(() => {
-    const checkEligibility = async () => {
-      try {
-        const eligible = await canSwitchPrimary();
-        setCanSwitch(eligible);
-        if (!eligible) {
-          const days = await getDaysUntilCanSwitch();
-          setDaysUntilSwitch(days);
-        }
-      } catch (err) {
-        console.error('Error checking switch eligibility:', err);
-      }
-    };
-
-    if (isOpen && primaryMembership) {
-      checkEligibility();
-    }
-  }, [isOpen, primaryMembership, canSwitchPrimary, getDaysUntilCanSwitch]);
 
   // Close dropdown when clicking outside
   useEffect(() => {

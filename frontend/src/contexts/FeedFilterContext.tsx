@@ -74,11 +74,6 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
   // Derive hasPrimaryOrg - now means user has either Church or Family primary
   const hasPrimaryOrg = hasChurchPrimary || hasFamilyPrimary;
   
-  // Legacy compatibility: primaryMembership maps to churchPrimary
-  const primaryMembership = churchPrimary;
-  // Legacy compatibility: secondaryMemberships maps to groups
-  const secondaryMemberships = groups;
-
   // Memoize axios instance to prevent recreation on every render
   const api = useMemo(() => {
     return axios.create({

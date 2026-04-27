@@ -422,9 +422,6 @@ const EventBringListSection: React.FC<EventBringListSectionProps> = ({
                 claimingItemId === item.id ||
                 (!userHasClaim && effectiveRemaining !== null && effectiveRemaining <= 0);
 
-              const claimedByOthers =
-                item.claims.filter(claim => claim.userId !== item.userClaim?.userId) || [];
-
               return (
                 <div key={item.id} className="bring-item-card">
                   <div className="card-header">

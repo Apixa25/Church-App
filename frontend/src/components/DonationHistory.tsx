@@ -35,6 +35,8 @@ const DonationHistory: React.FC<DonationHistoryProps> = ({
 
   useEffect(() => {
     loadDonations();
+    // Donations reload when pagination or local filters change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, filters]);
 
   const loadDonations = async () => {

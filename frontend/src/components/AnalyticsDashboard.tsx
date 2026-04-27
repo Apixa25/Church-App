@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import { getAdminAnalytics, AdminAnalytics } from '../services/adminApi';
 import './AnalyticsDashboard.css';
 
@@ -10,7 +9,6 @@ interface AnalyticsDashboardProps {
 const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   timeRange = '30d'
 }) => {
-  const { user } = useAuth();
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -18,6 +16,8 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
   useEffect(() => {
     loadAnalytics();
+    // Keep analytics loading scoped to time range changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTimeRange]);
 
   const loadAnalytics = async () => {
@@ -44,11 +44,6 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       return (num / 1000).toFixed(1) + 'K';
     }
     return num.toString();
-  };
-
-  const formatPercentage = (num?: number): string => {
-    if (!num && num !== 0) return '0%';
-    return `${num >= 0 ? '+' : ''}${num.toFixed(1)}%`;
   };
 
   const getTimeRangeLabel = (range: string): string => {

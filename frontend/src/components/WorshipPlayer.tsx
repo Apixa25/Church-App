@@ -77,6 +77,8 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
         clearTimeout(syncTimeoutRef.current);
       }
     };
+    // Recreate the YouTube player only when the backing video changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId]);
 
   const initializePlayer = () => {
@@ -300,6 +302,8 @@ const WorshipPlayer: React.FC<WorshipPlayerProps> = ({
     } else {
       executeSync();
     }
+    // Sync execution depends on the current player and platform flags.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [syncState, isReady]);
 
   // Control handlers

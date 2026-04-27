@@ -341,6 +341,8 @@ export const GroupProvider: React.FC<GroupProviderProps> = ({ children }) => {
   useEffect(() => {
     fetchGroups();
     fetchInvitationCount();
+    // Refresh group context when authentication state/token changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, token]);
 
   const value: GroupContextType = {

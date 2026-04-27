@@ -43,7 +43,6 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
   const [pinnedAnnouncements, setPinnedAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   
@@ -82,7 +81,6 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
     try {
       if (reset) {
         setLoading(true);
-        setPage(0);
         pageRef.current = 0;
       } else {
         setIsLoadingMore(true);
@@ -112,7 +110,6 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
 
       setHasMore(!response.data.last);
       const nextPage = currentPage + 1;
-      setPage(nextPage);
       pageRef.current = nextPage;
       setError(null);
     } catch (err: any) {
@@ -138,7 +135,6 @@ const AnnouncementList: React.FC<AnnouncementListProps> = ({
 
   const handleCategoryFilter = (category: AnnouncementCategory | '') => {
     setSelectedCategory(category);
-    setPage(0);
     pageRef.current = 0;
   };
 

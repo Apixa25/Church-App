@@ -357,15 +357,6 @@ const PostComposer: React.FC<PostComposerProps> = ({
     }
   }, []);
   
-  // DEBUG: Expose the capture function globally for testing
-  useEffect(() => {
-    console.log('📸 PostComposer: Registering global camera capture function');
-    (window as any).__cameraCaptureCallback = handleCameraCapture;
-    return () => {
-      delete (window as any).__cameraCaptureCallback;
-    };
-  }, [handleCameraCapture]);
-
   const removeMediaFile = (index: number) => {
     setMediaFiles(prev => {
       const newFiles = [...prev];
