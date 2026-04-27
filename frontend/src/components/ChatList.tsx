@@ -338,24 +338,11 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
                   <div className="chat-content">
                     <div className="chat-header">
                       <h4 className="chat-name">{formatDirectMessageName(group)}</h4>
-                      {group.lastMessageTime && (
-                        <span className="last-message-time">
-                          {formatLastMessageTime(group.lastMessageTime)}
-                        </span>
-                      )}
-                      <button
-                        className="chat-delete-btn"
-                        onClick={(e) => handleDeleteChat(group.id, formatDirectMessageName(group), e)}
-                        title="Delete conversation"
-                        aria-label={`Delete ${formatDirectMessageName(group)}`}
-                      >
-                        🗑️
-                      </button>
                     </div>
                     {group.lastMessageTime ? (
                       group.lastMessage ? (
                         <p className="last-message">
-                          {group.lastMessageBy && (
+                          {group.type !== 'DIRECT_MESSAGE' && group.lastMessageBy && (
                             <span className="last-message-by">{group.lastMessageBy}: </span>
                           )}
                           <span className="last-message-text">{group.lastMessage}</span>
@@ -367,11 +354,24 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
                       <p className="no-messages">No messages yet</p>
                     )}
                   </div>
-                  {group.unreadCount > 0 && (
-                    <div className="unread-indicator">
+                  <div className="chat-row-meta">
+                    {group.lastMessageTime && (
+                      <span className="last-message-time">
+                        {formatLastMessageTime(group.lastMessageTime)}
+                      </span>
+                    )}
+                    {group.unreadCount > 0 && (
                       <span className="unread-count">{group.unreadCount}</span>
-                    </div>
-                  )}
+                    )}
+                    <button
+                      className="chat-delete-btn"
+                      onClick={(e) => handleDeleteChat(group.id, formatDirectMessageName(group), e)}
+                      title="Delete conversation"
+                      aria-label={`Delete ${formatDirectMessageName(group)}`}
+                    >
+                      ...
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

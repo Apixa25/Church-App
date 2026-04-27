@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { ChatMessage as MessageType } from '../services/chatApi';
-import ClickableAvatar from './ClickableAvatar';
 import MediaViewer from './MediaViewer';
 
 interface ChatMessageProps {
   message: MessageType;
   currentUser: any;
+  isCompact?: boolean;
+  showAuthor?: boolean;
   onEdit: (messageId: string, content: string) => void;
   onDelete: (messageId: string) => void;
   onReply: (message: MessageType) => void;
@@ -16,6 +17,8 @@ interface ChatMessageProps {
 const ChatMessage: React.FC<ChatMessageProps> = ({
   message,
   currentUser,
+  isCompact = false,
+  showAuthor = true,
   onEdit,
   onDelete,
   onReply,
@@ -107,27 +110,16 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
 
   return (
     <div
-      className={`message ${isOwnMessage ? 'own-message' : 'other-message'}`}
+      className={`message ${isOwnMessage ? 'own-message' : 'other-message'} ${isCompact ? 'message-compact' : ''}`}
       style={{
         display: 'flex',
         alignItems: 'flex-end',
-        marginBottom: '15px',
+        marginBottom: isCompact ? '3px' : '12px',
         justifyContent: isOwnMessage ? 'flex-end' : 'flex-start',
         flexDirection: 'row',
         width: '100%'
       }}
     >
-      {!isOwnMessage && (
-        <ClickableAvatar
-          userId={message.userId}
-          profilePicUrl={message.userProfilePicUrl}
-          userName={message.userName}
-          size="small"
-          className="message-avatar"
-          style={{ order: 0, marginRight: '10px', marginLeft: 0, flexShrink: 0 }}
-        />
-      )}
-
       <div
         className={`message-content ${showActions ? 'actions-open' : ''}`}
         style={{
@@ -137,11 +129,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           alignItems: isOwnMessage ? 'flex-end' : 'flex-start'
         }}
       >
-        <div className="message-header">
-          {!isOwnMessage && <span className="message-author">{message.userDisplayName}</span>}
-          <span className="message-time">{formatTime(message.timestamp)}</span>
-          {message.isEdited && <span className="edited-indicator">(edited)</span>}
-        </div>
+        {!isOwnMessage && showAuthor && !isCompact && (
+          <div className="message-header">
+            <span className="message-author">{message.userDisplayName}</span>
+          </div>
+        )}
         
         <div className="message-bubble">
           {isEditing ? (
@@ -243,6 +235,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
 
               {!message.isDeleted && (
                 <>
+                  <span className="message-inline-time">
+                    {formatTime(message.timestamp)}
+                    {message.isEdited && <span className="edited-indicator"> edited</span>}
+                  </span>
+
                   <button
                     type="button"
                     className="message-options-button"
@@ -290,17 +287,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           </div>
         )}
       </div>
-
-      {isOwnMessage && (
-        <ClickableAvatar
-          userId={message.userId}
-          profilePicUrl={message.userProfilePicUrl}
-          userName={message.userName}
-          size="small"
-          className="message-avatar own-avatar"
-          style={{ order: 2, marginLeft: '10px', marginRight: 0, flexShrink: 0 }}
-        />
-      )}
 
       {/* MediaViewer for full-screen image viewing */}
       {message.messageType === 'IMAGE' && message.mediaUrl && (

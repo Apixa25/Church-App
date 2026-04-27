@@ -410,16 +410,22 @@ const ChatRoom: React.FC = () => {
         <div className="header-right">
           <button
             onClick={() => navigate('/chat/search')}
-            className="members-button"
+            className="chat-header-icon-button"
+            aria-label="Search chat messages"
+            title="Search chat messages"
           >
-            Search
+            🔍
           </button>
-          <button
-            onClick={() => setShowMembers(!showMembers)}
-            className={`members-button ${showMembers ? 'active' : ''}`}
-          >
-            Members
-          </button>
+          {group.type !== 'DIRECT_MESSAGE' && (
+            <button
+              onClick={() => setShowMembers(!showMembers)}
+              className={`chat-header-icon-button ${showMembers ? 'active' : ''}`}
+              aria-label="View chat members"
+              title="View chat members"
+            >
+              👥
+            </button>
+          )}
           {/* Only show Leave button for non-DM groups */}
           {group.type !== 'DIRECT_MESSAGE' && (
             <button onClick={handleLeaveGroup} className="leave-button">
@@ -450,18 +456,29 @@ const ChatRoom: React.FC = () => {
               </div>
             )}
             
-            {messages.map((message) => (
-              <ChatMessageComponent
-                key={message.id || message.tempId}
-                message={message}
-                currentUser={user}
-                onEdit={handleEditMessage}
-                onDelete={handleDeleteMessage}
-                onReply={setReplyingTo}
-                onReport={handleReportMessage}
-                onMediaLoad={scrollToBottom}
-              />
-            ))}
+            {messages.map((message, index) => {
+              const previousMessage = messages[index - 1];
+              const isCompact =
+                previousMessage &&
+                previousMessage.messageType !== 'SYSTEM' &&
+                message.messageType !== 'SYSTEM' &&
+                previousMessage.userId === message.userId;
+
+              return (
+                <ChatMessageComponent
+                  key={message.id || message.tempId}
+                  message={message}
+                  currentUser={user}
+                  isCompact={Boolean(isCompact)}
+                  showAuthor={group.type !== 'DIRECT_MESSAGE'}
+                  onEdit={handleEditMessage}
+                  onDelete={handleDeleteMessage}
+                  onReply={setReplyingTo}
+                  onReport={handleReportMessage}
+                  onMediaLoad={scrollToBottom}
+                />
+              );
+            })}
             
             {/* Typing indicators */}
             {typingUsers.size > 0 && (
