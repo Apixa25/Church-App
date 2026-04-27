@@ -64,6 +64,24 @@ public class MessageResponse {
         this.isEdited = message.getIsEdited();
         this.isDeleted = message.getIsDeleted();
         this.parentMessageId = message.getParentMessage() != null ? message.getParentMessage().getId() : null;
+        if (message.getParentMessage() != null) {
+            Message parent = message.getParentMessage();
+            MessageResponse parentResponse = new MessageResponse();
+            parentResponse.setId(parent.getId());
+            parentResponse.setChatGroupId(parent.getChatGroup().getId());
+            parentResponse.setChatGroupName(parent.getChatGroup().getName());
+            parentResponse.setUserId(parent.getUser().getId());
+            parentResponse.setUserName(parent.getUser().getName());
+            parentResponse.setUserDisplayName(parent.getUser().getName());
+            parentResponse.setUserProfilePicUrl(parent.getUser().getProfilePicUrl());
+            parentResponse.setContent(parent.getDisplayContent());
+            parentResponse.setMessageType(parent.getMessageType());
+            parentResponse.setMessageTypeDisplay(parent.getMessageType().getDisplayName());
+            parentResponse.setTimestamp(parent.getTimestamp());
+            parentResponse.setIsEdited(parent.getIsEdited());
+            parentResponse.setIsDeleted(parent.getIsDeleted());
+            this.parentMessage = parentResponse;
+        }
         this.replyCount = message.getReplyCount();
     }
     

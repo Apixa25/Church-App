@@ -1,6 +1,11 @@
 package com.churchapp.config;
 
 import com.churchapp.security.JwtUtil;
+import com.churchapp.entity.ChatGroup;
+import com.churchapp.entity.User;
+import com.churchapp.repository.ChatGroupMemberRepository;
+import com.churchapp.repository.ChatGroupRepository;
+import com.churchapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -13,6 +18,7 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,6 +29,10 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Configuration
 @EnableWebSocketMessageBroker
@@ -30,8 +40,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     
+    private static final Pattern GROUP_TOPIC_PATTERN =
+        Pattern.compile("^/topic/group/([0-9a-fA-F-]{36})(?:/.*)?$");
+
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
+    private final UserRepository userRepository;
+    private final ChatGroupRepository chatGroupRepository;
+    private final ChatGroupMemberRepository chatGroupMemberRepository;
     
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -103,10 +119,47 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                             }
                         }
                     }
+                    if (accessor.getUser() == null) {
+                        throw new AccessDeniedException("Valid authentication is required for WebSocket connections");
+                    }
+                }
+
+                if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+                    authorizeSubscription(accessor);
                 }
                 
                 return message;
             }
         });
+    }
+
+    private void authorizeSubscription(StompHeaderAccessor accessor) {
+        String destination = accessor.getDestination();
+        if (destination == null) {
+            return;
+        }
+
+        Matcher matcher = GROUP_TOPIC_PATTERN.matcher(destination);
+        if (!matcher.matches()) {
+            return;
+        }
+
+        Principal principal = accessor.getUser();
+        if (principal == null || principal.getName() == null) {
+            throw new AccessDeniedException("Authentication is required to subscribe to chat groups");
+        }
+
+        UUID groupId = UUID.fromString(matcher.group(1));
+        User user = userRepository.findByEmail(principal.getName())
+            .orElseThrow(() -> new AccessDeniedException("Authenticated WebSocket user was not found"));
+        Optional<ChatGroup> chatGroup = chatGroupRepository.findById(groupId);
+
+        boolean isActiveMember = chatGroup
+            .map(group -> chatGroupMemberRepository.existsByUserAndChatGroupAndIsActiveTrue(user, group))
+            .orElse(false);
+
+        if (!isActiveMember) {
+            throw new AccessDeniedException("User is not allowed to subscribe to this chat group");
+        }
     }
 }

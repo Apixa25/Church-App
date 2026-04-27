@@ -2,11 +2,17 @@ package com.churchapp.controller;
 
 import com.churchapp.dto.*;
 import com.churchapp.repository.UserRepository;
+import com.churchapp.service.AuditLogService;
+import com.churchapp.service.ChatDirectoryService;
 import com.churchapp.service.ChatService;
+import com.churchapp.service.ContentModerationService;
 import com.churchapp.service.FileUploadService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -31,6 +37,9 @@ public class ChatController {
     private final ChatService chatService;
     private final FileUploadService fileUploadService;
     private final UserRepository userRepository;
+    private final ChatDirectoryService chatDirectoryService;
+    private final ContentModerationService contentModerationService;
+    private final AuditLogService auditLogService;
     
     // ==================== CHAT GROUP ENDPOINTS ====================
     
@@ -98,11 +107,16 @@ public class ChatController {
     @GetMapping("/users")
     public ResponseEntity<List<Map<String, Object>>> getUsers(@AuthenticationPrincipal UserDetails userDetails) {
         try {
-            List<User> allUsers = userRepository.findAllActiveUsers();
-            
-            // Filter out current user and convert to response format
-            List<Map<String, Object>> userList = allUsers.stream()
-                .filter(user -> !user.getEmail().equals(userDetails.getUsername()))
+            User currentUser = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+            List<Map<String, Object>> userList = chatDirectoryService
+                .getDmCandidatesForUser(
+                    currentUser.getId(),
+                    null,
+                    PageRequest.of(0, 100, Sort.by(Sort.Direction.ASC, "name")))
+                .getContent()
+                .stream()
                 .map(user -> {
                     Map<String, Object> userMap = new HashMap<>();
                     userMap.put("id", user.getId().toString());
@@ -213,6 +227,10 @@ public class ChatController {
         try {
             // Verify user has access to this group
             chatService.verifyGroupAccess(userDetails.getUsername(), request.getGroupId());
+
+            if (!isValidChatMediaKey(request.getS3Key())) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Invalid chat media upload key"));
+            }
 
             log.info("Confirming chat media upload: user={}, group={}, s3Key={}",
                     userDetails.getUsername(), request.getGroupId(), request.getS3Key());
@@ -333,11 +351,45 @@ public class ChatController {
     
     @DeleteMapping("/messages/{messageId}")
     public ResponseEntity<?> deleteMessage(@AuthenticationPrincipal UserDetails userDetails,
-                                         @PathVariable UUID messageId) {
+                                         @PathVariable UUID messageId,
+                                         HttpServletRequest httpRequest) {
         try {
             chatService.deleteMessage(userDetails.getUsername(), messageId);
+            userRepository.findByEmail(userDetails.getUsername()).ifPresent(user ->
+                auditLogService.logContentAction(
+                    user.getId(),
+                    "DELETE_CHAT_MESSAGE",
+                    "MESSAGE",
+                    messageId,
+                    Map.of("source", "chat"),
+                    httpRequest));
             Map<String, String> response = new HashMap<>();
             response.put("message", "Message deleted successfully");
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    @PostMapping("/messages/{messageId}/report")
+    public ResponseEntity<?> reportMessage(@AuthenticationPrincipal UserDetails userDetails,
+                                         @PathVariable UUID messageId,
+                                         @RequestBody Map<String, String> request,
+                                         HttpServletRequest httpRequest) {
+        try {
+            chatService.verifyMessageAccess(userDetails.getUsername(), messageId);
+
+            User reporter = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+            String reason = request.getOrDefault("reason", "INAPPROPRIATE");
+            String description = request.get("description");
+            contentModerationService.reportContent("MESSAGE", messageId, reason, description, reporter.getId(), httpRequest);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Message reported successfully");
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -386,7 +438,8 @@ public class ChatController {
     public ResponseEntity<?> updateMemberRole(@AuthenticationPrincipal UserDetails userDetails,
                                             @PathVariable UUID groupId,
                                             @PathVariable UUID memberId,
-                                            @RequestBody Map<String, String> request) {
+                                            @RequestBody Map<String, String> request,
+                                            HttpServletRequest httpRequest) {
         try {
             String newRole = request.get("role");
             if (newRole == null) {
@@ -396,8 +449,68 @@ public class ChatController {
             }
             
             chatService.updateMemberRole(userDetails.getUsername(), groupId, memberId, newRole);
+            userRepository.findByEmail(userDetails.getUsername()).ifPresent(user ->
+                auditLogService.logAction(
+                    user.getId(),
+                    "UPDATE_CHAT_MEMBER_ROLE",
+                    Map.of("memberId", memberId.toString(), "role", newRole),
+                    "CHAT_GROUP",
+                    groupId,
+                    httpRequest));
             Map<String, String> response = new HashMap<>();
             response.put("message", "Member role updated successfully");
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    @DeleteMapping("/groups/{groupId}/members/{memberId}")
+    public ResponseEntity<?> removeMember(@AuthenticationPrincipal UserDetails userDetails,
+                                        @PathVariable UUID groupId,
+                                        @PathVariable UUID memberId,
+                                        HttpServletRequest httpRequest) {
+        try {
+            chatService.removeMemberFromGroup(userDetails.getUsername(), groupId, memberId);
+            userRepository.findByEmail(userDetails.getUsername()).ifPresent(user ->
+                auditLogService.logAction(
+                    user.getId(),
+                    "REMOVE_CHAT_MEMBER",
+                    Map.of("memberId", memberId.toString()),
+                    "CHAT_GROUP",
+                    groupId,
+                    httpRequest));
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Member removed successfully");
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    @PutMapping("/groups/{groupId}/members/{memberId}/mute")
+    public ResponseEntity<?> updateMemberMuteStatus(@AuthenticationPrincipal UserDetails userDetails,
+                                                  @PathVariable UUID groupId,
+                                                  @PathVariable UUID memberId,
+                                                  @RequestBody Map<String, Boolean> request,
+                                                  HttpServletRequest httpRequest) {
+        try {
+            boolean muted = Boolean.TRUE.equals(request.get("muted"));
+            chatService.updateMemberMuteStatus(userDetails.getUsername(), groupId, memberId, muted);
+            userRepository.findByEmail(userDetails.getUsername()).ifPresent(user ->
+                auditLogService.logAction(
+                    user.getId(),
+                    "UPDATE_CHAT_MEMBER_MUTE",
+                    Map.of("memberId", memberId.toString(), "muted", String.valueOf(muted)),
+                    "CHAT_GROUP",
+                    groupId,
+                    httpRequest));
+            Map<String, String> response = new HashMap<>();
+            response.put("message", muted ? "Member muted successfully" : "Member unmuted successfully");
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -480,6 +593,14 @@ public class ChatController {
         type.put("value", value);
         type.put("label", label);
         return type;
+    }
+
+    private boolean isValidChatMediaKey(String s3Key) {
+        return s3Key != null
+            && s3Key.startsWith("media/chat-media/originals/")
+            && !s3Key.contains("..")
+            && !s3Key.contains("\\")
+            && !s3Key.contains("://");
     }
     
     private boolean isUserOnline(User user) {

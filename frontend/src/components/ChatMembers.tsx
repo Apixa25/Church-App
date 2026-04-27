@@ -6,9 +6,22 @@ interface ChatMembersProps {
   currentUser: any;
   group: ChatGroup;
   onClose: () => void;
+  onUpdateRole?: (memberId: string, role: string) => void;
+  onRemoveMember?: (memberId: string, displayName: string) => void;
+  onToggleMute?: (memberId: string, muted: boolean) => void;
 }
 
-const ChatMembers: React.FC<ChatMembersProps> = ({ members, currentUser, group, onClose }) => {
+const ChatMembers: React.FC<ChatMembersProps> = ({
+  members,
+  currentUser,
+  group,
+  onClose,
+  onUpdateRole,
+  onRemoveMember,
+  onToggleMute
+}) => {
+  const canManageMembers = group.userRole === 'OWNER' || group.userRole === 'ADMIN';
+
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'OWNER': return '#ff6b35';
@@ -80,6 +93,27 @@ const ChatMembers: React.FC<ChatMembersProps> = ({ members, currentUser, group, 
                 <span className="offline-text">Offline</span>
               )}
             </div>
+
+            {canManageMembers && member.userId !== currentUser?.userId && member.memberRole !== 'OWNER' && (
+              <div className="member-moderation-actions">
+                <select
+                  value={member.memberRole}
+                  onChange={(e) => onUpdateRole?.(member.id, e.target.value)}
+                  aria-label={`Change role for ${member.displayName}`}
+                >
+                  <option value="ADMIN">Admin</option>
+                  <option value="MODERATOR">Moderator</option>
+                  <option value="MEMBER">Member</option>
+                  <option value="RESTRICTED">Restricted</option>
+                </select>
+                <button onClick={() => onToggleMute?.(member.id, !member.isMuted)}>
+                  {member.isMuted ? 'Unmute' : 'Mute'}
+                </button>
+                <button className="danger" onClick={() => onRemoveMember?.(member.id, member.displayName)}>
+                  Remove
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>

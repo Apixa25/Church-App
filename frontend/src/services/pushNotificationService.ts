@@ -109,7 +109,7 @@ class PushNotificationService {
    * Handle notification click - navigate to appropriate screen
    */
   private handleNotificationClick(data: any): void {
-    const { type, prayerId, eventId, chatId } = data;
+    const { type, prayerId, eventId, chatId, groupId } = data;
 
     // This would integrate with your router
     // For now, just log the action
@@ -125,9 +125,9 @@ class PushNotificationService {
     } else if (type === 'event_reminder' && eventId) {
       // Navigate to event
       window.location.href = `/events/${eventId}`;
-    } else if (type === 'chat_message' && chatId) {
+    } else if (type === 'chat_message' && (chatId || groupId)) {
       // Navigate to chat
-      window.location.href = `/chat/${chatId}`;
+      window.location.href = `/chats/${chatId || groupId}`;
     } else if (type === 'announcement') {
       // Navigate to announcements
       window.location.href = '/announcements';

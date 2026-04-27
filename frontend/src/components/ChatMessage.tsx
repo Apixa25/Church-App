@@ -9,6 +9,7 @@ interface ChatMessageProps {
   onEdit: (messageId: string, content: string) => void;
   onDelete: (messageId: string) => void;
   onReply: (message: MessageType) => void;
+  onReport?: (message: MessageType) => void;
   onMediaLoad?: () => void;
 }
 
@@ -18,11 +19,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   onEdit,
   onDelete,
   onReply,
+  onReport,
   onMediaLoad
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
   const [showMediaViewer, setShowMediaViewer] = useState(false);
+  const [showActions, setShowActions] = useState(false);
 
   // Use userId (not id) from currentUser to match message.userId
   const isOwnMessage = currentUser?.userId === message.userId;
@@ -77,6 +80,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
       onEdit(message.id, editContent.trim());
     }
     setIsEditing(false);
+    setShowActions(false);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -125,7 +129,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
       )}
 
       <div
-        className="message-content"
+        className={`message-content ${showActions ? 'actions-open' : ''}`}
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -133,9 +137,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           alignItems: isOwnMessage ? 'flex-end' : 'flex-start'
         }}
       >
-        {/* Always show header for all messages (both own and others) */}
         <div className="message-header">
-          <span className="message-author">{message.userDisplayName}</span>
+          {!isOwnMessage && <span className="message-author">{message.userDisplayName}</span>}
           <span className="message-time">{formatTime(message.timestamp)}</span>
           {message.isEdited && <span className="edited-indicator">(edited)</span>}
         </div>
@@ -168,7 +171,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                 </div>
               )}
               
-              {message.messageType === 'IMAGE' && message.mediaUrl && (
+              {message.isDeleted ? (
+                <p className="message-text deleted-message-text">Message deleted</p>
+              ) : message.messageType === 'IMAGE' && message.mediaUrl && (
                 <div className="media-content">
                   <div
                     className="clickable-image-wrapper"
@@ -207,7 +212,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                 </div>
               )}
 
-              {message.messageType === 'AUDIO' && message.mediaUrl && (
+              {!message.isDeleted && message.messageType === 'AUDIO' && message.mediaUrl && (
                 <div className="media-content">
                   <audio controls className="message-audio">
                     <source src={message.mediaUrl} type={message.mediaType} />
@@ -216,7 +221,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                 </div>
               )}
               
-              {message.messageType === 'DOCUMENT' && message.mediaUrl && (
+              {!message.isDeleted && message.messageType === 'DOCUMENT' && message.mediaUrl && (
                 <div className="media-content">
                   <div className="document-preview">
                     <span className="document-icon">📄</span>
@@ -232,8 +237,48 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                 </div>
               )}
               
-              {(message.messageType === 'TEXT' || !message.messageType) && message.content && (
+              {!message.isDeleted && (message.messageType === 'TEXT' || !message.messageType) && message.content && (
                 <p className="message-text">{message.content}</p>
+              )}
+
+              {!message.isDeleted && (
+                <>
+                  <button
+                    type="button"
+                    className="message-options-button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setShowActions(prev => !prev);
+                    }}
+                    aria-label="Message options"
+                    aria-expanded={showActions}
+                  >
+                    ...
+                  </button>
+
+                  {showActions && (
+                    <div className="message-actions">
+                      <button className="action-btn" onClick={() => { onReply(message); setShowActions(false); }} title="Reply">
+                        Reply
+                      </button>
+                      {message.canEdit && (
+                        <button className="action-btn" onClick={() => { setIsEditing(true); setShowActions(false); }} title="Edit">
+                          Edit
+                        </button>
+                      )}
+                      {message.canDelete && (
+                        <button className="action-btn danger" onClick={() => { onDelete(message.id); setShowActions(false); }} title="Delete">
+                          Delete
+                        </button>
+                      )}
+                      {!isOwnMessage && onReport && (
+                        <button className="action-btn danger" onClick={() => { onReport(message); setShowActions(false); }} title="Report">
+                          Report
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}

@@ -201,6 +201,12 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
           <h2>💬 Chats</h2>
         </div>
         <div className="header-actions">
+          <button
+            onClick={() => navigate('/chat/search')}
+            className="nav-btn"
+          >
+            Search Chats
+          </button>
           <button 
             onClick={() => setActiveView('myChats')}
             className={`nav-btn ${activeView === 'myChats' ? 'active' : ''}`}

@@ -4,10 +4,12 @@ import com.churchapp.dto.ModerationResponse;
 import com.churchapp.entity.ContentReport;
 import com.churchapp.entity.MarketplaceListing;
 import com.churchapp.entity.MarketplaceListingStatus;
+import com.churchapp.entity.Message;
 import com.churchapp.entity.Post;
 import com.churchapp.entity.User;
 import com.churchapp.repository.ContentReportRepository;
 import com.churchapp.repository.MarketplaceListingRepository;
+import com.churchapp.repository.MessageRepository;
 import com.churchapp.repository.PostBookmarkRepository;
 import com.churchapp.repository.PostCommentRepository;
 import com.churchapp.repository.PostLikeRepository;
@@ -40,6 +42,7 @@ public class ContentModerationService {
     private final PostBookmarkRepository postBookmarkRepository;
     private final PostShareRepository postShareRepository;
     private final MarketplaceListingRepository marketplaceListingRepository;
+    private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final com.churchapp.service.UserManagementService userManagementService;
 
@@ -273,6 +276,30 @@ public class ContentModerationService {
                     log.warn("User {} not found for report {}", report.getContentId(), report.getId());
                     builder.contentPreview("(User has been deleted or not found)");
                     builder.isVisible(false);
+                }
+            } else if ("MESSAGE".equalsIgnoreCase(report.getContentType())) {
+                Optional<Message> messageOpt = messageRepository.findById(report.getContentId());
+                if (messageOpt.isPresent()) {
+                    Message message = messageOpt.get();
+                    String preview = message.getContent();
+                    if (preview == null || preview.isBlank()) {
+                        preview = message.getDisplayContent();
+                    }
+                    builder.contentPreview(preview);
+                    builder.category(message.getChatGroup().getName());
+                    builder.contentCreatedAt(message.getTimestamp());
+                    builder.contentAuthor(message.getUser().getName());
+                    builder.contentAuthorId(message.getUser().getId());
+                    if (message.getMediaUrl() != null && !message.getMediaUrl().isBlank()) {
+                        builder.mediaUrls(java.util.List.of(message.getMediaUrl()));
+                        builder.mediaTypes(java.util.List.of(message.getMediaType()));
+                    }
+                    builder.isVisible(!Boolean.TRUE.equals(message.getIsDeleted()));
+                    builder.isHidden(Boolean.TRUE.equals(message.getIsDeleted()));
+                } else {
+                    builder.contentPreview("(Message has been deleted)");
+                    builder.isVisible(false);
+                    builder.isHidden(true);
                 }
             } else if ("MARKETPLACE".equalsIgnoreCase(report.getContentType())) {
                 Optional<MarketplaceListing> listingOpt = marketplaceListingRepository.findById(report.getContentId());
@@ -660,6 +687,12 @@ public class ContentModerationService {
                         return listingOpt.get().getOwner().getId();
                     }
                     break;
+                case "MESSAGE":
+                    Optional<Message> messageOpt = messageRepository.findById(contentId);
+                    if (messageOpt.isPresent() && messageOpt.get().getUser() != null) {
+                        return messageOpt.get().getUser().getId();
+                    }
+                    break;
                 // Add other content types as needed (COMMENT, PRAYER, etc.)
                 default:
                     log.warn("Unknown content type for getting author: {}", contentType);
@@ -819,8 +852,29 @@ public class ContentModerationService {
     }
 
     private void moderateMessage(UUID messageId, String action, String reason) {
-        // TODO: Implement message moderation
-        log.info("Moderating message {} with action: {}", messageId, action);
+        Optional<Message> messageOpt = messageRepository.findById(messageId);
+        if (messageOpt.isEmpty()) {
+            log.warn("Message {} not found for moderation. Action: {}", messageId, action);
+            return;
+        }
+
+        Message message = messageOpt.get();
+        String upperAction = action.toUpperCase();
+
+        switch (upperAction) {
+            case "REMOVE":
+            case "HIDE":
+                log.info("Removing chat message {} through moderation. Reason: {}", messageId, reason);
+                message.delete(null);
+                messageRepository.save(message);
+                break;
+            case "APPROVE":
+            case "WARN":
+                log.info("Resolving message report for {} with action: {}", messageId, upperAction);
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown moderation action: " + action);
+        }
     }
 
     private void moderateComment(UUID commentId, String action, String reason) {

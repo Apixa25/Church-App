@@ -263,6 +263,10 @@ const chatApi = {
     await api.delete(`/chat/messages/${messageId}`);
   },
 
+  reportMessage: async (messageId: string, reason: string, description?: string): Promise<void> => {
+    await api.post(`/chat/messages/${messageId}/report`, { reason, description });
+  },
+
   markAsRead: async (groupId: string, timestamp?: string): Promise<void> => {
     await api.post(`/chat/groups/${groupId}/mark-read`, { timestamp });
   },
@@ -275,6 +279,14 @@ const chatApi = {
 
   updateMemberRole: async (groupId: string, memberId: string, role: string): Promise<void> => {
     await api.put(`/chat/groups/${groupId}/members/${memberId}/role`, { role });
+  },
+
+  removeMember: async (groupId: string, memberId: string): Promise<void> => {
+    await api.delete(`/chat/groups/${groupId}/members/${memberId}`);
+  },
+
+  updateMemberMuteStatus: async (groupId: string, memberId: string, muted: boolean): Promise<void> => {
+    await api.put(`/chat/groups/${groupId}/members/${memberId}/mute`, { muted });
   },
 
   // Search

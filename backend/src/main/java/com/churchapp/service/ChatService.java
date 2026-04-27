@@ -323,6 +323,9 @@ public class ChatService {
         if (request.isReply()) {
             Message parentMessage = messageRepository.findById(request.getParentMessageId())
                 .orElseThrow(() -> new RuntimeException("Parent message not found"));
+            if (!parentMessage.getChatGroup().getId().equals(chatGroup.getId())) {
+                throw new RuntimeException("Parent message must belong to the same chat group");
+            }
             message.setParentMessage(parentMessage);
         }
         
@@ -337,7 +340,7 @@ public class ChatService {
         
         MessageResponse response = resolveMessageResponse(
             MessageResponse.fromEntityWithUserContext(
-                message, message.canBeEditedBy(user), message.canBeDeletedBy(user)));
+                message, message.canBeEditedBy(user), canDeleteMessage(user, message)));
         response.setTempId(request.getTempId());
         
         // Update last read for sender
@@ -372,7 +375,7 @@ public class ChatService {
         
         return messages.map(message -> resolveMessageResponse(
             MessageResponse.fromEntityWithUserContext(
-                message, message.canBeEditedBy(user), message.canBeDeletedBy(user))));
+                message, message.canBeEditedBy(user), canDeleteMessage(user, message))));
     }
     
     @Transactional
@@ -390,7 +393,7 @@ public class ChatService {
         
         MessageResponse response = resolveMessageResponse(
             MessageResponse.fromEntityWithUserContext(
-                message, true, message.canBeDeletedBy(user)));
+                message, true, canDeleteMessage(user, message)));
         
         // Notify group members of edit
         notifyGroupMessage(message.getChatGroup(), response);
@@ -404,12 +407,16 @@ public class ChatService {
         Message message = messageRepository.findById(messageId)
             .orElseThrow(() -> new RuntimeException("Message not found"));
         
-        if (!message.canBeDeletedBy(user)) {
+        if (!canDeleteMessage(user, message)) {
             throw new RuntimeException("Cannot delete this message");
         }
         
         message.delete(user.getId());
-        messageRepository.save(message);
+        message = messageRepository.save(message);
+
+        MessageResponse response = resolveMessageResponse(
+            MessageResponse.fromEntityWithUserContext(message, false, false));
+        notifyGroupMessage(message.getChatGroup(), response);
         
         // Notify group members of deletion
         notifyGroupMembers(message.getChatGroup(), "message_deleted", 
@@ -459,6 +466,9 @@ public class ChatService {
         
         ChatGroupMember targetMember = chatGroupMemberRepository.findById(memberId)
             .orElseThrow(() -> new RuntimeException("Member not found"));
+        if (!targetMember.getChatGroup().getId().equals(chatGroup.getId())) {
+            throw new RuntimeException("Member does not belong to this group");
+        }
         
         ChatGroupMember.MemberRole role = ChatGroupMember.MemberRole.valueOf(newRole.toUpperCase());
         targetMember.setMemberRole(role);
@@ -468,6 +478,65 @@ public class ChatService {
         createSystemMessage(chatGroup, user,
             user.getName() + " changed " + targetMember.getUser().getName() + "'s role to " + role.getDisplayName(),
             null);
+    }
+
+    @Transactional
+    public void removeMemberFromGroup(String userEmail, UUID groupId, UUID memberId) {
+        User actor = getUserByEmail(userEmail);
+        ChatGroup chatGroup = getChatGroupById(groupId);
+
+        ChatGroupMember actorMembership = chatGroupMemberRepository
+            .findByUserAndChatGroupAndIsActiveTrue(actor, chatGroup)
+            .orElseThrow(() -> new RuntimeException("User is not a member of this group"));
+
+        if (!actorMembership.canManageMembers()) {
+            throw new RuntimeException("Insufficient permissions to remove members");
+        }
+
+        ChatGroupMember targetMember = chatGroupMemberRepository.findById(memberId)
+            .orElseThrow(() -> new RuntimeException("Member not found"));
+        if (!targetMember.getChatGroup().getId().equals(chatGroup.getId())) {
+            throw new RuntimeException("Member does not belong to this group");
+        }
+        if (targetMember.getMemberRole() == ChatGroupMember.MemberRole.OWNER) {
+            throw new RuntimeException("Owners cannot be removed by member management");
+        }
+
+        targetMember.leave();
+        chatGroupMemberRepository.save(targetMember);
+
+        createSystemMessage(chatGroup, actor,
+            actor.getName() + " removed " + targetMember.getUser().getName() + " from the group",
+            null);
+        notifyGroupMembers(chatGroup, "member_removed", targetMember.getUser().getName() + " was removed from the group");
+    }
+
+    @Transactional
+    public void updateMemberMuteStatus(String userEmail, UUID groupId, UUID memberId, boolean muted) {
+        User actor = getUserByEmail(userEmail);
+        ChatGroup chatGroup = getChatGroupById(groupId);
+
+        ChatGroupMember actorMembership = chatGroupMemberRepository
+            .findByUserAndChatGroupAndIsActiveTrue(actor, chatGroup)
+            .orElseThrow(() -> new RuntimeException("User is not a member of this group"));
+
+        if (!actorMembership.canManageMembers()) {
+            throw new RuntimeException("Insufficient permissions to mute members");
+        }
+
+        ChatGroupMember targetMember = chatGroupMemberRepository.findById(memberId)
+            .orElseThrow(() -> new RuntimeException("Member not found"));
+        if (!targetMember.getChatGroup().getId().equals(chatGroup.getId())) {
+            throw new RuntimeException("Member does not belong to this group");
+        }
+
+        targetMember.setIsMuted(muted);
+        chatGroupMemberRepository.save(targetMember);
+
+        createSystemMessage(chatGroup, actor,
+            actor.getName() + (muted ? " muted " : " unmuted ") + targetMember.getUser().getName(),
+            null);
+        notifyGroupMembers(chatGroup, "member_updated", "Member settings updated");
     }
 
     /**
@@ -480,6 +549,16 @@ public class ChatService {
 
         if (!chatGroupMemberRepository.existsByUserAndChatGroupAndIsActiveTrue(user, chatGroup)) {
             throw new RuntimeException("User is not a member of this group");
+        }
+    }
+
+    public void verifyMessageAccess(String userEmail, UUID messageId) {
+        User user = getUserByEmail(userEmail);
+        Message message = messageRepository.findById(messageId)
+            .orElseThrow(() -> new RuntimeException("Message not found"));
+
+        if (!chatGroupMemberRepository.existsByUserAndChatGroupAndIsActiveTrue(user, message.getChatGroup())) {
+            throw new RuntimeException("User is not a member of this message's group");
         }
     }
 
@@ -506,7 +585,7 @@ public class ChatService {
         List<MessageResponse> messageResponses = messages.stream()
             .map(message -> resolveMessageResponse(
                 MessageResponse.fromEntityWithUserContext(
-                    message, message.canBeEditedBy(user), message.canBeDeletedBy(user))))
+                    message, message.canBeEditedBy(user), canDeleteMessage(user, message))))
             .collect(Collectors.toList());
         
         long searchTime = System.currentTimeMillis() - startTime;
@@ -581,7 +660,6 @@ public class ChatService {
                 );
             
             // Send notification to each group member except the sender
-            int notificationCount = 0;
             for (ChatGroupMember member : members) {
                 if (!member.getUser().getId().equals(sender.getId())) {
                     // Send to user's personal queue for event notifications
@@ -591,16 +669,9 @@ public class ChatService {
                         "/queue/events",
                         notificationEvent
                     );
-                    notificationCount++;
                 }
             }
             
-            // Also broadcast to /topic/events for consistency (frontend can filter)
-            // This allows the existing subscription in useEventNotifications to work
-            System.out.println("📤 Sending chat notification to /topic/events: " + notificationEvent);
-            messagingTemplate.convertAndSend("/topic/events", notificationEvent);
-            System.out.println("✅ Chat notification sent to /topic/events successfully");
-
             // Send Firebase push notifications to group members
             sendChatPushNotifications(chatGroup, message, sender, members);
 
@@ -666,6 +737,17 @@ public class ChatService {
         // For now, return a simple heuristic based on last login
         return user.getLastLogin() != null && 
                user.getLastLogin().isAfter(LocalDateTime.now().minusMinutes(5));
+    }
+
+    private boolean canDeleteMessage(User user, Message message) {
+        if (message.canBeDeletedBy(user)) {
+            return true;
+        }
+
+        return chatGroupMemberRepository
+            .findByUserAndChatGroupAndIsActiveTrue(user, message.getChatGroup())
+            .map(ChatGroupMember::canModerate)
+            .orElse(false);
     }
     
     private String convertUserIdsToJson(List<UUID> userIds) {

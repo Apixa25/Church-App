@@ -34,6 +34,7 @@ const ChatRoom: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showMembers, setShowMembers] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const [page, setPage] = useState(0);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   
@@ -52,17 +53,14 @@ const ChatRoom: React.FC = () => {
 
       // Subscribe to group messages
       const unsubMessages = webSocketService.subscribeToGroupMessages(groupId, (message: ChatMessage) => {
-        console.log('💬 ChatRoom received message via WebSocket:', message);
         setMessages(prev => {
           // Check if message already exists (avoid duplicates)
           if (prev.find(m => m.id === message.id || m.tempId === message.tempId)) {
-            console.log('🔄 Updating existing message:', message.id || message.tempId);
             // Update existing message (for edited messages)
             return prev.map(m =>
               (m.id === message.id || m.tempId === message.tempId) ? message : m
             );
           }
-          console.log('✨ Adding new message to chat:', message.id || message.tempId);
           return [...prev, message];
         });
 
@@ -72,7 +70,6 @@ const ChatRoom: React.FC = () => {
 
       // Subscribe to typing indicators
       const unsubTyping = webSocketService.subscribeToTyping(groupId, (typing) => {
-        console.log('⌨️ Typing indicator received:', typing);
         if (typing.userId !== user?.email) {
           setTypingUsers(prev => {
             const newSet = new Set(prev);
@@ -88,9 +85,9 @@ const ChatRoom: React.FC = () => {
 
       // Subscribe to group notifications
       const unsubNotifications = webSocketService.subscribeToGroupNotifications(groupId, (notification) => {
-        console.log('Group notification:', notification);
         // Handle user join/leave notifications
-        if (notification.type === 'user_joined' || notification.type === 'user_left') {
+        const notificationType = notification.type || (notification as any).eventType;
+        if (notificationType === 'user_joined' || notificationType === 'user_left' || notificationType === 'member_removed' || notificationType === 'member_updated') {
           loadMembers(); // Refresh member list
         }
       });
@@ -276,11 +273,29 @@ const ChatRoom: React.FC = () => {
   };
 
   const handleDeleteMessage = async (messageId: string) => {
+    if (!window.confirm('Delete this message?')) return;
+
     try {
       await chatApi.deleteMessage(messageId);
     } catch (err) {
       console.error('Error deleting message:', err);
       setError('Failed to delete message');
+    }
+  };
+
+  const handleReportMessage = async (message: ChatMessage) => {
+    const description = window.prompt(
+      'Tell the moderation team what is wrong with this message.',
+      'This message needs moderator review.'
+    );
+    if (description === null) return;
+
+    try {
+      await chatApi.reportMessage(message.id, 'INAPPROPRIATE', description);
+      window.alert('Thanks. This message has been sent to the moderation team.');
+    } catch (err) {
+      console.error('Error reporting message:', err);
+      setError('Failed to report message');
     }
   };
 
@@ -293,6 +308,42 @@ const ChatRoom: React.FC = () => {
     } catch (err) {
       console.error('Error leaving group:', err);
       setError('Failed to leave group');
+    }
+  };
+
+  const handleUpdateMemberRole = async (memberId: string, role: string) => {
+    if (!groupId) return;
+
+    try {
+      await chatApi.updateMemberRole(groupId, memberId, role);
+      await loadMembers();
+    } catch (err) {
+      console.error('Error updating member role:', err);
+      setError('Failed to update member role');
+    }
+  };
+
+  const handleToggleMemberMute = async (memberId: string, muted: boolean) => {
+    if (!groupId) return;
+
+    try {
+      await chatApi.updateMemberMuteStatus(groupId, memberId, muted);
+      await loadMembers();
+    } catch (err) {
+      console.error('Error updating member mute status:', err);
+      setError('Failed to update member settings');
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string, displayName: string) => {
+    if (!groupId || !window.confirm(`Remove ${displayName} from this chat?`)) return;
+
+    try {
+      await chatApi.removeMember(groupId, memberId);
+      await loadMembers();
+    } catch (err) {
+      console.error('Error removing member:', err);
+      setError('Failed to remove member');
     }
   };
 
@@ -358,24 +409,21 @@ const ChatRoom: React.FC = () => {
         </div>
         <div className="header-right">
           <button
-            onClick={() => navigate('/chats')}
-            className="back-to-chats-button"
+            onClick={() => navigate('/chat/search')}
+            className="members-button"
           >
-            ← Back to Chats
+            Search
           </button>
           <button
             onClick={() => setShowMembers(!showMembers)}
             className={`members-button ${showMembers ? 'active' : ''}`}
           >
-            👥 Members
+            Members
           </button>
-          {group.canModerate && (
-            <button className="settings-button">⚙️</button>
-          )}
           {/* Only show Leave button for non-DM groups */}
           {group.type !== 'DIRECT_MESSAGE' && (
             <button onClick={handleLeaveGroup} className="leave-button">
-              🚪 Leave
+              Leave
             </button>
           )}
         </div>
@@ -409,7 +457,8 @@ const ChatRoom: React.FC = () => {
                 currentUser={user}
                 onEdit={handleEditMessage}
                 onDelete={handleDeleteMessage}
-                onReply={(msg: ChatMessage) => {/* Handle reply */}}
+                onReply={setReplyingTo}
+                onReport={handleReportMessage}
                 onMediaLoad={scrollToBottom}
               />
             ))}
@@ -437,6 +486,8 @@ const ChatRoom: React.FC = () => {
             onTyping={handleTyping}
             placeholder={`Message ${formatDirectMessageName(group)}...`}
             disabled={!group.canPost}
+            replyingTo={replyingTo}
+            onCancelReply={() => setReplyingTo(null)}
           />
 
           {!group.canPost && (
@@ -453,6 +504,9 @@ const ChatRoom: React.FC = () => {
             currentUser={user}
             group={group}
             onClose={() => setShowMembers(false)}
+            onUpdateRole={handleUpdateMemberRole}
+            onToggleMute={handleToggleMemberMute}
+            onRemoveMember={handleRemoveMember}
           />
         )}
       </div>
