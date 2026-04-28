@@ -7,6 +7,7 @@ import MessageInput from './MessageInput';
 import ChatMessageComponent from './ChatMessage';
 import ChatMembers from './ChatMembers';
 import LoadingSpinner from './LoadingSpinner';
+import { notifyChatUnreadCountRefresh } from '../hooks/useChatUnreadCount';
 
 const ChatRoom: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
@@ -137,7 +138,9 @@ const ChatRoom: React.FC = () => {
       await connectWebSocket();
 
       // Mark messages as read
-      chatApi.markAsRead(groupId);
+      chatApi.markAsRead(groupId)
+        .then(notifyChatUnreadCountRefresh)
+        .catch(err => console.error('Error marking chat as read:', err));
 
     } catch (err) {
       setError('Failed to load chat room');

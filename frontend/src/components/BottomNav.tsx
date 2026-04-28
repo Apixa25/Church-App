@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { useChatUnreadCount } from '../hooks/useChatUnreadCount';
 import { useAuth } from '../contexts/AuthContext';
 import './BottomNav.css';
 
@@ -17,6 +18,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick, onCameraClick, showC
   const isMobile = useMediaQuery('(max-width: 768px)');
   const queryClient = useQueryClient();
   const { isAuthenticated } = useAuth();
+  const chatUnreadCount = useChatUnreadCount();
   
   // 🔄 Double-tap detection for Home button refresh
   const lastTapTimeRef = useRef<number>(0);
@@ -176,6 +178,11 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick, onCameraClick, showC
           >
             <span className={`bottom-nav-icon ${tab.id === 'home' && isRefreshing ? 'refreshing' : ''}`}>
               {tab.icon}
+              {tab.id === 'messages' && chatUnreadCount > 0 && (
+                <span className="bottom-nav-badge">
+                  {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                </span>
+              )}
             </span>
             <span className="bottom-nav-label">{tab.label}</span>
           </button>

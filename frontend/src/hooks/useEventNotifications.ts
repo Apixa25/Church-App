@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import { useOrganization } from '../contexts/OrganizationContext';
 import webSocketService, { EventUpdate } from '../services/websocketService';
+import { notifyChatUnreadCountRefresh } from './useChatUnreadCount';
 
 export interface EventNotification {
   id: string;
@@ -231,6 +232,8 @@ export const useEventNotifications = () => {
 
     // Handle chat message notifications
     if (eventType === 'chat_message_received') {
+      notifyChatUnreadCountRefresh();
+
       // Don't notify users of their own messages
       if (update.senderId && update.senderId === userRef.current.userId) {
         return;
@@ -241,22 +244,8 @@ export const useEventNotifications = () => {
         return;
       }
 
-      const notification: EventNotification = {
-        id: `chat-${update.messageId || update.chatGroupId}-${Date.now()}`,
-        type: 'chat_message_received',
-        title: getChatNotificationTitle(update),
-        message: getChatNotificationMessage(update),
-        chatGroupId: update.chatGroupId,
-        chatGroupName: update.chatGroupName,
-        senderId: update.senderId,
-        senderName: update.senderName,
-        messageId: update.messageId,
-        timestamp: update.timestamp || new Date().toISOString(),
-        read: false,
-        actionUrl: update.actionUrl || (update.chatGroupId ? `/chats/${update.chatGroupId}` : '/chats')
-      };
-
-      addNotificationRef.current(notification);
+      // Chat unread state is shown on the Messages tab. Keep the bell focused on
+      // broader app notifications so users do not see duplicate chat badges.
       return;
     }
 
@@ -377,29 +366,6 @@ export const useEventNotifications = () => {
       default:
         return `Event "${eventTitle}" has been updated`;
     }
-  };
-
-  // Helper functions for chat notifications
-  const getChatNotificationTitle = (update: EventUpdate): string => {
-    const senderName = update.senderName || 'Someone';
-    return `💬 New Message from ${senderName}`;
-  };
-
-  const getChatNotificationMessage = (update: EventUpdate): string => {
-    const senderName = update.senderName || 'Someone';
-    const groupName = update.chatGroupName || 'a chat';
-    const messageContent = update.messageContent || '';
-
-    // Truncate long messages
-    const truncatedContent = messageContent.length > 50
-      ? messageContent.substring(0, 50) + '...'
-      : messageContent;
-
-    if (update.messageType === 'IMAGE' || update.messageType === 'VIDEO') {
-      return `${senderName} sent a ${update.messageType.toLowerCase()} in ${groupName}`;
-    }
-
-    return truncatedContent || `${senderName} sent a message in ${groupName}`;
   };
 
   // Helper functions for post comment notifications

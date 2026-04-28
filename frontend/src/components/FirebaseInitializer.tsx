@@ -54,7 +54,7 @@ const FirebaseInitializer: React.FC = () => {
         }
 
         // Register token with backend
-        await api.post('/api/notifications/register-token', { token });
+        await api.post('/notifications/register-token', { token });
       } catch (error) {
         console.error('Failed to initialize or register FCM token:', error);
       }

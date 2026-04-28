@@ -71,7 +71,7 @@ class PushNotificationService {
 
       // Register token with backend
       try {
-        await api.post('/api/notifications/register-token', {
+        await api.post('/notifications/register-token', {
           token: token.value
         });
         console.log('[PushNotificationService] Token registered with backend');
@@ -154,7 +154,7 @@ class PushNotificationService {
       const token = await requestWebNotification();
       if (token) {
         // Register token with backend
-        await api.post('/api/notifications/register-token', { token });
+        await api.post('/notifications/register-token', { token });
         return true;
       }
       return false;
@@ -204,7 +204,7 @@ class PushNotificationService {
   async unregister(): Promise<void> {
     try {
       // Unregister from backend
-      await api.delete('/api/notifications/unregister-token');
+      await api.delete('/notifications/unregister-token');
 
       // Unregister from platform
       if (this.isNative) {

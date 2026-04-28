@@ -8,16 +8,19 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * REST Controller for managing push notifications
  */
 @RestController
-@RequestMapping("/api/notifications")
+@RequestMapping("/notifications")
 @RequiredArgsConstructor
 @Slf4j
 public class NotificationController {
@@ -34,7 +37,6 @@ public class NotificationController {
             @RequestBody Map<String, String> request,
             Authentication authentication) {
         try {
-            String email = authentication.getName();
             String fcmToken = request.get("token");
 
             if (fcmToken == null || fcmToken.trim().isEmpty()) {
@@ -43,14 +45,18 @@ public class NotificationController {
                 ));
             }
 
-            // Find user and update FCM token
-            User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+            Optional<User> userResult = resolveAuthenticatedUser(authentication);
+            if (userResult.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                        "error", "Authenticated user not found for notification registration"
+                ));
+            }
 
+            User user = userResult.get();
             user.setFcmToken(fcmToken);
             userRepository.save(user);
 
-            log.info("FCM token registered for user: {}", email);
+            log.info("FCM token registered for user: {}", user.getEmail());
 
             return ResponseEntity.ok(Map.of(
                     "message", "FCM token registered successfully",
@@ -71,15 +77,18 @@ public class NotificationController {
     @DeleteMapping("/unregister-token")
     public ResponseEntity<?> unregisterToken(Authentication authentication) {
         try {
-            String email = authentication.getName();
+            Optional<User> userResult = resolveAuthenticatedUser(authentication);
+            if (userResult.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                        "error", "Authenticated user not found for notification registration"
+                ));
+            }
 
-            User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-
+            User user = userResult.get();
             user.setFcmToken(null);
             userRepository.save(user);
 
-            log.info("FCM token unregistered for user: {}", email);
+            log.info("FCM token unregistered for user: {}", user.getEmail());
 
             return ResponseEntity.ok(Map.of(
                     "message", "FCM token unregistered successfully"
@@ -100,11 +109,14 @@ public class NotificationController {
     @PostMapping("/test")
     public ResponseEntity<?> sendTestNotification(Authentication authentication) {
         try {
-            String email = authentication.getName();
+            Optional<User> userResult = resolveAuthenticatedUser(authentication);
+            if (userResult.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                        "error", "Authenticated user not found for notification registration"
+                ));
+            }
 
-            User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-
+            User user = userResult.get();
             if (user.getFcmToken() == null || user.getFcmToken().trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of(
                         "error", "No FCM token registered for this user. Please enable notifications first."
@@ -123,7 +135,7 @@ public class NotificationController {
                     data
             );
 
-            log.info("Test notification sent to user: {}", email);
+            log.info("Test notification sent to user: {}", user.getEmail());
 
             return ResponseEntity.ok(Map.of(
                     "message", "Test notification sent successfully"
@@ -143,11 +155,15 @@ public class NotificationController {
     @GetMapping("/status")
     public ResponseEntity<?> getNotificationStatus(Authentication authentication) {
         try {
-            String email = authentication.getName();
+            Optional<User> userResult = resolveAuthenticatedUser(authentication);
+            if (userResult.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                        "registered", false,
+                        "message", "Push notifications are not connected to the current login session"
+                ));
+            }
 
-            User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-
+            User user = userResult.get();
             boolean hasToken = user.getFcmToken() != null && !user.getFcmToken().trim().isEmpty();
 
             return ResponseEntity.ok(Map.of(
@@ -163,5 +179,37 @@ public class NotificationController {
                     "error", "Failed to get notification status: " + e.getMessage()
             ));
         }
+    }
+
+    private Optional<User> resolveAuthenticatedUser(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return Optional.empty();
+        }
+
+        Object principal = authentication.getPrincipal();
+        String email = null;
+
+        if (principal instanceof UserDetails userDetails) {
+            email = userDetails.getUsername();
+        } else if (principal instanceof OAuth2User oauth2User) {
+            email = oauth2User.getAttribute("email");
+        }
+
+        if ((email == null || email.isBlank()) && authentication.getName() != null) {
+            email = authentication.getName();
+        }
+
+        if (email == null || email.isBlank()) {
+            log.warn("Unable to resolve notification user email from authentication type: {}",
+                    authentication.getClass().getName());
+            return Optional.empty();
+        }
+
+        Optional<User> user = userRepository.findByEmail(email);
+        if (user.isEmpty()) {
+            log.warn("Unable to find notification user by resolved email/name: {}", email);
+        }
+
+        return user;
     }
 }

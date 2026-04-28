@@ -120,7 +120,7 @@ public class UserSettings {
     private int eventRemindersHours = 24;
 
     // FCM Token for push notifications
-    @Column(name = "fcm_token", length = 500)
+    @Column(name = "fcm_token", columnDefinition = "TEXT")
     private String fcmToken;
 
     // Data & Privacy

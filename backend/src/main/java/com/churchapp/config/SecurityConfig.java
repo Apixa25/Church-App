@@ -111,6 +111,8 @@ public class SecurityConfig {
                         requestURI.startsWith("/announcements") ||  // Add announcements to API endpoints
                         requestURI.startsWith("/prayers") ||        // Add prayers to API endpoints
                         requestURI.startsWith("/settings") ||       // Ensure settings returns JSON 401 instead of redirect
+                        requestURI.startsWith("/notifications") ||  // Notification token APIs
+                        requestURI.startsWith("/api/notifications") ||
                         requestURI.startsWith("/groups") ||         // Groups API endpoints
                         requestURI.startsWith("/posts") ||          // Posts API endpoints
                         requestURI.startsWith("/organizations") ||  // Organizations API endpoints

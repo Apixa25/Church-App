@@ -163,7 +163,7 @@ public class User {
     // Note: lastOrgSwitchAt removed - no more cooldown! Users can switch freely like real life!
 
     // Push notification FCM token
-    @Column(name = "fcm_token", length = 500)
+    @Column(name = "fcm_token", columnDefinition = "TEXT")
     private String fcmToken; // Firebase Cloud Messaging token for push notifications
 
     // Selected worship avatar for dance floor display

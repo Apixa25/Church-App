@@ -31,7 +31,7 @@ export const useNotifications = () => {
    */
   const registerToken = async (token: string): Promise<void> => {
     try {
-      await api.post('/api/notifications/register-token', { token });
+      await api.post('/notifications/register-token', { token });
       setIsRegistered(true);
     } catch (err: any) {
       throw new Error('Failed to register notification token');
@@ -79,7 +79,7 @@ export const useNotifications = () => {
     setError(null);
 
     try {
-      await api.delete('/api/notifications/unregister-token');
+      await api.delete('/notifications/unregister-token');
       setIsRegistered(false);
       setIsLoading(false);
     } catch (err: any) {
@@ -94,7 +94,7 @@ export const useNotifications = () => {
    */
   const sendTestNotification = useCallback(async (): Promise<boolean> => {
     try {
-      await api.post('/api/notifications/test');
+      await api.post('/notifications/test');
       return true;
     } catch (err: any) {
       console.error('Failed to send test notification:', err);
@@ -110,7 +110,7 @@ export const useNotifications = () => {
     const checkRegistrationStatus = async () => {
       setIsCheckingStatus(true);
       try {
-        const response = await api.get('/api/notifications/status');
+        const response = await api.get('/notifications/status');
         setIsRegistered(response.data.registered);
       } catch (err) {
         console.error('Failed to check notification status:', err);
