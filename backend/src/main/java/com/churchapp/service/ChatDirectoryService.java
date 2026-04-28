@@ -2,12 +2,15 @@ package com.churchapp.service;
 
 import com.churchapp.entity.User;
 import com.churchapp.repository.UserRepository;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -16,6 +19,7 @@ import java.util.UUID;
 public class ChatDirectoryService {
 
     private final UserRepository userRepository;
+    private final UserBlockService userBlockService;
 
     public Page<User> getDmCandidates(UUID requesterId,
                                       UUID requesterPrimaryOrgId,
@@ -50,6 +54,35 @@ public class ChatDirectoryService {
 
         // Single query fetching from both organizations
         return userRepository.findDirectoryMembers(churchOrgId, familyOrgId, requesterId, qLike, pageable);
+    }
+
+    public Page<User> searchGlobalPeople(UUID requesterId, String query, Pageable pageable) {
+        String trimmedQuery = query == null ? "" : query.trim();
+        if (trimmedQuery.length() < 3) {
+            return Page.empty(pageable);
+        }
+
+        String searchPattern = "%" + trimmedQuery.toLowerCase() + "%";
+        List<UUID> blockedUserIds = userBlockService.getMutuallyBlockedUserIds(requesterId);
+
+        return userRepository.findAll((root, criteriaQuery, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            predicates.add(criteriaBuilder.notEqual(root.get("id"), requesterId));
+            predicates.add(criteriaBuilder.isNull(root.get("deletedAt")));
+            predicates.add(criteriaBuilder.equal(root.get("isActive"), true));
+            predicates.add(criteriaBuilder.equal(root.get("isBanned"), false));
+
+            if (!blockedUserIds.isEmpty()) {
+                predicates.add(criteriaBuilder.not(root.get("id").in(blockedUserIds)));
+            }
+
+            Predicate nameMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), searchPattern);
+            Predicate emailMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("email")), searchPattern);
+            predicates.add(criteriaBuilder.or(nameMatch, emailMatch));
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        }, pageable);
     }
 }
 

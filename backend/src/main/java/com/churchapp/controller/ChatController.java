@@ -149,6 +149,23 @@ public class ChatController {
             return ResponseEntity.badRequest().body(error);
         }
     }
+
+    @PostMapping("/direct-message/users/{targetUserId}")
+    public ResponseEntity<?> createOrGetDirectMessageByUserId(
+            @PathVariable UUID targetUserId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            ChatGroupResponse directMessage = chatService.createOrGetDirectMessageByUserId(
+                userDetails.getUsername(),
+                targetUserId
+            );
+            return ResponseEntity.ok(directMessage);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
     
     // ==================== MESSAGE ENDPOINTS ====================
     

@@ -137,6 +137,14 @@ export interface SearchResponse {
   };
 }
 
+export interface ChatPeopleSearchResult {
+  userId: string;
+  name: string;
+  profilePicUrl?: string;
+  bio?: string;
+  location?: string;
+}
+
 const chatApi = {
   // Group management
   getGroups: async (): Promise<ChatGroup[]> => {
@@ -170,6 +178,11 @@ const chatApi = {
     return response.data;
   },
 
+  createDirectMessageByUserId: async (targetUserId: string): Promise<ChatGroup> => {
+    const response = await api.post(`/chat/direct-message/users/${targetUserId}`);
+    return response.data;
+  },
+
   getUsers: async (): Promise<any[]> => {
     const response = await api.get('/chat/users');
     return response.data;
@@ -186,6 +199,20 @@ const chatApi = {
   }> => {
     const response = await api.get('/chats/dm-candidates', {
       params: { q: q || undefined, page, size }
+    });
+    return response.data;
+  },
+
+  searchGlobalPeople: async (q: string, page: number = 0, size: number = 12): Promise<{
+    content: ChatPeopleSearchResult[];
+    totalPages: number;
+    totalElements: number;
+    size: number;
+    number: number;
+    last: boolean;
+  }> => {
+    const response = await api.get('/chats/people-search', {
+      params: { q, page, size }
     });
     return response.data;
   },

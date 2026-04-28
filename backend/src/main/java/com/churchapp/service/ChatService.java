@@ -236,7 +236,24 @@ public class ChatService {
     public ChatGroupResponse createOrGetDirectMessage(String userEmail, String targetUserEmail) {
         User user = getUserByEmail(userEmail);
         User targetUser = getUserByEmail(targetUserEmail);
-        
+
+        return createOrGetDirectMessageForUsers(user, targetUser);
+    }
+
+    @Transactional
+    public ChatGroupResponse createOrGetDirectMessageByUserId(String userEmail, UUID targetUserId) {
+        User user = getUserByEmail(userEmail);
+        User targetUser = userRepository.findById(targetUserId)
+            .orElseThrow(() -> new RuntimeException("Target user not found"));
+
+        return createOrGetDirectMessageForUsers(user, targetUser);
+    }
+
+    private ChatGroupResponse createOrGetDirectMessageForUsers(User user, User targetUser) {
+        if (user.getId().equals(targetUser.getId())) {
+            throw new RuntimeException("You cannot start a conversation with yourself");
+        }
+
         // Check if direct message conversation already exists between these users
         List<ChatGroup> existingDM = chatGroupRepository.findDirectMessageBetweenUsers(user, targetUser);
         

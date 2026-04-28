@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGlobalSearch } from './global-search/GlobalSearchProvider';
 import chatApi from '../services/chatApi';
+import GlobalPeopleSearch from './GlobalPeopleSearch';
 
 interface User {
   id: string;
@@ -24,6 +25,7 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
+  const [showGlobalPeopleSearch, setShowGlobalPeopleSearch] = useState(false);
   const navigate = useNavigate();
   const { open: openGlobalSearch } = useGlobalSearch();
 
@@ -157,7 +159,7 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
     <div className="user-list">
       <div className="user-list-header">
         <h3>Directory</h3>
-        <p>Use search to find someone.</p>
+        <p>Your local church and family contacts appear here. Use Find People for an intentional app-wide search.</p>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
           <input
             type="text"
@@ -170,17 +172,27 @@ const UserList: React.FC<UserListProps> = ({ onUserSelect }) => {
           />
           <button
             onClick={() => {
+              setShowGlobalPeopleSearch(prev => !prev);
+            }}
+            className="secondary-button"
+          >
+            {showGlobalPeopleSearch ? 'Hide Find People' : 'Find People'}
+          </button>
+          <button
+            onClick={() => {
               openGlobalSearch({ seedQuery: query });
             }}
             className="secondary-button"
           >
-            Global search
+            Search All Content
           </button>
           {isFetching && (
             <span style={{ marginLeft: 8, fontSize: 12, color: '#666' }}>Searching…</span>
           )}
         </div>
       </div>
+
+      {showGlobalPeopleSearch && <GlobalPeopleSearch />}
       
       {users.length === 0 ? (
         <div className="empty-state">

@@ -1,5 +1,6 @@
 package com.churchapp.controller;
 
+import com.churchapp.dto.ChatPeopleSearchResult;
 import com.churchapp.dto.UserProfileResponse;
 import com.churchapp.entity.User;
 import com.churchapp.repository.UserRepository;
@@ -11,7 +12,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -47,6 +47,23 @@ public class ChatDirectoryController {
 
         Page<UserProfileResponse> mapped = results.map(UserProfileResponse::fromUser);
         return ResponseEntity.ok(mapped);
+    }
+
+    @GetMapping("/people-search")
+    public ResponseEntity<Page<ChatPeopleSearchResult>> searchGlobalPeople(
+            @RequestParam String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        UUID userId = resolveUserId(userDetails);
+        int safeSize = Math.min(Math.max(size, 1), 20);
+
+        Page<User> results = chatDirectoryService.searchGlobalPeople(
+            userId, q, PageRequest.of(page, safeSize, Sort.by(Sort.Direction.ASC, "name"))
+        );
+
+        return ResponseEntity.ok(results.map(ChatPeopleSearchResult::fromUser));
     }
 }
 
