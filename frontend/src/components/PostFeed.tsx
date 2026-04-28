@@ -71,11 +71,21 @@ const PostFeed: React.FC<PostFeedProps> = ({
   const isAtTopRef = useRef<boolean>(true);
   const lastFetchTimeRef = useRef<number>(0);
 
-  const POSTS_PER_PAGE = 20;
+  const INITIAL_POSTS_PER_PAGE = 20;
+  const LOAD_MORE_POSTS_PER_PAGE = 5;
   const PULL_THRESHOLD = 80; // pixels to pull before triggering refresh
 
   const hasMorePages = (response: FeedResponse): boolean => {
     return !response.last && response.content.length > 0;
+  };
+
+  const getNextLoadMorePage = (response: FeedResponse): number => {
+    const loadedThroughOffset = response.number * response.size + response.content.length;
+    return Math.ceil(loadedThroughOffset / LOAD_MORE_POSTS_PER_PAGE);
+  };
+
+  const getNextLoadMorePageFromCount = (loadedCount: number): number => {
+    return Math.ceil(loadedCount / LOAD_MORE_POSTS_PER_PAGE);
   };
 
   // 🚀 React Query for caching posts - only fetch when explicitly requested
@@ -85,7 +95,7 @@ const PostFeed: React.FC<PostFeedProps> = ({
       const response: FeedResponse = await getFeed(
         feedTypeString,
         0, // Always start from page 0 for refresh
-        POSTS_PER_PAGE
+        INITIAL_POSTS_PER_PAGE
       );
       lastFetchTimeRef.current = Date.now();
       return response.content;
@@ -113,15 +123,15 @@ const PostFeed: React.FC<PostFeedProps> = ({
         const response: FeedResponse = await getFeed(
           feedTypeString,
           0,
-          POSTS_PER_PAGE
+          INITIAL_POSTS_PER_PAGE
         );
 
         setPosts(response.content);
         queryClient.setQueryData(queryKey, response.content);
         lastFetchTimeRef.current = Date.now();
-        setHasMore(hasMorePages(response) && !maxPosts);
+        setHasMore(hasMorePages(response) && (!maxPosts || response.content.length < maxPosts));
 
-        const nextPage = response.number + 1;
+        const nextPage = getNextLoadMorePage(response);
         setPage(nextPage);
         pageRef.current = nextPage;
         setLoading(false);
@@ -131,7 +141,7 @@ const PostFeed: React.FC<PostFeedProps> = ({
         const response: FeedResponse = await getFeed(
           feedTypeString,
           currentPage,
-          POSTS_PER_PAGE
+          LOAD_MORE_POSTS_PER_PAGE
         );
 
         setPosts(prev => {
@@ -139,8 +149,8 @@ const PostFeed: React.FC<PostFeedProps> = ({
           const newPosts = response.content.filter(post => !existingPostIds.has(post.id));
           return [...prev, ...newPosts];
         });
-        setHasMore(hasMorePages(response) && !maxPosts);
-        const nextPage = response.number + 1;
+        setHasMore(hasMorePages(response) && (!maxPosts || posts.length + response.content.length < maxPosts));
+        const nextPage = getNextLoadMorePage(response);
         setPage(nextPage);
         pageRef.current = nextPage;
         setLoadingMore(false);
@@ -152,7 +162,7 @@ const PostFeed: React.FC<PostFeedProps> = ({
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [maxPosts, feedTypeString, queryKey, queryClient]); // Stable dependencies
+  }, [maxPosts, posts.length, feedTypeString, queryKey, queryClient]); // Stable dependencies
 
   // Update the ref whenever loadPosts changes
   loadPostsRef.current = loadPosts;
@@ -374,6 +384,10 @@ const PostFeed: React.FC<PostFeedProps> = ({
       // Show cached data immediately
       setPosts(cachedData);
       setLoading(false);
+      setHasMore(!maxPosts || cachedData.length < maxPosts);
+      const nextPage = getNextLoadMorePageFromCount(cachedData.length);
+      setPage(nextPage);
+      pageRef.current = nextPage;
       
       // If this is initial mount OR filter/feedType/context actually changed, refresh in background
       if (!state.initialized) {
@@ -596,7 +610,7 @@ const PostFeed: React.FC<PostFeedProps> = ({
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !maxPosts) {
+        if (entries[0].isIntersecting && hasMore && (!maxPosts || posts.length < maxPosts)) {
           loadMorePosts();
         }
       },

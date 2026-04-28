@@ -290,6 +290,13 @@ const chatApi = {
     await api.delete(`/chat/messages/${messageId}`);
   },
 
+  downloadMessageMedia: async (messageId: string): Promise<Blob> => {
+    const response = await api.get(`/chat/messages/${messageId}/media/download`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+
   reportMessage: async (messageId: string, reason: string, description?: string): Promise<void> => {
     await api.post(`/chat/messages/${messageId}/report`, { reason, description });
   },

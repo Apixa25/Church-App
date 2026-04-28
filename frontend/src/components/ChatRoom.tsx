@@ -166,8 +166,24 @@ const ChatRoom: React.FC = () => {
   useEffect(() => {
     document.body.classList.add('in-chat-room');
 
+    const updateChatViewportHeight = () => {
+      const viewportHeight = window.visualViewport?.height || window.innerHeight;
+      document.documentElement.style.setProperty('--chat-viewport-height', `${viewportHeight}px`);
+    };
+
+    updateChatViewportHeight();
+    window.visualViewport?.addEventListener('resize', updateChatViewportHeight);
+    window.visualViewport?.addEventListener('scroll', updateChatViewportHeight);
+    window.addEventListener('resize', updateChatViewportHeight);
+    window.addEventListener('orientationchange', updateChatViewportHeight);
+
     return () => {
       document.body.classList.remove('in-chat-room');
+      document.documentElement.style.removeProperty('--chat-viewport-height');
+      window.visualViewport?.removeEventListener('resize', updateChatViewportHeight);
+      window.visualViewport?.removeEventListener('scroll', updateChatViewportHeight);
+      window.removeEventListener('resize', updateChatViewportHeight);
+      window.removeEventListener('orientationchange', updateChatViewportHeight);
     };
   }, []);
 

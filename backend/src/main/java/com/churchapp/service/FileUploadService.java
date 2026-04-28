@@ -15,12 +15,19 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
+import software.amazon.awssdk.core.ResponseInputStream;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URLConnection;
 import java.time.Duration;
 import java.util.concurrent.Executor;
 import java.util.UUID;
@@ -498,6 +505,8 @@ public class FileUploadService {
         if (fileUrl == null || fileUrl.trim().isEmpty()) {
             throw new IllegalArgumentException("Invalid file URL: URL is null or empty");
         }
+
+        String trimmedUrl = fileUrl.trim();
         
         // Handle CloudFront URLs first (e.g., https://d3loytcgioxpml.cloudfront.net/banner-images/originals/...)
         if (cloudFrontDistributionUrl != null && !cloudFrontDistributionUrl.trim().isEmpty()) {
@@ -507,11 +516,11 @@ public class FileUploadService {
                 baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
             }
             
-            if (fileUrl.startsWith(baseUrl + "/") || fileUrl.startsWith(baseUrl)) {
+            if (trimmedUrl.startsWith(baseUrl + "/") || trimmedUrl.startsWith(baseUrl)) {
                 // Extract key by removing the CloudFront base URL
-                String key = fileUrl.startsWith(baseUrl + "/") 
-                    ? fileUrl.substring(baseUrl.length() + 1)
-                    : fileUrl.substring(baseUrl.length());
+                String key = trimmedUrl.startsWith(baseUrl + "/")
+                    ? trimmedUrl.substring(baseUrl.length() + 1)
+                    : trimmedUrl.substring(baseUrl.length());
                 // Remove query parameters if present
                 int queryIndex = key.indexOf('?');
                 if (queryIndex > 0) {
@@ -523,8 +532,8 @@ public class FileUploadService {
         
         // Handle direct S3 URLs (e.g., https://bucket.s3.region.amazonaws.com/key)
         String s3UrlPattern = String.format("https://%s.s3.%s.amazonaws.com/", bucketName, region);
-        if (fileUrl.startsWith(s3UrlPattern)) {
-            String key = fileUrl.substring(s3UrlPattern.length());
+        if (trimmedUrl.startsWith(s3UrlPattern)) {
+            String key = trimmedUrl.substring(s3UrlPattern.length());
             // Remove query parameters if present
             int queryIndex = key.indexOf('?');
             if (queryIndex > 0) {
@@ -535,8 +544,8 @@ public class FileUploadService {
         
         // Try alternative S3 URL format (s3-region instead of s3.region)
         String altS3UrlPattern = String.format("https://%s.s3-%s.amazonaws.com/", bucketName, region);
-        if (fileUrl.startsWith(altS3UrlPattern)) {
-            String key = fileUrl.substring(altS3UrlPattern.length());
+        if (trimmedUrl.startsWith(altS3UrlPattern)) {
+            String key = trimmedUrl.substring(altS3UrlPattern.length());
             // Remove query parameters if present
             int queryIndex = key.indexOf('?');
             if (queryIndex > 0) {
@@ -544,22 +553,92 @@ public class FileUploadService {
             }
             return key;
         }
+
+        try {
+            URI uri = URI.create(trimmedUrl);
+            String host = uri.getHost();
+            String path = uri.getPath();
+            if (host != null && host.endsWith(".cloudfront.net") && path != null) {
+                String key = path.startsWith("/") ? path.substring(1) : path;
+                if (key.startsWith("media/")) {
+                    return key;
+                }
+            }
+        } catch (IllegalArgumentException e) {
+            log.debug("Unable to parse media URL as URI: {}", trimmedUrl, e);
+        }
         
         // If it's already just a key (no URL protocol), return as-is
-        if (!fileUrl.contains("://")) {
-            return fileUrl;
+        if (!trimmedUrl.contains("://")) {
+            return trimmedUrl;
         }
         
         // Check if it's an external URL (e.g., Google OAuth profile images)
         // These shouldn't be deleted from S3 as they're hosted externally
-        if (fileUrl.startsWith("https://lh3.googleusercontent.com") ||
-            fileUrl.startsWith("https://www.google.com") ||
-            (fileUrl.startsWith("http://") || fileUrl.startsWith("https://"))) {
+        if (trimmedUrl.startsWith("https://lh3.googleusercontent.com") ||
+            trimmedUrl.startsWith("https://www.google.com") ||
+            (trimmedUrl.startsWith("http://") || trimmedUrl.startsWith("https://"))) {
             // If we get here and it's not an S3/CloudFront URL, it's an external URL
-            throw new IllegalArgumentException("Cannot delete external URL (not an S3/CloudFront URL): " + fileUrl);
+            throw new IllegalArgumentException("Cannot delete external URL (not an S3/CloudFront URL): " + trimmedUrl);
         }
         
-        throw new IllegalArgumentException("URL format not recognized: " + fileUrl);
+        throw new IllegalArgumentException("URL format not recognized: " + trimmedUrl);
+    }
+
+    public InputStream downloadFile(String fileUrl) {
+        String key = extractKeyFromUrl(fileUrl);
+
+        GetObjectRequest request = GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .build();
+
+        try {
+            ResponseInputStream<GetObjectResponse> s3Stream = s3Client.getObject(request);
+            log.info("Downloading media from S3: bucket={}, key={}", bucketName, key);
+            return s3Stream;
+        } catch (NoSuchKeyException e) {
+            if (!isTrustedMediaDownloadUrl(fileUrl)) {
+                throw e;
+            }
+
+            log.warn("S3 key not found for media download, falling back to stored URL: bucket={}, key={}, url={}",
+                    bucketName, key, fileUrl);
+            try {
+                URLConnection connection = URI.create(fileUrl.trim()).toURL().openConnection();
+                String contentType = connection.getContentType();
+                if (contentType != null && contentType.toLowerCase().startsWith("text/html")) {
+                    throw new RuntimeException("Stored media URL returned HTML instead of the file");
+                }
+
+                return connection.getInputStream();
+            } catch (IOException | IllegalArgumentException fallbackError) {
+                throw new RuntimeException("Unable to download media from stored URL", fallbackError);
+            }
+        }
+    }
+
+    private boolean isTrustedMediaDownloadUrl(String fileUrl) {
+        try {
+            URI uri = URI.create(fileUrl.trim());
+            String host = uri.getHost();
+            String path = uri.getPath();
+            if (host == null || path == null || !path.startsWith("/media/")) {
+                return false;
+            }
+
+            String configuredCloudFrontHost = null;
+            if (cloudFrontDistributionUrl != null && !cloudFrontDistributionUrl.isBlank()) {
+                configuredCloudFrontHost = URI.create(cloudFrontDistributionUrl.trim()).getHost();
+            }
+
+            return host.equals(configuredCloudFrontHost)
+                    || host.endsWith(".cloudfront.net")
+                    || host.equals(String.format("%s.s3.%s.amazonaws.com", bucketName, region))
+                    || host.equals(String.format("%s.s3-%s.amazonaws.com", bucketName, region));
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
     
     /**

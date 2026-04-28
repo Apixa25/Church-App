@@ -646,7 +646,6 @@ const Dashboard: React.FC = () => {
                 <PostFeed
                   feedType={feedType}
                   showFilters={true}
-                  maxPosts={50}
                   refreshKey={feedRefreshKey}
                   onFeedTypeChange={handleFeedTypeChange}
                   onPostUpdate={(postId, updatedPost) => {
@@ -663,7 +662,6 @@ const Dashboard: React.FC = () => {
                 <PostFeed
                   feedType={feedType}
                   showFilters={true}
-                  maxPosts={50}
                   refreshKey={feedRefreshKey}
                   onFeedTypeChange={handleFeedTypeChange}
                   onPostUpdate={(postId, updatedPost) => {

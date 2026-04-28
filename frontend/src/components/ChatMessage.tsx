@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChatMessage as MessageType } from '../services/chatApi';
+import chatApi, { ChatMessage as MessageType } from '../services/chatApi';
 import MediaViewer from './MediaViewer';
 
 interface ChatMessageProps {
@@ -29,6 +29,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   const [editContent, setEditContent] = useState(message.content);
   const [showMediaViewer, setShowMediaViewer] = useState(false);
   const [showActions, setShowActions] = useState(false);
+  const [isDownloadingDocument, setIsDownloadingDocument] = useState(false);
 
   // Use userId (not id) from currentUser to match message.userId
   const isOwnMessage = currentUser?.userId === message.userId;
@@ -84,6 +85,53 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
     }
     setIsEditing(false);
     setShowActions(false);
+  };
+
+  const handleDocumentDownload = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!message.mediaUrl) return;
+
+    const fallbackFilename = 'chat-document';
+    const filename = (message.mediaFilename || fallbackFilename).replace(/[\\/:*?"<>|]/g, '_');
+
+    try {
+      setIsDownloadingDocument(true);
+
+      console.info('[ChatDocumentDownload] Starting backend download', {
+        messageId: message.id,
+        filename,
+        mediaType: message.mediaType,
+        mediaSize: message.mediaSize
+      });
+
+      const blob = await chatApi.downloadMessageMedia(message.id);
+      console.info('[ChatDocumentDownload] Backend download succeeded', {
+        messageId: message.id,
+        blobSize: blob.size,
+        blobType: blob.type
+      });
+
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      console.error('[ChatDocumentDownload] Backend download failed without navigating away', {
+        messageId: message.id,
+        filename,
+        mediaUrl: message.mediaUrl,
+        error
+      });
+      window.alert('We could not download this file yet, but the app stayed open. Please send the console log to support.');
+    } finally {
+      setIsDownloadingDocument(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -223,7 +271,14 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                         {message.mediaSize ? Math.round(message.mediaSize / 1024) + ' KB' : ''}
                       </span>
                     </div>
-                    <a href={message.mediaUrl} download className="document-download">Download</a>
+                    <button
+                      type="button"
+                      className="document-download"
+                      onClick={handleDocumentDownload}
+                      disabled={isDownloadingDocument}
+                    >
+                      {isDownloadingDocument ? 'Opening...' : 'Download'}
+                    </button>
                   </div>
                   {message.content && <p className="media-caption">{message.content}</p>}
                 </div>

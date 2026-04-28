@@ -7,6 +7,7 @@ import com.churchapp.service.ChatDirectoryService;
 import com.churchapp.service.ChatService;
 import com.churchapp.service.ContentModerationService;
 import com.churchapp.service.FileUploadService;
+import com.churchapp.entity.Message;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -14,12 +15,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -183,7 +189,43 @@ public class ChatController {
             return ResponseEntity.badRequest().build();
         }
     }
-    
+
+    @GetMapping("/messages/{messageId}/media/download")
+    public ResponseEntity<StreamingResponseBody> downloadMessageMedia(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID messageId) {
+        try {
+            Message message = chatService.getMessageMediaForDownload(userDetails.getUsername(), messageId);
+            String filename = sanitizeDownloadFilename(message.getMediaFilename());
+            String encodedFilename = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
+            var s3Stream = fileUploadService.downloadFile(message.getMediaUrl());
+
+            StreamingResponseBody stream = outputStream -> {
+                try (s3Stream) {
+                    s3Stream.transferTo(outputStream);
+                }
+            };
+
+            ResponseEntity.BodyBuilder response = ResponseEntity.ok()
+                .header(
+                    HttpHeaders.CONTENT_DISPOSITION,
+                    "attachment; filename=\"" + filename.replace("\"", "") + "\"; filename*=UTF-8''" + encodedFilename
+                )
+                .contentType(MediaType.parseMediaType(
+                    message.getMediaType() != null ? message.getMediaType() : MediaType.APPLICATION_OCTET_STREAM_VALUE
+                ));
+
+            if (message.getMediaSize() != null && message.getMediaSize() > 0) {
+                response.contentLength(message.getMediaSize());
+            }
+
+            return response.body(stream);
+        } catch (RuntimeException e) {
+            log.error("Error downloading chat media: messageId={}", messageId, e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     @PostMapping("/messages")
     public ResponseEntity<?> sendMessage(@AuthenticationPrincipal UserDetails userDetails,
                                        @Valid @RequestBody MessageRequest request) {
@@ -618,6 +660,11 @@ public class ChatController {
             && !s3Key.contains("..")
             && !s3Key.contains("\\")
             && !s3Key.contains("://");
+    }
+
+    private String sanitizeDownloadFilename(String filename) {
+        String safeFilename = filename == null || filename.isBlank() ? "chat-document" : filename;
+        return safeFilename.replaceAll("[\\\\/:*?\"<>|]", "_");
     }
     
     private boolean isUserOnline(User user) {

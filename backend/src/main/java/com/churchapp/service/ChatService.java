@@ -579,6 +579,24 @@ public class ChatService {
         }
     }
 
+    public Message getMessageMediaForDownload(String userEmail, UUID messageId) {
+        User user = getUserByEmail(userEmail);
+        Message message = messageRepository.findById(messageId)
+            .orElseThrow(() -> new RuntimeException("Message not found"));
+
+        if (!chatGroupMemberRepository.existsByUserAndChatGroupAndIsActiveTrue(user, message.getChatGroup())) {
+            throw new RuntimeException("User is not a member of this message's group");
+        }
+
+        if (Boolean.TRUE.equals(message.getIsDeleted())
+                || message.getMediaUrl() == null
+                || message.getMediaUrl().isBlank()) {
+            throw new RuntimeException("No downloadable media found for this message");
+        }
+
+        return message;
+    }
+
     // ==================== SEARCH OPERATIONS ====================
     
     public ChatSearchResponse searchMessages(String userEmail, ChatSearchRequest request) {
