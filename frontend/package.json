@@ -46,8 +46,8 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "cross-env CI=false react-scripts build",
-    "build:production": "cross-env CI=false react-scripts build",
+    "build": "node scripts/build-with-info.js",
+    "build:production": "node scripts/build-with-info.js",
     "test": "react-scripts test",
     "test:ci": "react-scripts test --watchAll=false --passWithNoTests",
     "audit:prod": "npm audit --omit=dev",

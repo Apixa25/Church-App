@@ -2733,6 +2733,10 @@
   color: var(--accent-primary-light);
 }
 
+.back-button-mobile-icon {
+  display: none;
+}
+
 .group-info {
   display: flex;
   align-items: center;
@@ -4924,16 +4928,123 @@
 }
 
 @media (max-width: 768px) {
+  body.in-chat-room {
+    overflow: hidden;
+    width: 100%;
+  }
+
+  body.in-chat-room .chat-room {
+    position: fixed;
+    top: var(--chat-viewport-offset-top, 0px);
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: var(--chat-viewport-height, 100dvh);
+  }
+
   .chat-list {
     padding: 14px;
   }
 
   .chat-room .chat-header {
-    align-items: flex-start;
+    align-items: center;
+    min-height: 52px;
+    padding: max(6px, env(safe-area-inset-top, 0px)) 10px 6px;
+    box-shadow: none;
+  }
+
+  .chat-room .header-left {
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .chat-room .back-button {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 50%;
+    color: var(--text-primary);
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(134, 150, 160, 0.18);
+  }
+
+  .chat-room .back-button-mobile-icon {
+    display: inline-block;
+    font-size: 30px;
+    line-height: 1;
+  }
+
+  .chat-room .back-button-label {
+    display: none;
+  }
+
+  .chat-room .group-info {
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .chat-room .group-icon img,
+  .chat-room .group-icon span {
+    width: 34px;
+    height: 34px;
+    font-size: 17px;
+  }
+
+  .chat-room .group-details {
+    min-width: 0;
+  }
+
+  .chat-room .group-details h3 {
+    font-size: 15px;
+    line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 48vw;
+  }
+
+  .chat-room .group-details p {
+    font-size: 11px;
+    line-height: 1.15;
+    opacity: 0.72;
   }
 
   .chat-room .header-right {
-    gap: 6px;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .chat-header-icon-button {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  .chat-room .leave-button {
+    width: 32px;
+    height: 32px;
+    min-height: 32px;
+    padding: 0;
+    overflow: hidden;
+    font-size: 0;
+    border: none;
+    background: transparent;
+  }
+
+  .chat-room .leave-button::before {
+    content: '×';
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  .chat-content,
+  .messages-section {
+    min-height: 0;
   }
 
   .chat-members-panel {
@@ -4950,15 +5061,98 @@
   }
 
   .message-content {
-    max-width: 82% !important;
+    max-width: 84% !important;
   }
 
   .messages-container {
-    padding: 14px 10px 10px;
+    padding: 10px 8px 8px;
+  }
+
+  .message {
+    margin-bottom: 8px !important;
+  }
+
+  .message.message-compact {
+    margin-bottom: 2px !important;
+  }
+
+  .message-header {
+    padding: 0 8px;
+    margin-bottom: 1px;
+  }
+
+  .message-author {
+    font-size: 11px;
+  }
+
+  .message-bubble {
+    border-radius: 13px;
+    padding: 6px 9px 5px;
+  }
+
+  .message-text {
+    font-size: 14px;
+    line-height: 1.32;
+  }
+
+  .message-inline-time {
+    margin-top: 2px;
+    font-size: 10px;
+  }
+
+  .chat-room .system-content {
+    padding: 5px 9px;
+    font-size: 11px;
+  }
+
+  .message-input-container {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .message-input-form {
+    gap: 5px;
+    padding: 6px 8px;
+  }
+
+  .input-actions-left {
+    gap: 0;
+    min-height: 36px;
+  }
+
+  .emoji-button-left,
+  .file-button {
+    width: 31px;
+    height: 31px;
+    font-size: 17px;
+  }
+
+  .message-textarea {
+    min-height: 36px;
+    max-height: 96px;
+    border-radius: 18px;
+    padding: 8px 12px;
+    font-size: 16px; /* Prevents iOS input zoom while keeping compact chrome. */
+  }
+
+  .send-button-large {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    font-size: 15px;
   }
 
   .message-options-button {
-    opacity: 0.72;
+    width: 24px;
+    height: 24px;
+    opacity: 0.42;
     pointer-events: auto;
+  }
+
+  .message.other-message .message-options-button {
+    right: -28px;
+  }
+
+  .message.own-message .message-options-button {
+    left: -28px;
   }
 }

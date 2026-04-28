@@ -22,6 +22,7 @@ import {
   applyFontSize
 } from '../services/settingsApi';
 import { checkForUpdates, clearAllCaches } from '../serviceWorkerRegistration';
+import { appBuildInfo } from '../utils/buildInfo';
 import AccountDeletionModal from './AccountDeletionModal';
 import ConfirmationModal from './ConfirmationModal';
 import LoadingSpinner from './LoadingSpinner';
@@ -1532,12 +1533,24 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                   <p>Connecting your church community digitally</p>
                   <div className="version-info">
                     <div className="version-item">
-                      <span className="version-label">Version:</span>
+                      <span className="version-label">App Version:</span>
+                      <span className="version-value build-version">{appBuildInfo.version}</span>
+                    </div>
+                    <div className="version-item">
+                      <span className="version-label">Deployment:</span>
+                      <span className="version-value">{appBuildInfo.deploymentName}</span>
+                    </div>
+                    <div className="version-item">
+                      <span className="version-label">Built:</span>
+                      <span className="version-value">{appBuildInfo.formattedBuildTime}</span>
+                    </div>
+                    <div className="version-item">
+                      <span className="version-label">API Version:</span>
                       <span className="version-value">{systemInfo?.appVersion || '1.0.0'}</span>
                     </div>
                     {systemInfo?.buildDate && (
                       <div className="version-item">
-                        <span className="version-label">Build Date:</span>
+                        <span className="version-label">API Build Date:</span>
                         <span className="version-value">{systemInfo.buildDate}</span>
                       </div>
                     )}

@@ -255,12 +255,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
             value={message}
             onChange={handleInputChange}
             onKeyPress={handleKeyPress}
-            onFocus={() => {
-              // On iOS, scroll input into view when keyboard opens
-              setTimeout(() => {
-                textareaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }, 300);
-            }}
             placeholder={disabled ? "You don't have permission to post" : placeholder}
             disabled={disabled || uploading}
             rows={1}

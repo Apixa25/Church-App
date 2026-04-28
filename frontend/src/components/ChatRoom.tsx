@@ -168,7 +168,9 @@ const ChatRoom: React.FC = () => {
 
     const updateChatViewportHeight = () => {
       const viewportHeight = window.visualViewport?.height || window.innerHeight;
+      const viewportOffsetTop = window.visualViewport?.offsetTop || 0;
       document.documentElement.style.setProperty('--chat-viewport-height', `${viewportHeight}px`);
+      document.documentElement.style.setProperty('--chat-viewport-offset-top', `${viewportOffsetTop}px`);
     };
 
     updateChatViewportHeight();
@@ -180,6 +182,7 @@ const ChatRoom: React.FC = () => {
     return () => {
       document.body.classList.remove('in-chat-room');
       document.documentElement.style.removeProperty('--chat-viewport-height');
+      document.documentElement.style.removeProperty('--chat-viewport-offset-top');
       window.visualViewport?.removeEventListener('resize', updateChatViewportHeight);
       window.visualViewport?.removeEventListener('scroll', updateChatViewportHeight);
       window.removeEventListener('resize', updateChatViewportHeight);
@@ -406,8 +409,10 @@ const ChatRoom: React.FC = () => {
           <button 
             onClick={() => navigate('/chats')} 
             className="back-button"
+            aria-label="Back to chats"
           >
-            ← Back
+            <span className="back-button-mobile-icon" aria-hidden="true">‹</span>
+            <span className="back-button-label">← Back</span>
           </button>
           <div className="group-info">
             <div className="group-icon">
