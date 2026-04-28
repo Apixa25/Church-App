@@ -405,14 +405,13 @@ const ChatRoom: React.FC = () => {
     <div className="chat-room">
       {/* Chat Header */}
       <div className="chat-header">
-        <div className="header-left">
+        <div className="chat-room-header-left">
           <button 
             onClick={() => navigate('/chats')} 
-            className="back-button"
+            className="chat-back-button"
             aria-label="Back to chats"
           >
-            <span className="back-button-mobile-icon" aria-hidden="true">‹</span>
-            <span className="back-button-label">← Back</span>
+            <span aria-hidden="true">←</span>
           </button>
           <div className="group-info">
             <div className="group-icon">
@@ -428,7 +427,7 @@ const ChatRoom: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="header-right">
+        <div className="chat-room-header-actions">
           <button
             onClick={() => navigate('/chat/search')}
             className="chat-header-icon-button"

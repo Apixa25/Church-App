@@ -2714,7 +2714,7 @@
   flex-shrink: 0; /* Prevent header from shrinking when keyboard opens */
 }
 
-.header-left {
+.chat-room-header-left {
   display: flex;
   align-items: center;
   gap: 15px;
@@ -2735,6 +2735,30 @@
 
 .back-button-mobile-icon {
   display: none;
+}
+
+.chat-back-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border: 1px solid rgba(134, 150, 160, 0.2);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1;
+  flex: 0 0 auto;
+  opacity: 1;
+  visibility: visible;
+}
+
+.chat-back-button:hover {
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .group-info {
@@ -2766,7 +2790,7 @@
   font-size: 12px;
 }
 
-.header-right {
+.chat-room-header-actions {
   display: flex;
   gap: 10px;
 }
@@ -4590,8 +4614,8 @@
   letter-spacing: -0.01em;
 }
 
-.chat-room .header-right .members-button,
-.chat-room .header-right .leave-button {
+.chat-room .chat-room-header-actions .members-button,
+.chat-room .chat-room-header-actions .leave-button {
   min-height: 32px;
   border-radius: var(--border-radius-pill);
   font-weight: 600;
@@ -4947,21 +4971,32 @@
   }
 
   .chat-room .chat-header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 6px;
     align-items: center;
     min-height: 52px;
     padding: max(6px, env(safe-area-inset-top, 0px)) 10px 6px;
     box-shadow: none;
   }
 
-  .chat-room .header-left {
-    gap: 8px;
+  .chat-room .chat-room-header-left {
+    order: 0 !important;
+    width: auto !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
     min-width: 0;
-    flex: 1;
+    flex: 1 1 auto;
+    margin: 0 !important;
   }
 
-  .chat-room .back-button {
-    width: 34px;
-    height: 34px;
+  .chat-room .chat-back-button {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
     padding: 0;
     border-radius: 50%;
     color: var(--text-primary);
@@ -4971,16 +5006,8 @@
     justify-content: center;
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(134, 150, 160, 0.18);
-  }
-
-  .chat-room .back-button-mobile-icon {
-    display: inline-block;
-    font-size: 30px;
-    line-height: 1;
-  }
-
-  .chat-room .back-button-label {
-    display: none;
+    opacity: 1;
+    visibility: visible;
   }
 
   .chat-room .group-info {
@@ -5014,9 +5041,14 @@
     opacity: 0.72;
   }
 
-  .chat-room .header-right {
+  .chat-room .chat-room-header-actions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
     gap: 2px;
     flex-shrink: 0;
+    width: auto !important;
+    margin: 0 !important;
   }
 
   .chat-header-icon-button {
