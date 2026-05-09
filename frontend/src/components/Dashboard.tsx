@@ -22,6 +22,7 @@ import { profileAPI } from '../services/api';
 import WarningBanner from './WarningBanner';
 import WarningsSection from './WarningsSection';
 import NotificationPermissionBanner from './NotificationPermissionBanner';
+import IOSInstallPrompt from './IOSInstallPrompt';
 import { getBannerImageUrl, getBannerImageS3Fallback } from '../utils/imageUrlUtils';
 import './Dashboard.css';
 
@@ -555,6 +556,9 @@ const Dashboard: React.FC = () => {
 
         {/* Notification Permission Banner - prompts user to enable push notifications */}
         <NotificationPermissionBanner />
+
+        {/* iOS Install Prompt - guides iPhone users to Add to Home Screen for push notifications */}
+        <IOSInstallPrompt />
 
         {/* Warnings Section Modal */}
         {showWarningsSection && (
