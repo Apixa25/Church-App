@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.thegathering.app",
+      "sha256_cert_fingerprints": [
+        "02:B8:3A:DA:51:0B:0B:E6:5C:F6:3E:AD:79:1F:52:44:6B:7A:20:6D:A7:88:7C:38:B1:E8:11:3D:CC:34:0C:0E"
+      ]
+    }
+  }
+]

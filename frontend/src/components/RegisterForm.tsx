@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { getApiUrl } from '../config/runtimeConfig';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 
 interface RegisterFormData {
   name: string;
@@ -34,12 +38,76 @@ const RegisterForm: React.FC = () => {
     }
   };
 
-  const handleGoogleSignup = () => {
-    const { getApiUrl } = require('../config/runtimeConfig');
+  const handleGoogleSignup = async () => {
     const apiUrl = getApiUrl();
-    document.cookie = `oauth_frontend_url=${encodeURIComponent(window.location.origin)}; path=/; max-age=300; SameSite=Lax`;
-    window.location.href = `${apiUrl}/oauth2/authorization/google`;
+
+    if (Capacitor.isNativePlatform()) {
+      const callbackUrl = `${window.location.origin}/auth/callback`;
+      document.cookie = `oauth_frontend_url=${encodeURIComponent(callbackUrl)}; path=/; max-age=300; SameSite=Lax`;
+
+      Browser.addListener('browserFinished', () => {
+        Browser.removeAllListeners();
+      });
+
+      await Browser.open({
+        url: `${apiUrl}/oauth2/authorization/google`,
+        presentationStyle: 'popover',
+      });
+    } else {
+      document.cookie = `oauth_frontend_url=${encodeURIComponent(window.location.origin)}; path=/; max-age=300; SameSite=Lax`;
+      window.location.href = `${apiUrl}/oauth2/authorization/google`;
+    }
   };
+
+  const handleAppleSignup = useCallback(async () => {
+    try {
+      setError(null);
+      const appleAuth = (window as any).AppleID;
+      if (!appleAuth) {
+        setError('Apple Sign-In is not available. Please try another method.');
+        return;
+      }
+
+      appleAuth.auth.init({
+        clientId: 'com.thegathering.app',
+        scope: 'name email',
+        redirectURI: window.location.origin + '/auth/callback',
+        usePopup: true,
+      });
+
+      const response = await appleAuth.auth.signIn();
+      const { authorization, user: appleUser } = response;
+
+      const apiUrl = getApiUrl();
+      const result = await axios.post(`${apiUrl}/auth/apple`, {
+        idToken: authorization.id_token,
+        userId: authorization.code,
+        email: appleUser?.email || null,
+        name: appleUser?.name
+          ? `${appleUser.name.firstName || ''} ${appleUser.name.lastName || ''}`.trim()
+          : null,
+      });
+
+      const authData = result.data;
+      const userData = {
+        userId: authData.userId,
+        email: authData.email,
+        name: authData.name,
+        role: authData.role,
+        profilePicUrl: authData.profilePicUrl || undefined,
+      };
+
+      localStorage.setItem('authToken', authData.token);
+      localStorage.setItem('refreshToken', authData.refreshToken || '');
+      localStorage.setItem('user', JSON.stringify(userData));
+
+      window.location.href = authData.newUser ? '/profile' : '/dashboard';
+    } catch (err: any) {
+      if (err?.error === 'popup_closed_by_user') return;
+      console.error('Apple Sign-In error:', err);
+      setError('Apple Sign-In failed. Please try again.');
+    }
+  }, []);
 
   return (
     <div className="register-form-container">
@@ -147,6 +215,18 @@ const RegisterForm: React.FC = () => {
             className="google-icon"
           />
           Sign up with Google
+        </button>
+
+        <button
+          type="button"
+          className="apple-button"
+          onClick={handleAppleSignup}
+          disabled={loading}
+        >
+          <svg className="apple-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+          </svg>
+          Sign up with Apple
         </button>
 
         <div className="auth-links">

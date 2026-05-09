@@ -1,0 +1,27 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAM_ID.com.thegathering.app",
+        "paths": [
+          "/join/*",
+          "/view/*",
+          "/share/*",
+          "/invite/*",
+          "/posts/*",
+          "/events/*",
+          "/prayer/*",
+          "/chats/*",
+          "/organizations/*",
+          "/groups/*"
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "TEAM_ID.com.thegathering.app"
+    ]
+  }
+}

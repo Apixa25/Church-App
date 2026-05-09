@@ -5,6 +5,7 @@
   "dependencies": {
     "@capacitor/android": "^7.4.3",
     "@capacitor/app": "^7.1.0",
+    "@capacitor/browser": "^7.0.5",
     "@capacitor/cli": "^7.4.3",
     "@capacitor/core": "^7.4.3",
     "@capacitor/ios": "^7.4.3",
@@ -51,7 +52,11 @@
     "test": "react-scripts test",
     "test:ci": "react-scripts test --watchAll=false --passWithNoTests",
     "audit:prod": "npm audit --omit=dev",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "cap:build": "npm run build && npx cap sync",
+    "cap:android": "npm run cap:build && npx cap open android",
+    "cap:ios": "npm run cap:build && npx cap open ios",
+    "cap:assets": "npx @capacitor/assets generate"
   },
   "eslintConfig": {
     "extends": [
@@ -72,6 +77,7 @@
     ]
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "ajv": "^8.17.1",
     "cross-env": "^10.1.0"
   }

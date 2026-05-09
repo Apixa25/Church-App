@@ -1,6 +1,8 @@
 {
+  "id": "/",
   "short_name": "Gathering",
   "name": "The Gathering - Church Community Platform",
+  "description": "Connect, share, and engage with your church community through prayer requests, events, messaging, and more.",
   "icons": [
     {
       "src": "favicon.ico",
@@ -10,16 +12,33 @@
     {
       "src": "logo192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any"
     },
     {
       "src": "logo512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "theme_color": "#4a90e2",
-  "background_color": "#141420"
+  "background_color": "#141420",
+  "categories": ["social", "lifestyle", "education"]
 }

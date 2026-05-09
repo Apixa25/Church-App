@@ -238,6 +238,40 @@
   height: 20px;
 }
 
+.apple-button {
+  width: 100%;
+  padding: 12px;
+  background: #000000;
+  color: #ffffff;
+  border: 2px solid #333;
+  border-radius: var(--border-radius-pill);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all var(--transition-base);
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+.apple-button:hover {
+  border-color: #555;
+  background: #1a1a1a;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.apple-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.apple-icon {
+  width: 20px;
+  height: 20px;
+}
+
 .auth-links {
   text-align: center;
 }

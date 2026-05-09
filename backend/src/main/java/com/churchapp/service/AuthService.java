@@ -146,6 +146,48 @@ public class AuthService {
         );
     }
     
+    public AuthResponse handleAppleLogin(String appleUserId, String email, String name) {
+        if (email == null || email.isBlank()) {
+            throw new RuntimeException("Email is required for Apple Sign-In");
+        }
+
+        Optional<User> existingUser = userRepository.findByEmail(email);
+        User user;
+        boolean isNewUser = false;
+
+        if (existingUser.isPresent()) {
+            user = existingUser.get();
+            if (user.getAppleId() == null) {
+                user.setAppleId(appleUserId);
+            }
+        } else {
+            user = new User();
+            user.setEmail(email);
+            user.setName(name != null && !name.isBlank() ? name : email.split("@")[0]);
+            user.setAppleId(appleUserId);
+            user.setRole(User.Role.USER);
+            user.setIsActive(true);
+            isNewUser = true;
+        }
+
+        user.setLastLogin(LocalDateTime.now());
+        User savedUser = userRepository.save(user);
+
+        String token = jwtUtil.generateToken(savedUser.getEmail(), savedUser.getId(), savedUser.getRole().name());
+        String refreshToken = jwtUtil.generateRefreshToken(savedUser.getEmail());
+
+        return new AuthResponse(
+            token,
+            refreshToken,
+            savedUser.getEmail(),
+            savedUser.getId(),
+            savedUser.getName(),
+            savedUser.getRole().name(),
+            savedUser.getProfilePicUrl(),
+            isNewUser
+        );
+    }
+
     public AuthResponse refreshToken(String refreshToken) {
         // Validate refresh token
         if (!jwtUtil.validateRefreshToken(refreshToken)) {

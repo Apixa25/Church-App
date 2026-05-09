@@ -72,7 +72,7 @@ class DeepLinkingService {
    */
   private parseDeepLink(url: string): DeepLinkRoute | null {
     // Remove protocol
-    let path = url.replace(/^(thegathering:\/\/|https?:\/\/app\.thegathering\.com\/)/, '');
+    let path = url.replace(/^(thegathering:\/\/|https?:\/\/(www\.)?thegathrd\.com\/)/, '');
 
     // Remove query parameters but save them
     const queryIndex = path.indexOf('?');
@@ -165,7 +165,7 @@ class DeepLinkingService {
    */
   public generateWebLink(route: DeepLinkRoute): string {
     const typeAlias = route.type === 'organization' ? 'org' : route.type;
-    let url = `https://app.thegathering.com/${route.action}/${typeAlias}/${route.id}`;
+    let url = `https://www.thegathrd.com/${route.action}/${typeAlias}/${route.id}`;
 
     // Add query parameters if present
     if (route.params && Object.keys(route.params).length > 0) {

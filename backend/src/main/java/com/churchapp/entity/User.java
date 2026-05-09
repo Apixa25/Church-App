@@ -106,6 +106,9 @@ public class User {
     
     @Column(name = "google_id", length = 255)
     private String googleId;
+
+    @Column(name = "apple_id", length = 255)
+    private String appleId;
     
     @Column(name = "password_hash", length = 255)
     private String passwordHash;

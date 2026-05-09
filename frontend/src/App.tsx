@@ -18,6 +18,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import PublicPostPreview from './components/PublicPostPreview';
 import PublicResourcePreview from './components/PublicResourcePreview';
+import PrivacyPolicy from './components/PrivacyPolicy';
+import TermsOfService from './components/TermsOfService';
 import PostDetailPage from './components/PostDetailPage';
 import ProfileView from './components/ProfileView';
 import ProfileEdit from './components/ProfileEdit';
@@ -55,6 +57,8 @@ import UploadProgressIndicator from './components/UploadProgressIndicator';
 import UpdateNotification from './components/UpdateNotification';
 import FirebaseInitializer from './components/FirebaseInitializer';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
+import { Capacitor } from '@capacitor/core';
+import deepLinkingService from './services/deepLinkingService';
 
 // 🚀 React Query Configuration - Smart Caching
 const queryClient = new QueryClient({
@@ -144,6 +148,35 @@ const App: React.FC = () => {
       setUpdateAvailable(true);
       setWaitingWorker(registration);
     });
+
+    // Initialize deep linking for native platforms
+    if (Capacitor.isNativePlatform()) {
+      deepLinkingService.initialize();
+      deepLinkingService.addListener((route) => {
+        let path = '/dashboard';
+        switch (route.type) {
+          case 'organization':
+            path = route.action === 'join' ? `/organizations/${route.id}/join` : `/organizations/${route.id}`;
+            break;
+          case 'group':
+            path = route.action === 'join' ? `/groups/${route.id}/join` : `/groups/${route.id}`;
+            break;
+          case 'user':
+            path = `/profile/${route.id}`;
+            break;
+          case 'post':
+            path = `/posts/${route.id}`;
+            break;
+          case 'event':
+            path = `/events/${route.id}`;
+            break;
+          case 'prayer':
+            path = `/prayer/${route.id}`;
+            break;
+        }
+        window.location.href = path;
+      });
+    }
   }, []);
 
   const handleCameraCapture = (file: File) => {
@@ -222,6 +255,8 @@ const App: React.FC = () => {
             <Route path="/posts/:postId" element={<PublicPostPreview />} />
             <Route path="/public/posts/:postId/preview" element={<PublicPostPreview />} />
             <Route path="/public/resources/:resourceId/preview" element={<PublicResourcePreview />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/invite/:inviteCode" element={<InviteLinkJoinPage />} />
 
             {/* Protected routes */}

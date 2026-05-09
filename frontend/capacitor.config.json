@@ -37,6 +37,10 @@
       "https://www.thegathrd.com",
       "https://app.thegathrd.com",
       "https://api.thegathrd.com",
+      "https://accounts.google.com",
+      "https://*.google.com",
+      "https://appleid.apple.com",
+      "https://*.apple.com",
       "https://stripe.com",
       "https://*.stripe.com",
       "http://localhost:3000",
@@ -45,11 +49,11 @@
   },
   "android": {
     "buildOptions": {
-      "keystorePath": "",
-      "keystorePassword": "",
-      "keystoreAlias": "",
-      "keystoreAliasPassword": "",
-      "releaseType": "APK"
+      "keystorePath": "app/thegathering-release.keystore",
+      "keystorePassword": "thegathering2026",
+      "keystoreAlias": "thegathering",
+      "keystoreAliasPassword": "thegathering2026",
+      "releaseType": "AAB"
     }
   },
   "ios": {

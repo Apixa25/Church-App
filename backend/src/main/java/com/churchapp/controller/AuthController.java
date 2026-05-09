@@ -180,6 +180,59 @@ public class AuthController {
         response.addCookie(cookie);
     }
     
+    @PostMapping("/apple")
+    public ResponseEntity<?> handleAppleSignIn(@RequestBody Map<String, String> payload) {
+        try {
+            String idToken = payload.get("idToken");
+            String appleUserId = payload.get("userId");
+            String email = payload.get("email");
+            String name = payload.get("name");
+
+            if (idToken == null || idToken.isBlank()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Apple ID token is required");
+                return ResponseEntity.badRequest().body(error);
+            }
+
+            // Apple only sends email and name on the FIRST authorization.
+            // On subsequent sign-ins, we rely on the sub claim from the ID token.
+            // The frontend decodes the JWT client-side and sends us the claims.
+            if (email == null || email.isBlank()) {
+                // Try to extract email from the JWT payload (base64-decode the middle segment)
+                try {
+                    String[] parts = idToken.split("\\.");
+                    if (parts.length >= 2) {
+                        String payloadJson = new String(java.util.Base64.getUrlDecoder().decode(parts[1]));
+                        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                        var claims = mapper.readTree(payloadJson);
+                        if (claims.has("email")) {
+                            email = claims.get("email").asText();
+                        }
+                        if (appleUserId == null && claims.has("sub")) {
+                            appleUserId = claims.get("sub").asText();
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to decode Apple ID token: {}", e.getMessage());
+                }
+            }
+
+            if (email == null || email.isBlank()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Could not determine email from Apple Sign-In");
+                return ResponseEntity.badRequest().body(error);
+            }
+
+            AuthResponse authResponse = authService.handleAppleLogin(appleUserId, email, name);
+            return ResponseEntity.ok(authResponse);
+        } catch (Exception e) {
+            log.error("Apple Sign-In failed: {}", e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Apple Sign-In failed: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal org.springframework.security.core.userdetails.User user) {
         Map<String, String> userInfo = new HashMap<>();
