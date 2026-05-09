@@ -23,67 +23,91 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 // Handle background messages (when app is closed or in background)
+// We use data-only FCM messages (no "notification" payload) so that this
+// handler is the SINGLE place that shows the notification. If FCM messages
+// contained a "notification" field, the browser would auto-display one AND
+// this handler would fire, causing duplicate notifications.
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message:', payload);
 
-  // Customize notification display
-  const notificationTitle = payload.notification?.title || 'TheGathering';
+  const data = payload.data || {};
+
+  // Title and body come from the data payload (data-only messages)
+  const notificationTitle = data.title || payload.notification?.title || 'TheGathering';
+  const notificationBody = data.body || payload.notification?.body || 'You have a new notification';
+
+  // Build a unique tag per message to prevent duplicate notifications
+  const tag = (data.type && data.messageId)
+    ? data.type + '_' + data.messageId
+    : data.type || 'default';
+
   const notificationOptions = {
-    body: payload.notification?.body || 'You have a new notification',
+    body: notificationBody,
     icon: '/logo192.png',
     badge: '/logo192.png',
-    tag: payload.data?.type || 'default',
-    data: payload.data,
+    tag: tag,
+    renotify: true,
+    data: data,
     vibrate: [200, 100, 200],
-    requireInteraction: false, // Auto-dismiss after a while
+    requireInteraction: false,
   };
 
-  // Show notification
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// Handle notification click
+// Handle notification click — opens the app and navigates to the right page
 self.addEventListener('notificationclick', (event) => {
   console.log('[firebase-messaging-sw.js] Notification clicked:', event.notification);
 
   event.notification.close();
 
   // Determine the URL to open based on notification data
-  let urlToOpen = '/';
+  let urlToOpen = '/dashboard';
 
   if (event.notification.data) {
-    const { type, postId, prayerId, eventId, chatId } = event.notification.data;
+    const data = event.notification.data;
+    const type = data.type;
 
-    // Route to appropriate page based on notification type
-    if (type === 'prayer_request' && prayerId) {
-      urlToOpen = `/prayer/${prayerId}`;
+    if (type === 'prayer_request' && data.prayerId) {
+      urlToOpen = '/prayer/' + data.prayerId;
     } else if (type === 'post_like' || type === 'post_comment') {
-      urlToOpen = `/feed`;
-    } else if (type === 'event_reminder' && eventId) {
-      urlToOpen = `/events/${eventId}`;
-    } else if (type === 'chat_message' && chatId) {
-      urlToOpen = `/chat/${chatId}`;
+      urlToOpen = data.actionUrl || '/feed';
+    } else if (type === 'event_reminder' && data.eventId) {
+      urlToOpen = '/events/' + data.eventId;
+    } else if (type === 'chat_message') {
+      // Backend sends both chatId and groupId — use either one
+      var chatTarget = data.chatId || data.groupId;
+      if (chatTarget) {
+        urlToOpen = '/chats/' + chatTarget;
+      } else {
+        urlToOpen = '/chats';
+      }
     } else if (type === 'announcement') {
       urlToOpen = '/announcements';
+    } else if (data.actionUrl) {
+      urlToOpen = data.actionUrl;
     }
   }
+
+  // Build the full URL from the service worker origin
+  var fullUrl = new URL(urlToOpen, self.location.origin).href;
 
   // Focus existing window or open new one
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
-        // Check if app is already open
-        for (let client of clientList) {
+      .then(function(clientList) {
+        // Check if app is already open in a tab
+        for (var i = 0; i < clientList.length; i++) {
+          var client = clientList[i];
           if (client.url.includes(self.location.origin) && 'focus' in client) {
-            // Navigate to the target URL and focus the window
-            client.navigate(urlToOpen);
+            client.navigate(fullUrl);
             return client.focus();
           }
         }
 
-        // If no window is open, open a new one
+        // No existing window — open a new one
         if (clients.openWindow) {
-          return clients.openWindow(urlToOpen);
+          return clients.openWindow(fullUrl);
         }
       })
   );

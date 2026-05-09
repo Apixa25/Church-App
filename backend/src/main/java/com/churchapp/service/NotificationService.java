@@ -45,21 +45,21 @@ public class NotificationService {
             log.info("Sending notification to token: {} with title: {}",
                 fcmToken.substring(0, Math.min(10, fcmToken.length())) + "...", title);
 
-            // Build notification
-            Notification notification = Notification.builder()
-                    .setTitle(title)
-                    .setBody(body)
-                    .build();
-
-            // Build message
+            // DATA-ONLY message: title and body are sent in the data payload so the
+            // service worker is the single source of notification display. Setting
+            // .setNotification() causes the browser to auto-display the notification
+            // AND the service worker to show another one, resulting in duplicates.
             Message.Builder messageBuilder = Message.builder()
-                    .setToken(fcmToken)
-                    .setNotification(notification);
+                    .setToken(fcmToken);
 
-            // Add custom data if provided
-            if (data != null && !data.isEmpty()) {
-                messageBuilder.putAllData(data);
+            // Put title and body into the data payload for the service worker to read
+            Map<String, String> fullData = new HashMap<>();
+            fullData.put("title", title);
+            fullData.put("body", body);
+            if (data != null) {
+                fullData.putAll(data);
             }
+            messageBuilder.putAllData(fullData);
 
             // Generate a unique tag based on notification type and ID to prevent duplicates
             String notificationTag = "thegathering";
@@ -77,20 +77,20 @@ public class NotificationService {
             // Configure platform-specific options
             messageBuilder.setAndroidConfig(AndroidConfig.builder()
                     .setPriority(AndroidConfig.Priority.HIGH)
-                    .setCollapseKey(notificationTag) // Collapse duplicate notifications
-                    .setNotification(AndroidNotification.builder()
-                            .setColor("#4A90E2") // TheGathering brand color
-                            .setSound("default")
-                            .setTag(notificationTag) // Tag to replace duplicate notifications
-                            .build())
+                    .setCollapseKey(notificationTag)
                     .build());
 
             messageBuilder.setApnsConfig(ApnsConfig.builder()
                     .setAps(Aps.builder()
-                            .setBadge(1)
+                            .setContentAvailable(true)
                             .setSound("default")
                             .build())
-                    .putHeader("apns-collapse-id", notificationTag) // iOS collapse ID
+                    .putHeader("apns-collapse-id", notificationTag)
+                    .build());
+
+            // Web push requires urgency header for data-only messages
+            messageBuilder.setWebpushConfig(WebpushConfig.builder()
+                    .putHeader("Urgency", "high")
                     .build());
 
             Message message = messageBuilder.build();
@@ -133,21 +133,20 @@ public class NotificationService {
 
             log.info("Sending bulk notification to {} tokens with title: {}", fcmTokens.size(), title);
 
-            // Build notification
-            Notification notification = Notification.builder()
-                    .setTitle(title)
-                    .setBody(body)
-                    .build();
-
-            // Build multicast message
+            // DATA-ONLY multicast: same approach as sendNotification() to avoid
+            // the browser auto-displaying a notification on top of the service
+            // worker's own showNotification() call.
             MulticastMessage.Builder messageBuilder = MulticastMessage.builder()
-                    .addAllTokens(fcmTokens)
-                    .setNotification(notification);
+                    .addAllTokens(fcmTokens);
 
-            // Add custom data if provided
-            if (data != null && !data.isEmpty()) {
-                messageBuilder.putAllData(data);
+            // Put title and body into the data payload
+            Map<String, String> fullData = new HashMap<>();
+            fullData.put("title", title);
+            fullData.put("body", body);
+            if (data != null) {
+                fullData.putAll(data);
             }
+            messageBuilder.putAllData(fullData);
 
             // Generate a unique tag based on notification type and ID to prevent duplicates
             String notificationTag = "thegathering";
@@ -165,20 +164,20 @@ public class NotificationService {
             // Configure platform-specific options
             messageBuilder.setAndroidConfig(AndroidConfig.builder()
                     .setPriority(AndroidConfig.Priority.HIGH)
-                    .setCollapseKey(notificationTag) // Collapse duplicate notifications
-                    .setNotification(AndroidNotification.builder()
-                            .setColor("#4A90E2")
-                            .setSound("default")
-                            .setTag(notificationTag) // Tag to replace duplicate notifications
-                            .build())
+                    .setCollapseKey(notificationTag)
                     .build());
 
             messageBuilder.setApnsConfig(ApnsConfig.builder()
                     .setAps(Aps.builder()
-                            .setBadge(1)
+                            .setContentAvailable(true)
                             .setSound("default")
                             .build())
-                    .putHeader("apns-collapse-id", notificationTag) // iOS collapse ID
+                    .putHeader("apns-collapse-id", notificationTag)
+                    .build());
+
+            // Web push requires urgency header for data-only messages
+            messageBuilder.setWebpushConfig(WebpushConfig.builder()
+                    .putHeader("Urgency", "high")
                     .build());
 
             MulticastMessage message = messageBuilder.build();

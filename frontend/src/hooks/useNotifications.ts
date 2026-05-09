@@ -136,15 +136,24 @@ export const useNotifications = () => {
     }
 
     const unsubscribe = setupForegroundMessageListener((payload) => {
-      // Show browser notification for foreground messages
-      const { title, body } = payload.notification || {};
+      // Data-only FCM messages: title & body are in payload.data
+      // Fall back to payload.notification for backwards compatibility
+      const data = payload.data || {};
+      const title = data.title || payload.notification?.title;
+      const body = data.body || payload.notification?.body;
 
       if (title && body) {
+        // Build a unique tag so the same message doesn't stack
+        const tag = (data.type && data.messageId)
+          ? data.type + '_' + data.messageId
+          : data.type || 'foreground';
+
         new Notification(title, {
           body,
           icon: '/logo192.png',
           badge: '/logo192.png',
-          data: payload.data
+          tag,
+          data: data
         });
       }
     });

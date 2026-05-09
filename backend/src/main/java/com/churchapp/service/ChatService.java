@@ -734,6 +734,7 @@ public class ChatService {
             java.util.Map<String, String> data = new java.util.HashMap<>();
             data.put("type", "chat_message");
             data.put("messageId", message.getId().toString());
+            data.put("chatId", chatGroup.getId().toString());
             data.put("groupId", chatGroup.getId().toString());
             data.put("senderId", sender.getId().toString());
 
