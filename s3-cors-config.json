@@ -1,0 +1,20 @@
+{
+  "CORSRules": [
+    {
+      "AllowedHeaders": ["*"],
+      "AllowedMethods": ["GET", "HEAD", "PUT", "POST", "DELETE"],
+      "AllowedOrigins": [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:8083",
+        "https://www.thegathrd.com",
+        "https://thegathrd.com",
+        "https://app.thegathrd.com",
+        "https://d3loytcgioxpml.cloudfront.net",
+        "capacitor://localhost"
+      ],
+      "ExposeHeaders": ["ETag", "x-amz-request-id"],
+      "MaxAgeSeconds": 3600
+    }
+  ]
+}

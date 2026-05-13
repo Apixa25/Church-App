@@ -351,44 +351,86 @@ export const generatePresignedUploadUrl = async (
 };
 
 /**
- * Upload file directly to S3 using presigned URL
+ * Upload file directly to S3 using presigned URL with retry logic.
  * 
  * CRITICAL: Only send headers that are included in the presigned URL signature.
  * S3 will reject the request with "forbidden" if headers don't match exactly.
  */
 export const uploadFileToS3 = async (
   file: File,
-  presignedUrl: string
+  presignedUrl: string,
+  maxRetries: number = 3
 ): Promise<void> => {
-  // CRITICAL: Only send Content-Type header (must match presigned URL signature)
-  // Do NOT send any other headers - Safari/iOS will add headers automatically,
-  // but we must only include what's in the presigned URL signature
   const contentType = file.type || 'application/octet-stream';
   
-  const response = await fetch(presignedUrl, {
-    method: 'PUT',
-    body: file,
-    headers: {
-      'Content-Type': contentType
-    },
-    // Don't include credentials - presigned URL handles authentication
-    credentials: 'omit'
-  });
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      // Timeout: 5 minutes base + 1 minute per 50MB (scales with file size)
+      const timeoutMs = 300000 + Math.ceil(file.size / (50 * 1024 * 1024)) * 60000;
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      
+      const response = await fetch(presignedUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': contentType
+        },
+        credentials: 'omit',
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
 
-  if (!response.ok) {
-    // Get error details for debugging
-    const errorText = await response.text().catch(() => 'No error details');
-    console.error('S3 upload failed:', {
-      status: response.status,
-      statusText: response.statusText,
-      error: errorText,
-      contentType: contentType,
-      fileName: file.name,
-      fileSize: file.size
-    });
+      if (response.ok) {
+        return; // Success!
+      }
+
+      // Got a response but it's an error
+      const errorText = await response.text().catch(() => 'No error details');
+      console.error(`S3 upload failed (attempt ${attempt}/${maxRetries}):`, {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText,
+        contentType: contentType,
+        fileName: file.name,
+        fileSize: file.size
+      });
+      
+      // Don't retry on 403 (signature/permission issue) - it won't help
+      if (response.status === 403) {
+        throw new Error(`Upload rejected by storage (403). Please try again with a new upload.`);
+      }
+      
+      lastError = new Error(`Upload failed: ${response.statusText} (${response.status})`);
+      
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        lastError = new Error('Upload timed out. Please check your connection and try again.');
+        console.error(`S3 upload timed out (attempt ${attempt}/${maxRetries}):`, file.name);
+      } else if (err.message?.includes('rejected by storage')) {
+        throw err; // Don't retry permission errors
+      } else {
+        lastError = new Error(
+          err.message === 'Failed to fetch' 
+            ? 'Upload failed due to a network error. Please check your connection and try again.'
+            : err.message || 'Upload failed'
+        );
+        console.error(`S3 upload error (attempt ${attempt}/${maxRetries}):`, err.message, file.name);
+      }
+    }
     
-    throw new Error(`Failed to upload file to S3: ${response.statusText} (${response.status})`);
+    // Wait before retrying (exponential backoff: 2s, 4s, 8s...)
+    if (attempt < maxRetries) {
+      const backoffMs = Math.pow(2, attempt) * 1000;
+      console.log(`Retrying upload in ${backoffMs / 1000}s... (attempt ${attempt + 1}/${maxRetries})`);
+      await new Promise(resolve => setTimeout(resolve, backoffMs));
+    }
   }
+  
+  throw lastError || new Error('Upload failed after multiple attempts');
 };
 
 /**

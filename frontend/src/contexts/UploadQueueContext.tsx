@@ -148,9 +148,19 @@ export const UploadQueueProvider: React.FC<UploadQueueProviderProps> = ({
 
     } catch (error: any) {
       console.error('❌ Background upload failed:', job.id, error);
+      
+      let errorMessage = 'Upload failed';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message === 'Failed to fetch') {
+        errorMessage = 'Network error — please check your connection and try again';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       updateJob(job.id, { 
         status: 'failed', 
-        error: error.response?.data?.message || error.message || 'Upload failed'
+        error: errorMessage
       });
     } finally {
       processingRef.current.delete(job.id);

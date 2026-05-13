@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import statusBarService from './services/statusBarService';
@@ -9,48 +9,12 @@ import { OrganizationProvider } from './contexts/OrganizationContext';
 import { GroupProvider } from './contexts/GroupContext';
 import { FeedFilterProvider } from './contexts/FeedFilterContext';
 import { ActiveContextProvider } from './contexts/ActiveContextContext';
-import LoginForm from './components/LoginForm';
-import RegisterForm from './components/RegisterForm';
-import Dashboard from './components/Dashboard';
-import AuthCallback from './components/AuthCallback';
-import AuthError from './components/AuthError';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
-import PublicPostPreview from './components/PublicPostPreview';
-import PublicResourcePreview from './components/PublicResourcePreview';
-import PrivacyPolicy from './components/PrivacyPolicy';
-import TermsOfService from './components/TermsOfService';
-import PostDetailPage from './components/PostDetailPage';
-import ProfileView from './components/ProfileView';
-import ProfileEdit from './components/ProfileEdit';
-import ChatList from './components/ChatList';
-import ChatRoom from './components/ChatRoom';
-import ChatSearch from './components/ChatSearch';
-import PrayerRequestsPage from './components/PrayerRequestsPage';
-import PrayerRequestDetail from './components/PrayerRequestDetail';
-import AnnouncementPage from './components/AnnouncementPage';
-import CalendarPage from './components/CalendarPage';
-import EventDetailsPage from './components/EventDetailsPage';
-import ResourcePage from './components/ResourcePage';
-import MyRSVPsPage from './components/MyRSVPsPage';
-import DonationPage from './components/DonationPage';
-import DonationAnalytics from './components/DonationAnalytics';
-import AdminDashboard from './components/AdminDashboard';
-import SettingsPage from './components/SettingsPage';
-import WorshipRoomList from './components/WorshipRoomList';
-import WorshipRoom from './components/WorshipRoom';
-import OrganizationBrowser from './components/OrganizationBrowser';
-import GroupBrowser from './components/GroupBrowser';
-import GroupPage from './components/GroupPage';
-import GroupSettings from './components/GroupSettings';
-import InviteLinkJoinPage from './components/InviteLinkJoinPage';
-import QuickActionsPage from './components/QuickActionsPage';
-import MarketplacePage from './components/MarketplacePage';
+import LoadingSpinner from './components/LoadingSpinner';
 import BottomNav from './components/BottomNav';
-import PostComposer from './components/PostComposer';
-import CameraCapture from './components/CameraCapture';
 import './App.css';
-import './components/Dashboard.css'; // Import for composer modal styles
+import './components/Dashboard.css';
 import { GlobalSearchProvider } from './components/global-search/GlobalSearchProvider';
 import { UploadQueueProvider } from './contexts/UploadQueueContext';
 import UploadProgressIndicator from './components/UploadProgressIndicator';
@@ -59,6 +23,47 @@ import FirebaseInitializer from './components/FirebaseInitializer';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 import { Capacitor } from '@capacitor/core';
 import deepLinkingService from './services/deepLinkingService';
+
+// ⚡ LAZY-LOADED ROUTE COMPONENTS
+// Each screen is loaded on-demand when the user navigates to it,
+// dramatically reducing the initial bundle size.
+const LoginForm = lazy(() => import('./components/LoginForm'));
+const RegisterForm = lazy(() => import('./components/RegisterForm'));
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const AuthCallback = lazy(() => import('./components/AuthCallback'));
+const AuthError = lazy(() => import('./components/AuthError'));
+const PublicPostPreview = lazy(() => import('./components/PublicPostPreview'));
+const PublicResourcePreview = lazy(() => import('./components/PublicResourcePreview'));
+const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('./components/TermsOfService'));
+const PostDetailPage = lazy(() => import('./components/PostDetailPage'));
+const ProfileView = lazy(() => import('./components/ProfileView'));
+const ProfileEdit = lazy(() => import('./components/ProfileEdit'));
+const ChatList = lazy(() => import('./components/ChatList'));
+const ChatRoom = lazy(() => import('./components/ChatRoom'));
+const ChatSearch = lazy(() => import('./components/ChatSearch'));
+const PrayerRequestsPage = lazy(() => import('./components/PrayerRequestsPage'));
+const PrayerRequestDetail = lazy(() => import('./components/PrayerRequestDetail'));
+const AnnouncementPage = lazy(() => import('./components/AnnouncementPage'));
+const CalendarPage = lazy(() => import('./components/CalendarPage'));
+const EventDetailsPage = lazy(() => import('./components/EventDetailsPage'));
+const ResourcePage = lazy(() => import('./components/ResourcePage'));
+const MyRSVPsPage = lazy(() => import('./components/MyRSVPsPage'));
+const DonationPage = lazy(() => import('./components/DonationPage'));
+const DonationAnalytics = lazy(() => import('./components/DonationAnalytics'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const SettingsPage = lazy(() => import('./components/SettingsPage'));
+const WorshipRoomList = lazy(() => import('./components/WorshipRoomList'));
+const WorshipRoom = lazy(() => import('./components/WorshipRoom'));
+const OrganizationBrowser = lazy(() => import('./components/OrganizationBrowser'));
+const GroupBrowser = lazy(() => import('./components/GroupBrowser'));
+const GroupPage = lazy(() => import('./components/GroupPage'));
+const GroupSettings = lazy(() => import('./components/GroupSettings'));
+const InviteLinkJoinPage = lazy(() => import('./components/InviteLinkJoinPage'));
+const QuickActionsPage = lazy(() => import('./components/QuickActionsPage'));
+const MarketplacePage = lazy(() => import('./components/MarketplacePage'));
+const PostComposer = lazy(() => import('./components/PostComposer'));
+const CameraCapture = lazy(() => import('./components/CameraCapture'));
 
 // 🚀 React Query Configuration - Smart Caching
 const queryClient = new QueryClient({
@@ -246,6 +251,7 @@ const App: React.FC = () => {
                   <div className="App">
                     {/* WebSocket status is now shown on the profile picture in Dashboard */}
                     {/* <WebSocketStatusIndicator /> */}
+                    <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><LoadingSpinner type="multi-ring" size="medium" text="Loading..." /></div>}>
                     <Routes>
             {/* Public routes */}
             <Route path="/login" element={<LoginForm />} />
@@ -599,6 +605,7 @@ const App: React.FC = () => {
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
+                  </Suspense>
 
                   {/* Global Post Composer Modal */}
                   {showComposer && (

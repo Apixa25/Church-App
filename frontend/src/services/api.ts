@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { UserProfile } from '../types/Profile';
 import { getApiUrl } from '../config/runtimeConfig';
+import { tokenService } from './tokenService';
 
 const API_BASE_URL = getApiUrl();
 
@@ -14,8 +15,6 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   async (config) => {
-    // Get valid access token (will refresh if needed)
-    const { tokenService } = await import('./tokenService');
     const token = await tokenService.getValidAccessToken();
     
     if (token) {
@@ -36,11 +35,9 @@ api.interceptors.response.use(
 
     // Handle 401 errors with automatic token refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true; // Prevent infinite retry loop
+      originalRequest._retry = true;
 
       try {
-        // Attempt to refresh token
-        const { tokenService } = await import('./tokenService');
         const refreshed = await tokenService.refreshTokenSilently();
         
         if (refreshed?.token) {

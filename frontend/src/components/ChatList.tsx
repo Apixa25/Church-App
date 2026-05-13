@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import chatApi, { ChatGroup } from '../services/chatApi';
 import UserList from './UserList';
 import CreateGroup from './CreateGroup';
@@ -20,40 +21,47 @@ const formatGroupType = (type: string) => {
 };
 
 const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) => {
-  const [groups, setGroups] = useState<ChatGroup[]>([]);
   const [joinableGroups, setJoinableGroups] = useState<ChatGroup[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  // Removed showJoinable state as we now use activeView for navigation
   const [activeView, setActiveView] = useState<'myChats' | 'joinGroups' | 'directory' | 'createGroup'>('myChats');
   const { allMemberships, loading: organizationLoading } = useOrganization();
   const { user } = useAuth();
   const hasAnyOrganization = allMemberships.length > 0;
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (organizationLoading) {
-      return;
-    }
-    loadGroups();
-    // Reload only when organization availability changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organizationLoading, hasAnyOrganization]);
+  const [joinableLoaded, setJoinableLoaded] = useState(false);
+  const [joinableLoading, setJoinableLoading] = useState(false);
 
-  const loadGroups = async (shouldFetchJoinable: boolean = hasAnyOrganization) => {
+  const {
+    data: groups = [],
+    isLoading: loading,
+    error: queryError,
+    refetch: refetchGroups,
+  } = useQuery({
+    queryKey: ['chatGroups'],
+    queryFn: () => chatApi.getGroups(),
+    staleTime: 3 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    enabled: !organizationLoading,
+  });
+
+  const error = queryError ? 'Failed to load chat groups' : null;
+
+  const loadGroups = async () => {
+    refetchGroups();
+  };
+
+  const loadJoinableGroups = async () => {
+    if (!hasAnyOrganization || joinableLoaded) return;
     try {
-      setLoading(true);
-      const [userGroups, availableGroups] = await Promise.all([
-        chatApi.getGroups(),
-        shouldFetchJoinable ? chatApi.getJoinableGroups() : Promise.resolve([] as ChatGroup[])
-      ]);
-      setGroups(userGroups);
-      setJoinableGroups(availableGroups);
+      setJoinableLoading(true);
+      const available = await chatApi.getJoinableGroups();
+      setJoinableGroups(available);
+      setJoinableLoaded(true);
     } catch (err) {
-      setError('Failed to load chat groups');
-      console.error('Error loading groups:', err);
+      console.error('Error loading joinable groups:', err);
     } finally {
-      setLoading(false);
+      setJoinableLoading(false);
     }
   };
 
@@ -69,7 +77,9 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
     e.stopPropagation();
     try {
       await chatApi.joinGroup(groupId);
-      loadGroups(); // Refresh the lists
+      loadGroups();
+      setJoinableLoaded(false);
+      loadJoinableGroups();
     } catch (err) {
       console.error('Error joining group:', err);
     }
@@ -85,10 +95,9 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
     try {
       await chatApi.leaveGroup(groupId);
 
-      // Remove from local state immediately for responsive UI
-      setGroups(prev => prev.filter(g => g.id !== groupId));
-
-      console.log(`Successfully deleted chat: ${groupName}`);
+      queryClient.setQueryData<ChatGroup[]>(['chatGroups'], (old) =>
+        old ? old.filter(g => g.id !== groupId) : old
+      );
     } catch (err) {
       console.error('Error deleting chat:', err);
       alert('Failed to delete conversation. Please try again.');
@@ -220,7 +229,7 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
             📖 Directory
           </button>
           <button 
-            onClick={() => setActiveView('joinGroups')}
+            onClick={() => { setActiveView('joinGroups'); loadJoinableGroups(); }}
             className={`nav-btn ${activeView === 'joinGroups' ? 'active' : ''}`}
           >
             🔍 Join Groups
@@ -248,6 +257,8 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
                 Create a Group
               </button>
             </div>
+          ) : joinableLoading ? (
+            <LoadingSpinner type="multi-ring" size="small" text="Finding groups..." />
           ) : joinableGroups.length === 0 ? (
             <div className="empty-state">
               <p>🌟 No new groups to join</p>

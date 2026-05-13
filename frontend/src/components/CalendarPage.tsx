@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { eventAPI } from '../services/eventApi';
 import { Event, EventCategory, EventStatus } from '../types/Event';
 import { useActiveContext } from '../contexts/ActiveContextContext';
@@ -14,10 +15,8 @@ interface CalendarPageProps {}
 
 const CalendarPage: React.FC<CalendarPageProps> = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { activeOrganizationId } = useActiveContext();
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -27,64 +26,51 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
     status: '',
     search: ''
   });
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  // Load events
-  const loadEvents = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(filters.search);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [filters.search]);
+
+  const eventsQueryKey = useMemo(() =>
+    ['events', activeOrganizationId || 'all', filters.category, filters.status, debouncedSearch],
+    [activeOrganizationId, filters.category, filters.status, debouncedSearch]
+  );
+
+  const {
+    data: events = [],
+    isLoading: loading,
+    error: queryError,
+    refetch: refetchEvents,
+  } = useQuery({
+    queryKey: eventsQueryKey,
+    queryFn: async () => {
+      if (debouncedSearch.trim()) {
+        const response = await eventAPI.searchEvents({
+          query: debouncedSearch.trim(),
+          page: 0,
+          size: 100,
+        });
+        return response.data.events as Event[];
+      }
       const response = await eventAPI.getEvents({
         page: 0,
-        size: 100, // Load more events for calendar view
+        size: 100,
         category: filters.category || undefined,
         status: filters.status || undefined,
-        organizationId: activeOrganizationId || undefined // Pass active organization from context
+        organizationId: activeOrganizationId || undefined,
       });
-      
-      setEvents(response.data.events);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to load events');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return response.data.events as Event[];
+    },
+    staleTime: 3 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
 
-  // Search events
-  const searchEvents = async (query: string) => {
-    if (!query.trim()) {
-      loadEvents();
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const response = await eventAPI.searchEvents({
-        query: query.trim(),
-        page: 0,
-        size: 100
-      });
-      setEvents(response.data.events);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to search events');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load events on mount and when filters or organization context change
-  useEffect(() => {
-    if (filters.search) {
-      const debounceTimer = setTimeout(() => {
-        searchEvents(filters.search);
-      }, 500);
-      return () => clearTimeout(debounceTimer);
-    } else {
-      loadEvents();
-    }
-    // Keep debounce behavior stable while filters and org context drive reloads.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, activeOrganizationId]); // Re-fetch when organization context changes
+  const error = queryError ? 'Failed to load events' : null;
 
   // WebSocket subscriptions for real-time updates
   useEffect(() => {
@@ -94,28 +80,14 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
           await webSocketService.connect();
         }
 
-        // Subscribe to event updates
         const eventUnsubscribe = await webSocketService.subscribeToEventUpdates((update: EventUpdate) => {
-          console.log('Received event update:', update);
-          
-          // Refresh events when there's an update
-          loadEvents();
-          
-          // Show notification (optional)
-          if (update.eventType === 'event_created') {
-            // Could show toast notification here
-          }
+          queryClient.invalidateQueries({ queryKey: ['events'] });
         });
 
-        // Subscribe to RSVP updates
         const rsvpUnsubscribe = webSocketService.subscribeToRsvpUpdates((update: EventRsvpUpdate) => {
-          console.log('Received RSVP update:', update);
-          
-          // Refresh events to get updated RSVP counts
-          loadEvents();
+          queryClient.invalidateQueries({ queryKey: ['events'] });
         });
 
-        // Cleanup function
         return () => {
           eventUnsubscribe();
           rsvpUnsubscribe();
@@ -127,26 +99,21 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
 
     connectWebSocket();
 
-    // Cleanup on unmount
-    return () => {
-      // WebSocket subscriptions will be cleaned up automatically
-    };
-    // Subscribe once per mount; handlers call the latest fetch logic through state updates.
+    return () => {};
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [queryClient]);
 
   const handleEventCreated = (newEvent: Event) => {
-    setEvents(prev => [newEvent, ...prev]);
+    queryClient.setQueryData<Event[]>(eventsQueryKey, (old) =>
+      old ? [newEvent, ...old] : [newEvent]
+    );
     setShowCreateForm(false);
   };
 
   const handleEventUpdated = (updatedEvent: Event) => {
-    setEvents(prev => 
-      prev.map(event => 
-        event.id === updatedEvent.id ? updatedEvent : event
-      )
+    queryClient.setQueryData<Event[]>(eventsQueryKey, (old) =>
+      old ? old.map(e => e.id === updatedEvent.id ? updatedEvent : e) : old
     );
-    // Close the edit form after successful update
     setEditingEvent(null);
     setShowCreateForm(false);
   };
@@ -157,42 +124,19 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
   };
 
   const handleRsvpUpdate = (updatedEvent: Event) => {
-    // Update the event in the local state without opening edit dialog
-    setEvents(prevEvents => 
-      prevEvents.map(e => e.id === updatedEvent.id ? updatedEvent : e)
+    queryClient.setQueryData<Event[]>(eventsQueryKey, (old) =>
+      old ? old.map(e => e.id === updatedEvent.id ? updatedEvent : e) : old
     );
   };
 
   const handleEventDeleted = async (eventId: string) => {
     try {
-      // Get current user info for debugging
-      const currentUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!) : null;
-      const authToken = localStorage.getItem('authToken');
-      
-      console.log('🗑️ Deleting event:', eventId);
-      console.log('👤 Current user details:', currentUser);
-      console.log('🔑 Auth token exists:', !!authToken);
-      console.log('🎫 Token preview:', authToken ? authToken.substring(0, 30) + '...' : 'No token');
-      
-      // Call backend API to delete the event
       await eventAPI.deleteEvent(eventId);
-      
-      console.log('✅ Event deleted successfully from backend');
-      
-      // Update frontend state to remove the event
-      setEvents(prev => prev.filter(event => event.id !== eventId));
-      
+      queryClient.setQueryData<Event[]>(eventsQueryKey, (old) =>
+        old ? old.filter(e => e.id !== eventId) : old
+      );
     } catch (error: any) {
-      console.error('❌ Failed to delete event:', {
-        eventId,
-        error: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        errorData: error.response?.data,
-        fullError: error
-      });
-      
-      // Show specific error message if available
+      console.error('Failed to delete event:', error);
       const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to delete event';
       alert(`Failed to delete event: ${errorMessage}`);
     }
@@ -256,7 +200,7 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
       {error && (
         <div className="error-message">
           <p>{error}</p>
-          <button onClick={loadEvents} className="btn btn-secondary">
+          <button onClick={() => refetchEvents()} className="btn btn-secondary">
             Retry
           </button>
         </div>

@@ -709,11 +709,13 @@ public class FileUploadService {
         // CRITICAL: Only include headers that the client will send in the upload request
         // The presigned URL signature must match EXACTLY what the client sends
         // Do NOT include Cache-Control here - it's not sent by the client, so it would cause signature mismatch
+        // Do NOT include contentLength - it causes "SignatureDoesNotMatch" errors when the browser's
+        // Content-Length header doesn't match exactly (common with mobile browsers, proxies, etc.)
+        // Size validation is already done above in validateFileSizeAndType()
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(s3Key)
                 .contentType(contentType)
-                .contentLength(fileSize)
                 .build();
         
         // Note: Cache-Control will be set AFTER upload via S3 metadata update if needed
