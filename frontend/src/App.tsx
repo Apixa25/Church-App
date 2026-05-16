@@ -611,22 +611,26 @@ const App: React.FC = () => {
                   {showComposer && (
                     <div className="composer-modal-overlay" onClick={handleComposerClose}>
                       <div className="composer-modal-content" onClick={(e) => e.stopPropagation()}>
-                        <PostComposer
-                          onCancel={handleComposerClose}
-                          onPostCreated={handleComposerClose}
-                          placeholder="Share what's happening in your community..."
-                          initialMediaFile={capturedMediaFile}
-                        />
+                        <Suspense fallback={<LoadingSpinner type="multi-ring" size="medium" text="Loading composer..." />}>
+                          <PostComposer
+                            onCancel={handleComposerClose}
+                            onPostCreated={handleComposerClose}
+                            placeholder="Share what's happening in your community..."
+                            initialMediaFile={capturedMediaFile}
+                          />
+                        </Suspense>
                       </div>
                     </div>
                   )}
 
                   {/* Global Camera Capture Modal */}
                   {showCamera && (
-                    <CameraCapture
-                      onCapture={handleCameraCapture}
-                      onClose={() => setShowCamera(false)}
-                    />
+                    <Suspense fallback={<LoadingSpinner type="multi-ring" size="medium" text="Loading camera..." />}>
+                      <CameraCapture
+                        onCapture={handleCameraCapture}
+                        onClose={() => setShowCamera(false)}
+                      />
+                    </Suspense>
                   )}
 
                   {/* Global Bottom Navigation - Mobile Only */}
