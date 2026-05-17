@@ -115,17 +115,20 @@ const PostComposer: React.FC<PostComposerProps> = ({
   const maxMediaFiles = 4;
   
   const prepareFileForUpload = useCallback(async (file: File): Promise<File> => {
+    if (!isAndroidBrowser()) {
+      return file;
+    }
+
     const fileType = file.type.toLowerCase();
     const fileName = file.name.toLowerCase();
-    const isAndroidImage = fileType.startsWith('image/') ||
-      fileName.endsWith('.jpg') ||
-      fileName.endsWith('.jpeg') ||
-      fileName.endsWith('.png') ||
-      fileName.endsWith('.webp') ||
-      fileName.endsWith('.heic') ||
-      fileName.endsWith('.heif');
+    const isMedia = fileType.startsWith('image/') || fileType.startsWith('video/') ||
+      fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ||
+      fileName.endsWith('.png') || fileName.endsWith('.webp') ||
+      fileName.endsWith('.heic') || fileName.endsWith('.heif') ||
+      fileName.endsWith('.mp4') || fileName.endsWith('.mov') ||
+      fileName.endsWith('.webm') || fileName.endsWith('.3gp');
 
-    if (!isAndroidBrowser() || !isAndroidImage) {
+    if (!isMedia) {
       return file;
     }
 
