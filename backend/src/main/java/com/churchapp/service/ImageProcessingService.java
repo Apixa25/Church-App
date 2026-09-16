@@ -15,21 +15,22 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 /**
- * Service for processing and optimizing images
- * Implements server-side image compression similar to Facebook/X approach
+ * Builds the feed (optimized) JPEG. Originals stay in S3 /originals/.
+ * Instagram-style: always re-encode, max 1080px wide / 1350px tall, JPEG ~80.
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ImageProcessingService {
 
-    @Value("${media.image.max-width:1920}")
+    // Feed / optimized derivative — Instagram-style 1080px wide, 4:5 max height
+    @Value("${media.image.max-width:1080}")
     private int maxWidth;
 
-    @Value("${media.image.max-height:1920}")
+    @Value("${media.image.max-height:1350}")
     private int maxHeight;
 
-    @Value("${media.image.jpeg-quality:0.85}")
+    @Value("${media.image.jpeg-quality:0.80}")
     private double jpegQuality;
 
     @Value("${media.image.strip-exif:true}")
@@ -104,7 +105,7 @@ public class ImageProcessingService {
 
         log.debug("Original image dimensions (after EXIF rotation): {}x{}", originalWidth, originalHeight);
 
-        // Calculate new dimensions (maintain aspect ratio)
+        // Instagram feed box: fit inside maxWidth x maxHeight, never upscale
         int newWidth = originalWidth;
         int newHeight = originalHeight;
 
@@ -113,10 +114,10 @@ public class ImageProcessingService {
             double heightRatio = (double) maxHeight / originalHeight;
             double ratio = Math.min(widthRatio, heightRatio);
 
-            newWidth = (int) (originalWidth * ratio);
-            newHeight = (int) (originalHeight * ratio);
+            newWidth = Math.max(1, (int) Math.round(originalWidth * ratio));
+            newHeight = Math.max(1, (int) Math.round(originalHeight * ratio));
 
-            log.debug("Resizing image to: {}x{} (ratio: {})", newWidth, newHeight, ratio);
+            log.debug("Resizing feed image to: {}x{} (ratio: {})", newWidth, newHeight, ratio);
         }
 
         // Process image: resize and compress to JPEG
@@ -184,12 +185,10 @@ public class ImageProcessingService {
                 return false;
             }
 
-            return image.getWidth() > maxWidth || 
-                   image.getHeight() > maxHeight ||
-                   file.getSize() > (2 * 1024 * 1024); // More than 2MB
+            // Always create a feed JPEG so small "already optimized" uploads still get 1080/q80
+            return true;
         } catch (Exception e) {
             log.warn("Could not check if image needs processing: {}", e.getMessage());
-            // If we can't read it, assume it needs processing
             return true;
         }
     }

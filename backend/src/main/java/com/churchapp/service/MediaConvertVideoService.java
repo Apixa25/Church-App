@@ -46,6 +46,9 @@ public class MediaConvertVideoService {
     @Value("${media.video.max-duration-seconds:30}")
     private int maxDurationSeconds;
 
+    @Value("${media.video.thumbnail-width:640}")
+    private int thumbnailWidth;
+
     @Value("${aws.account-id:}")
     private String awsAccountId;
 
@@ -220,8 +223,10 @@ public class MediaConvertVideoService {
                 .build();
 
         VideoDescription videoDescription = VideoDescription.builder()
+                .width(evenDimension(targetWidth))
+                .height(evenDimension(targetHeight))
                 .codecSettings(videoCodecSettings)
-                .scalingBehavior(ScalingBehavior.DEFAULT)
+                .scalingBehavior(ScalingBehavior.FIT)
                 .build();
 
         // SIMPLE AAC audio settings
@@ -290,9 +295,12 @@ public class MediaConvertVideoService {
                         .build())
                 .build();
 
+        int posterSize = evenDimension(thumbnailWidth);
         VideoDescription thumbnailVideoDescription = VideoDescription.builder()
+                .width(posterSize)
+                .height(posterSize)
                 .codecSettings(thumbnailCodecSettings)
-                .scalingBehavior(ScalingBehavior.DEFAULT)
+                .scalingBehavior(ScalingBehavior.FIT)
                 .build();
 
         Output thumbnailOutput = Output.builder()
@@ -328,6 +336,11 @@ public class MediaConvertVideoService {
                         .source(TimecodeSource.ZEROBASED)
                         .build())
                 .build();
+    }
+
+    private int evenDimension(int value) {
+        int size = Math.max(2, value);
+        return size % 2 == 0 ? size : size - 1;
     }
 
     /**

@@ -8,6 +8,7 @@ import com.churchapp.service.AdminAnalyticsService;
 import com.churchapp.service.AdminAuthorizationService;
 import com.churchapp.service.AuditLogService;
 import com.churchapp.service.UserManagementService;
+import com.churchapp.service.FileUploadService;
 import com.churchapp.repository.UserRepository;
 import com.churchapp.repository.MediaFileRepository;
 import com.churchapp.entity.MediaFile;
@@ -43,6 +44,7 @@ public class AdminController {
     private final AdminAuthorizationService adminAuthService;
     private final UserRepository userRepository;
     private final MediaFileRepository mediaFileRepository;
+    private final FileUploadService fileUploadService;
 
     // =============== USER MANAGEMENT ===============
 
@@ -576,5 +578,16 @@ public class AdminController {
         diagnostics.put("sampleWithoutOptimized", sampleWithoutOptimized);
         
         return ResponseEntity.ok(diagnostics);
+    }
+
+    /**
+     * Rebuild 1080px feed JPEGs for existing heavy images. Originals are not deleted.
+     */
+    @PostMapping("/media/reprocess-feed-images")
+    @PreAuthorize("hasRole('PLATFORM_ADMIN')")
+    public ResponseEntity<Map<String, Object>> reprocessFeedImages(
+            @RequestParam(defaultValue = "25") int limit) {
+        log.info("Admin requested feed-image reprocess, limit={}", limit);
+        return ResponseEntity.ok(fileUploadService.reprocessHeavyFeedImages(limit));
     }
 }

@@ -16,8 +16,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Service for cleaning up original media files after processing
- * Implements the Facebook/X approach: keep originals temporarily, then delete after processing completes
+ * Optional cleanup of original media after processing.
+ * Disabled by default now so originals are retained for tap-to-open / reprocess.
  */
 @Service
 @RequiredArgsConstructor

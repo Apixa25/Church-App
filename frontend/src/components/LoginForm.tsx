@@ -6,6 +6,7 @@ import axios from 'axios';
 import { getApiUrl } from '../config/runtimeConfig';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
+import IOSInstallPrompt from './IOSInstallPrompt';
 
 interface LoginFormData {
   email: string;
@@ -119,6 +120,7 @@ const LoginForm: React.FC = () => {
 
   return (
     <div className="login-form-container">
+      <div className="login-install-column">
       <div className="login-form">
         <h2>🌾 Welcome to The Gathering</h2>
         <p>Sign in to connect with your community</p>
@@ -211,6 +213,8 @@ const LoginForm: React.FC = () => {
             </button>
           </p>
         </div>
+      </div>
+      <IOSInstallPrompt />
       </div>
     </div>
   );

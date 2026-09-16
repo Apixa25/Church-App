@@ -15,7 +15,8 @@
   padding: 20px;
   background: var(--bg-primary);
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* Animated background gradient */
@@ -49,6 +50,19 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.login-install-column {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 400px;
+}
+
+.login-install-column .ios-install-prompt {
+  margin: 16px 0 0;
 }
 
 .login-form,

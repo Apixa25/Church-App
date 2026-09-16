@@ -99,6 +99,102 @@
   color: #4a90e2;
 }
 
+.pwa-install-primary {
+  width: 100%;
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #4a90e2 0%, #6b5ce7 100%);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(74, 144, 226, 0.28);
+}
+
+.pwa-install-primary:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.pwa-install-primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.ios-safari-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  font-size: 12px;
+  color: #9aa0c8;
+}
+
+.ios-share-hit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(74, 144, 226, 0.18);
+  border: 1px solid rgba(74, 144, 226, 0.45);
+  color: #8ec4ff;
+  font-weight: 700;
+}
+
+.ios-add-home-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(74, 144, 226, 0.18);
+  color: #ffffff;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.ios-share-sheet-preview {
+  margin: 0 0 16px;
+  padding: 10px 12px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+}
+
+.ios-share-sheet-title {
+  margin-bottom: 8px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8a8aaa;
+}
+
+.ios-share-sheet-row {
+  padding: 8px 8px;
+  font-size: 13px;
+  color: #8888a0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ios-share-sheet-row-highlight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  border: 1px solid rgba(74, 144, 226, 0.45);
+  border-radius: 10px;
+  background: rgba(74, 144, 226, 0.16);
+  color: #ffffff;
+  font-weight: 700;
+}
+
 .ios-install-actions {
   display: flex;
   gap: 10px;

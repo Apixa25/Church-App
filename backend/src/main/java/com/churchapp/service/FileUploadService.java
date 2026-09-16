@@ -7,6 +7,7 @@ import com.churchapp.util.InMemoryMultipartFile;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,8 +30,12 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URLConnection;
 import java.time.Duration;
-import java.util.concurrent.Executor;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 
 @Service
 @Slf4j
@@ -924,6 +929,83 @@ public class FileUploadService {
                 markMediaFileFailed(mediaFile.getId(), e.getMessage());
             }
         });
+    }
+
+    /**
+     * Rebuild Instagram-style 1080 feed JPEGs for existing heavy images.
+     * Originals are left in place; a new optimized object is written.
+     */
+    public Map<String, Object> reprocessHeavyFeedImages(int limit) {
+        int batchSize = Math.min(Math.max(limit, 1), 50);
+        List<MediaFile> heavyImages = mediaFileRepository.findHeavyOptimizedImages(
+                ProcessingStatus.COMPLETED,
+                300_000L,
+                PageRequest.of(0, batchSize)
+        );
+
+        int rebuilt = 0;
+        int skipped = 0;
+        List<String> errors = new ArrayList<>();
+
+        for (MediaFile mediaFile : heavyImages) {
+            try {
+                byte[] sourceBytes = downloadBestImageSource(mediaFile);
+                if (sourceBytes == null || sourceBytes.length == 0) {
+                    skipped++;
+                    continue;
+                }
+
+                MultipartFile file = new InMemoryMultipartFile(
+                        mediaFile.getOriginalFilename() != null ? mediaFile.getOriginalFilename() : "feed.jpg",
+                        "image/jpeg",
+                        sourceBytes
+                );
+
+                var result = imageProcessingService.processImage(file);
+                String optimizedKey = "media/" + mediaFile.getFolder() + "/optimized/" + UUID.randomUUID() + ".jpg";
+                uploadProcessedFile(result.getProcessedImageData(), optimizedKey, "image/jpeg");
+                String optimizedUrl = generateAccessibleUrl(optimizedKey);
+                markMediaFileCompleted(mediaFile.getId(), optimizedUrl, result.getProcessedImageData().length);
+                rebuilt++;
+                log.info("Rebuilt feed JPEG {} -> {} ({} bytes)", mediaFile.getId(), optimizedUrl, result.getProcessedSize());
+            } catch (Exception e) {
+                skipped++;
+                errors.add(mediaFile.getId() + ": " + e.getMessage());
+                log.warn("Could not reprocess feed image {}: {}", mediaFile.getId(), e.getMessage());
+            }
+        }
+
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("scanned", heavyImages.size());
+        summary.put("rebuilt", rebuilt);
+        summary.put("skipped", skipped);
+        summary.put("errors", errors);
+        return summary;
+    }
+
+    private byte[] downloadBestImageSource(MediaFile mediaFile) {
+        List<String> candidates = new ArrayList<>();
+        if (mediaFile.getOriginalUrl() != null) {
+            candidates.add(mediaFile.getOriginalUrl());
+        }
+        if (mediaFile.getOptimizedUrl() != null) {
+            candidates.add(mediaFile.getOptimizedUrl());
+        }
+        for (String url : candidates) {
+            try {
+                String key = extractKeyFromUrl(url);
+                GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(key)
+                        .build();
+                return s3Client.getObjectAsBytes(getObjectRequest).asByteArray();
+            } catch (NoSuchKeyException e) {
+                log.debug("Source missing for {}: {}", mediaFile.getId(), url);
+            } catch (Exception e) {
+                log.debug("Could not download {} for {}: {}", url, mediaFile.getId(), e.getMessage());
+            }
+        }
+        return null;
     }
     
     /**

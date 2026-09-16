@@ -15,7 +15,7 @@
  * @param file - The image file to convert
  * @param maxWidth - Maximum width (default 1920)
  * @param maxHeight - Maximum height (default 1920)
- * @param quality - JPEG quality 0-1 (default 0.85)
+ * @param quality - JPEG quality 0-1 (default 0.90 for stored originals)
  * @returns Promise<File> - The converted JPEG file
  */
 /**
@@ -56,7 +56,7 @@ export const convertImageToJpeg = async (
   file: File, 
   maxWidth = 1920, 
   maxHeight = 1920, 
-  quality = 0.85
+  quality = 0.90
 ): Promise<File> => {
   // Add timeout for iPhone - large HEIC files can hang
   const conversionPromise = new Promise<File>((resolve, reject) => {
@@ -212,19 +212,17 @@ export const needsImageConversion = (file: File): boolean => {
 };
 
 /**
- * Process an image file for upload - smart compression following industry best practices
- * 
- * Industry standard approach (Instagram/X.com):
- * - Always convert HEIC/HEIF (server compatibility)
- * - Only compress large files (>5MB) to reduce upload time
- * - Skip processing for small, already-optimized JPEGs (<2MB)
- * - Preserve quality (85% JPEG, max 1920x1920)
- * 
+ * Process an image file for upload — keep a high-quality original for S3.
+ * The server then builds an Instagram-style 1080 feed JPEG in the background.
+ *
+ * - Convert HEIC/HEIF so the server can store an original
+ * - Cap huge uploads at 1920px so mobile uploads don't stall
+ * - Leave already-reasonable JPEGs alone as the original; do not shrink to 1080 here
+ *
  * @param file - The image file to process
- * @param maxWidth - Maximum width (default 1920)
- * @param maxHeight - Maximum height (default 1920)
- * @param sizeThreshold - Size in bytes above which to compress (default 5MB)
- * @returns Promise<File> - The processed file
+ * @param maxWidth - Maximum width for the stored original (default 1920)
+ * @param maxHeight - Maximum height for the stored original (default 1920)
+ * @param sizeThreshold - Size in bytes above which to compress for upload (default 5MB)
  */
 export const processImageForUpload = async (
   file: File,
@@ -243,13 +241,12 @@ export const processImageForUpload = async (
     const isHeic = needsImageConversion(file);
     const isLarge = file.size > sizeThreshold;
     
-    // Industry best practice: Skip processing for small, already-optimized JPEGs
-    // This matches Instagram/X.com behavior - don't recompress what's already optimized
+    // Keep a decent original. The backend creates the 1080 feed copy.
+    // Do not shrink to Instagram feed size on the client — that would throw away the original.
     if (isJpeg && file.size < 2 * 1024 * 1024) {
-      console.log('✅ Small optimized JPEG detected, skipping processing:', {
+      console.log('✅ Keeping JPEG as original (server will build 1080 feed copy):', {
         name: file.name,
-        size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
-        reason: 'Already optimized'
+        size: (file.size / 1024 / 1024).toFixed(2) + 'MB'
       });
       return file;
     }
@@ -260,9 +257,9 @@ export const processImageForUpload = async (
       console.log('🔄 HEIC/HEIF format detected (iPhone default), converting to JPEG:', {
         name: file.name,
         size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
-        reason: 'Server compatibility + compression'
+        reason: 'Server compatibility; keep 1920 original for S3'
       });
-      return await convertImageToJpeg(file, maxWidth, maxHeight, 0.85);
+      return await convertImageToJpeg(file, maxWidth, maxHeight, 0.90);
     }
     
     // Compress large files (>5MB) - reduces upload time on mobile networks
@@ -271,9 +268,9 @@ export const processImageForUpload = async (
       console.log('🔄 Large file detected, compressing for faster upload:', {
         name: file.name,
         size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
-        reason: 'Upload speed optimization'
+        reason: 'Upload speed; original capped at 1920'
       });
-      return await convertImageToJpeg(file, maxWidth, maxHeight, 0.85);
+      return await convertImageToJpeg(file, maxWidth, maxHeight, 0.90);
     }
     
     // File is already in a good format and size - no processing needed
