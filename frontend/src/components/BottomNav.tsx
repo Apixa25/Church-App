@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useChatUnreadCount } from '../hooks/useChatUnreadCount';
 import { useAuth } from '../contexts/AuthContext';
+import { IN_APP_CAMERA_ENABLED } from '../config/featureFlags';
 import './BottomNav.css';
 
 interface BottomNavProps {
@@ -133,15 +134,15 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick, onCameraClick, showC
         }
       }
     },
-    {
+    ...(IN_APP_CAMERA_ENABLED ? [{
       id: 'camera',
       label: 'Camera',
       icon: '📷',
-      path: null,
+      path: null as string | null,
       onClick: () => {
         onCameraClick?.();
       }
-    },
+    }] : []),
     {
       id: 'post',
       label: 'Post',
@@ -162,7 +163,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick, onCameraClick, showC
 
   return (
     <nav className="bottom-nav">
-      <div className="bottom-nav-container">
+      <div className={`bottom-nav-container${IN_APP_CAMERA_ENABLED ? ' with-camera' : ''}`}>
         {tabs.map((tab) => (
           <button
             key={tab.id}

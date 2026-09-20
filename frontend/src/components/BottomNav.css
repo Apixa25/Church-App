@@ -38,11 +38,15 @@
 
 .bottom-nav-container {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   height: 60px;
   max-width: 100vw;
   padding: 0;
   margin: 0;
+}
+
+.bottom-nav-container.with-camera {
+  grid-template-columns: repeat(5, 1fr);
 }
 
 .bottom-nav-tab {

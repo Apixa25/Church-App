@@ -14,6 +14,7 @@ import {
   SocialMediaPlatform 
 } from '../utils/socialMediaUtils';
 import { createStableUploadFile, processImageForUpload } from '../utils/imageUtils';
+import { IN_APP_CAMERA_ENABLED } from '../config/featureFlags';
 import './PostComposer.css';
 
 // ============================================================================
@@ -647,15 +648,17 @@ const PostComposer: React.FC<PostComposerProps> = ({
               📎
             </button>
 
-            <button
-              type="button"
-              onClick={() => setShowCamera(true)}
-              className="toolbar-button camera-button"
-              disabled={mediaFiles.length >= maxMediaFiles}
-              title="Take photo/video"
-            >
-              📷
-            </button>
+            {IN_APP_CAMERA_ENABLED && (
+              <button
+                type="button"
+                onClick={() => setShowCamera(true)}
+                className="toolbar-button camera-button"
+                disabled={mediaFiles.length >= maxMediaFiles}
+                title="Take photo/video"
+              >
+                📷
+              </button>
+            )}
 
             {/* Combined Post To selector - shows organizations and groups */}
             <select
