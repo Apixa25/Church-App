@@ -452,6 +452,8 @@ const FeedFilterSelector: React.FC = () => {
         return 'Primary Org Only';
       case 'SELECTED_GROUPS':
         return `${selectedGroupIds.length} Group${selectedGroupIds.length !== 1 ? 's' : ''}`;
+      case 'CUSTOM':
+        return '✨ Custom Feed';
       default:
         return 'Filter Feed';
     }

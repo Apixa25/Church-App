@@ -16,6 +16,7 @@ import SearchComponent from './SearchComponent';
 import QuickDonationWidget from './QuickDonationWidget';
 import ClickableAvatar from './ClickableAvatar';
 import FeedFilterSelector from './FeedFilterSelector';
+import FeedScopeInput from './FeedScopeInput';
 import ContextSwitcher from './ContextSwitcher';
 import { FeedType } from '../types/Post';
 import { profileAPI } from '../services/api';
@@ -604,6 +605,13 @@ const Dashboard: React.FC = () => {
               {/* Context Switcher - only shows when user has both Church and Family primaries */}
               {showContextSwitcher && <ContextSwitcher />}
             </div>
+
+            {/* ✨ Natural-language / quick-chip feed scope ("show me my family and my church") */}
+            {feedView === 'social' && (
+              <div className="feed-scope-section">
+                <FeedScopeInput />
+              </div>
+            )}
 
             {/* Make Post Button - Desktop Only, between feed filter and feed navigation buttons */}
             {feedView === 'social' && (

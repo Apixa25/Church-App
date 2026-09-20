@@ -34,6 +34,7 @@ public class PostResponse {
     private boolean isAnonymous;
     private String category;
     private String location;
+    private Post.PostVisibility visibility;
     private int likesCount;
     private int commentsCount;
     private int sharesCount;
@@ -98,6 +99,7 @@ public class PostResponse {
         response.setAnonymous(post.getIsAnonymous());
         response.setCategory(post.getCategory());
         response.setLocation(post.getLocation());
+        response.setVisibility(post.getVisibility() != null ? post.getVisibility() : Post.PostVisibility.PUBLIC);
         response.setLikesCount(post.getLikesCount());
         response.setCommentsCount(post.getCommentsCount());
         response.setSharesCount(post.getSharesCount());

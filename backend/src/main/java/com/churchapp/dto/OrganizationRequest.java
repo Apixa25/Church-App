@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
 
@@ -43,11 +44,27 @@ public class OrganizationRequest {
 
     private String adminContactAddress;
 
+    // ---- Location & discovery (V53) - all optional --------------------------
+    private String denomination;
+    private String addressLine1;
+    private String addressLine2;
+    private String city;
+    private String stateProvince;
+    private String postalCode;
+    private String country;
+    private BigDecimal latitude;
+    private BigDecimal longitude;
+    private String geocodeStatus;
+    private Boolean discoverable;
+
     public Organization toOrganization() {
         Organization org = toOrganizationUpdate();
 
         if (this.tier == null) {
             org.setTier(Organization.SubscriptionTier.BASIC); // Default
+        }
+        if (org.getDiscoverable() == null) {
+            org.setDiscoverable(true);
         }
 
         // Status defaults to TRIAL for new orgs only.
@@ -97,8 +114,29 @@ public class OrganizationRequest {
             org.setMetadata(mergedMetadata);
         }
 
+        // Location & discovery - null means "not provided" so the service leaves the existing value alone
+        org.setDenomination(trimToNull(this.denomination));
+        org.setAddressLine1(trimToNull(this.addressLine1));
+        org.setAddressLine2(trimToNull(this.addressLine2));
+        org.setCity(trimToNull(this.city));
+        org.setStateProvince(trimToNull(this.stateProvince));
+        org.setPostalCode(trimToNull(this.postalCode));
+        org.setCountry(trimToNull(this.country));
+        org.setLatitude(this.latitude);
+        org.setLongitude(this.longitude);
+        org.setGeocodeStatus(trimToNull(this.geocodeStatus));
+        org.setDiscoverable(this.discoverable);
+
         // Parent org relationship set separately by service layer
 
         return org;
+    }
+
+    private static String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

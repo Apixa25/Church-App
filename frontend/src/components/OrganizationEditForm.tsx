@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import axios from 'axios';
 import { getApiUrl } from '../config/runtimeConfig';
 import { convertImageToJpeg } from '../utils/imageUtils';
+import OrganizationLocationSettings from './OrganizationLocationSettings';
 
 const API_BASE_URL = getApiUrl();
 const MAX_LOGO_UPLOAD_BYTES = 15 * 1024 * 1024; // 15MB cap for admin logo updates
@@ -235,6 +236,9 @@ const OrganizationEditForm: React.FC<OrganizationEditFormProps> = ({
               </SubmitButton>
             </ButtonGroup>
           </Form>
+
+          {/* Denomination / address / GPS / discoverable - saved independently of the logo form */}
+          <OrganizationLocationSettings organizationId={organization.id} />
         </FormContainer>
       </ModalContent>
     </ModalOverlay>

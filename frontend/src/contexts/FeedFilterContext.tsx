@@ -7,7 +7,56 @@ import { getApiUrl } from '../config/runtimeConfig';
 
 const API_BASE_URL = getApiUrl();
 
-export type FeedFilter = 'EVERYTHING' | 'ALL' | 'PRIMARY_ONLY' | 'SELECTED_GROUPS';
+export type FeedFilter = 'EVERYTHING' | 'ALL' | 'PRIMARY_ONLY' | 'SELECTED_GROUPS' | 'CUSTOM';
+
+export type NearbyOrgType = 'CHURCH' | 'MINISTRY' | 'NONPROFIT';
+
+/** Mirrors backend FeedScope.NearbyScope */
+export interface NearbyScope {
+  radiusMiles: number;
+  sameDenominationOnly: boolean;
+  denomination?: string | null;
+  orgTypes: NearbyOrgType[];
+}
+
+/**
+ * Mirrors backend FeedScope. This is the single contract every front door
+ * (quick chips, natural-language input) produces; the server validates and
+ * resolves it deterministically.
+ */
+export interface FeedScope {
+  includeChurchPrimary: boolean;
+  includeFamilyPrimary: boolean;
+  includeFriends: boolean;
+  includeFollowing: boolean;
+  includeMyGroups: boolean;
+  organizationIds: string[];
+  groupIds: string[];
+  nearby?: NearbyScope | null;
+}
+
+export const emptyFeedScope = (): FeedScope => ({
+  includeChurchPrimary: false,
+  includeFamilyPrimary: false,
+  includeFriends: false,
+  includeFollowing: false,
+  includeMyGroups: false,
+  organizationIds: [],
+  groupIds: [],
+  nearby: null,
+});
+
+/** Mirrors backend FeedScopeParseResult */
+export interface FeedScopeParseResult {
+  scope?: FeedScope | null;
+  legacyFilter?: 'EVERYTHING' | 'ALL' | null;
+  description?: string;
+  confidence: number;
+  clarificationQuestion?: string | null;
+  warnings: string[];
+  source?: string;
+  sourceText?: string;
+}
 
 export interface FeedPreference {
   id: string;
@@ -16,6 +65,10 @@ export interface FeedPreference {
   selectedGroupIds: string[];
   selectedOrganizationId?: string; // For PRIMARY_ONLY filter - the specific organization ID
   updatedAt: string;
+  // CUSTOM filter
+  scope?: FeedScope | null;
+  scopeDescription?: string | null;
+  scopeSourceText?: string | null;
 }
 
 export interface FeedParameters {
@@ -42,10 +95,18 @@ interface FeedFilterContextType {
   // Loading state
   loading: boolean;
 
+  // CUSTOM scope (natural language + quick chips)
+  scope: FeedScope | null;
+  scopeDescription: string | null;
+  scopeKey: string; // stable hash of the active scope for cache keys
+
   // Actions
   setFilter: (filter: FeedFilter, groupIds?: string[], selectedOrganizationId?: string) => Promise<void>;
   resetFilter: () => Promise<void>;
   refreshPreference: () => Promise<void>;
+  parseScope: (text: string) => Promise<FeedScopeParseResult>;
+  previewScope: (scope: FeedScope) => Promise<FeedScopeParseResult>;
+  saveScope: (scope: FeedScope, sourceText?: string) => Promise<void>;
 }
 
 const FeedFilterContext = createContext<FeedFilterContextType | undefined>(undefined);
@@ -274,6 +335,65 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
     }
   }, [preference, api, refreshPreference]);
 
+  // ---- CUSTOM scope actions -------------------------------------------------
+
+  // Preview only - translate free text into a scope. Nothing saved.
+  const parseScope = useCallback(async (text: string): Promise<FeedScopeParseResult> => {
+    try {
+      const res = await api.post('/feed-preferences/parse', { text });
+      return res.data as FeedScopeParseResult;
+    } catch (error: any) {
+      if (error.response?.status === 429) {
+        throw new Error(error.response?.data?.message || "You've changed your feed a lot recently - try again in a bit.");
+      }
+      throw new Error(error.response?.data?.message || 'Could not understand that request');
+    }
+  }, [api]);
+
+  // Preview a chip-built scope (validates + describes server-side). Nothing saved.
+  const previewScope = useCallback(async (scope: FeedScope): Promise<FeedScopeParseResult> => {
+    const res = await api.post('/feed-preferences/scope/preview', { scope });
+    return res.data as FeedScopeParseResult;
+  }, [api]);
+
+  // Save a scope and switch to CUSTOM. Optimistic like setFilter.
+  const saveScope = useCallback(async (scope: FeedScope, sourceText?: string): Promise<void> => {
+    const base: FeedPreference = preference || {
+      id: '',
+      userId: '',
+      activeFilter: 'EVERYTHING',
+      selectedGroupIds: [],
+      updatedAt: new Date().toISOString(),
+    };
+    const optimistic: FeedPreference = {
+      ...base,
+      activeFilter: 'CUSTOM',
+      selectedGroupIds: [],
+      selectedOrganizationId: undefined,
+      scope,
+      scopeSourceText: sourceText ?? null,
+      updatedAt: new Date().toISOString(),
+    };
+    optimisticUpdateRef.current = { filter: 'CUSTOM', groupIds: [], selectedOrganizationId: undefined };
+    setPreference(optimistic);
+
+    try {
+      const res = await api.put('/feed-preferences/scope', { scope, sourceText });
+      const saved = res.data as FeedPreference;
+      // Server returns the sanitized scope + description; adopt it so the UI shows what is really active
+      setPreference({
+        ...saved,
+        selectedGroupIds: saved.selectedGroupIds ? [...saved.selectedGroupIds] : [],
+      });
+      optimisticUpdateRef.current = null;
+    } catch (error: any) {
+      console.error('Error saving feed scope:', error);
+      optimisticUpdateRef.current = null;
+      await refreshPreference();
+      throw new Error(error.response?.data?.message || 'Failed to save feed scope');
+    }
+  }, [preference, api, refreshPreference]);
+
   // Reset filter to EVERYTHING (default) - memoized
   const resetFilter = useCallback(async (): Promise<void> => {
     try {
@@ -335,6 +455,14 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
       : [];
   }, [preference?.selectedGroupIds]);
 
+  // Scope is only "active" when the CUSTOM filter is selected; otherwise the stored
+  // scope is just a remembered draft and must not affect cache keys.
+  const activeScope = useMemo(
+    () => (preference?.activeFilter === 'CUSTOM' ? preference?.scope || null : null),
+    [preference?.activeFilter, preference?.scope]
+  );
+  const scopeKey = useMemo(() => (activeScope ? JSON.stringify(activeScope) : ''), [activeScope]);
+
   // Memoize context value to prevent unnecessary re-renders
   const value: FeedFilterContextType = useMemo(() => ({
     preference,
@@ -346,9 +474,15 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
     primaryOrgId,
     secondaryOrgIds,
     loading,
+    scope: activeScope,
+    scopeDescription: preference?.activeFilter === 'CUSTOM' ? preference?.scopeDescription || null : null,
+    scopeKey,
     setFilter,
     resetFilter,
     refreshPreference,
+    parseScope,
+    previewScope,
+    saveScope,
   }), [
     preference,
     selectedGroupIdsArray,
@@ -358,9 +492,14 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
     primaryOrgId,
     secondaryOrgIds,
     loading,
+    activeScope,
+    scopeKey,
     setFilter,
     resetFilter,
     refreshPreference,
+    parseScope,
+    previewScope,
+    saveScope,
   ]);
 
   return (

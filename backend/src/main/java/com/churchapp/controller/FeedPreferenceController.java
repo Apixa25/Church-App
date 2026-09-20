@@ -2,9 +2,16 @@ package com.churchapp.controller;
 
 import com.churchapp.dto.FeedPreferenceRequest;
 import com.churchapp.dto.FeedPreferenceResponse;
+import com.churchapp.dto.FeedScope;
+import com.churchapp.dto.FeedScopeParseRequest;
+import com.churchapp.dto.FeedScopeParseResult;
+import com.churchapp.dto.FeedScopeSaveRequest;
 import com.churchapp.entity.FeedPreference;
 import com.churchapp.repository.UserRepository;
 import com.churchapp.service.FeedFilterService;
+import com.churchapp.service.FeedScopeParserService;
+import com.churchapp.service.FeedScopeRateLimiter;
+import com.churchapp.service.FeedScopeValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -25,6 +32,9 @@ public class FeedPreferenceController {
 
     private final FeedFilterService feedFilterService;
     private final UserRepository userRepository;
+    private final FeedScopeParserService parserService;
+    private final FeedScopeValidator scopeValidator;
+    private final FeedScopeRateLimiter rateLimiter;
 
     // Helper method to get user ID from Spring Security User
     private UUID getUserId(User securityUser) {
@@ -44,8 +54,86 @@ public class FeedPreferenceController {
         UUID userId = getUserId(userDetails);
         FeedPreference preference = feedFilterService.getFeedPreference(userId);
 
-        FeedPreferenceResponse response = FeedPreferenceResponse.fromFeedPreference(preference);
+        FeedPreferenceResponse response = FeedPreferenceResponse.fromFeedPreference(
+            preference, feedFilterService.readScope(preference));
         return ResponseEntity.ok(response);
+    }
+
+    // ========================================================================
+    // FLEXIBLE SCOPE (CUSTOM filter) - natural language + quick chips
+    // ========================================================================
+
+    /**
+     * Preview only: translate free text into a FeedScope. Nothing is saved.
+     * The frontend shows the description + warnings and asks the user to confirm.
+     */
+    @PostMapping("/parse")
+    public ResponseEntity<?> parseScope(
+            @Valid @RequestBody FeedScopeParseRequest request,
+            @AuthenticationPrincipal User userDetails) {
+
+        UUID userId = getUserId(userDetails);
+
+        if (!rateLimiter.tryAcquire(userId)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(java.util.Map.of(
+                    "message", "You've changed your feed a lot in the last hour - try the quick options or wait a bit.",
+                    "limitPerHour", rateLimiter.getLimitPerHour()));
+        }
+
+        log.info("🗣️ User {} parsing feed scope text ({} chars)", userId, request.getText().length());
+        FeedScopeParseResult result = parserService.parse(userId, request.getText());
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Save a scope (from the preview card or a quick chip) and switch to the CUSTOM filter.
+     * The scope is re-validated server-side; the client is never trusted.
+     */
+    @PutMapping("/scope")
+    public ResponseEntity<FeedPreferenceResponse> saveScope(
+            @Valid @RequestBody FeedScopeSaveRequest request,
+            @AuthenticationPrincipal User userDetails) {
+
+        UUID userId = getUserId(userDetails);
+
+        FeedScopeValidator.ValidationResult validated = scopeValidator.validate(userId, request.getScope());
+        FeedScope scope = validated.scope();
+        String description = parserService.describe(userId, scope);
+
+        log.info("💾 User {} saving CUSTOM feed scope: {} (warnings={})", userId, description, validated.warnings());
+
+        FeedPreference saved = feedFilterService.saveCustomScope(userId, scope, description, request.getSourceText());
+
+        FeedPreferenceResponse response = FeedPreferenceResponse.fromFeedPreference(saved, scope);
+        if (response.getUserId() == null) {
+            response.setUserId(userId);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Preview what a scope would resolve to (org/group counts) without saving.
+     * Handy for the "Nearby churches" chip so we can show "12 churches within 25 mi".
+     */
+    @PostMapping("/scope/preview")
+    public ResponseEntity<FeedScopeParseResult> previewScope(
+            @Valid @RequestBody FeedScopeSaveRequest request,
+            @AuthenticationPrincipal User userDetails) {
+
+        UUID userId = getUserId(userDetails);
+        FeedScopeValidator.ValidationResult validated = scopeValidator.validate(userId, request.getScope());
+        FeedScope scope = validated.scope();
+
+        FeedScopeParseResult result = FeedScopeParseResult.builder()
+            .scope(scope)
+            .description(parserService.describe(userId, scope))
+            .confidence(1.0)
+            .warnings(validated.warnings())
+            .source("CHIP")
+            .sourceText(request.getSourceText())
+            .build();
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping
@@ -80,7 +168,8 @@ public class FeedPreferenceController {
             );
 
             // Create response with userId explicitly set to avoid lazy loading issues
-            FeedPreferenceResponse response = FeedPreferenceResponse.fromFeedPreference(updated);
+            FeedPreferenceResponse response = FeedPreferenceResponse.fromFeedPreference(
+                updated, feedFilterService.readScope(updated));
             // Ensure userId is set even if user relationship fails
             if (response.getUserId() == null) {
                 response.setUserId(userId);

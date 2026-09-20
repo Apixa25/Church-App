@@ -75,4 +75,62 @@ public interface OrganizationRepository extends JpaRepository<Organization, UUID
            "o.metadata @> CAST(:metadataJson AS jsonb)",
            nativeQuery = true)
     List<Organization> findByMetadataContains(@Param("metadataJson") String metadataJson);
+
+    /**
+     * Discover organizations within {@code radiusMiles} of a point.
+     *
+     * Standard "bounding box + Haversine" approach (no PostGIS required):
+     * the bounding-box predicate lets PostgreSQL use idx_organizations_coordinates
+     * to prune candidates cheaply, then the Haversine expression filters the
+     * remaining rows to a true great-circle distance.
+     *
+     * Safety rules baked into the query:
+     *  - FAMILY and GLOBAL organizations are never returned.
+     *  - Only discoverable, non-deleted, ACTIVE/TRIAL organizations.
+     *  - Optional denomination match (case-insensitive).
+     *
+     * @param typeNames   enum names of allowed organization types (e.g. ["CHURCH"])
+     * @param denomination optional denomination filter; pass null for any
+     */
+    @Query(value =
+        "SELECT o.* FROM organizations o " +
+        "WHERE o.deleted_at IS NULL " +
+        "  AND o.discoverable = TRUE " +
+        "  AND o.status IN ('ACTIVE', 'TRIAL') " +
+        "  AND o.type NOT IN ('FAMILY', 'GLOBAL') " +
+        "  AND o.type IN (:typeNames) " +
+        "  AND o.latitude IS NOT NULL AND o.longitude IS NOT NULL " +
+        "  AND (CAST(:denomination AS text) IS NULL OR LOWER(o.denomination) = LOWER(CAST(:denomination AS text))) " +
+        // Explicit double-precision casts keep the arithmetic in floating point on every
+        // database (H2 otherwise infers DECFLOAT for untyped parameters and overflows on division).
+        "  AND CAST(o.latitude AS double precision) BETWEEN " +
+        "        (CAST(:lat AS double precision) - (CAST(:radiusMiles AS double precision) / 69.0e0)) " +
+        "    AND (CAST(:lat AS double precision) + (CAST(:radiusMiles AS double precision) / 69.0e0)) " +
+        "  AND CAST(o.longitude AS double precision) BETWEEN " +
+        "        (CAST(:lng AS double precision) - (CAST(:radiusMiles AS double precision) / (69.0e0 * COS(RADIANS(CAST(:lat AS double precision)))))) " +
+        "    AND (CAST(:lng AS double precision) + (CAST(:radiusMiles AS double precision) / (69.0e0 * COS(RADIANS(CAST(:lat AS double precision)))))) " +
+        "  AND (3958.8e0 * ACOS(LEAST(1.0e0, GREATEST(-1.0e0, " +
+        "        COS(RADIANS(CAST(:lat AS double precision))) * COS(RADIANS(CAST(o.latitude AS double precision))) " +
+        "          * COS(RADIANS(CAST(o.longitude AS double precision)) - RADIANS(CAST(:lng AS double precision))) " +
+        "      + SIN(RADIANS(CAST(:lat AS double precision))) * SIN(RADIANS(CAST(o.latitude AS double precision))))))) " +
+        "      <= CAST(:radiusMiles AS double precision) " +
+        "ORDER BY (3958.8e0 * ACOS(LEAST(1.0e0, GREATEST(-1.0e0, " +
+        "        COS(RADIANS(CAST(:lat AS double precision))) * COS(RADIANS(CAST(o.latitude AS double precision))) " +
+        "          * COS(RADIANS(CAST(o.longitude AS double precision)) - RADIANS(CAST(:lng AS double precision))) " +
+        "      + SIN(RADIANS(CAST(:lat AS double precision))) * SIN(RADIANS(CAST(o.latitude AS double precision))))))) ASC " +
+        "LIMIT 200",
+        nativeQuery = true)
+    List<Organization> findNearby(
+        @Param("lat") double lat,
+        @Param("lng") double lng,
+        @Param("radiusMiles") double radiusMiles,
+        @Param("typeNames") List<String> typeNames,
+        @Param("denomination") String denomination
+    );
+
+    /** Distinct denominations currently in use (for parser hints and admin dropdown). */
+    @Query(value = "SELECT DISTINCT o.denomination FROM organizations o " +
+           "WHERE o.denomination IS NOT NULL AND o.deleted_at IS NULL ORDER BY o.denomination",
+           nativeQuery = true)
+    List<String> findDistinctDenominations();
 }

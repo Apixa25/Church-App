@@ -93,6 +93,19 @@
 }
 
 /* Make Post Button - Desktop Only */
+/* Natural-language / quick-chip feed scope input (sits under the filter toggle row) */
+.feed-scope-section {
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  margin: -8px auto 12px;
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
 .make-post-section {
   display: block;
   margin: 12px 0;

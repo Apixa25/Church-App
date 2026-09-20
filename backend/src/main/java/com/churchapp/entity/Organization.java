@@ -11,6 +11,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -99,6 +100,44 @@ public class Organization {
 
     @Column(name = "storage_limit_notified")
     private Boolean storageLimitNotified = false;
+
+    // ---- Location & discovery (V53) -------------------------------------
+    // Used by "nearby" / "same denomination" feed scopes. Mirrors the
+    // structured address fields on User (V9).
+
+    @Column(name = "denomination", length = 100)
+    private String denomination;
+
+    @Column(name = "address_line1", length = 255)
+    private String addressLine1;
+
+    @Column(name = "address_line2", length = 255)
+    private String addressLine2;
+
+    @Column(name = "city", length = 100)
+    private String city;
+
+    @Column(name = "state_province", length = 100)
+    private String stateProvince;
+
+    @Column(name = "postal_code", length = 20)
+    private String postalCode;
+
+    @Column(name = "country", length = 100)
+    private String country;
+
+    @Column(name = "latitude", precision = 9, scale = 6)
+    private BigDecimal latitude;
+
+    @Column(name = "longitude", precision = 9, scale = 6)
+    private BigDecimal longitude;
+
+    @Column(name = "geocode_status", length = 50)
+    private String geocodeStatus;
+
+    /** When false, this organization is never surfaced by nearby/denomination discovery. */
+    @Column(name = "discoverable", nullable = false)
+    private Boolean discoverable = true;
 
     public enum OrganizationType {
         CHURCH,

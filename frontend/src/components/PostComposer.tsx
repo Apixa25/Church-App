@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { PostType, MediaFile, CreatePostRequest } from '../types/Post';
+import { PostType, MediaFile, CreatePostRequest, PostVisibility } from '../types/Post';
 import { createPost } from '../services/postApi';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useGroup } from '../contexts/GroupContext';
@@ -66,6 +66,8 @@ const PostComposer: React.FC<PostComposerProps> = ({
   const [category, setCategory] = useState('');
   const [location, setLocation] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
+  // Opt-out privacy: posts are PUBLIC unless the author marks them members-only
+  const [visibility, setVisibility] = useState<PostVisibility>('PUBLIC');
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string>('');
@@ -428,7 +430,8 @@ const PostComposer: React.FC<PostComposerProps> = ({
         isAnonymous: isAnonymous,
         organizationId: selectedOrganizationId,
         groupId: selectedGroupId,
-        externalUrl: externalUrl.trim() ? normalizeForStorage(externalUrl.trim()) : undefined
+        externalUrl: externalUrl.trim() ? normalizeForStorage(externalUrl.trim()) : undefined,
+        visibility
       });
 
       // Clean up object URLs immediately
@@ -440,6 +443,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
       setCategory('');
       setLocation('');
       setIsAnonymous(false);
+      setVisibility('PUBLIC');
       setSelectedPostType(PostType.GENERAL);
       setExternalUrl('');
       setDetectedPlatform(null);
@@ -469,7 +473,8 @@ const PostComposer: React.FC<PostComposerProps> = ({
         anonymous: isAnonymous,
         organizationId: selectedOrganizationId,
         groupId: selectedGroupId,
-        externalUrl: normalizedExternalUrl
+        externalUrl: normalizedExternalUrl,
+        visibility
       };
 
       console.log('📤 Post request:', { 
@@ -493,6 +498,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
       setCategory('');
       setLocation('');
       setIsAnonymous(false);
+      setVisibility('PUBLIC');
       setSelectedPostType(PostType.GENERAL);
       setExternalUrl('');
       setDetectedPlatform(null);
@@ -743,6 +749,21 @@ const PostComposer: React.FC<PostComposerProps> = ({
                   Post anonymously
                 </label>
               </div>
+
+              {/* Members-only visibility: hides this post from non-members who follow
+                  the organization through nearby / denomination feed scopes */}
+              {!selectedGroupId && (
+                <div className="option-group">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={visibility === 'ORG_ONLY'}
+                      onChange={(e) => setVisibility(e.target.checked ? 'ORG_ONLY' : 'PUBLIC')}
+                    />
+                    🔒 Members only (hide from people outside this organization)
+                  </label>
+                </div>
+              )}
 
               {/* Social Media Embed Section */}
               <div className="option-group">

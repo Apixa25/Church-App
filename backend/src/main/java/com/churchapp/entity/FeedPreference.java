@@ -12,6 +12,7 @@ import org.hibernate.type.SqlTypes;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Entity
@@ -46,6 +47,20 @@ public class FeedPreference {
     @Column(name = "selected_organization_id")
     private UUID selectedOrganizationId; // When PRIMARY_ONLY is selected, filter by this specific organization
 
+    // ---- Flexible scope (V53) -------------------------------------------
+    // Used when activeFilter == CUSTOM. Stored as raw JSON so the shape can
+    // evolve without further migrations; parsed into a FeedScope DTO.
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "scope_json", columnDefinition = "jsonb")
+    private Map<String, Object> scopeJson;
+
+    @Column(name = "scope_description", columnDefinition = "TEXT")
+    private String scopeDescription;
+
+    @Column(name = "scope_source_text", columnDefinition = "TEXT")
+    private String scopeSourceText;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -58,6 +73,7 @@ public class FeedPreference {
         EVERYTHING,      // All posts including Global Feed
         ALL,             // User's orgs and groups (no Global Feed)
         PRIMARY_ONLY,    // Only active primary organization
-        SELECTED_GROUPS  // Only selected groups
+        SELECTED_GROUPS, // Only selected groups
+        CUSTOM           // Flexible FeedScope stored in scopeJson (church + family + friends + orgs + nearby...)
     }
 }

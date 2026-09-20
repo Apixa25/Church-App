@@ -21,7 +21,16 @@ public class FeedPreferenceResponse {
     private UUID selectedOrganizationId; // For PRIMARY_ONLY filter - the specific organization ID
     private LocalDateTime updatedAt;
 
+    // CUSTOM filter (flexible scope)
+    private FeedScope scope;
+    private String scopeDescription;
+    private String scopeSourceText;
+
     public static FeedPreferenceResponse fromFeedPreference(FeedPreference preference) {
+        return fromFeedPreference(preference, null);
+    }
+
+    public static FeedPreferenceResponse fromFeedPreference(FeedPreference preference, FeedScope scope) {
         if (preference == null) {
             return null;
         }
@@ -42,6 +51,9 @@ public class FeedPreferenceResponse {
         response.setSelectedGroupIds(preference.getSelectedGroupIds() != null ? preference.getSelectedGroupIds() : new java.util.ArrayList<>());
         response.setSelectedOrganizationId(preference.getSelectedOrganizationId());
         response.setUpdatedAt(preference.getUpdatedAt());
+        response.setScope(scope);
+        response.setScopeDescription(preference.getScopeDescription());
+        response.setScopeSourceText(preference.getScopeSourceText());
 
         return response;
     }

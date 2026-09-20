@@ -37,6 +37,10 @@ public class CreatePostRequest {
     // Social media embed fields
     private String externalUrl;    // Optional: URL of social media content to embed (X, Facebook, Instagram, YouTube)
 
+    // Privacy: PUBLIC (default) or ORG_ONLY ("members only" - hidden from non-members
+    // who follow this org via nearby/denomination feed scopes)
+    private Post.PostVisibility visibility;
+
     public boolean isAnonymous() {
         return anonymous;
     }

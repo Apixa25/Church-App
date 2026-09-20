@@ -1,11 +1,15 @@
 package com.churchapp.service;
 
+import com.churchapp.dto.FeedScope;
 import com.churchapp.entity.FeedPreference;
+import com.churchapp.entity.Organization;
 import com.churchapp.entity.User;
 import com.churchapp.repository.FeedPreferenceRepository;
+import com.churchapp.repository.OrganizationRepository;
 import com.churchapp.repository.UserGroupMembershipRepository;
 import com.churchapp.repository.UserOrganizationMembershipRepository;
 import com.churchapp.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,7 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -28,6 +36,9 @@ public class FeedFilterService {
     private final UserGroupMembershipRepository groupMembershipRepository;
     private final UserRepository userRepository;
     private final OrganizationGroupService organizationGroupService;
+    private final OrganizationRepository organizationRepository;
+    private final UserFollowService userFollowService;
+    private final ObjectMapper objectMapper;
 
     private static final UUID GLOBAL_ORG_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
@@ -209,6 +220,9 @@ public class FeedFilterService {
                     .filter(userGroupIds::contains)
                     .collect(Collectors.toList());
 
+            case CUSTOM:
+                return resolveCustomScope(userId, readScope(preference), getAllPrimaryOrgIds(userId)).getGroupIds();
+
             case EVERYTHING:
             case ALL:
             default:
@@ -238,6 +252,14 @@ public class FeedFilterService {
                     visibleOrgs.add(allPrimaryOrgIds.get(0));
                 }
             }
+            return visibleOrgs;
+        }
+
+        // CUSTOM: whatever the scope resolves to (member + discovered orgs)
+        if (preference.getActiveFilter() == FeedPreference.FeedFilter.CUSTOM) {
+            FeedParameters params = resolveCustomScope(userId, readScope(preference), allPrimaryOrgIds);
+            visibleOrgs.addAll(params.getPrimaryOrgIds());
+            visibleOrgs.addAll(params.getSecondaryOrgIds());
             return visibleOrgs;
         }
 
@@ -338,6 +360,12 @@ public class FeedFilterService {
             );
         }
         
+        // ===== FILTER 5: CUSTOM (flexible FeedScope) =====
+        // Church and/or family and/or friends and/or explicit orgs/groups and/or nearby churches
+        if (activeFilter == FeedPreference.FeedFilter.CUSTOM) {
+            return resolveCustomScope(userId, readScope(preference), allPrimaryOrgIds);
+        }
+
         // ===== FILTER 3 & 4: EVERYTHING and ALL =====
         // EVERYTHING: Church + Family + Groups + Global Feed + Org-as-Groups
         // ALL: Church + Family + Groups + Org-as-Groups (NO Global Feed)
@@ -368,6 +396,173 @@ public class FeedFilterService {
         return new FeedParameters(primaryOrgIds, secondaryOrgIds, groupIds, orgAsGroupIds);
     }
 
+    // ========================================================================
+    // CUSTOM SCOPE (FeedScope -> FeedParameters)
+    // ========================================================================
+
+    /**
+     * Reads the persisted FeedScope for a preference. Returns an empty scope when
+     * none is stored so a CUSTOM filter with no scope yields an empty feed rather
+     * than an error.
+     */
+    public FeedScope readScope(FeedPreference preference) {
+        if (preference == null || preference.getScopeJson() == null || preference.getScopeJson().isEmpty()) {
+            return new FeedScope();
+        }
+        try {
+            return objectMapper.convertValue(preference.getScopeJson(), FeedScope.class);
+        } catch (IllegalArgumentException e) {
+            log.warn("⚠️ Could not parse stored FeedScope for preference {}: {}", preference.getId(), e.getMessage());
+            return new FeedScope();
+        }
+    }
+
+    /**
+     * Persist a validated FeedScope and switch the user to the CUSTOM filter.
+     * Callers must run the scope through {@link FeedScopeValidator} first.
+     */
+    public FeedPreference saveCustomScope(UUID userId, FeedScope scope, String description, String sourceText) {
+        FeedPreference preference = feedPreferenceRepository.findByUserId(userId)
+            .orElseGet(() -> createDefaultPreference(userId));
+
+        if (preference.getUser() == null) {
+            preference.setUser(userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId)));
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> json = objectMapper.convertValue(scope, Map.class);
+
+        preference.setActiveFilter(FeedPreference.FeedFilter.CUSTOM);
+        preference.setScopeJson(json);
+        preference.setScopeDescription(description);
+        preference.setScopeSourceText(sourceText);
+        // Legacy single-selection columns are irrelevant for CUSTOM; clear so the UI doesn't show stale state.
+        preference.setSelectedGroupIds(new ArrayList<>());
+        preference.setSelectedOrganizationId(null);
+        preference.setUpdatedAt(LocalDateTime.now());
+
+        FeedPreference saved = feedPreferenceRepository.save(preference);
+        log.info("✅ Saved CUSTOM feed scope for user {}: {}", userId, description);
+        return saved;
+    }
+
+    /**
+     * Translate a (validated) FeedScope into the ID lists the existing feed query understands.
+     *
+     * Mapping:
+     *  - church/family primaries + member orgs           -> primaryOrgIds   (all visibility)
+     *  - non-member orgs (explicit or discovered nearby) -> secondaryOrgIds (PUBLIC only - enforced by the JPQL)
+     *  - explicit groups / all my groups                 -> groupIds
+     *  - friends (mutual) / following                    -> followingIds
+     */
+    public FeedParameters resolveCustomScope(UUID userId, FeedScope scope, List<UUID> allPrimaryOrgIds) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        Set<UUID> memberOrgIds = new HashSet<>(allPrimaryOrgIds);
+        orgMembershipRepository.findByUserId(userId)
+            .forEach(m -> memberOrgIds.add(m.getOrganization().getId()));
+
+        LinkedHashSet<UUID> primaryOrgIds = new LinkedHashSet<>();
+        LinkedHashSet<UUID> secondaryOrgIds = new LinkedHashSet<>();
+        LinkedHashSet<UUID> groupIds = new LinkedHashSet<>();
+        LinkedHashSet<UUID> followingIds = new LinkedHashSet<>();
+
+        if (scope.isIncludeChurchPrimary() && user.getPrimaryOrganization() != null) {
+            primaryOrgIds.add(user.getPrimaryOrganization().getId());
+        }
+        if (scope.isIncludeFamilyPrimary() && user.getFamilyPrimaryOrganization() != null) {
+            primaryOrgIds.add(user.getFamilyPrimaryOrganization().getId());
+        }
+
+        if (scope.getOrganizationIds() != null) {
+            for (UUID orgId : scope.getOrganizationIds()) {
+                if (orgId == null) continue;
+                if (memberOrgIds.contains(orgId)) {
+                    primaryOrgIds.add(orgId);
+                } else {
+                    secondaryOrgIds.add(orgId);
+                }
+            }
+        }
+
+        if (scope.isIncludeMyGroups()) {
+            groupIds.addAll(getUserUnmutedGroupIds(userId));
+        }
+        if (scope.getGroupIds() != null) {
+            scope.getGroupIds().stream().filter(id -> id != null).forEach(groupIds::add);
+        }
+
+        if (scope.isIncludeFollowing()) {
+            followingIds.addAll(userFollowService.getFollowingIds(userId));
+        }
+        if (scope.isIncludeFriends()) {
+            followingIds.addAll(userFollowService.getMutualFollowIds(userId));
+        }
+
+        if (scope.hasNearby()) {
+            for (UUID orgId : discoverNearbyOrganizationIds(user, scope.getNearby())) {
+                if (memberOrgIds.contains(orgId)) {
+                    primaryOrgIds.add(orgId);
+                } else {
+                    secondaryOrgIds.add(orgId);
+                }
+            }
+        }
+
+        // An org can't be both primary and secondary; primary (full visibility) wins for members.
+        secondaryOrgIds.removeAll(primaryOrgIds);
+
+        log.info("🎯 CUSTOM scope for user {} -> primaryOrgs={}, secondaryOrgs={}, groups={}, following={}",
+            userId, primaryOrgIds.size(), secondaryOrgIds.size(), groupIds.size(), followingIds.size());
+
+        return new FeedParameters(
+            new ArrayList<>(primaryOrgIds),
+            new ArrayList<>(secondaryOrgIds),
+            new ArrayList<>(groupIds),
+            new ArrayList<>(),          // org-as-groups are not part of CUSTOM (explicit orgIds cover it)
+            new ArrayList<>(followingIds)
+        );
+    }
+
+    /**
+     * Runs the nearby discovery query for a NearbyScope using the user's profile coordinates.
+     * Returns an empty list when the user has no location - the validator already warned them.
+     */
+    public List<UUID> discoverNearbyOrganizationIds(User user, FeedScope.NearbyScope nearby) {
+        if (user.getLatitude() == null || user.getLongitude() == null) {
+            log.info("📍 User {} has no coordinates; nearby scope yields nothing", user.getId());
+            return List.of();
+        }
+
+        String denomination = nearby.getDenomination();
+        if (denomination == null && nearby.isSameDenominationOnly()
+                && user.getPrimaryOrganization() != null) {
+            denomination = user.getPrimaryOrganization().getDenomination();
+        }
+
+        List<String> typeNames = (nearby.getOrgTypes() == null || nearby.getOrgTypes().isEmpty()
+                ? List.of(Organization.OrganizationType.CHURCH)
+                : nearby.getOrgTypes())
+            .stream().map(Enum::name).collect(Collectors.toList());
+
+        int radius = nearby.getRadiusMiles() != null ? nearby.getRadiusMiles() : FeedScope.DEFAULT_RADIUS_MILES;
+
+        List<Organization> found = organizationRepository.findNearby(
+            user.getLatitude().doubleValue(),
+            user.getLongitude().doubleValue(),
+            radius,
+            typeNames,
+            denomination
+        );
+
+        log.info("📍 Nearby discovery for user {}: radius={}mi, types={}, denomination={} -> {} orgs",
+            user.getId(), radius, typeNames, denomination, found.size());
+
+        return found.stream().map(Organization::getId).collect(Collectors.toList());
+    }
+
     /**
      * Simple data class to hold feed query parameters
      * Supports dual-primary system (churchPrimary + familyPrimary)
@@ -378,12 +573,26 @@ public class FeedFilterService {
         private final List<UUID> secondaryOrgIds;
         private final List<UUID> groupIds;
         private final List<UUID> orgAsGroupIds; // Organizations followed as groups (feed-only)
+        // Followed user IDs to include. null = "not part of this scope" (legacy ALL filter
+        // still computes its own list in PostService; CUSTOM sets this explicitly).
+        private final List<UUID> followingIds;
 
         public FeedParameters(List<UUID> primaryOrgIds, List<UUID> secondaryOrgIds, List<UUID> groupIds, List<UUID> orgAsGroupIds) {
+            this(primaryOrgIds, secondaryOrgIds, groupIds, orgAsGroupIds, null);
+        }
+
+        public FeedParameters(List<UUID> primaryOrgIds, List<UUID> secondaryOrgIds, List<UUID> groupIds,
+                              List<UUID> orgAsGroupIds, List<UUID> followingIds) {
             this.primaryOrgIds = primaryOrgIds != null ? primaryOrgIds : new ArrayList<>();
             this.secondaryOrgIds = secondaryOrgIds != null ? secondaryOrgIds : new ArrayList<>();
             this.groupIds = groupIds != null ? groupIds : new ArrayList<>();
             this.orgAsGroupIds = orgAsGroupIds != null ? orgAsGroupIds : new ArrayList<>();
+            this.followingIds = (followingIds == null || followingIds.isEmpty()) ? null : followingIds;
+        }
+
+        /** Nullable: null means "no followed-user posts in this scope". */
+        public List<UUID> getFollowingIds() {
+            return followingIds;
         }
 
         public List<UUID> getPrimaryOrgIds() {

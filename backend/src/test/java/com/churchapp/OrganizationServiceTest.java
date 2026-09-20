@@ -17,6 +17,7 @@ import com.churchapp.repository.UserOrganizationHistoryRepository;
 import com.churchapp.repository.UserOrganizationMembershipRepository;
 import com.churchapp.repository.UserRepository;
 import com.churchapp.service.EmailService;
+import com.churchapp.service.OrganizationGeocodingService;
 import com.churchapp.service.OrganizationService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -55,6 +56,7 @@ public class OrganizationServiceTest {
     @Mock private DonationSubscriptionRepository donationSubscriptionRepository;
     @Mock private GroupRepository groupRepository;
     @Mock private EmailService emailService;
+    @Mock private OrganizationGeocodingService geocodingService;
 
     @InjectMocks
     private OrganizationService organizationService;

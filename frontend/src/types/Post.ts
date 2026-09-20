@@ -78,6 +78,7 @@ export interface Post {
   isAnonymous: boolean;
   category?: string;
   location?: string;
+  visibility?: PostVisibility;  // PUBLIC (default) or ORG_ONLY (members only)
   likesCount: number;
   commentsCount: number;
   sharesCount: number;
@@ -184,7 +185,11 @@ export interface CreatePostRequest {
   groupId?: string;
   // Social media embed field
   externalUrl?: string;    // Optional: URL of social media content to embed (X, Facebook, Instagram, YouTube)
+  // Privacy: PUBLIC (default) or ORG_ONLY ("members only")
+  visibility?: PostVisibility;
 }
+
+export type PostVisibility = 'PUBLIC' | 'ORG_ONLY';
 
 export interface CreateReplyRequest {
   content: string;

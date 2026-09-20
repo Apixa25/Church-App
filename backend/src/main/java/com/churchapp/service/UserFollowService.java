@@ -142,6 +142,14 @@ public class UserFollowService {
     }
 
     /**
+     * Get IDs of "friends": users who follow this user AND are followed back.
+     * Used by the CUSTOM feed scope (includeFriends).
+     */
+    public List<UUID> getMutualFollowIds(UUID userId) {
+        return userFollowRepository.findMutualFollowerIds(userId);
+    }
+
+    /**
      * Check if two users follow each other (mutual following)
      * @param userId1 First user ID
      * @param userId2 Second user ID

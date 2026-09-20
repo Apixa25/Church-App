@@ -54,6 +54,16 @@ public class PostService {
                           List<String> mediaTypes, Post.PostType postType,
                           String category, String location, boolean isAnonymous,
                           UUID organizationId, UUID groupId, String externalUrl) {
+        return createPost(userEmail, content, mediaUrls, mediaTypes, postType, category, location, isAnonymous,
+            organizationId, groupId, externalUrl, null);
+    }
+
+    @Transactional
+    public Post createPost(String userEmail, String content, List<String> mediaUrls,
+                          List<String> mediaTypes, Post.PostType postType,
+                          String category, String location, boolean isAnonymous,
+                          UUID organizationId, UUID groupId, String externalUrl,
+                          Post.PostVisibility visibility) {
 
         User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
@@ -166,6 +176,8 @@ public class PostService {
         post.setCategory(category);
         post.setLocation(location);
         post.setIsAnonymous(isAnonymous);
+        // Opt-out privacy model: posts are PUBLIC unless the author marks them members-only.
+        post.setVisibility(visibility != null ? visibility : Post.PostVisibility.PUBLIC);
 
         // Set group context first (optional - posts can be in groups)
         // IMPORTANT: If a group is specified, don't set organization (group takes priority)
@@ -385,13 +397,17 @@ public class PostService {
         FeedFilterService.FeedParameters params = feedFilterService.getFeedParameters(userId);
 
         // Determine if we should include followed users
-        // Only for ALL filter (EVERYTHING short-circuits to universal query above)
+        // - ALL: everyone the user follows
+        // - CUSTOM: whatever the FeedScope resolved (friends and/or following), carried on params
+        // - PRIMARY_ONLY / SELECTED_GROUPS: none
         List<UUID> followingIds = null;
         if (activeFilter == FeedPreference.FeedFilter.ALL) {
             followingIds = userFollowService.getFollowingIds(userId);
             if (followingIds.isEmpty()) {
                 followingIds = null;
             }
+        } else if (activeFilter == FeedPreference.FeedFilter.CUSTOM) {
+            followingIds = params.getFollowingIds(); // already null when empty
         }
         
         // Log what we're about to query
@@ -428,7 +444,7 @@ public class PostService {
             params.getGroupIds(),
             params.getOrgAsGroupIds(),
             blockedIds,
-            followingIds,  // null for PRIMARY_ONLY and SELECTED_GROUPS
+            followingIds,  // null for PRIMARY_ONLY and SELECTED_GROUPS; scope-driven for CUSTOM
             userId,  // currentUserId - so user can see their own anonymous posts
             pageable
         );

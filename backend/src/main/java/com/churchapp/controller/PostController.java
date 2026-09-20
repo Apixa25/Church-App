@@ -76,7 +76,8 @@ public class PostController {
                 request.isAnonymous(),
                 request.getOrganizationId(),  // Multi-tenant: optional org context
                 request.getGroupId(),          // Multi-tenant: optional group context
-                request.getExternalUrl()       // Social media embed: optional external URL
+                request.getExternalUrl(),      // Social media embed: optional external URL
+                request.getVisibility()        // Privacy: PUBLIC (default) or ORG_ONLY
             );
 
             PostResponse response = postResponseMapper.mapPost(post, resolveUserId(user));

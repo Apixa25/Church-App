@@ -39,6 +39,7 @@ public class OrganizationService {
     private final DonationSubscriptionRepository donationSubscriptionRepository;
     private final GroupRepository groupRepository;
     private final EmailService emailService;
+    private final OrganizationGeocodingService geocodingService;
 
     // Cooldown removed! Users can now switch organizations freely like real life!
     // private static final int ORG_SWITCH_COOLDOWN_DAYS = 30;  // DEPRECATED - no more cooldown
@@ -117,6 +118,15 @@ public class OrganizationService {
         metadata.putIfAbsent("creatorName", creator.getName());
         metadata.putIfAbsent("creatorEmail", creator.getEmail());
         organization.setMetadata(metadata);
+
+        // Discoverability defaults to true; families are excluded from discovery at query time regardless.
+        if (organization.getDiscoverable() == null) {
+            organization.setDiscoverable(true);
+        }
+        // Geocode on create when an address was supplied without coordinates.
+        if (organization.getLatitude() == null && geocodingService.hasGeocodableAddress(organization)) {
+            geocodingService.geocodeInPlace(organization);
+        }
 
         Organization saved = organizationRepository.save(organization);
         log.info("Organization created successfully: {} (ID: {})", saved.getName(), saved.getId());
@@ -235,8 +245,60 @@ public class OrganizationService {
             org.setLogoUrl(updates.getLogoUrl());
         }
 
+        applyLocationUpdates(org, updates);
+
         org.setUpdatedAt(LocalDateTime.now());
         return organizationRepository.save(org);
+    }
+
+    /**
+     * Applies denomination / address / coordinates / discoverability updates.
+     * If the address changed but the caller supplied no coordinates, we geocode
+     * server-side so "nearby" feed scopes can find this organization.
+     */
+    private void applyLocationUpdates(Organization org, Organization updates) {
+        boolean addressChanged = false;
+
+        if (updates.getDenomination() != null) {
+            org.setDenomination(updates.getDenomination());
+        }
+        if (updates.getAddressLine1() != null && !updates.getAddressLine1().equals(org.getAddressLine1())) {
+            org.setAddressLine1(updates.getAddressLine1());
+            addressChanged = true;
+        }
+        if (updates.getAddressLine2() != null) {
+            org.setAddressLine2(updates.getAddressLine2());
+        }
+        if (updates.getCity() != null && !updates.getCity().equals(org.getCity())) {
+            org.setCity(updates.getCity());
+            addressChanged = true;
+        }
+        if (updates.getStateProvince() != null && !updates.getStateProvince().equals(org.getStateProvince())) {
+            org.setStateProvince(updates.getStateProvince());
+            addressChanged = true;
+        }
+        if (updates.getPostalCode() != null && !updates.getPostalCode().equals(org.getPostalCode())) {
+            org.setPostalCode(updates.getPostalCode());
+            addressChanged = true;
+        }
+        if (updates.getCountry() != null && !updates.getCountry().equals(org.getCountry())) {
+            org.setCountry(updates.getCountry());
+            addressChanged = true;
+        }
+        if (updates.getDiscoverable() != null) {
+            org.setDiscoverable(updates.getDiscoverable());
+        }
+
+        boolean coordinatesProvided = updates.getLatitude() != null && updates.getLongitude() != null;
+        if (coordinatesProvided) {
+            org.setLatitude(updates.getLatitude());
+            org.setLongitude(updates.getLongitude());
+            org.setGeocodeStatus(updates.getGeocodeStatus() != null
+                ? updates.getGeocodeStatus()
+                : OrganizationGeocodingService.STATUS_MANUAL);
+        } else if (addressChanged || (org.getLatitude() == null && geocodingService.hasGeocodableAddress(org))) {
+            geocodingService.geocodeInPlace(org);
+        }
     }
 
     public Organization markBankingReviewClicked(UUID orgId) {

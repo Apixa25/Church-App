@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react';
 import { uploadMediaDirect, createPost } from '../services/postApi';
-import { CreatePostRequest, PostType } from '../types/Post';
+import { CreatePostRequest, PostType, PostVisibility } from '../types/Post';
 
 // ============================================================================
 // UPLOAD QUEUE CONTEXT - Background uploads like Twitter/Facebook/Instagram
@@ -21,6 +21,7 @@ export interface UploadJob {
   organizationId?: string;
   groupId?: string;
   externalUrl?: string;  // Social media embed URL
+  visibility?: PostVisibility;  // PUBLIC (default) or ORG_ONLY
   error?: string;
   createdAt: Date;
   completedAt?: Date;
@@ -119,7 +120,8 @@ export const UploadQueueProvider: React.FC<UploadQueueProviderProps> = ({
         anonymous: job.isAnonymous,
         organizationId: job.organizationId,
         groupId: job.groupId,
-        externalUrl: job.externalUrl?.trim() || undefined  // Include external URL if provided
+        externalUrl: job.externalUrl?.trim() || undefined,  // Include external URL if provided
+        visibility: job.visibility
       };
 
       const newPost = await createPost(postRequest);

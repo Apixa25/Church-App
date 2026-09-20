@@ -30,7 +30,7 @@ const PostFeed: React.FC<PostFeedProps> = ({
   refreshKey
 }) => {
   // Feed filter context - to refresh feed when filter changes
-  const { activeFilter, selectedGroupIds } = useFeedFilter();
+  const { activeFilter, selectedGroupIds, scopeKey } = useFeedFilter();
   // WebSocket context - for shared connection management
   const { isConnected, ensureConnection } = useWebSocket();
   // 🎯 Get active context to include in cache key
@@ -45,9 +45,10 @@ const PostFeed: React.FC<PostFeedProps> = ({
   
   // 🎯 Include activeOrganizationId in cache key so posts are cached per context
   // Memoize queryKey to prevent recreation on every render (fixes infinite loop)
+  // scopeKey is '' unless the CUSTOM filter is active, so legacy filters keep their existing keys
   const queryKey = useMemo(() => {
-    return ['posts', feedTypeString, activeFilter, selectedGroupIds?.join(',') || '', activeOrganizationId || 'none'];
-  }, [feedTypeString, activeFilter, selectedGroupIds, activeOrganizationId]);
+    return ['posts', feedTypeString, activeFilter, selectedGroupIds?.join(',') || '', activeOrganizationId || 'none', scopeKey];
+  }, [feedTypeString, activeFilter, selectedGroupIds, activeOrganizationId, scopeKey]);
 
   // State
   const [posts, setPosts] = useState<Post[]>([]);
