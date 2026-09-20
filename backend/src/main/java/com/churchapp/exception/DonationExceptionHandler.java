@@ -1,14 +1,19 @@
 package com.churchapp.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -93,6 +98,58 @@ public class DonationExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    // ------------------------------------------------------------------------
+    // Client errors that Spring MVC / Security raise before a controller runs.
+    // Without these, the catch-all below turns a mistyped URL or wrong HTTP verb
+    // into a 500 with a stack trace, which hides real server errors in monitoring.
+    // ------------------------------------------------------------------------
+
+    @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
+    public ResponseEntity<ErrorResponse> handleNotFound(Exception e) {
+        log.warn("No route: {}", e.getMessage());
+
+        ErrorResponse errorResponse = new ErrorResponse(
+            "NOT_FOUND",
+            "The requested resource was not found",
+            e.getMessage(),
+            LocalDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotAllowed(HttpRequestMethodNotSupportedException e) {
+        log.warn("Method not allowed: {}", e.getMessage());
+
+        ErrorResponse errorResponse = new ErrorResponse(
+            "METHOD_NOT_ALLOWED",
+            "That action isn't supported on this resource",
+            e.getMessage(),
+            LocalDateTime.now()
+        );
+
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED);
+        if (e.getSupportedHttpMethods() != null && !e.getSupportedHttpMethods().isEmpty()) {
+            builder.allow(e.getSupportedHttpMethods().toArray(new HttpMethod[0]));
+        }
+        return builder.body(errorResponse);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException e) {
+        log.warn("Access denied: {}", e.getMessage());
+
+        ErrorResponse errorResponse = new ErrorResponse(
+            "FORBIDDEN",
+            "You don't have permission to do that",
+            e.getMessage(),
+            LocalDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
     }
 
     @ExceptionHandler(Exception.class)
