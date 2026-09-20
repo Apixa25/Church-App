@@ -15,6 +15,7 @@ import com.churchapp.repository.UserRepository;
 import com.churchapp.service.FeedScopeParserService;
 import com.churchapp.service.FeedScopeValidator;
 import com.churchapp.service.OrganizationGroupService;
+import com.churchapp.service.UserFollowService;
 import com.churchapp.service.ai.OpenAiClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,6 +59,7 @@ class FeedScopeParserRulesTest {
     @Mock private OrganizationRepository organizationRepository;
     @Mock private GroupRepository groupRepository;
     @Mock private OrganizationGroupService organizationGroupService;
+    @Mock private UserFollowService userFollowService;
     @Mock private FeedScopeValidator validator;
     @Mock private OpenAiClient openAiClient;
     @Spy private ObjectMapper objectMapper = new ObjectMapper();
@@ -69,6 +71,8 @@ class FeedScopeParserRulesTest {
     private Organization family;
     private Organization gracePoint;
     private Group youthGroup;
+    private User mom;        // family member "Terry Sills"
+    private User graceMember; // church member whose first name is a common word
 
     @BeforeEach
     void setUp() {
@@ -114,6 +118,30 @@ class FeedScopeParserRulesTest {
             return out;
         });
         when(groupRepository.findAllById(any())).thenReturn(List.of(youthGroup));
+
+        // People directory: mom is in the family org, "Grace Will" is in the church.
+        mom = person("Terry Sills");
+        graceMember = person("Grace Will");
+        UserOrganizationMembership momInFamily = new UserOrganizationMembership();
+        momInFamily.setUser(mom);
+        momInFamily.setOrganization(family);
+        UserOrganizationMembership graceInChurch = new UserOrganizationMembership();
+        graceInChurch.setUser(graceMember);
+        graceInChurch.setOrganization(church);
+        when(orgMembershipRepository.findByOrganizationId(family.getId())).thenReturn(List.of(momInFamily));
+        when(orgMembershipRepository.findByOrganizationId(church.getId())).thenReturn(List.of(graceInChurch));
+        when(orgMembershipRepository.findByOrganizationId(gracePoint.getId())).thenReturn(List.of());
+        when(userFollowService.getFollowingIds(userId)).thenReturn(List.of());
+        when(userRepository.findAllById(any())).thenAnswer(inv -> {
+            Iterable<UUID> ids = inv.getArgument(0);
+            java.util.List<User> out = new java.util.ArrayList<>();
+            for (UUID id : ids) {
+                for (User u : List.of(mom, graceMember)) {
+                    if (u.getId().equals(id)) out.add(u);
+                }
+            }
+            return out;
+        });
 
         // Validator is exercised separately; here it passes scopes through untouched.
         when(validator.validate(eq(userId), any(FeedScope.class)))
@@ -271,6 +299,48 @@ class FeedScopeParserRulesTest {
     }
 
     @Test
+    void namedPersonBecomesAuthorFilterWithoutTurningOnFamily() {
+        FeedScopeParseResult r = parser.parse(userId,
+            "show me all of my mothers posts please her name is Terry Sills");
+
+        assertRules(r);
+        assertEquals(List.of(mom.getId()), r.getScope().getUserIds());
+        assertFalse(r.getScope().isIncludeFamilyPrimary(), "'mothers' is a relationship word, not a request for the whole family");
+        assertFalse(r.getScope().isIncludeChurchPrimary());
+        assertEquals("posts by Terry Sills", r.getDescription());
+    }
+
+    @Test
+    void personPlusFamilyKeepsBoth() {
+        FeedScopeParseResult r = parser.parse(userId, "Terry Sills and my family");
+
+        assertRules(r);
+        assertEquals(List.of(mom.getId()), r.getScope().getUserIds());
+        assertTrue(r.getScope().isIncludeFamilyPrimary());
+        assertEquals("Smith Family + posts by Terry Sills", r.getDescription());
+    }
+
+    @Test
+    void commonWordFirstNameDoesNotMatchByAccident() {
+        // "grace" appears inside "Grace Point Fellowship" and could appear as an ordinary word;
+        // rules only match a person's FULL name on word boundaries.
+        FeedScopeParseResult r = parser.parse(userId, "just Grace Point Fellowship");
+
+        assertRules(r);
+        assertTrue(r.getScope().getUserIds().isEmpty());
+        assertEquals(List.of(gracePoint.getId()), r.getScope().getOrganizationIds());
+    }
+
+    @Test
+    void firstNameOnlyFallsThroughToAiOrClarification() {
+        // With AI disabled, a bare first name is not enough for the rules to act on.
+        FeedScopeParseResult r = parser.parse(userId, "posts by Terry");
+
+        assertNull(r.getScope());
+        assertNotNull(r.getClarificationQuestion());
+    }
+
+    @Test
     void gibberishAsksForClarificationWhenAiDisabled() {
         FeedScopeParseResult r = parser.parse(userId, "purple elephants on tuesday");
 
@@ -311,5 +381,13 @@ class FeedScopeParserRulesTest {
         o.setType(type);
         o.setDiscoverable(true);
         return o;
+    }
+
+    private static User person(String name) {
+        User u = new User();
+        u.setId(UUID.randomUUID());
+        u.setName(name);
+        u.setIsActive(true);
+        return u;
     }
 }

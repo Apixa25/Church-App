@@ -35,6 +35,8 @@ import java.util.stream.Collectors;
  *  - Non-member organizations must be non-deleted and discoverable.
  *  - The GLOBAL organization cannot be added explicitly (use the EVERYTHING filter).
  *  - Radius is clamped to [1, 250] miles; FAMILY/GLOBAL are removed from nearby orgTypes.
+ *  - Explicit people must share an organization with the user or be someone the user
+ *    follows - i.e. people whose posts the user could already see in a normal feed.
  */
 @Service
 @RequiredArgsConstructor
@@ -48,6 +50,7 @@ public class FeedScopeValidator {
     private final UserOrganizationMembershipRepository orgMembershipRepository;
     private final UserGroupMembershipRepository groupMembershipRepository;
     private final OrganizationRepository organizationRepository;
+    private final UserFollowService userFollowService;
 
     /**
      * Result of validation: the sanitized scope plus human-readable notes about
@@ -84,6 +87,9 @@ public class FeedScopeValidator {
 
         // ---- Explicit groups ----
         scope.setGroupIds(sanitizeGroupIds(scope.getGroupIds(), memberGroupIds, warnings));
+
+        // ---- Explicit people ----
+        scope.setUserIds(sanitizeUserIds(userId, scope.getUserIds(), memberOrgIds, warnings));
 
         // ---- Nearby ----
         if (scope.getNearby() != null) {
@@ -147,6 +153,49 @@ public class FeedScopeValidator {
             warnings.add("Some groups were skipped because you're not a member of them.");
         }
         return kept;
+    }
+
+    /**
+     * A person can be named only if the viewer already has a relationship that makes their
+     * posts visible: a shared organization (church, family, ministry...) or a follow.
+     * Anyone else is silently dropped with a warning - this is what stops "show me posts by
+     * <stranger at another church>" from ever reaching the feed query.
+     */
+    private List<UUID> sanitizeUserIds(UUID viewerId, List<UUID> requested, Set<UUID> viewerOrgIds, List<String> warnings) {
+        if (requested == null || requested.isEmpty()) {
+            return new ArrayList<>();
+        }
+        Set<UUID> following = new HashSet<>(userFollowService.getFollowingIds(viewerId));
+        LinkedHashSet<UUID> kept = new LinkedHashSet<>();
+        boolean droppedSomeone = false;
+
+        for (UUID targetId : requested) {
+            if (targetId == null) continue;
+            User target = userRepository.findById(targetId).orElse(null);
+            if (target == null || target.getDeletedAt() != null || Boolean.FALSE.equals(target.getIsActive())) {
+                droppedSomeone = true;
+                continue;
+            }
+            if (targetId.equals(viewerId) || following.contains(targetId)
+                    || sharesOrganization(target, viewerOrgIds)) {
+                kept.add(targetId);
+            } else {
+                droppedSomeone = true;
+            }
+        }
+        if (droppedSomeone) {
+            warnings.add("Some people were skipped - you can only pick members of your organizations or people you follow.");
+        }
+        return new ArrayList<>(kept);
+    }
+
+    private boolean sharesOrganization(User target, Set<UUID> viewerOrgIds) {
+        if (viewerOrgIds.isEmpty()) return false;
+        Set<UUID> targetOrgIds = memberOrganizationIds(target);
+        for (UUID id : targetOrgIds) {
+            if (viewerOrgIds.contains(id)) return true;
+        }
+        return false;
     }
 
     private void sanitizeNearby(FeedScope.NearbyScope nearby, User user, List<String> warnings) {

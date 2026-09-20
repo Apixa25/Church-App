@@ -11,6 +11,7 @@ import com.churchapp.repository.UserGroupMembershipRepository;
 import com.churchapp.repository.UserOrganizationMembershipRepository;
 import com.churchapp.repository.UserRepository;
 import com.churchapp.service.FeedScopeValidator;
+import com.churchapp.service.UserFollowService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,6 +46,7 @@ class FeedScopeValidatorTest {
     @Mock private UserOrganizationMembershipRepository orgMembershipRepository;
     @Mock private UserGroupMembershipRepository groupMembershipRepository;
     @Mock private OrganizationRepository organizationRepository;
+    @Mock private UserFollowService userFollowService;
 
     @InjectMocks private FeedScopeValidator validator;
 
@@ -95,6 +97,67 @@ class FeedScopeValidatorTest {
         for (Organization o : List.of(church, family, otherChurch, otherFamily, hiddenChurch)) {
             when(organizationRepository.findActiveById(o.getId())).thenReturn(Optional.of(o));
         }
+
+        when(userFollowService.getFollowingIds(userId)).thenReturn(List.of());
+    }
+
+    @Test
+    void keepsPeopleWhoShareAnOrganizationOrAreFollowed() {
+        User mom = member("Terry Sills", family);
+        User followed = member("Pat Follower", otherChurch);
+        when(userFollowService.getFollowingIds(userId)).thenReturn(List.of(followed.getId()));
+
+        FeedScope scope = FeedScope.builder()
+            .userIds(new ArrayList<>(List.of(mom.getId(), followed.getId())))
+            .build();
+
+        FeedScopeValidator.ValidationResult result = validator.validate(userId, scope);
+
+        assertEquals(List.of(mom.getId(), followed.getId()), result.scope().getUserIds());
+        assertFalse(result.hasWarnings());
+    }
+
+    @Test
+    void stripsStrangersDeletedAndUnknownPeople() {
+        User stranger = member("Some Stranger", otherChurch);   // no shared org, not followed
+        User deleted = member("Gone Person", church);
+        deleted.setDeletedAt(java.time.LocalDateTime.now());
+        UUID unknown = UUID.randomUUID();
+        when(userRepository.findById(unknown)).thenReturn(Optional.empty());
+
+        FeedScope scope = FeedScope.builder()
+            .userIds(new ArrayList<>(List.of(stranger.getId(), deleted.getId(), unknown)))
+            .build();
+
+        FeedScopeValidator.ValidationResult result = validator.validate(userId, scope);
+
+        assertTrue(result.scope().getUserIds().isEmpty());
+        assertTrue(result.warnings().stream().anyMatch(w -> w.contains("Some people were skipped")));
+    }
+
+    @Test
+    void personOnlyScopeIsNotConsideredEmpty() {
+        User mom = member("Terry Sills", family);
+
+        FeedScopeValidator.ValidationResult result = validator.validate(
+            userId, FeedScope.builder().userIds(new ArrayList<>(List.of(mom.getId()))).build());
+
+        assertFalse(result.scope().isEmpty());
+        assertFalse(result.warnings().stream().anyMatch(w -> w.contains("empty")));
+    }
+
+    /** Creates an active user who is a member of {@code org} and wires the repository mocks. */
+    private User member(String name, Organization org) {
+        User u = new User();
+        u.setId(UUID.randomUUID());
+        u.setName(name);
+        u.setIsActive(true);
+        when(userRepository.findById(u.getId())).thenReturn(Optional.of(u));
+        UserOrganizationMembership m = new UserOrganizationMembership();
+        m.setUser(u);
+        m.setOrganization(org);
+        when(orgMembershipRepository.findByUserId(u.getId())).thenReturn(List.of(m));
+        return u;
     }
 
     @Test

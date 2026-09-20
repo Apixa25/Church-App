@@ -137,6 +137,23 @@ class FeedFilterServiceCustomScopeTest {
     }
 
     @Test
+    void explicitPeopleBecomeAuthorFilterAlongsideFriends() {
+        UUID mom = UUID.randomUUID();
+        UUID friend = UUID.randomUUID();
+        when(userFollowService.getMutualFollowIds(userId)).thenReturn(List.of(friend));
+
+        FeedFilterService.FeedParameters momOnly = feedFilterService.resolveCustomScope(
+            userId, FeedScope.builder().userIds(new ArrayList<>(List.of(mom))).build(), List.of());
+        assertEquals(List.of(mom), momOnly.getFollowingIds());
+        assertTrue(momOnly.getPrimaryOrgIds().isEmpty(), "a person-only scope must not widen to any organization");
+
+        FeedFilterService.FeedParameters momAndFriends = feedFilterService.resolveCustomScope(
+            userId, FeedScope.builder().includeFriends(true).userIds(new ArrayList<>(List.of(mom, friend))).build(), List.of());
+        assertEquals(2, momAndFriends.getFollowingIds().size(), "de-duplicated: friend listed once");
+        assertTrue(momAndFriends.getFollowingIds().containsAll(List.of(mom, friend)));
+    }
+
+    @Test
     void myGroupsAndExplicitGroupsMerge() {
         UUID g1 = UUID.randomUUID();
         UUID g2 = UUID.randomUUID();

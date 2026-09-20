@@ -454,7 +454,7 @@ public class FeedFilterService {
      *  - church/family primaries + member orgs           -> primaryOrgIds   (all visibility)
      *  - non-member orgs (explicit or discovered nearby) -> secondaryOrgIds (PUBLIC only - enforced by the JPQL)
      *  - explicit groups / all my groups                 -> groupIds
-     *  - friends (mutual) / following                    -> followingIds
+     *  - friends (mutual) / following / explicit people  -> followingIds (the query's author filter)
      */
     public FeedParameters resolveCustomScope(UUID userId, FeedScope scope, List<UUID> allPrimaryOrgIds) {
         User user = userRepository.findById(userId)
@@ -500,6 +500,11 @@ public class FeedFilterService {
         if (scope.isIncludeFriends()) {
             followingIds.addAll(userFollowService.getMutualFollowIds(userId));
         }
+        // Explicit people ("just my mom's posts") ride the same author-filter branch of the
+        // JPQL as follows. The validator has already confirmed the viewer may see each person.
+        if (scope.getUserIds() != null) {
+            scope.getUserIds().stream().filter(id -> id != null).forEach(followingIds::add);
+        }
 
         if (scope.hasNearby()) {
             for (UUID orgId : discoverNearbyOrganizationIds(user, scope.getNearby())) {
@@ -514,8 +519,9 @@ public class FeedFilterService {
         // An org can't be both primary and secondary; primary (full visibility) wins for members.
         secondaryOrgIds.removeAll(primaryOrgIds);
 
-        log.info("🎯 CUSTOM scope for user {} -> primaryOrgs={}, secondaryOrgs={}, groups={}, following={}",
-            userId, primaryOrgIds.size(), secondaryOrgIds.size(), groupIds.size(), followingIds.size());
+        log.info("🎯 CUSTOM scope for user {} -> primaryOrgs={}, secondaryOrgs={}, groups={}, authors={} (incl. {} explicit people)",
+            userId, primaryOrgIds.size(), secondaryOrgIds.size(), groupIds.size(), followingIds.size(),
+            scope.getUserIds() == null ? 0 : scope.getUserIds().size());
 
         return new FeedParameters(
             new ArrayList<>(primaryOrgIds),

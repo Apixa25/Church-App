@@ -63,6 +63,13 @@ public class FeedScope {
     @Builder.Default
     private List<UUID> groupIds = new ArrayList<>();
 
+    /**
+     * Explicit people ("just my mom's posts"). Must be members of an organization the user
+     * shares, or someone the user follows; anyone else is stripped by the validator.
+     */
+    @Builder.Default
+    private List<UUID> userIds = new ArrayList<>();
+
     /** Discover organizations near the user. Null when not requested. */
     private NearbyScope nearby;
 
@@ -99,6 +106,7 @@ public class FeedScope {
             && !includeMyGroups
             && (organizationIds == null || organizationIds.isEmpty())
             && (groupIds == null || groupIds.isEmpty())
+            && (userIds == null || userIds.isEmpty())
             && nearby == null;
     }
 

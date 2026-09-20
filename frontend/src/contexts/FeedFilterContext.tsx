@@ -32,6 +32,8 @@ export interface FeedScope {
   includeMyGroups: boolean;
   organizationIds: string[];
   groupIds: string[];
+  /** Specific people whose posts to show ("just my mom's posts"). Server-validated. */
+  userIds?: string[];
   nearby?: NearbyScope | null;
 }
 
@@ -43,6 +45,7 @@ export const emptyFeedScope = (): FeedScope => ({
   includeMyGroups: false,
   organizationIds: [],
   groupIds: [],
+  userIds: [],
   nearby: null,
 });
 

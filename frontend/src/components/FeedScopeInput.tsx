@@ -245,6 +245,7 @@ const PLACEHOLDERS = [
   'Try: "family and friends"',
   'Try: "churches within 20 miles of me"',
   'Try: "my church and Baptist churches within 100 miles"',
+  'Try: "just posts by my mom, Terry Smith"',
 ];
 
 const FeedScopeInput: React.FC = () => {
@@ -358,6 +359,7 @@ const FeedScopeInput: React.FC = () => {
         s.includeMyGroups === target.includeMyGroups &&
         (s.organizationIds?.length || 0) === 0 &&
         (s.groupIds?.length || 0) === 0 &&
+        (s.userIds?.length || 0) === 0 &&
         !!s.nearby === !!target.nearby
       );
     };

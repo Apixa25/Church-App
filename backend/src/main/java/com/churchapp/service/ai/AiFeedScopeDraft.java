@@ -25,6 +25,8 @@ public class AiFeedScopeDraft {
 
     private List<String> organizationNames = new ArrayList<>();
     private List<String> groupNames = new ArrayList<>();
+    /** Specific people whose posts the user asked for, chosen from the names in the prompt. */
+    private List<String> personNames = new ArrayList<>();
 
     private Nearby nearby = new Nearby();
 

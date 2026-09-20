@@ -63,9 +63,13 @@ public class FeedScopeParserService {
     private final OrganizationRepository organizationRepository;
     private final GroupRepository groupRepository;
     private final OrganizationGroupService organizationGroupService;
+    private final UserFollowService userFollowService;
     private final FeedScopeValidator validator;
     private final OpenAiClient openAiClient;
     private final ObjectMapper objectMapper;
+
+    /** Upper bound on the number of people names we put in the LLM prompt (token budget). */
+    static final int MAX_PEOPLE_IN_PROMPT = 200;
 
     // ------------------------------------------------------------------------
     // Public API
@@ -82,7 +86,7 @@ public class FeedScopeParserService {
                 .build();
         }
 
-        UserScopeContext ctx = buildContext(userId);
+        UserScopeContext ctx = buildContext(userId, true);
 
         Optional<FeedScopeParseResult> ruleResult = parseWithRules(userId, text, ctx);
         if (ruleResult.isPresent()) {
@@ -110,7 +114,9 @@ public class FeedScopeParserService {
      * preview card and as the persisted scope_description.
      */
     public String describe(UUID userId, FeedScope scope) {
-        return describe(buildContext(userId), scope);
+        // People names for the description come straight from the user table, so the
+        // (heavier) people directory is not loaded just to render a label.
+        return describe(buildContext(userId, false), scope);
     }
 
     // ------------------------------------------------------------------------
@@ -178,6 +184,22 @@ public class FeedScopeParserService {
             if (needle.length() >= 3 && remaining.contains(needle)) {
                 scope.getGroupIds().add(entry.getValue());
                 remaining = remaining.replace(needle, " ");
+                signals++;
+            }
+        }
+
+        // 1b) Named people ("my mom Terry Sills"). Rules only accept a full name (2+ words)
+        //     on word boundaries so a member called "Grace" doesn't match "grace" in a sentence;
+        //     first-name-only requests fall through to the AI, which can ask "which Terry?".
+        for (Map.Entry<UUID, String> person : ctx.peopleLongestFirst()) {
+            String needle = normalize(person.getValue());
+            if (needle.length() < 5 || needle.indexOf(' ') < 0) continue;
+            Matcher m = Pattern.compile("\\b" + Pattern.quote(needle) + "\\b").matcher(remaining);
+            if (m.find()) {
+                if (!scope.getUserIds().contains(person.getKey())) {
+                    scope.getUserIds().add(person.getKey());
+                }
+                remaining = m.replaceAll(" ");
                 signals++;
             }
         }
@@ -307,6 +329,21 @@ public class FeedScopeParserService {
             if (id != null) scope.getGroupIds().add(id); else unmatched.add(name);
         }
 
+        String ambiguousPerson = null;
+        for (String name : safe(draft.getPersonNames())) {
+            List<Map.Entry<UUID, String>> candidates = ctx.matchPeople(name);
+            if (candidates.size() == 1) {
+                UUID id = candidates.get(0).getKey();
+                if (!scope.getUserIds().contains(id)) scope.getUserIds().add(id);
+            } else if (candidates.isEmpty()) {
+                unmatched.add(name);
+            } else if (ambiguousPerson == null) {
+                String options = candidates.stream().limit(5).map(Map.Entry::getValue)
+                    .collect(Collectors.joining(", "));
+                ambiguousPerson = "I know more than one \"" + name + "\" - did you mean " + options + "?";
+            }
+        }
+
         if (draft.getNearby() != null && draft.getNearby().isRequested()) {
             FeedScope.NearbyScope ns = new FeedScope.NearbyScope();
             ns.setRadiusMiles(draft.getNearby().getRadiusMiles() != null
@@ -325,9 +362,11 @@ public class FeedScopeParserService {
         }
 
         String clarification = blankToNull(draft.getClarificationQuestion());
-        if (!unmatched.isEmpty() && clarification == null) {
+        if (ambiguousPerson != null) {
+            clarification = ambiguousPerson;
+        } else if (!unmatched.isEmpty() && clarification == null) {
             clarification = "I couldn't find " + String.join(", ", unmatched)
-                + " among your churches or groups. Did you mean one of them?";
+                + " among your churches, groups or people. Did you mean one of them?";
         }
 
         return Optional.of(finish(userId, scope, ctx, draft.getConfidence(), clarification, SOURCE_AI, rawText));
@@ -340,6 +379,11 @@ public class FeedScopeParserService {
           .append("If the user asks for things that aren't in the lists, leave them out and set clarificationQuestion. ")
           .append("Set wantsEverything=true only when they clearly want the entire community with no restriction. ")
           .append("'friends' means includeFriends (mutual follows); 'people I follow' means includeFollowing. ")
+          .append("When the user asks for one or more specific people's posts (e.g. 'my mom, her name is Terry Sills', ")
+          .append("'posts by John Smith'), put the matching names from the PEOPLE list in personNames and do NOT set ")
+          .append("includeFamilyPrimary or includeChurchPrimary unless they also ask for the whole family/church. ")
+          .append("If they give only a first name that matches several people, list the best match in personNames and set ")
+          .append("clarificationQuestion asking which one. If the person isn't in the list, leave personNames empty and ask. ")
           .append("'churches near me' / a distance in miles / a denomination name means nearby.requested=true. ")
           .append("nearby.orgTypes values: CHURCH, MINISTRY, NONPROFIT (default CHURCH). ")
           .append("radiusMiles must be between 1 and 250; use null when the user gave no distance. ")
@@ -354,6 +398,13 @@ public class FeedScopeParserService {
           .append(ctx.orgNameToId.isEmpty() ? "none" : String.join("; ", ctx.orgNameToId.keySet())).append('\n');
         sb.append("- Groups the user belongs to: ")
           .append(ctx.groupNameToId.isEmpty() ? "none" : String.join("; ", ctx.groupNameToId.keySet())).append('\n');
+        sb.append("- PEOPLE the user can name (family, fellow members, people they follow): ")
+          .append(ctx.people.isEmpty() ? "none" : ctx.people.values().stream()
+              .limit(MAX_PEOPLE_IN_PROMPT).collect(Collectors.joining("; ")));
+        if (ctx.people.size() > MAX_PEOPLE_IN_PROMPT) {
+            sb.append("; ... and ").append(ctx.people.size() - MAX_PEOPLE_IN_PROMPT).append(" more");
+        }
+        sb.append('\n');
         sb.append("- Known denominations on the platform: ")
           .append(ctx.denominations.isEmpty() ? "none" : String.join("; ", ctx.denominations)).append('\n');
         return sb.toString();
@@ -372,6 +423,7 @@ public class FeedScopeParserService {
         }
         props.putObject("organizationNames").put("type", "array").putObject("items").put("type", "string");
         props.putObject("groupNames").put("type", "array").putObject("items").put("type", "string");
+        props.putObject("personNames").put("type", "array").putObject("items").put("type", "string");
 
         ObjectNode nearby = props.putObject("nearby");
         nearby.put("type", "object");
@@ -396,7 +448,7 @@ public class FeedScopeParserService {
 
         ArrayNode required = schema.putArray("required");
         for (String f : List.of("includeChurchPrimary", "includeFamilyPrimary", "includeFriends", "includeFollowing",
-                "includeMyGroups", "wantsEverything", "organizationNames", "groupNames", "nearby",
+                "includeMyGroups", "wantsEverything", "organizationNames", "groupNames", "personNames", "nearby",
                 "confidence", "clarificationQuestion")) {
             required.add(f);
         }
@@ -459,6 +511,19 @@ public class FeedScopeParserService {
                 .collect(Collectors.toMap(Group::getId, Group::getName, (a, b) -> a, LinkedHashMap::new));
             scope.getGroupIds().forEach(id -> { if (names.get(id) != null) parts.add(names.get(id)); });
         }
+        if (scope.getUserIds() != null && !scope.getUserIds().isEmpty()) {
+            Map<UUID, String> names = new LinkedHashMap<>();
+            userRepository.findAllById(scope.getUserIds())
+                .forEach(u -> names.put(u.getId(), u.getName() != null ? u.getName() : "a member"));
+            List<String> people = new ArrayList<>();
+            for (UUID id : scope.getUserIds()) {
+                String n = names.get(id);
+                if (n != null) people.add(n);
+            }
+            if (!people.isEmpty()) {
+                parts.add("posts by " + String.join(", ", people));
+            }
+        }
         if (scope.isIncludeFriends()) parts.add("friends");
         if (scope.isIncludeFollowing()) parts.add("people I follow");
 
@@ -494,7 +559,33 @@ public class FeedScopeParserService {
         boolean hasLocation;
         LinkedHashMap<String, UUID> orgNameToId = new LinkedHashMap<>();
         LinkedHashMap<String, UUID> groupNameToId = new LinkedHashMap<>();
+        /** People the user may name: id -> display name. Family first, then follows, then fellow members. */
+        LinkedHashMap<UUID, String> people = new LinkedHashMap<>();
         List<String> denominations = new ArrayList<>();
+
+        List<Map.Entry<UUID, String>> peopleLongestFirst() {
+            return people.entrySet().stream()
+                .sorted((a, b) -> Integer.compare(b.getValue().length(), a.getValue().length()))
+                .collect(Collectors.toList());
+        }
+
+        /**
+         * All people whose name matches: exact (normalized) first, otherwise whole-word
+         * containment so "Terry" finds "Terry Sills" (and every other Terry, so the caller
+         * can ask which one).
+         */
+        List<Map.Entry<UUID, String>> matchPeople(String name) {
+            String needle = normalize(name);
+            if (needle.isEmpty()) return List.of();
+            List<Map.Entry<UUID, String>> exact = people.entrySet().stream()
+                .filter(e -> normalize(e.getValue()).equals(needle))
+                .collect(Collectors.toList());
+            if (!exact.isEmpty()) return exact;
+            Pattern word = Pattern.compile("\\b" + Pattern.quote(needle) + "\\b");
+            return people.entrySet().stream()
+                .filter(e -> word.matcher(normalize(e.getValue())).find())
+                .collect(Collectors.toList());
+        }
 
         List<Map.Entry<String, UUID>> orgNamesLongestFirst() {
             return orgNameToId.entrySet().stream()
@@ -532,6 +623,14 @@ public class FeedScopeParserService {
     }
 
     UserScopeContext buildContext(UUID userId) {
+        return buildContext(userId, true);
+    }
+
+    /**
+     * @param includePeople load the people directory (org members + follows). Needed for
+     *                      parsing; skipped for cheap description-only calls.
+     */
+    UserScopeContext buildContext(UUID userId, boolean includePeople) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
@@ -573,7 +672,41 @@ public class FeedScopeParserService {
         });
 
         ctx.denominations = organizationRepository.findDistinctDenominations();
+
+        if (includePeople) {
+            loadPeople(user, ctx);
+        }
         return ctx;
+    }
+
+    /**
+     * People the user is allowed to name: members of the same organizations (family first so
+     * relatives win ties in the prompt) and anyone they follow. Mirrors the rule enforced by
+     * {@link FeedScopeValidator}, so whatever we offer the parser will survive validation.
+     */
+    private void loadPeople(User user, UserScopeContext ctx) {
+        LinkedHashSet<UUID> orgIds = new LinkedHashSet<>();
+        if (user.getFamilyPrimaryOrganization() != null) orgIds.add(user.getFamilyPrimaryOrganization().getId());
+        if (user.getChurchPrimaryOrganization() != null) orgIds.add(user.getChurchPrimaryOrganization().getId());
+        orgMembershipRepository.findByUserId(user.getId()).forEach(m -> {
+            if (m.getOrganization() != null) orgIds.add(m.getOrganization().getId());
+        });
+
+        List<UUID> followingIds = userFollowService.getFollowingIds(user.getId());
+        if (followingIds != null && !followingIds.isEmpty()) {
+            userRepository.findAllById(followingIds).forEach(u -> addPerson(ctx, u, user.getId()));
+        }
+
+        for (UUID orgId : orgIds) {
+            orgMembershipRepository.findByOrganizationId(orgId).forEach(m -> addPerson(ctx, m.getUser(), user.getId()));
+        }
+    }
+
+    private static void addPerson(UserScopeContext ctx, User u, UUID self) {
+        if (u == null || u.getId() == null || u.getId().equals(self)) return;
+        if (u.getDeletedAt() != null || Boolean.FALSE.equals(u.getIsActive())) return;
+        String name = blankToNull(u.getName());
+        if (name != null) ctx.people.putIfAbsent(u.getId(), name);
     }
 
     // ------------------------------------------------------------------------
@@ -588,7 +721,8 @@ public class FeedScopeParserService {
 
     private static int countMeaningfulLeftoverWords(String remaining) {
         String stripped = remaining
-            .replaceAll("\\b(i|want|to|see|show|me|just|only|my|our|and|the|right|now|please|in|feed|posts|from|of|all|with|within|miles?|mi|near|me|nearby|around|area|every|any|other|churches|church|family|friends?|following|groups?|people|follow|same|denomination|ministry|ministries|nonprofits?|charities|charity|local|town|close|by)\\b", " ")
+            .replaceAll("\\b(i|want|to|see|show|me|just|only|my|our|and|the|right|now|please|in|feed|posts?|from|of|all|with|within|miles?|mi|near|me|nearby|around|area|every|any|other|churches|church|family|friends?|following|groups?|people|follow|same|denomination|ministry|ministries|nonprofits?|charities|charity|local|town|close|by"
+                + "|her|his|their|name|is|s|mom|moms|mother|mothers|dad|dads|father|fathers|sister|sisters|brother|brothers|wife|husband|son|daughter|grandma|grandpa|aunt|uncle|cousin|written|wrote|posted|shared)\\b", " ")
             .replaceAll("\\d+", " ")
             .trim();
         if (stripped.isEmpty()) return 0;
