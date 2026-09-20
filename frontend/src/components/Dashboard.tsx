@@ -27,6 +27,13 @@ import IOSInstallPrompt from './IOSInstallPrompt';
 import { getBannerImageUrl, getBannerImageS3Fallback } from '../utils/imageUrlUtils';
 import './Dashboard.css';
 
+/**
+ * Legacy quick switchers (FeedFilterSelector dropdown + ContextSwitcher) are hidden
+ * now that the natural-language FeedScopeInput covers the same job. Flip to true to
+ * bring them back - nothing else needs to change.
+ */
+const SHOW_LEGACY_FEED_SWITCHERS = false;
+
 const Dashboard: React.FC = () => {
   const { user, updateUser } = useAuth();
   // Dual Primary System - use active context for dashboard scope
@@ -580,7 +587,9 @@ const Dashboard: React.FC = () => {
         <div className="dashboard-layout">
           {/* Left Column - Social Feed */}
           <div className="dashboard-left">
-            {/* Feed View Toggle */}
+            {/* Feed View Toggle - the wrapper has its own border/background, so it is only
+                rendered when it has something to show (avoids an empty box on the social feed). */}
+            {(feedView !== 'social' || SHOW_LEGACY_FEED_SWITCHERS) && (
             <div className="feed-view-toggle">
               {/* Only show Social Feed button when Activity Feed is selected (to switch back) */}
               {feedView !== 'social' && (
@@ -600,11 +609,12 @@ const Dashboard: React.FC = () => {
                   📊 Activity Feed
                 </button>
               )}
-              {/* Multi-tenant feed filter - available in both feed views */}
-              <FeedFilterSelector />
-              {/* Context Switcher - only shows when user has both Church and Family primaries */}
-              {showContextSwitcher && <ContextSwitcher />}
+              {/* Multi-tenant feed filter - hidden for now, superseded by FeedScopeInput */}
+              {SHOW_LEGACY_FEED_SWITCHERS && <FeedFilterSelector />}
+              {/* Context Switcher - hidden for now (only showed when user had both Church and Family primaries) */}
+              {SHOW_LEGACY_FEED_SWITCHERS && showContextSwitcher && <ContextSwitcher />}
             </div>
+            )}
 
             {/* ✨ Natural-language / quick-chip feed scope ("show me my family and my church") */}
             {feedView === 'social' && (
