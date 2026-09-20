@@ -13,6 +13,7 @@ import StripeCheckout from './StripeCheckout';
 import DonationSummary from './DonationSummary';
 import DonationHistory from './DonationHistory';
 import SubscriptionManager from './SubscriptionManager';
+import ContextSwitcher from './ContextSwitcher';
 import './DonationPage.css';
 
 // Initialize Stripe
@@ -201,6 +202,13 @@ const DonationPage: React.FC = () => {
             >
               🏠 Back Home
             </button>
+          </div>
+          <div className="donation-org-picker">
+            <ContextSwitcher
+              organizationsOnly
+              title="Give to"
+              subtitle="Donations go to the organization you select"
+            />
           </div>
           {activeOrganizationName && activeOrganizationId && (
             <h1 className="donation-org-info">

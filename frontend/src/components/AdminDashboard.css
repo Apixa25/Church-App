@@ -45,6 +45,11 @@
   gap: 1rem;
 }
 
+.admin-org-picker {
+  position: relative;
+  z-index: 5;
+}
+
 .role-badge {
   padding: 0.5rem 1rem;
   border-radius: var(--border-radius-pill);

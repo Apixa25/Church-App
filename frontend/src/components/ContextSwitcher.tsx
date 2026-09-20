@@ -8,19 +8,18 @@ import { useGroup } from '../contexts/GroupContext';
 // ============================================================================
 // CONTEXT SWITCHER COMPONENT
 // ============================================================================
-// This component allows users to switch between their Church Primary,
-// Family Primary, and Groups contexts. It appears in the dashboard header when
-// a user has both primaries OR any groups.
-//
-// When the user switches context:
-// - The dashboard header changes to show the selected organization/group
-// - Quick Actions become scoped to that organization (not for groups)
-// - Community Stats show that organization's data (not for groups)
-// - Donations go to that organization (not for groups)
-// - The Feed Filter updates to show the selected context's posts
-//
-// Priority order for auto-selection: Family > Church > Group
+// Lets users switch between Church Primary, Family Primary, and Groups.
+// The feed no longer mounts this (see SHOW_LEGACY_FEED_SWITCHERS). Donation
+// and Admin pages mount it with organizationsOnly so giving/admin stay scoped
+// to a real organization without groups cluttering the list.
 // ============================================================================
+
+export interface ContextSwitcherProps {
+  /** Hide groups. Donation and Admin only accept church / family orgs. */
+  organizationsOnly?: boolean;
+  title?: string;
+  subtitle?: string;
+}
 
 const SwitcherContainer = styled.div`
   position: static;
@@ -295,7 +294,11 @@ const SectionDivider = styled.div`
   margin-top: 4px;
 `;
 
-const ContextSwitcher: React.FC = () => {
+const ContextSwitcher: React.FC<ContextSwitcherProps> = ({
+  organizationsOnly = false,
+  title = 'Switch Context',
+  subtitle = 'Choose which organization to view',
+}) => {
   const {
     activeContext,
     setActiveContext,
@@ -378,8 +381,16 @@ const ContextSwitcher: React.FC = () => {
     }
   }, [isOpen]);
 
-  // Don't render if user doesn't have both primaries
-  if (!showContextSwitcher) {
+  // Feed / default: show when the user has both primaries or any groups.
+  // Org-only pages: show when they can pick between church and family, or when
+  // they are stuck in a group context and need a way back to an organization.
+  const hasOrgChoices = hasChurch && hasFamily;
+  const canLeaveGroup = organizationsOnly && activeContext === 'group' && (hasChurch || hasFamily);
+  if (organizationsOnly) {
+    if (!hasOrgChoices && !canLeaveGroup) {
+      return null;
+    }
+  } else if (!showContextSwitcher) {
     return null;
   }
 
@@ -412,8 +423,8 @@ const ContextSwitcher: React.FC = () => {
   const dropdownContent = (
     <>
       <DropdownHeader>
-        <DropdownTitle>Switch Context</DropdownTitle>
-        <DropdownSubtitle>Choose which organization to view</DropdownSubtitle>
+        <DropdownTitle>{title}</DropdownTitle>
+        <DropdownSubtitle>{subtitle}</DropdownSubtitle>
       </DropdownHeader>
 
       <DropdownOptions>
@@ -477,8 +488,8 @@ const ContextSwitcher: React.FC = () => {
           </OptionButton>
         )}
 
-        {/* Groups Section */}
-        {hasGroups && unmutedGroups.length > 0 && (
+        {/* Groups Section — hidden on Donation / Admin, which are org-scoped */}
+        {!organizationsOnly && hasGroups && unmutedGroups.length > 0 && (
           <>
             <SectionDivider>My Groups</SectionDivider>
             {unmutedGroups.map((membership) => (

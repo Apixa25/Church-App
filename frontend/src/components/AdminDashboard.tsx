@@ -10,6 +10,7 @@ import AdminModeration from './AdminModeration';
 import AdminOrganizationManagement from './AdminOrganizationManagement';
 import AnalyticsDashboard from './AnalyticsDashboard';
 import MetricsDashboard from './MetricsDashboard';
+import ContextSwitcher from './ContextSwitcher';
 import {
   getUsers,
   updateUserRole,
@@ -331,6 +332,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
 
           <div className="admin-meta">
+            <div className="admin-org-picker">
+              <ContextSwitcher
+                organizationsOnly
+                title="Manage"
+                subtitle="Choose which organization you are administering"
+              />
+            </div>
             <div className="admin-role">
               <span className={`role-badge ${currentUser.role.toLowerCase()}`}>
                 {currentUser.role}

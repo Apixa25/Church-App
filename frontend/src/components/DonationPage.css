@@ -65,6 +65,15 @@
   z-index: 1;
 }
 
+.donation-org-picker {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  justify-content: center;
+  margin: 0.25rem auto 1rem;
+  max-width: 360px;
+}
+
 .back-home-btn {
   background: var(--gradient-primary);
   color: white;
