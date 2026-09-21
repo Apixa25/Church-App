@@ -7,6 +7,7 @@ import { getApiUrl } from '../config/runtimeConfig';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import IOSInstallPrompt from './IOSInstallPrompt';
+import { consumePostLoginRedirect } from '../utils/postLoginRedirect';
 
 interface LoginFormData {
   email: string;
@@ -38,7 +39,8 @@ const LoginForm: React.FC = () => {
     try {
       setError(null);
       await login(data.email, data.password);
-      navigate('/dashboard');
+      // Returns to e.g. /invite/family/:code if the user arrived from a public page
+      navigate(consumePostLoginRedirect());
     } catch (err: any) {
       setError(err.message);
     }

@@ -20,6 +20,7 @@ import { useOrganization } from '../contexts/OrganizationContext';
 import { Membership } from '../contexts/OrganizationContext';
 import { useGroup } from '../contexts/GroupContext';
 import FamilyGroupCreateForm from './FamilyGroupCreateForm';
+import FamilyInviteShareModal from './FamilyInviteShareModal';
 import LoadingSpinner from './LoadingSpinner';
 import { getImageUrlWithFallback } from '../utils/imageUrlUtils';
 import MediaViewer from './MediaViewer';
@@ -113,6 +114,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
   
   // Family group creation state
   const [showCreateFamilyGroup, setShowCreateFamilyGroup] = useState(false);
+  // Family invite (link + QR) sharing - opened from the family card or right after creating a family
+  const [familyInviteTarget, setFamilyInviteTarget] = useState<{ id: string; name: string; canManage: boolean } | null>(null);
 
   // Ref for scrolling to analytics content
   const analyticsRef = useRef<HTMLDivElement>(null);
@@ -1030,7 +1033,14 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
                   {familyPrimary && (
                     <div
                       className="user-group-card"
-                      onClick={() => navigate(`/organizations/${familyPrimary.organizationId}`)}
+                      title="Invite your family with a link or QR code"
+                      onClick={() =>
+                        setFamilyInviteTarget({
+                          id: familyPrimary.organizationId,
+                          name: familyPrimary.organizationName || 'your family',
+                          canManage: familyPrimary.role === 'ORG_ADMIN',
+                        })
+                      }
                     >
                       <span className="user-group-icon">{getGroupIcon(familyPrimary.organizationType)}</span>
                       <span className="user-group-name">{familyPrimary.organizationName}</span>
@@ -1068,7 +1078,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
                     {!churchPrimary && (
                       <button
                         className="find-group-button"
-                        onClick={() => navigate('/organizations')}
+                        onClick={() => navigate('/organizations?focus=church')}
                       >
                         Find Church to Join
                       </button>
@@ -1076,9 +1086,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
                     {!familyPrimary && (
                       <button
                         className="find-group-button"
-                        onClick={() => navigate('/organizations')}
+                        onClick={() => navigate('/organizations?focus=family')}
                       >
-                        Find Family Group
+                        Join Family Group
                       </button>
                     )}
                   </div>
@@ -1354,9 +1364,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
                 setShowCreateFamilyGroup(false);
                 // Refresh organization memberships to show the new family group
                 await refreshMemberships();
-                // Show success message or navigate
+                // Creator is ORG_ADMIN - the natural next step is inviting everyone in
                 if (org?.id) {
-                  navigate(`/organizations/${org.id}`);
+                  setFamilyInviteTarget({ id: org.id, name: org.name, canManage: true });
                 }
               }}
               onCancel={() => setShowCreateFamilyGroup(false)}
@@ -1364,6 +1374,14 @@ const ProfileView: React.FC<ProfileViewProps> = ({ userId: propUserId, showEditB
           </div>
         </div>
       )}
+
+      <FamilyInviteShareModal
+        isOpen={familyInviteTarget !== null}
+        organizationId={familyInviteTarget?.id || ''}
+        organizationName={familyInviteTarget?.name || ''}
+        canManage={familyInviteTarget?.canManage ?? false}
+        onClose={() => setFamilyInviteTarget(null)}
+      />
 
       {/* Profile Picture Viewer Modal */}
       {profilePicUrl && !imageError && (

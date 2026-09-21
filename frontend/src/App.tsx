@@ -60,6 +60,7 @@ const GroupBrowser = lazy(() => import('./components/GroupBrowser'));
 const GroupPage = lazy(() => import('./components/GroupPage'));
 const GroupSettings = lazy(() => import('./components/GroupSettings'));
 const InviteLinkJoinPage = lazy(() => import('./components/InviteLinkJoinPage'));
+const FamilyInviteJoinPage = lazy(() => import('./components/FamilyInviteJoinPage'));
 const QuickActionsPage = lazy(() => import('./components/QuickActionsPage'));
 const MarketplacePage = lazy(() => import('./components/MarketplacePage'));
 const PostComposer = lazy(() => import('./components/PostComposer'));
@@ -178,6 +179,12 @@ const App: React.FC = () => {
           case 'prayer':
             path = `/prayer/${route.id}`;
             break;
+          case 'family-invite':
+            path = `/invite/family/${route.id}`;
+            break;
+          case 'group-invite':
+            path = `/invite/${route.id}`;
+            break;
         }
         window.location.href = path;
       });
@@ -263,6 +270,8 @@ const App: React.FC = () => {
             <Route path="/public/resources/:resourceId/preview" element={<PublicResourcePreview />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
+            {/* Family invite must be declared before the generic group invite so "family" isn't read as a code */}
+            <Route path="/invite/family/:inviteCode" element={<FamilyInviteJoinPage />} />
             <Route path="/invite/:inviteCode" element={<InviteLinkJoinPage />} />
 
             {/* Protected routes */}

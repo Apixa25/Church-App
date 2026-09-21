@@ -4,6 +4,8 @@ import { useOrganization, Organization } from '../contexts/OrganizationContext';
 import organizationGroupApi, { OrganizationGroup } from '../services/organizationGroupApi';
 import CreateOrganizationModal from './CreateOrganizationModal';
 import FamilyGroupCreateForm from './FamilyGroupCreateForm';
+import FamilyInviteShareModal from './FamilyInviteShareModal';
+import { extractFamilyInviteCode } from '../services/organizationInviteApi';
 import styled from 'styled-components';
 import '../App.css';
 
@@ -15,7 +17,12 @@ import '../App.css';
 type BrowserFocus = 'church' | 'family' | null;
 
 const CHURCH_FOCUS_TYPES = ['CHURCH', 'MINISTRY', 'NONPROFIT'];
-const FAMILY_FOCUS_TYPES = ['FAMILY'];
+
+/**
+ * Families are private: they are never listed in the browse grid (invite-link first).
+ * Name/emoji search still finds them so a relative who knows the emoji can get in.
+ */
+const isBrowsableType = (type: string) => type !== 'FAMILY';
 
 const parseFocus = (raw: string | null): BrowserFocus => {
   if (raw === 'church' || raw === 'family') return raw;
@@ -134,6 +141,98 @@ const FamilyModalContent = styled.div`
   overflow-y: auto;
   border-radius: 16px;
   background: var(--bg-primary);
+`;
+
+/* Invite-first family join panel (replaces the browse grid when ?focus=family) */
+const FamilyJoinPanel = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px;
+  border-radius: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+`;
+
+const FamilyJoinTitle = styled.h3`
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+`;
+
+const FamilyJoinText = styled.p`
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+`;
+
+const FamilyJoinRow = styled.form`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const FamilyJoinInput = styled.input`
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 11px 14px;
+  border-radius: 24px;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent-primary, #4a90e2);
+  }
+`;
+
+const FamilyJoinButton = styled.button<{ $variant?: 'primary' | 'secondary' }>`
+  padding: 11px 18px;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  border: ${p => (p.$variant === 'secondary' ? '1px solid var(--border-primary)' : 'none')};
+  background: ${p => (p.$variant === 'secondary' ? 'var(--bg-primary)' : 'var(--gradient-primary)')};
+  color: ${p => (p.$variant === 'secondary' ? 'var(--text-primary)' : 'white')};
+  transition: all var(--transition-base);
+
+  &:hover:not(:disabled) {
+    opacity: 0.92;
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const FamilyJoinError = styled.div`
+  font-size: 13px;
+  color: #ef4444;
+`;
+
+const InviteFamilyButton = styled.button`
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: 16px;
+  background: var(--gradient-primary);
+  color: white;
+  cursor: pointer;
+  transition: all var(--transition-base);
+
+  &:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
+  }
 `;
 
 const Title = styled.h1`
@@ -666,35 +765,52 @@ const OrganizationBrowser: React.FC = () => {
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [showCreateOrganizationModal, setShowCreateOrganizationModal] = useState(false);
 
-  // Browse list narrowed by ?focus (search results are intentionally left untouched)
+  // Family invite sharing (QR / link) and the "paste an invite link" box
+  const [inviteShareTarget, setInviteShareTarget] = useState<{ id: string; name: string; canManage: boolean } | null>(null);
+  const [inviteInput, setInviteInput] = useState('');
+  const [inviteInputError, setInviteInputError] = useState<string | null>(null);
+
+  // Browse list narrowed by ?focus. Families are never browsable (invite-first);
+  // search results are intentionally left untouched so emoji search still works.
   const browseOrganizations = useMemo(() => {
     if (focus === 'church') {
       return allOrganizations.filter(org => CHURCH_FOCUS_TYPES.includes(org.type));
     }
     if (focus === 'family') {
-      return allOrganizations.filter(org => FAMILY_FOCUS_TYPES.includes(org.type));
+      return [];
     }
-    return allOrganizations;
+    return allOrganizations.filter(org => isBrowsableType(org.type));
   }, [allOrganizations, focus]);
+
+  const handleInviteInputSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = extractFamilyInviteCode(inviteInput);
+    if (!code) {
+      setInviteInputError('That doesn\'t look like a family invite link or code. Ask your family for the link or QR code.');
+      return;
+    }
+    setInviteInputError(null);
+    navigate(`/invite/family/${code}`);
+  };
 
   const focusCopy = {
     title:
       focus === 'church' ? 'Find your church'
-      : focus === 'family' ? 'Find your family group'
+      : focus === 'family' ? 'Join your family group'
       : 'Find Organizations',
     subtitle:
       focus === 'church'
         ? 'Search for your church, ministry, or nonprofit and set it as your Church Primary to see its prayers, events, and posts.'
       : focus === 'family'
-        ? 'Family groups are private spaces for the people closest to you. Search by name or emoji, or start your own.'
-      : 'Discover and join churches, ministries, nonprofits, and families in your community',
+        ? 'Family groups are private. The easiest way in is an invite link or QR code from someone already in your family.'
+      : 'Discover and join churches, ministries, and nonprofits in your community',
     placeholder:
       focus === 'church' ? 'Search churches by name or city...'
       : focus === 'family' ? 'Search by family name or emoji...'
       : 'Search organizations by name...',
     browseTitle:
       focus === 'church' ? 'Churches & Ministries'
-      : focus === 'family' ? 'Family Groups'
+      : focus === 'family' ? 'Join by invite'
       : 'All Organizations',
     emptyBrowse:
       focus === 'church' ? 'No churches found yet'
@@ -1150,8 +1266,8 @@ const OrganizationBrowser: React.FC = () => {
         {focus === 'family' && (
           <FocusHint>
             <FocusHintText>
-              💡 Family groups can be named with emojis only - like ❤️🏠 or 🍌🐵. Use the 😀 picker to search
-              by emoji, or create your own and invite your family.
+              💡 Family groups can be named with emojis only - like ❤️🏠 or 🍌🐵. If you know your family's
+              emoji name, use the 😀 picker above to search for it.
             </FocusHintText>
             <FocusHintButton type="button" onClick={() => setShowCreateFamilyGroup(true)}>
               👨‍👩‍👧 Create a family group
@@ -1210,6 +1326,19 @@ const OrganizationBrowser: React.FC = () => {
               <MembershipInfo>
                 <MembershipName>{familyPrimary.organizationName}</MembershipName>
                 <PrimaryBadge>FAMILY PRIMARY</PrimaryBadge>
+                <InviteFamilyButton
+                  type="button"
+                  onClick={() =>
+                    setInviteShareTarget({
+                      id: familyPrimary.organizationId,
+                      name: familyPrimary.organizationName || 'your family',
+                      canManage: familyPrimary.role === 'ORG_ADMIN',
+                    })
+                  }
+                  title="Share an invite link or QR code with your family"
+                >
+                  👨‍👩‍👧 Invite family
+                </InviteFamilyButton>
                 <SmallLeaveButton
                   onClick={() => handleLeave(familyPrimary.organizationId, familyPrimary.organizationName || 'this organization')}
                   disabled={actionLoading === familyPrimary.organizationId}
@@ -1398,7 +1527,59 @@ const OrganizationBrowser: React.FC = () => {
       ) : (
         /* Browse Mode: Show infinite scroll list */
         <>
-          {!initialLoadDone ? (
+          {focus === 'family' ? (
+            /* Invite-first: families are private, so instead of a public list we offer the
+               three real ways in - paste a link, search by emoji/name, or start a new family. */
+            <FamilyJoinPanel>
+              <FamilyJoinTitle>🔗 Have an invite link or QR code?</FamilyJoinTitle>
+              <FamilyJoinText>
+                Paste the link (or just the code) your family sent you. If you were sent a QR code,
+                scan it with your phone camera and it will bring you straight here.
+              </FamilyJoinText>
+              <FamilyJoinRow onSubmit={handleInviteInputSubmit}>
+                <FamilyJoinInput
+                  type="text"
+                  value={inviteInput}
+                  onChange={e => {
+                    setInviteInput(e.target.value);
+                    if (inviteInputError) setInviteInputError(null);
+                  }}
+                  placeholder="https://.../invite/family/AbCdEfGhIjKl"
+                  aria-label="Family invite link or code"
+                  autoComplete="off"
+                />
+                <FamilyJoinButton type="submit" disabled={!inviteInput.trim()}>
+                  Continue
+                </FamilyJoinButton>
+              </FamilyJoinRow>
+              {inviteInputError && <FamilyJoinError>{inviteInputError}</FamilyJoinError>}
+
+              <FamilyJoinText style={{ marginTop: 6 }}>
+                No link? Search your family's name or emoji in the box above, or start a new family group
+                and share its invite with everyone.
+              </FamilyJoinText>
+              <FamilyJoinRow as="div">
+                <FamilyJoinButton type="button" $variant="secondary" onClick={() => setShowCreateFamilyGroup(true)}>
+                  👨‍👩‍👧 Create a family group
+                </FamilyJoinButton>
+                {familyPrimary && (
+                  <FamilyJoinButton
+                    type="button"
+                    $variant="secondary"
+                    onClick={() =>
+                      setInviteShareTarget({
+                        id: familyPrimary.organizationId,
+                        name: familyPrimary.organizationName || 'your family',
+                        canManage: familyPrimary.role === 'ORG_ADMIN',
+                      })
+                    }
+                  >
+                    📤 Invite to {familyPrimary.organizationName}
+                  </FamilyJoinButton>
+                )}
+              </FamilyJoinRow>
+            </FamilyJoinPanel>
+          ) : !initialLoadDone ? (
             <LoadingSpinner>Loading organizations...</LoadingSpinner>
           ) : browseOrganizations.length === 0 ? (
             <EmptyState>
@@ -1512,9 +1693,7 @@ const OrganizationBrowser: React.FC = () => {
                   <EmptyStateText style={{ color: 'var(--text-secondary)' }}>
                     {focus === 'church'
                       ? 'Showing all churches & ministries'
-                      : focus === 'family'
-                      ? 'Showing all family groups'
-                      : 'Showing all organizations'}
+                      : 'Showing all organizations · family groups are private and join by invite'}
                   </EmptyStateText>
                 )}
               </div>
@@ -1538,7 +1717,9 @@ const OrganizationBrowser: React.FC = () => {
                 await refreshMemberships();
                 if (org) {
                   handleOrganizationCreated(org);
-                  setSuccess(`Created ${org.name}! It's now your Family Primary.`);
+                  setSuccess(`Created ${org.name}! It's now your Family Primary - now invite everyone.`);
+                  // The creator is automatically ORG_ADMIN, so go straight to sharing the invite.
+                  setInviteShareTarget({ id: org.id, name: org.name, canManage: true });
                 }
               }}
               onCancel={() => setShowCreateFamilyGroup(false)}
@@ -1546,6 +1727,14 @@ const OrganizationBrowser: React.FC = () => {
           </FamilyModalContent>
         </FamilyModalOverlay>
       )}
+
+      <FamilyInviteShareModal
+        isOpen={inviteShareTarget !== null}
+        organizationId={inviteShareTarget?.id || ''}
+        organizationName={inviteShareTarget?.name || ''}
+        canManage={inviteShareTarget?.canManage ?? false}
+        onClose={() => setInviteShareTarget(null)}
+      />
     </BrowserContainer>
   );
 };

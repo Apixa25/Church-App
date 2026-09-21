@@ -1,7 +1,7 @@
 import { App, URLOpenListenerEvent } from '@capacitor/app';
 
 export interface DeepLinkRoute {
-  type: 'organization' | 'group' | 'user' | 'post' | 'event' | 'prayer';
+  type: 'organization' | 'group' | 'user' | 'post' | 'event' | 'prayer' | 'family-invite' | 'group-invite';
   action: 'join' | 'view' | 'share';
   id: string;
   params?: Record<string, string>;
@@ -92,6 +92,19 @@ class DeepLinkingService {
 
     // Parse path segments
     const segments = path.split('/').filter(s => s.length > 0);
+
+    // Invite links (/invite/family/{code}, /invite/{code}) are ordinary web routes; when the
+    // native app is opened from one (e.g. a scanned family QR code) pass the code straight through.
+    if (segments[0] === 'invite') {
+      if (segments[1] === 'family' && segments[2]) {
+        return { type: 'family-invite', action: 'join', id: segments[2] };
+      }
+      if (segments[1] && segments[1] !== 'family') {
+        return { type: 'group-invite', action: 'join', id: segments[1] };
+      }
+      console.warn('Invalid invite deep link:', url);
+      return null;
+    }
 
     if (segments.length < 3) {
       console.warn('Invalid deep link format:', url);

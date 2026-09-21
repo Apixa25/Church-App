@@ -80,6 +80,10 @@ public class SecurityConfig {
                 .requestMatchers("/media/webhook/mediaconvert").permitAll()  // MediaConvert SNS webhook (context-path=/api, so full URL is /api/media/...)
                 .requestMatchers("/donations/webhook/stripe").permitAll()  // Stripe webhook (context-path=/api, so full URL is /api/donations/...)
                 .requestMatchers("/posts/impressions").permitAll()  // Public endpoint for view counting (fire-and-forget, no auth needed)
+                // Invite-link previews are public so an invitee can see which family/group they're joining before logging in.
+                // Only the GET preview is open; the /join POSTs below them still require a JWT.
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/organizations/invite/*").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/groups/invite/*").permitAll()
                 .requestMatchers("/chat/**").authenticated()  // JWT authentication for chat APIs
                 .requestMatchers("/profile/**").authenticated()
                 .requestMatchers("/dashboard/**").authenticated()  // Explicitly protect dashboard

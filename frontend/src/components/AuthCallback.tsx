@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { tokenService } from '../services/tokenService';
 import LoadingSpinner from './LoadingSpinner';
+import { consumePostLoginRedirect } from '../utils/postLoginRedirect';
 // import { useAuth } from '../contexts/AuthContext'; // Not currently used
 
 const AuthCallback: React.FC = () => {
@@ -70,7 +71,8 @@ const AuthCallback: React.FC = () => {
       // Force a page reload to refresh the auth context
       console.log('OAuth2 login successful, redirecting to dashboard');
       setTimeout(() => {
-        window.location.href = isNewUser ? '/profile' : '/dashboard';
+        // Honour a pending "return to where I was" (e.g. a family invite link) before the defaults
+        window.location.href = consumePostLoginRedirect(isNewUser ? '/profile' : '/dashboard');
       }, 1000);
     } else {
       console.error('Missing authentication data');

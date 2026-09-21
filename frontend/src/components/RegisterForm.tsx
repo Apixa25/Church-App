@@ -6,6 +6,7 @@ import axios from 'axios';
 import { getApiUrl } from '../config/runtimeConfig';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
+import { consumePostLoginRedirect } from '../utils/postLoginRedirect';
 
 interface RegisterFormData {
   name: string;
@@ -32,7 +33,8 @@ const RegisterForm: React.FC = () => {
     try {
       setError(null);
       await registerUser(data.name, data.email, data.password);
-      navigate('/dashboard');
+      // Returns to e.g. /invite/family/:code if the user arrived from a public page
+      navigate(consumePostLoginRedirect());
     } catch (err: any) {
       setError(err.message);
     }
