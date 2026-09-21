@@ -1,10 +1,26 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useOrganization, Organization } from '../contexts/OrganizationContext';
 import organizationGroupApi, { OrganizationGroup } from '../services/organizationGroupApi';
 import CreateOrganizationModal from './CreateOrganizationModal';
+import FamilyGroupCreateForm from './FamilyGroupCreateForm';
 import styled from 'styled-components';
 import '../App.css';
+
+/**
+ * Optional `?focus=church|family` query param (set by the Dashboard WelcomeJoinCard).
+ * Narrows the browse list and adapts copy so a brand-new user isn't staring at
+ * churches and families mixed together. Absent param = original behaviour.
+ */
+type BrowserFocus = 'church' | 'family' | null;
+
+const CHURCH_FOCUS_TYPES = ['CHURCH', 'MINISTRY', 'NONPROFIT'];
+const FAMILY_FOCUS_TYPES = ['FAMILY'];
+
+const parseFocus = (raw: string | null): BrowserFocus => {
+  if (raw === 'church' || raw === 'family') return raw;
+  return null;
+};
 
 const BrowserContainer = styled.div`
   max-width: 1200px;
@@ -44,6 +60,80 @@ const CreateButton = styled.button`
     transform: translateY(-1px);
     box-shadow: 0 0 20px var(--button-primary-glow);
   }
+`;
+
+/* Focus-mode helpers (only rendered when ?focus=church|family is present) */
+const FocusHint = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(74, 144, 226, 0.1);
+  border: 1px solid rgba(74, 144, 226, 0.35);
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text-primary);
+`;
+
+const FocusHintText = styled.span`
+  flex: 1 1 220px;
+  min-width: 0;
+`;
+
+const FocusHintButton = styled.button`
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all var(--transition-base);
+
+  &:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
+  }
+`;
+
+const FocusClearLink = styled.button`
+  border: none;
+  background: none;
+  color: #4a90e2;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 6px;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+const FamilyModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.6);
+`;
+
+const FamilyModalContent = styled.div`
+  width: 100%;
+  max-width: 650px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 16px;
+  background: var(--bg-primary);
 `;
 
 const Title = styled.h1`
@@ -531,6 +621,9 @@ const CooldownWarning = styled.div`
 
 const OrganizationBrowser: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focus: BrowserFocus = parseFocus(searchParams.get('focus'));
+  const [showCreateFamilyGroup, setShowCreateFamilyGroup] = useState(false);
   const {
     primaryMembership,
     secondaryMemberships,
@@ -572,6 +665,48 @@ const OrganizationBrowser: React.FC = () => {
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [showCreateOrganizationModal, setShowCreateOrganizationModal] = useState(false);
+
+  // Browse list narrowed by ?focus (search results are intentionally left untouched)
+  const browseOrganizations = useMemo(() => {
+    if (focus === 'church') {
+      return allOrganizations.filter(org => CHURCH_FOCUS_TYPES.includes(org.type));
+    }
+    if (focus === 'family') {
+      return allOrganizations.filter(org => FAMILY_FOCUS_TYPES.includes(org.type));
+    }
+    return allOrganizations;
+  }, [allOrganizations, focus]);
+
+  const focusCopy = {
+    title:
+      focus === 'church' ? 'Find your church'
+      : focus === 'family' ? 'Find your family group'
+      : 'Find Organizations',
+    subtitle:
+      focus === 'church'
+        ? 'Search for your church, ministry, or nonprofit and set it as your Church Primary to see its prayers, events, and posts.'
+      : focus === 'family'
+        ? 'Family groups are private spaces for the people closest to you. Search by name or emoji, or start your own.'
+      : 'Discover and join churches, ministries, nonprofits, and families in your community',
+    placeholder:
+      focus === 'church' ? 'Search churches by name or city...'
+      : focus === 'family' ? 'Search by family name or emoji...'
+      : 'Search organizations by name...',
+    browseTitle:
+      focus === 'church' ? 'Churches & Ministries'
+      : focus === 'family' ? 'Family Groups'
+      : 'All Organizations',
+    emptyBrowse:
+      focus === 'church' ? 'No churches found yet'
+      : focus === 'family' ? 'No family groups found yet'
+      : 'No organizations found',
+  };
+
+  const clearFocus = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('focus');
+    setSearchParams(next, { replace: true });
+  };
 
   // Same curated list of family-friendly emojis from FamilyGroupCreateForm
   const familyEmojis = [
@@ -949,20 +1084,18 @@ const OrganizationBrowser: React.FC = () => {
           >
             🏠 Back Home
           </button>
-          <Title>Find Organizations</Title>
+          <Title>{focusCopy.title}</Title>
           <CreateButton onClick={() => setShowCreateOrganizationModal(true)}>
             + Create Organization
           </CreateButton>
         </HeaderTop>
-        <Subtitle>
-          Discover and join churches, ministries, nonprofits, and families in your community
-        </Subtitle>
+        <Subtitle>{focusCopy.subtitle}</Subtitle>
 
         <SearchBarContainer>
           <SearchBar
             ref={searchInputRef}
             type="text"
-            placeholder="Search organizations by name..."
+            placeholder={focusCopy.placeholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -1013,6 +1146,33 @@ const OrganizationBrowser: React.FC = () => {
             </EmojiPickerDropdown>
           )}
         </SearchBarContainer>
+
+        {focus === 'family' && (
+          <FocusHint>
+            <FocusHintText>
+              💡 Family groups can be named with emojis only - like ❤️🏠 or 🍌🐵. Use the 😀 picker to search
+              by emoji, or create your own and invite your family.
+            </FocusHintText>
+            <FocusHintButton type="button" onClick={() => setShowCreateFamilyGroup(true)}>
+              👨‍👩‍👧 Create a family group
+            </FocusHintButton>
+            <FocusClearLink type="button" onClick={clearFocus}>
+              Show all organizations
+            </FocusClearLink>
+          </FocusHint>
+        )}
+
+        {focus === 'church' && (
+          <FocusHint>
+            <FocusHintText>
+              ⛪ Showing churches, ministries, and nonprofits. Tap "Set as Church Primary" on yours to unlock
+              its prayers, events, and announcements.
+            </FocusHintText>
+            <FocusClearLink type="button" onClick={clearFocus}>
+              Show all organizations
+            </FocusClearLink>
+          </FocusHint>
+        )}
 
       </HeaderSection>
 
@@ -1127,7 +1287,7 @@ const OrganizationBrowser: React.FC = () => {
       )}
 
       <SectionTitle>
-        {isSearchMode ? `Search Results for "${searchQuery}"` : 'All Organizations'}
+        {isSearchMode ? `Search Results for "${searchQuery}"` : focusCopy.browseTitle}
       </SectionTitle>
 
       {/* Search Mode: Show search results */}
@@ -1240,15 +1400,19 @@ const OrganizationBrowser: React.FC = () => {
         <>
           {!initialLoadDone ? (
             <LoadingSpinner>Loading organizations...</LoadingSpinner>
-          ) : allOrganizations.length === 0 ? (
+          ) : browseOrganizations.length === 0 ? (
             <EmptyState>
-              <EmptyStateTitle>No organizations found</EmptyStateTitle>
-              <EmptyStateText>Be the first to create an organization!</EmptyStateText>
+              <EmptyStateTitle>{focusCopy.emptyBrowse}</EmptyStateTitle>
+              <EmptyStateText>
+                {focus === 'family'
+                  ? 'Start one for your family - it only takes a moment.'
+                  : 'Be the first to create an organization!'}
+              </EmptyStateText>
             </EmptyState>
           ) : (
             <>
               <OrganizationGrid>
-                {allOrganizations.map(org => (
+                {browseOrganizations.map(org => (
                   <OrganizationCard key={org.id}>
                     <OrgName>{org.name}</OrgName>
                     <OrgType>{getTypeLabel(org.type)}</OrgType>
@@ -1344,9 +1508,13 @@ const OrganizationBrowser: React.FC = () => {
 
               <div style={{ padding: '20px', textAlign: 'center' }}>
                 {loadingMore && <LoadingSpinner>Loading organizations...</LoadingSpinner>}
-                {!loadingMore && allOrganizations.length > 0 && (
+                {!loadingMore && browseOrganizations.length > 0 && (
                   <EmptyStateText style={{ color: 'var(--text-secondary)' }}>
-                    Showing all organizations
+                    {focus === 'church'
+                      ? 'Showing all churches & ministries'
+                      : focus === 'family'
+                      ? 'Showing all family groups'
+                      : 'Showing all organizations'}
                   </EmptyStateText>
                 )}
               </div>
@@ -1359,6 +1527,25 @@ const OrganizationBrowser: React.FC = () => {
         onClose={() => setShowCreateOrganizationModal(false)}
         onSuccess={handleOrganizationCreated}
       />
+
+      {/* Family group creation - same pattern as ProfileView's modal */}
+      {showCreateFamilyGroup && (
+        <FamilyModalOverlay onClick={() => setShowCreateFamilyGroup(false)}>
+          <FamilyModalContent onClick={(e) => e.stopPropagation()}>
+            <FamilyGroupCreateForm
+              onSuccess={async (org) => {
+                setShowCreateFamilyGroup(false);
+                await refreshMemberships();
+                if (org) {
+                  handleOrganizationCreated(org);
+                  setSuccess(`Created ${org.name}! It's now your Family Primary.`);
+                }
+              }}
+              onCancel={() => setShowCreateFamilyGroup(false)}
+            />
+          </FamilyModalContent>
+        </FamilyModalOverlay>
+      )}
     </BrowserContainer>
   );
 };

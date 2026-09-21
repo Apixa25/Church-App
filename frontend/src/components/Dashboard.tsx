@@ -17,6 +17,7 @@ import QuickDonationWidget from './QuickDonationWidget';
 import ClickableAvatar from './ClickableAvatar';
 import FeedFilterSelector from './FeedFilterSelector';
 import FeedScopeInput from './FeedScopeInput';
+import WelcomeJoinCard from './WelcomeJoinCard';
 import ContextSwitcher from './ContextSwitcher';
 import { FeedType } from '../types/Post';
 import { profileAPI } from '../services/api';
@@ -523,11 +524,12 @@ const Dashboard: React.FC = () => {
               )}
               <button
                 onClick={handleFindOrganizations}
-                className="logout-button"
-                title="Find Organizations"
-                aria-label="Find Organizations"
+                className="join-button"
+                title="Find your church or family group"
+                aria-label="Find your church or family group"
               >
-                🏛️
+                <span className="join-button-icon" aria-hidden="true">🧭</span>
+                <span className="join-button-label">Join</span>
               </button>
             </div>
           </div>
@@ -615,6 +617,9 @@ const Dashboard: React.FC = () => {
               {SHOW_LEGACY_FEED_SWITCHERS && showContextSwitcher && <ContextSwitcher />}
             </div>
             )}
+
+            {/* 👋 First-run call to action - hides itself once church + family primaries are set */}
+            {feedView === 'social' && <WelcomeJoinCard />}
 
             {/* ✨ Natural-language / quick-chip feed scope ("show me my family and my church") */}
             {feedView === 'social' && (

@@ -808,6 +808,89 @@
   z-index: auto; /* Changed from 10 - prevents iOS stacking context issues */
 }
 
+/* 🧭 Join pill - labeled replacement for the old unlabeled 🏛️ "Find Organizations" icon.
+   Same 48px height as its neighbours, but a tinted pill so it reads as a call to action. */
+.join-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 48px;
+  padding: 6px 14px 6px 10px;
+  border: 1px solid rgba(74, 144, 226, 0.45);
+  border-radius: 24px;
+  background: rgba(74, 144, 226, 0.14);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-base);
+}
+
+.join-button-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.join-button-label {
+  letter-spacing: 0.02em;
+}
+
+.join-button:hover {
+  background: rgba(74, 144, 226, 0.26);
+  border-color: rgba(74, 144, 226, 0.7);
+  transform: scale(1.04);
+}
+
+.join-button:active,
+.join-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.25);
+}
+
+/* Mobile header row (see App.css MOBILE DASHBOARD HEADER REDESIGN): match icon sizing */
+@media (max-width: 768px) {
+  .join-button {
+    height: 50px;
+    min-height: 50px;
+    padding: 0 12px 0 8px;
+    font-size: 14px;
+  }
+
+  .join-button-icon {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .join-button {
+    height: 44px;
+    min-height: 44px;
+    padding: 0 10px 0 6px;
+    font-size: 13px;
+  }
+
+  .join-button-icon {
+    font-size: 22px;
+  }
+}
+
+/* Very narrow phones: fall back to icon-only so the five-button row never wraps */
+@media (max-width: 340px) {
+  .join-button {
+    width: 44px;
+    min-width: 44px;
+    padding: 0;
+    border-radius: 50%;
+  }
+
+  .join-button-label {
+    display: none;
+  }
+}
+
 /* App Logo in Header */
 .app-logo-header {
   width: 32px;
