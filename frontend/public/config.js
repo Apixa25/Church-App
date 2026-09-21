@@ -27,5 +27,11 @@
   
   // Set API URL (can be overridden by setting window.config.API_URL before this script runs)
   window.config.API_URL = window.config.API_URL || apiUrl;
+
+  // Optional: map tiles for the "churches near me" finder. Leave unset to use the public
+  // OpenStreetMap tile server (fine for development / light traffic). For production scale,
+  // point these at a tile provider account, e.g.
+  //   window.config.MAP_TILE_URL = 'https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=YOUR_KEY';
+  //   window.config.MAP_TILE_ATTRIBUTION = '&copy; MapTiler &copy; OpenStreetMap contributors';
 })();
 

@@ -50,6 +50,11 @@ public interface UserOrganizationMembershipRepository extends JpaRepository<User
     @Query("SELECT COUNT(m) FROM UserOrganizationMembership m WHERE m.organization.id = :orgId")
     Long countByOrganizationId(@Param("orgId") UUID orgId);
 
+    /** Member counts for many organizations in one round trip: rows of [organizationId (UUID), count (Long)]. */
+    @Query("SELECT m.organization.id, COUNT(m) FROM UserOrganizationMembership m " +
+           "WHERE m.organization.id IN :orgIds GROUP BY m.organization.id")
+    List<Object[]> countByOrganizationIds(@Param("orgIds") List<UUID> orgIds);
+
     @Query("SELECT COUNT(m) FROM UserOrganizationMembership m WHERE " +
            "m.organization.id = :orgId AND m.isPrimary = true")
     Long countPrimaryMembersByOrganizationId(@Param("orgId") UUID orgId);

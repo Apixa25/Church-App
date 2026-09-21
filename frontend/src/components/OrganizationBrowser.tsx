@@ -5,6 +5,7 @@ import organizationGroupApi, { OrganizationGroup } from '../services/organizatio
 import CreateOrganizationModal from './CreateOrganizationModal';
 import FamilyGroupCreateForm from './FamilyGroupCreateForm';
 import FamilyInviteShareModal from './FamilyInviteShareModal';
+import NearbyChurchFinder from './NearbyChurchFinder';
 import { extractFamilyInviteCode } from '../services/organizationInviteApi';
 import styled from 'styled-components';
 import '../App.css';
@@ -1281,8 +1282,8 @@ const OrganizationBrowser: React.FC = () => {
         {focus === 'church' && (
           <FocusHint>
             <FocusHintText>
-              ⛪ Showing churches, ministries, and nonprofits. Tap "Set as Church Primary" on yours to unlock
-              its prayers, events, and announcements.
+              ⛪ Showing churches, ministries, and nonprofits. Not sure of the name? Use "Find churches near you"
+              below. Tap "Set as Church Primary" on yours to unlock its prayers, events, and announcements.
             </FocusHintText>
             <FocusClearLink type="button" onClick={clearFocus}>
               Show all organizations
@@ -1413,6 +1414,18 @@ const OrganizationBrowser: React.FC = () => {
             </MembershipCard>
           ))}
         </MyMembershipsSection>
+      )}
+
+      {/* 📍 Location-based discovery for people who don't know their church's exact name.
+          Hidden while a name search is active and in family mode (families are invite-only). */}
+      {!isSearchMode && focus !== 'family' && (
+        <NearbyChurchFinder
+          onJoinAsPrimary={handleJoinAsPrimary}
+          onJoinAsSecondary={handleJoinAsSecondary}
+          isMember={isMember}
+          isPrimary={isPrimary}
+          actionLoading={actionLoading}
+        />
       )}
 
       <SectionTitle>
@@ -1584,11 +1597,7 @@ const OrganizationBrowser: React.FC = () => {
           ) : browseOrganizations.length === 0 ? (
             <EmptyState>
               <EmptyStateTitle>{focusCopy.emptyBrowse}</EmptyStateTitle>
-              <EmptyStateText>
-                {focus === 'family'
-                  ? 'Start one for your family - it only takes a moment.'
-                  : 'Be the first to create an organization!'}
-              </EmptyStateText>
+              <EmptyStateText>Be the first to create an organization!</EmptyStateText>
             </EmptyState>
           ) : (
             <>
