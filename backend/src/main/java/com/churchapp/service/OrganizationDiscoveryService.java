@@ -104,6 +104,30 @@ public class OrganizationDiscoveryService {
         return organizationRepository.findDistinctDenominations();
     }
 
+    /**
+     * Resolve a typed place to coordinates using the same cache and per-user budget as
+     * {@link #findNearby}. Empty when the place can't be found; throws when the budget is exhausted.
+     */
+    public Optional<NearbyOrganizationResponse.Center> resolvePlace(String placeText, UUID requesterId) {
+        if (placeText == null || placeText.isBlank() || placeText.trim().length() > 120) {
+            return Optional.empty();
+        }
+        String query = placeText.trim();
+        return geocodeCached(query, requesterId).map(p ->
+            new NearbyOrganizationResponse.Center(p.latitude().doubleValue(), p.longitude().doubleValue(), query));
+    }
+
+    /** Batch member counts for a set of organizations (one query). */
+    @Transactional(readOnly = true)
+    public Map<UUID, Long> memberCounts(List<Organization> orgs) {
+        return memberCountsFor(orgs);
+    }
+
+    /** Great-circle distance in miles - exposed for services that centre a search elsewhere. */
+    public static double distanceMiles(double lat1, double lng1, double lat2, double lng2) {
+        return haversineMiles(lat1, lng1, lat2, lng2);
+    }
+
     // ------------------------------------------------------------------------
     // Centre resolution
     // ------------------------------------------------------------------------

@@ -128,6 +128,27 @@ public interface OrganizationRepository extends JpaRepository<Organization, UUID
         @Param("denomination") String denomination
     );
 
+    /**
+     * Discoverable organizations filtered by type and (optionally) denomination, with no location
+     * constraint - backs natural-language searches like "Lutheran churches" that name no place.
+     * Same safety rules as {@link #findNearby}: never FAMILY/GLOBAL, only discoverable ACTIVE/TRIAL.
+     */
+    @Query(value =
+        "SELECT o.* FROM organizations o " +
+        "WHERE o.deleted_at IS NULL " +
+        "  AND o.discoverable = TRUE " +
+        "  AND o.status IN ('ACTIVE', 'TRIAL') " +
+        "  AND o.type NOT IN ('FAMILY', 'GLOBAL') " +
+        "  AND o.type IN (:typeNames) " +
+        "  AND (CAST(:denomination AS text) IS NULL OR LOWER(o.denomination) = LOWER(CAST(:denomination AS text))) " +
+        "ORDER BY o.name ASC " +
+        "LIMIT 100",
+        nativeQuery = true)
+    List<Organization> findDiscoverableByTypes(
+        @Param("typeNames") List<String> typeNames,
+        @Param("denomination") String denomination
+    );
+
     /** Distinct denominations currently in use (for parser hints and admin dropdown). */
     @Query(value = "SELECT DISTINCT o.denomination FROM organizations o " +
            "WHERE o.denomination IS NOT NULL AND o.deleted_at IS NULL ORDER BY o.denomination",

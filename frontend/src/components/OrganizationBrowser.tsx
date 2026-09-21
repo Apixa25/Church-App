@@ -6,7 +6,14 @@ import CreateOrganizationModal from './CreateOrganizationModal';
 import FamilyGroupCreateForm from './FamilyGroupCreateForm';
 import FamilyInviteShareModal from './FamilyInviteShareModal';
 import NearbyChurchFinder from './NearbyChurchFinder';
+import AiFinderResultBanner from './AiFinderResultBanner';
 import { extractFamilyInviteCode } from '../services/organizationInviteApi';
+import organizationDiscoveryApi, {
+  FinderMatch,
+  FinderResponse,
+  discoveryErrorMessage,
+} from '../services/organizationDiscoveryApi';
+import { getCurrentCoordinates } from '../hooks/useCurrentPosition';
 import styled from 'styled-components';
 import '../App.css';
 
@@ -282,6 +289,42 @@ const SearchBar = styled.input`
 
   &::placeholder {
     color: var(--text-disabled);
+  }
+`;
+
+/* ✨ Sends the current search text to the natural-language finder (Enter does the same). */
+const AskAiButton = styled.button`
+  height: 44px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  border: none;
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 480px) {
+    padding: 0 12px;
+    span.ask-label {
+      display: none;
+    }
   }
 `;
 
@@ -771,6 +814,13 @@ const OrganizationBrowser: React.FC = () => {
   const [inviteInput, setInviteInput] = useState('');
   const [inviteInputError, setInviteInputError] = useState<string | null>(null);
 
+  // ✨ Natural-language finder. aiQueryRef remembers which text the finder answered so the
+  // keyword debounce doesn't overwrite AI results for the very same query.
+  const [aiResult, setAiResult] = useState<FinderResponse | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiDistances, setAiDistances] = useState<Record<string, number>>({});
+  const aiQueryRef = useRef<string | null>(null);
+
   // Browse list narrowed by ?focus. Families are never browsable (invite-first);
   // search results are intentionally left untouched so emoji search still works.
   const browseOrganizations = useMemo(() => {
@@ -806,9 +856,9 @@ const OrganizationBrowser: React.FC = () => {
         ? 'Family groups are private. The easiest way in is an invite link or QR code from someone already in your family.'
       : 'Discover and join churches, ministries, and nonprofits in your community',
     placeholder:
-      focus === 'church' ? 'Search churches by name or city...'
+      focus === 'church' ? 'Try "Baptist churches near Austin" or a church name...'
       : focus === 'family' ? 'Search by family name or emoji...'
-      : 'Search organizations by name...',
+      : 'Search by name, or ask: "churches within 10 miles of 78701"',
     browseTitle:
       focus === 'church' ? 'Churches & Ministries'
       : focus === 'family' ? 'Join by invite'
@@ -927,6 +977,13 @@ const OrganizationBrowser: React.FC = () => {
   useEffect(() => {
     const query = searchQuery.trim();
 
+    // Typing something new retires any smart-search answer for the old text
+    if (aiQueryRef.current !== null && aiQueryRef.current !== query) {
+      aiQueryRef.current = null;
+      setAiResult(null);
+      setAiDistances({});
+    }
+
     // If search is empty, switch to browse mode
     if (!query) {
       setIsSearchMode(false);
@@ -938,6 +995,10 @@ const OrganizationBrowser: React.FC = () => {
     setIsSearchMode(true);
 
     const performSearch = async () => {
+      // The finder already answered this exact text - keep its results
+      if (aiQueryRef.current === query) {
+        return;
+      }
       try {
         setSearchLoading(true);
         setError(null);
@@ -956,6 +1017,70 @@ const OrganizationBrowser: React.FC = () => {
     const timeoutId = setTimeout(performSearch, 300);
     return () => clearTimeout(timeoutId);
   }, [searchQuery, searchOrganizations]);
+
+  /** Finder matches carry the same card data as the browse list, so they slot into the results grid. */
+  const finderMatchToOrganization = (m: FinderMatch): Organization => ({
+    id: m.id,
+    name: m.name,
+    slug: m.slug,
+    type: (m.type as Organization['type']) || 'CHURCH',
+    tier: (m.tier as Organization['tier']) || 'BASIC',
+    status: 'ACTIVE',
+    logoUrl: m.logoUrl || undefined,
+    memberCount: m.memberCount,
+  });
+
+  /**
+   * ✨ Ask the natural-language finder about the current search text.
+   * If the server says "near me" needs coordinates, ask the device once and retry.
+   */
+  const runAiFinder = async (rawText: string) => {
+    const text = rawText.trim();
+    if (!text || aiLoading) return;
+
+    setAiLoading(true);
+    setError(null);
+    setIsSearchMode(true);
+    setShowEmojiPicker(false);
+
+    try {
+      let result = await organizationDiscoveryApi.askFinder(text);
+
+      if (result.needsLocation) {
+        try {
+          const coords = await getCurrentCoordinates();
+          result = await organizationDiscoveryApi.askFinder(text, { lat: coords.latitude, lng: coords.longitude });
+        } catch (posErr: any) {
+          result = {
+            ...result,
+            needsLocation: false,
+            clarificationQuestion: `${posErr?.message || "We couldn't get your location."} You can also add a city or ZIP code to your search.`,
+          };
+        }
+      }
+
+      aiQueryRef.current = text;
+      setAiResult(result);
+      setOrganizations(result.results.map(finderMatchToOrganization));
+
+      const distances: Record<string, number> = {};
+      result.results.forEach(m => {
+        if (typeof m.distanceMiles === 'number') distances[m.id] = m.distanceMiles;
+      });
+      setAiDistances(distances);
+    } catch (err: any) {
+      setError(discoveryErrorMessage(err, "Smart search didn't work just now - the plain name search still does."));
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const clearAiFinder = () => {
+    aiQueryRef.current = null;
+    setAiResult(null);
+    setAiDistances({});
+    setSearchQuery('');
+  };
 
   const handleJoinAsPrimary = async (orgId: string, orgName: string, orgType?: string) => {
     try {
@@ -1215,7 +1340,28 @@ const OrganizationBrowser: React.FC = () => {
             placeholder={focusCopy.placeholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && focus !== 'family') {
+                e.preventDefault();
+                runAiFinder(searchQuery);
+              }
+            }}
+            aria-label="Search organizations"
           />
+          {/* ✨ Smart search - families are invite-only so the button is hidden in family mode */}
+          {focus !== 'family' && (
+            <AskAiButton
+              type="button"
+              onClick={() => runAiFinder(searchQuery)}
+              disabled={!searchQuery.trim() || aiLoading}
+              aria-label="Smart search"
+              title='Describe what you want, e.g. "Lutheran churches near Denver"'
+              data-testid="ask-ai-button"
+            >
+              <span aria-hidden="true">✨</span>
+              <span className="ask-label">{aiLoading ? 'Thinking…' : 'Ask'}</span>
+            </AskAiButton>
+          )}
           {/* Emoji Picker Button */}
           <EmojiPickerButton
             type="button"
@@ -1429,17 +1575,43 @@ const OrganizationBrowser: React.FC = () => {
       )}
 
       <SectionTitle>
-        {isSearchMode ? `Search Results for "${searchQuery}"` : focusCopy.browseTitle}
+        {isSearchMode
+          ? aiResult ? 'Smart search' : `Search Results for "${searchQuery}"`
+          : focusCopy.browseTitle}
       </SectionTitle>
+
+      {/* ✨ What the finder understood, plus anything it had to ignore */}
+      {isSearchMode && aiResult && !aiLoading && (
+        <AiFinderResultBanner
+          result={aiResult}
+          onClear={clearAiFinder}
+          onJoinFamilyByInvite={() => {
+            clearAiFinder();
+            navigate('/organizations?focus=family');
+          }}
+        />
+      )}
 
       {/* Search Mode: Show search results */}
       {isSearchMode ? (
-        searchLoading ? (
+        aiLoading ? (
+          <LoadingSpinner>✨ Working out what you're looking for...</LoadingSpinner>
+        ) : searchLoading ? (
           <LoadingSpinner>Searching...</LoadingSpinner>
         ) : organizations.length === 0 ? (
           <EmptyState>
-            <EmptyStateTitle>No organizations found</EmptyStateTitle>
-            <EmptyStateText>Try adjusting your search</EmptyStateText>
+            <EmptyStateTitle>
+              {aiResult?.familyRequested ? 'Family groups are invite-only' : 'No organizations found'}
+            </EmptyStateTitle>
+            <EmptyStateText>
+              {aiResult
+                ? aiResult.familyRequested
+                  ? 'Ask a family member for their invite link or QR code.'
+                  : 'Try a different place, a wider distance, or just the name.'
+                : focus !== 'family'
+                  ? 'Try adjusting your search, or press Enter to ask: "Baptist churches near Austin"'
+                  : 'Try adjusting your search'}
+            </EmptyStateText>
           </EmptyState>
         ) : (
           <OrganizationGrid>
@@ -1456,6 +1628,12 @@ const OrganizationBrowser: React.FC = () => {
                     <span>📊</span>
                     <span>{org.tier}</span>
                   </OrgStat>
+                  {aiDistances[org.id] !== undefined && (
+                    <OrgStat title="Distance from the place you searched">
+                      <span>📍</span>
+                      <span>{aiDistances[org.id] < 10 ? aiDistances[org.id].toFixed(1) : Math.round(aiDistances[org.id])} mi</span>
+                    </OrgStat>
+                  )}
                 </OrgStats>
 
                 {isMember(org.id) ? (

@@ -18,6 +18,7 @@ rule-based parser and quick chips.
 | `OPENAI_BASE_URL` | `https://api.openai.com/v1` | Override for proxies / Azure OpenAI gateways |
 | `OPENAI_TIMEOUT_MS` | `10000` | Connect + read timeout for the completion call |
 | `FEED_SCOPE_PARSE_RATE_LIMIT` | `20` | Max natural-language parses per user per hour |
+| `ORG_FINDER_AI_RATE_LIMIT` | `30` | Max AI-assisted "find an organization" searches per user per hour (rule-based matches are free). Uses the same `OPENAI_*` settings above. |
 
 Elastic Beanstalk: add these under Configuration -> Software -> Environment properties.
 Local: put them in your shell or a `.env` loaded by your IDE run configuration. Never commit the key.

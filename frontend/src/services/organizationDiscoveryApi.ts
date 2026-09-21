@@ -46,6 +46,52 @@ export interface NearbyOptions {
 export const RADIUS_OPTIONS_MILES = [10, 25, 50, 100] as const;
 export const DEFAULT_RADIUS_MILES = 25;
 
+/**
+ * ✨ Natural-language finder - POST /organizations/finder.
+ * Rules handle the easy phrases instantly; OpenAI only steps in for ambiguous sentences.
+ * The server always tells us what it actually searched (`interpretation`) so a misread is obvious.
+ */
+export interface FinderIntent {
+  nameHints: string[];
+  denomination?: string | null;
+  orgTypes: string[];
+  placeText?: string | null;
+  nearUser: boolean;
+  radiusMiles?: number | null;
+}
+
+export interface FinderMatch {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl?: string | null;
+  type: string;
+  tier?: string | null;
+  denomination?: string | null;
+  city?: string | null;
+  stateProvince?: string | null;
+  memberCount: number;
+  /** Only present when the search was centred on a place. */
+  distanceMiles?: number | null;
+}
+
+export interface FinderResponse {
+  interpretation: string;
+  source: 'RULES' | 'AI' | string;
+  confidence: number;
+  clarificationQuestion?: string | null;
+  /** "near me" without coordinates - retry with lat/lng after asking the device. */
+  needsLocation: boolean;
+  /** The user was really asking about a family group - point them to the invite flow. */
+  familyRequested: boolean;
+  intent: FinderIntent;
+  results: FinderMatch[];
+  warnings: string[];
+  sourceText?: string;
+}
+
+export const FINDER_MAX_LENGTH = 300;
+
 const organizationDiscoveryApi = {
   getNearby: async (where: NearbyQuery, options: NearbyOptions = {}): Promise<NearbyResponse> => {
     const params: Record<string, string | number> = {};
@@ -68,6 +114,19 @@ const organizationDiscoveryApi = {
 
   getDenominations: async (): Promise<string[]> => {
     const response = await api.get('/organizations/denominations');
+    return response.data;
+  },
+
+  askFinder: async (
+    text: string,
+    coords?: { lat: number; lng: number } | null
+  ): Promise<FinderResponse> => {
+    const body: Record<string, string | number> = { text: text.trim().slice(0, FINDER_MAX_LENGTH) };
+    if (coords) {
+      body.lat = coords.lat;
+      body.lng = coords.lng;
+    }
+    const response = await api.post('/organizations/finder', body);
     return response.data;
   },
 };
