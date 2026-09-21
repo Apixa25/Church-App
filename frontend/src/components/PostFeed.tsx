@@ -12,6 +12,13 @@ import { useActiveContext } from '../contexts/ActiveContextContext';
 import LoadingSpinner from './LoadingSpinner';
 import './PostFeed.css';
 
+/**
+ * Community / Following / Trending circles. Hidden now that the AI scope
+ * owns "who do I see"; Community (chronological) is the only live mode.
+ * Flip to true to bring the three buttons back - FeedFilters.tsx is unchanged.
+ */
+const SHOW_LEGACY_FEED_TYPE_SWITCHERS = false;
+
 interface PostFeedProps {
   feedType: FeedType;
   maxPosts?: number;
@@ -666,8 +673,8 @@ const PostFeed: React.FC<PostFeedProps> = ({
         </div>
       )}
 
-      {/* Feed Header */}
-      {showFilters && (
+      {/* Feed Header — Community / Following / Trending circles */}
+      {showFilters && SHOW_LEGACY_FEED_TYPE_SWITCHERS && (
         <div className="feed-header">
           <FeedFilters
             currentFeedType={feedType}
