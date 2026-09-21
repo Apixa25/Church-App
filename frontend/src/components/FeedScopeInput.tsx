@@ -333,13 +333,16 @@ const FeedScopeInput: React.FC = () => {
     setBusy(true);
     setError(null);
     try {
-      await setFilter('EVERYTHING');
+      if (activeFilter !== 'EVERYTHING') {
+        await setFilter('EVERYTHING');
+      }
+      setExpanded(false);
     } catch (e: any) {
       setError(e?.message || 'Could not reset your feed');
     } finally {
       setBusy(false);
     }
-  }, [setFilter]);
+  }, [setFilter, activeFilter]);
 
   // ---- Chip definitions ---------------------------------------------------
 
@@ -426,13 +429,21 @@ const FeedScopeInput: React.FC = () => {
 
   // ---- Render -------------------------------------------------------------
 
-  const showActiveBanner = activeFilter === 'CUSTOM' && !!scopeDescription && !pending;
+  const isLegacyActive = activeFilter === 'EVERYTHING' || activeFilter === 'ALL';
+  const showActiveBanner =
+    !pending && ((activeFilter === 'CUSTOM' && !!scopeDescription) || isLegacyActive);
+  const bannerLabel =
+    activeFilter === 'CUSTOM'
+      ? scopeDescription
+      : activeFilter === 'ALL'
+        ? 'All my organizations, groups and people I follow'
+        : 'Everything';
 
   return (
     <Container>
       {showActiveBanner && (
         <ActiveBanner>
-          <BannerText title={scopeDescription || undefined}>✨ Showing: {scopeDescription}</BannerText>
+          <BannerText title={bannerLabel || undefined}>✨ Showing: {bannerLabel}</BannerText>
           <LinkButton type="button" onClick={() => setExpanded(v => !v)} disabled={busy}>
             {expanded ? 'Hide' : 'Change'}
           </LinkButton>

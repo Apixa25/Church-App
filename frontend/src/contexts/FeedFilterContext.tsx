@@ -102,6 +102,8 @@ interface FeedFilterContextType {
   scope: FeedScope | null;
   scopeDescription: string | null;
   scopeKey: string; // stable hash of the active scope for cache keys
+  /** Increments after a filter/scope is confirmed on the server so PostFeed refetches. */
+  feedEpoch: number;
 
   // Actions
   setFilter: (filter: FeedFilter, groupIds?: string[], selectedOrganizationId?: string) => Promise<void>;
@@ -131,6 +133,7 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
   const [primaryOrgId, setPrimaryOrgId] = useState<string | null>(null);
   const [secondaryOrgIds, setSecondaryOrgIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [feedEpoch, setFeedEpoch] = useState(0);
   
   // Ref to track if we're in the middle of an optimistic update
   const optimisticUpdateRef = useRef<{ filter: FeedFilter; groupIds: string[]; selectedOrganizationId?: string } | null>(null);
@@ -309,26 +312,24 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
         updatedAt: new Date().toISOString(),
       };
       
-      // Track optimistic update
       optimisticUpdateRef.current = {
         filter,
         groupIds: filter === 'SELECTED_GROUPS' ? [...groupIds] : [],
         selectedOrganizationId: filter === 'PRIMARY_ONLY' ? selectedOrganizationId : undefined,
       };
-      
-      // Update state immediately (synchronously in the same render cycle)
-      setPreference(optimisticPreference);
-      
-      // Make API call (fire-and-forget style - we already have the optimistic update)
+
+      // Persist first, then update local state + bump feedEpoch so PostFeed
+      // refetches AFTER the server is serving the new filter. Updating the
+      // preference first raced the save and showed the old posts until pull-to-refresh.
       await api.post('/feed-preferences', {
         activeFilter: filter,
         selectedGroupIds: filter === 'SELECTED_GROUPS' ? groupIds : [],
         selectedOrganizationId: filter === 'PRIMARY_ONLY' ? selectedOrganizationId : undefined,
       });
 
-      // Clear optimistic update ref - success!
-      // 🎯 NO refreshPreference() call - we already have the correct state from optimistic update
+      setPreference(optimisticPreference);
       optimisticUpdateRef.current = null;
+      setFeedEpoch(e => e + 1);
     } catch (error: any) {
       console.error('Error setting feed filter:', error);
       // Revert optimistic update on error by refreshing from server
@@ -359,26 +360,10 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
     return res.data as FeedScopeParseResult;
   }, [api]);
 
-  // Save a scope and switch to CUSTOM. Optimistic like setFilter.
+  // Save a scope and switch to CUSTOM. Preference updates after the server
+  // confirms so PostFeed does not fetch against the previous filter.
   const saveScope = useCallback(async (scope: FeedScope, sourceText?: string): Promise<void> => {
-    const base: FeedPreference = preference || {
-      id: '',
-      userId: '',
-      activeFilter: 'EVERYTHING',
-      selectedGroupIds: [],
-      updatedAt: new Date().toISOString(),
-    };
-    const optimistic: FeedPreference = {
-      ...base,
-      activeFilter: 'CUSTOM',
-      selectedGroupIds: [],
-      selectedOrganizationId: undefined,
-      scope,
-      scopeSourceText: sourceText ?? null,
-      updatedAt: new Date().toISOString(),
-    };
     optimisticUpdateRef.current = { filter: 'CUSTOM', groupIds: [], selectedOrganizationId: undefined };
-    setPreference(optimistic);
 
     try {
       const res = await api.put('/feed-preferences/scope', { scope, sourceText });
@@ -389,19 +374,21 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
         selectedGroupIds: saved.selectedGroupIds ? [...saved.selectedGroupIds] : [],
       });
       optimisticUpdateRef.current = null;
+      setFeedEpoch(e => e + 1);
     } catch (error: any) {
       console.error('Error saving feed scope:', error);
       optimisticUpdateRef.current = null;
       await refreshPreference();
       throw new Error(error.response?.data?.message || 'Failed to save feed scope');
     }
-  }, [preference, api, refreshPreference]);
+  }, [api, refreshPreference]);
 
   // Reset filter to EVERYTHING (default) - memoized
   const resetFilter = useCallback(async (): Promise<void> => {
     try {
       await api.delete('/feed-preferences');
       await refreshPreference();
+      setFeedEpoch(e => e + 1);
     } catch (error: any) {
       console.error('Error resetting feed filter:', error);
       throw new Error(error.response?.data?.message || 'Failed to reset feed filter');
@@ -480,6 +467,7 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
     scope: activeScope,
     scopeDescription: preference?.activeFilter === 'CUSTOM' ? preference?.scopeDescription || null : null,
     scopeKey,
+    feedEpoch,
     setFilter,
     resetFilter,
     refreshPreference,
@@ -497,6 +485,7 @@ export const FeedFilterProvider: React.FC<FeedFilterProviderProps> = ({ children
     loading,
     activeScope,
     scopeKey,
+    feedEpoch,
     setFilter,
     resetFilter,
     refreshPreference,
