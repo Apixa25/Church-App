@@ -13,6 +13,8 @@ interface EventCardProps {
   compact?: boolean;
   showDate?: boolean;
   showTime?: boolean;
+  canManage?: boolean;
+  currentUserId?: string;
 }
 
 const EventCard: React.FC<EventCardProps> = ({
@@ -23,8 +25,11 @@ const EventCard: React.FC<EventCardProps> = ({
   onRsvpUpdate,
   compact = false,
   showDate = true,
-  showTime = true
+  showTime = true,
+  canManage = false,
+  currentUserId
 }) => {
+  const canEditThisEvent = canManage || (!!currentUserId && event.creatorId === currentUserId);
   const [showRsvpManager, setShowRsvpManager] = useState(false);
 
   // Use centralized date utilities for consistent parsing
@@ -74,15 +79,17 @@ const EventCard: React.FC<EventCardProps> = ({
           >
             {getEventCategoryDisplay(event.category)}
           </span>
+          {event.status !== 'SCHEDULED' && (
           <span 
             className="status-badge"
             style={{ color: getEventStatusColor(event.status) }}
           >
             {getEventStatusDisplay(event.status)}
           </span>
+          )}
         </div>
         
-        {!compact && (
+        {!compact && canEditThisEvent && (
           <div className="event-actions" onClick={(e) => e.stopPropagation()}>
             <button 
               type="button"

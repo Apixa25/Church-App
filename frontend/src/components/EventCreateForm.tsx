@@ -331,14 +331,11 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
 
         {/* Checkboxes */}
         <div className="form-group checkboxes">
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              {...register('requiresApproval')}
-            />
-            <span className="checkmark"></span>
-            Require approval for attendance
-          </label>
+          <input
+            type="checkbox"
+            hidden
+            {...register('requiresApproval')}
+          />
 
           <label className="checkbox-label">
             <input

@@ -6,6 +6,7 @@ import com.churchapp.entity.ChatGroup;
 import com.churchapp.entity.Event;
 import com.churchapp.entity.Organization;
 import com.churchapp.entity.User;
+import com.churchapp.entity.UserOrganizationMembership;
 import com.churchapp.repository.ChatGroupRepository;
 import com.churchapp.repository.EventRepository;
 import com.churchapp.repository.EventRsvpRepository;
@@ -76,14 +77,11 @@ public class EventService {
         event.setLocation(eventRequest.getLocation() != null ? eventRequest.getLocation().trim() : null);
         event.setCreator(creator);
         event.setOrganization(targetOrganization); // Always org-scoped
-        // Map problematic categories to working ones based on user testing
-        Event.EventCategory mappedCategory = mapCategoryToWorkingValue(eventRequest.getCategory());
-        event.setCategory(mappedCategory);
-        
-        // Store original category name for display purposes
-        if (eventRequest.getCategory() != null) {
-            event.setOriginalCategory(eventRequest.getCategory().name());
-        }
+        Event.EventCategory category = eventRequest.getCategory() != null
+            ? eventRequest.getCategory()
+            : Event.EventCategory.GENERAL;
+        event.setCategory(category);
+        event.setOriginalCategory(category.name());
         event.setMaxAttendees(eventRequest.getMaxAttendees());
         event.setIsRecurring(eventRequest.getIsRecurring() != null ? eventRequest.getIsRecurring() : false);
         event.setRecurrenceType(eventRequest.getRecurrenceType());
@@ -134,6 +132,43 @@ public class EventService {
         return eventRepository.findById(eventId)
             .orElseThrow(() -> new RuntimeException("Event not found with id: " + eventId));
     }
+
+    /**
+     * Resolves the church for a calendar request and confirms the user belongs to it.
+     * Platform admins may open a church calendar without a membership row.
+     */
+    public UUID resolveOrganizationId(UUID userId, UUID requestedOrganizationId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        UUID organizationId = requestedOrganizationId;
+        if (organizationId == null && user.getChurchPrimaryOrganization() != null) {
+            organizationId = user.getChurchPrimaryOrganization().getId();
+        }
+        if (organizationId == null) {
+            throw new RuntimeException("Cannot view events without an organization");
+        }
+
+        if (user.getRole() != User.Role.PLATFORM_ADMIN
+                && !membershipRepository.existsByUserIdAndOrganizationId(userId, organizationId)) {
+            throw new RuntimeException("You are not a member of this organization");
+        }
+        return organizationId;
+    }
+
+    public Event getEventForUser(UUID eventId, UUID userId) {
+        Event event = getEvent(eventId);
+        if (event.getOrganization() == null) {
+            throw new RuntimeException("Event is not available");
+        }
+        resolveOrganizationId(userId, event.getOrganization().getId());
+        return event;
+    }
+
+    public Page<Event> getVisibleEvents(UUID organizationId, LocalDateTime startDate, LocalDateTime endDate, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return eventRepository.findVisibleByOrganizationId(organizationId, startDate, endDate, pageable);
+    }
     
     public Event updateEvent(UUID eventId, UUID userId, Event eventUpdate, Boolean bringListEnabled, List<EventBringItemRequest> bringItems) {
         Event existingEvent = eventRepository.findById(eventId)
@@ -143,9 +178,7 @@ public class EventService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         
-        if (!existingEvent.getCreator().getId().equals(userId) && 
-            user.getRole() != User.Role.PLATFORM_ADMIN && 
-            user.getRole() != User.Role.MODERATOR) {
+        if (!canManageEvent(user, existingEvent)) {
             throw new RuntimeException("Not authorized to update this event");
         }
         
@@ -166,9 +199,23 @@ public class EventService {
             existingEvent.setLocation(eventUpdate.getLocation().trim());
         }
         if (eventUpdate.getCategory() != null) {
-            Event.EventCategory mappedCategory = mapCategoryToWorkingValue(eventUpdate.getCategory());
-            existingEvent.setCategory(mappedCategory);
+            existingEvent.setCategory(eventUpdate.getCategory());
             existingEvent.setOriginalCategory(eventUpdate.getCategory().name());
+        }
+        if (eventUpdate.getIsRecurring() != null) {
+            existingEvent.setIsRecurring(eventUpdate.getIsRecurring());
+            if (Boolean.FALSE.equals(eventUpdate.getIsRecurring())) {
+                existingEvent.setRecurrenceType(null);
+                existingEvent.setRecurrenceEndDate(null);
+            } else {
+                if (eventUpdate.getRecurrenceType() != null) {
+                    existingEvent.setRecurrenceType(eventUpdate.getRecurrenceType());
+                }
+                existingEvent.setRecurrenceEndDate(eventUpdate.getRecurrenceEndDate());
+            }
+        }
+        if (eventUpdate.getRequiresApproval() != null) {
+            existingEvent.setRequiresApproval(eventUpdate.getRequiresApproval());
         }
         if (eventUpdate.getStatus() != null) {
             existingEvent.setStatus(eventUpdate.getStatus());
@@ -214,14 +261,8 @@ public class EventService {
         log.info("Delete authorization check - Event: {} | Creator: {} | Current User: {} | User Role: {}", 
                 eventId, event.getCreator().getId(), userId, user.getRole());
         
-        boolean isCreator = event.getCreator().getId().equals(userId);
-        boolean isAdmin = user.getRole() == User.Role.PLATFORM_ADMIN;
-        
-        log.info("Authorization result - Is Creator: {} | Is Admin: {} | Can Delete: {}", 
-                isCreator, isAdmin, (isCreator || isAdmin));
-        
-        if (!isCreator && !isAdmin) {
-            throw new RuntimeException("Not authorized to delete this event. Only the event creator or administrators can delete events.");
+        if (!canManageEvent(user, event)) {
+            throw new RuntimeException("Not authorized to delete this event. Only the event creator or a church administrator can delete events.");
         }
         
         // Notify about cancellation before actual deletion (per user requirements)
@@ -252,20 +293,7 @@ public class EventService {
      * Get all events for user's active organization
      */
     public Page<Event> getEventsForUser(UUID userId, UUID organizationId, int page, int size) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-
-        // Use provided organizationId, or fall back to primary organization
-        UUID targetOrganizationId;
-        if (organizationId != null) {
-            // Use the provided organizationId from the active context
-            targetOrganizationId = organizationId;
-        } else if (user.getChurchPrimaryOrganization() != null) {
-            // Fall back to church primary if no organizationId provided
-            targetOrganizationId = user.getChurchPrimaryOrganization().getId();
-        } else {
-            throw new RuntimeException("Cannot view events without an organization");
-        }
+        UUID targetOrganizationId = resolveOrganizationId(userId, organizationId);
 
         Pageable pageable = PageRequest.of(page, size);
         Page<Event> eventsPage = eventRepository.findByOrganizationId(targetOrganizationId, pageable);
@@ -352,14 +380,24 @@ public class EventService {
         return eventRepository.findByGroupOrderByStartTimeAsc(group, pageable);
     }
     
-    public Page<Event> getEventsByDateRange(LocalDateTime startDate, LocalDateTime endDate, int page, int size) {
+    public Page<Event> getEventsByDateRange(UUID organizationId, LocalDateTime startDate, LocalDateTime endDate, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return eventRepository.findEventsByDateRange(startDate, endDate, pageable);
+        return eventRepository.findByOrganizationIdAndDateRange(organizationId, startDate, endDate, pageable);
+    }
+
+    public Page<Event> getEventsByCategoryForOrganization(UUID organizationId, Event.EventCategory category, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return eventRepository.findByOrganizationIdAndCategory(organizationId, category, pageable);
+    }
+
+    public Page<Event> getEventsByStatusForOrganization(UUID organizationId, Event.EventStatus status, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return eventRepository.findByOrganizationIdAndStatus(organizationId, status, pageable);
     }
     
-    public Page<Event> searchEvents(String searchTerm, int page, int size) {
+    public Page<Event> searchEvents(UUID organizationId, String searchTerm, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return eventRepository.searchEvents(searchTerm, pageable);
+        return eventRepository.searchEventsByOrganizationId(organizationId, searchTerm, pageable);
     }
     
     // Dashboard/Feed methods
@@ -368,20 +406,36 @@ public class EventService {
         return eventRepository.findRecentEventsForFeed(LocalDateTime.now(), pageable);
     }
     
-    public List<Event> getEventsToday() {
+    public List<Event> getEventsToday(UUID organizationId) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startOfDay = now.withHour(0).withMinute(0).withSecond(0).withNano(0);
         LocalDateTime endOfDay = startOfDay.plusDays(1);
         
-        return eventRepository.findEventsToday(startOfDay, endOfDay);
+        return eventRepository.findEventsTodayByOrganizationId(organizationId, startOfDay, endOfDay);
     }
     
-    public List<Event> getEventsThisWeek() {
+    public List<Event> getEventsThisWeek(UUID organizationId) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime weekStart = now.withHour(0).withMinute(0).withSecond(0);
         LocalDateTime weekEnd = weekStart.plusDays(7);
         
-        return eventRepository.findEventsThisWeek(weekStart, weekEnd);
+        return eventRepository.findEventsThisWeekByOrganizationId(organizationId, weekStart, weekEnd);
+    }
+
+    private boolean canManageEvent(User user, Event event) {
+        if (event.getCreator() != null && event.getCreator().getId().equals(user.getId())) {
+            return true;
+        }
+        if (user.getRole() == User.Role.PLATFORM_ADMIN || user.getRole() == User.Role.MODERATOR) {
+            return true;
+        }
+        if (event.getOrganization() == null) {
+            return false;
+        }
+        return membershipRepository.findByUserIdAndOrganizationId(user.getId(), event.getOrganization().getId())
+            .map(membership -> membership.getRole() == UserOrganizationMembership.OrgRole.ORG_ADMIN
+                || membership.getRole() == UserOrganizationMembership.OrgRole.MODERATOR)
+            .orElse(false);
     }
     
     // Statistics
@@ -566,38 +620,4 @@ public class EventService {
         }
     }
     
-    /**
-     * Maps problematic categories to working ones based on user testing.
-     * Categories from "Men's Ministry" to "Other" don't work due to database constraint.
-     */
-    private Event.EventCategory mapCategoryToWorkingValue(Event.EventCategory category) {
-        if (category == null) {
-            return Event.EventCategory.GENERAL;
-        }
-        
-        // Map problematic categories to working ones
-        switch (category) {
-            case MENS:
-                return Event.EventCategory.MENS_MINISTRY;
-            case WOMENS:
-                return Event.EventCategory.WOMENS_MINISTRY;
-            case SENIORS:
-                return Event.EventCategory.SPECIAL_EVENT;
-            case MISSIONS:
-                return Event.EventCategory.MEETING;
-            case MINISTRY:
-                return Event.EventCategory.VOLUNTEER;
-            case SOCIAL:
-                return Event.EventCategory.FELLOWSHIP; // Map to working category
-            case EDUCATION:
-                return Event.EventCategory.BIBLE_STUDY; // Map to working category
-            case MUSIC:
-                return Event.EventCategory.WORSHIP; // Map to working category
-            case OTHER:
-                return Event.EventCategory.GENERAL; // Map to working category
-            default:
-                // All other categories work fine
-                return category;
-        }
-    }
 }

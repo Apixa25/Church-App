@@ -221,4 +221,73 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
     
     @Query("SELECT COUNT(e) FROM Event e WHERE e.organization.id IN :orgIds")
     long countByOrganizationIdIn(@Param("orgIds") List<UUID> orgIds);
+
+    // Events whose own start falls in the window, plus repeating series that overlap it.
+    @Query(value = "SELECT e FROM Event e " +
+           "LEFT JOIN FETCH e.creator " +
+           "LEFT JOIN FETCH e.group " +
+           "WHERE e.organization.id = :orgId AND (" +
+           "  (e.startTime >= :startDate AND e.startTime <= :endDate) OR " +
+           "  (e.isRecurring = true AND e.startTime <= :endDate AND (e.recurrenceEndDate IS NULL OR e.recurrenceEndDate >= :startDate))" +
+           ") ORDER BY e.startTime ASC",
+           countQuery = "SELECT COUNT(e) FROM Event e WHERE e.organization.id = :orgId AND (" +
+           "  (e.startTime >= :startDate AND e.startTime <= :endDate) OR " +
+           "  (e.isRecurring = true AND e.startTime <= :endDate AND (e.recurrenceEndDate IS NULL OR e.recurrenceEndDate >= :startDate)))")
+    Page<Event> findVisibleByOrganizationId(
+        @Param("orgId") UUID orgId,
+        @Param("startDate") LocalDateTime startDate,
+        @Param("endDate") LocalDateTime endDate,
+        Pageable pageable
+    );
+
+    @Query(value = "SELECT e FROM Event e " +
+           "LEFT JOIN FETCH e.creator " +
+           "LEFT JOIN FETCH e.group " +
+           "WHERE e.organization.id = :orgId AND (" +
+           "LOWER(e.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(e.description) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(e.location) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
+           "ORDER BY e.startTime ASC",
+           countQuery = "SELECT COUNT(e) FROM Event e WHERE e.organization.id = :orgId AND (" +
+           "LOWER(e.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(e.description) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(e.location) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
+    Page<Event> searchEventsByOrganizationId(
+        @Param("orgId") UUID orgId,
+        @Param("searchTerm") String searchTerm,
+        Pageable pageable
+    );
+
+    @Query(value = "SELECT e FROM Event e " +
+           "LEFT JOIN FETCH e.creator " +
+           "LEFT JOIN FETCH e.group " +
+           "WHERE e.organization.id = :orgId " +
+           "AND e.startTime >= :startDate AND e.startTime <= :endDate " +
+           "ORDER BY e.startTime ASC",
+           countQuery = "SELECT COUNT(e) FROM Event e WHERE e.organization.id = :orgId " +
+           "AND e.startTime >= :startDate AND e.startTime <= :endDate")
+    Page<Event> findByOrganizationIdAndDateRange(
+        @Param("orgId") UUID orgId,
+        @Param("startDate") LocalDateTime startDate,
+        @Param("endDate") LocalDateTime endDate,
+        Pageable pageable
+    );
+
+    @Query("SELECT e FROM Event e WHERE e.organization.id = :orgId " +
+           "AND e.startTime >= :startOfDay AND e.startTime < :endOfDay " +
+           "AND e.status = 'SCHEDULED' ORDER BY e.startTime ASC")
+    List<Event> findEventsTodayByOrganizationId(
+        @Param("orgId") UUID orgId,
+        @Param("startOfDay") LocalDateTime startOfDay,
+        @Param("endOfDay") LocalDateTime endOfDay
+    );
+
+    @Query("SELECT e FROM Event e WHERE e.organization.id = :orgId " +
+           "AND e.startTime >= :weekStart AND e.startTime <= :weekEnd " +
+           "AND e.status = 'SCHEDULED' ORDER BY e.startTime ASC")
+    List<Event> findEventsThisWeekByOrganizationId(
+        @Param("orgId") UUID orgId,
+        @Param("weekStart") LocalDateTime weekStart,
+        @Param("weekEnd") LocalDateTime weekEnd
+    );
 }

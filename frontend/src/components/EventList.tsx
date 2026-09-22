@@ -9,6 +9,8 @@ interface EventListProps {
   onEventUpdate: (event: Event) => void;
   onEventDelete: (eventId: string) => void;
   onRsvpUpdate?: (event: Event) => void;
+  canManage?: boolean;
+  currentUserId?: string;
   loading?: boolean;
 }
 
@@ -20,6 +22,8 @@ const EventList: React.FC<EventListProps> = ({
   onEventUpdate,
   onEventDelete,
   onRsvpUpdate,
+  canManage = false,
+  currentUserId,
   loading = false
 }) => {
   const [sortBy, setSortBy] = useState<SortOption>('date-asc');
@@ -179,6 +183,8 @@ const EventList: React.FC<EventListProps> = ({
                   onUpdate={onEventUpdate}
                   onDelete={onEventDelete}
                   onRsvpUpdate={onRsvpUpdate}
+                  canManage={canManage}
+                  currentUserId={currentUserId}
                   showDate={true}
                   showTime={true}
                 />

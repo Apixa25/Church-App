@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import DatePicker from 'react-datepicker';
 import { Event } from '../types/Event';
 import EventCard from './EventCard';
-import { getDateKey, expandRecurringEvent } from '../utils/dateUtils';
+import { getDateKey, expandRecurringEvent, formatEventTime, parseEventDate } from '../utils/dateUtils';
 import 'react-datepicker/dist/react-datepicker.css';
 import './CalendarView.css';
 
@@ -15,6 +15,8 @@ interface CalendarViewProps {
   onEventDelete: (eventId: string) => void;
   onRsvpUpdate?: (event: Event) => void;
   onCreateEvent?: (date: Date) => void;
+  canManage?: boolean;
+  currentUserId?: string;
 }
 
 const CalendarView: React.FC<CalendarViewProps> = ({
@@ -25,7 +27,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   onEventUpdate,
   onEventDelete,
   onRsvpUpdate,
-  onCreateEvent
+  onCreateEvent,
+  canManage = false,
+  currentUserId
 }) => {
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month');
 
@@ -86,15 +90,14 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         <span className="day-number">{day}</span>
         {hasEvents && (
           <div className="event-indicators">
-            {dayEvents.slice(0, 3).map((event, index) => (
-              <div
-                key={(event as any)._recurrenceInstance || event.id}
-                className={`event-dot ${event.category.toLowerCase()}`}
-                title={event.title}
-              />
-            ))}
-            {dayEvents.length > 3 && (
-              <div className="more-events">+{dayEvents.length - 3}</div>
+            <div
+              className={`day-event-label ${dayEvents[0].category.toLowerCase()}`}
+              title={dayEvents.map(event => event.title).join(', ')}
+            >
+              {dayEvents[0].title}
+            </div>
+            {dayEvents.length > 1 && (
+              <div className="more-events">+{dayEvents.length - 1}</div>
             )}
           </div>
         )}
@@ -183,6 +186,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 <DatePicker
                   selected={selectedDate}
                   onChange={(date: Date | null) => date && onDateSelect(date)}
+                  onMonthChange={(date) => onDateSelect(date)}
                   inline
                   renderDayContents={renderDayContents}
                   calendarClassName="custom-calendar"
@@ -229,6 +233,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                           onUpdate={onEventUpdate}
                           onDelete={onEventDelete}
                           onRsvpUpdate={onRsvpUpdate}
+                          canManage={canManage}
+                          currentUserId={currentUserId}
                           compact={true}
                         />
                       ))}
@@ -294,11 +300,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             }}
                           >
                             <span className="event-time">
-                              {new Date(event.startTime).toLocaleTimeString('en-US', { 
-                                hour: 'numeric', 
-                                minute: '2-digit',
-                                hour12: true 
-                              })}
+                              {formatEventTime(event.startTime)}
                             </span>
                             <span className="event-title">{event.title}</span>
                           </div>
@@ -354,7 +356,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                 ) : (
                   <div className="events-timeline">
                     {selectedDateEvents
-                      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+                      .sort((a, b) => (parseEventDate(a.startTime)?.getTime() || 0) - (parseEventDate(b.startTime)?.getTime() || 0))
                       .map(event => (
                         <div 
                           key={(event as any)._recurrenceInstance || event.id}
@@ -362,18 +364,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                           onClick={() => onEventSelect(event)}
                         >
                           <div className="event-time">
-                            {new Date(event.startTime).toLocaleTimeString('en-US', { 
-                              hour: 'numeric', 
-                              minute: '2-digit',
-                              hour12: true 
-                            })}
+                            {formatEventTime(event.startTime)}
                             {event.endTime && (
                               <span className="end-time">
-                                - {new Date(event.endTime).toLocaleTimeString('en-US', { 
-                                  hour: 'numeric', 
-                                  minute: '2-digit',
-                                  hour12: true 
-                                })}
+                                - {formatEventTime(event.endTime)}
                               </span>
                             )}
                           </div>
@@ -427,6 +421,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         onUpdate={onEventUpdate}
                         onDelete={onEventDelete}
                         onRsvpUpdate={onRsvpUpdate}
+                        canManage={canManage}
+                        currentUserId={currentUserId}
                         compact={true}
                       />
                     ))}

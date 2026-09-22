@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { eventAPI } from '../services/eventApi';
-import { Event, EventBringItem } from '../types/Event';
+import { Event, EventBringItem, getEventCategoryDisplay, getEventStatusDisplay } from '../types/Event';
 import { useAuth } from '../contexts/AuthContext';
+import { useActiveContext } from '../contexts/ActiveContextContext';
 import { formatEventDate, formatEventTime, formatEventDuration } from '../utils/dateUtils';
 import EventRsvpManager from './EventRsvpManager';
 import EventBringListSection from './EventBringListSection';
@@ -13,6 +14,7 @@ const EventDetailsPage: React.FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { activeMembership } = useActiveContext();
 
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,8 +46,11 @@ const EventDetailsPage: React.FC = () => {
     if (event.creatorId === user.userId) {
       return true;
     }
-    return user.role === 'PLATFORM_ADMIN' || user.role === 'MODERATOR';
-  }, [event, user]);
+    if (user.role === 'PLATFORM_ADMIN' || user.role === 'MODERATOR') {
+      return true;
+    }
+    return activeMembership?.role === 'ORG_ADMIN' || activeMembership?.role === 'MODERATOR';
+  }, [event, user, activeMembership]);
 
   const handleBringItemsUpdated = (items: EventBringItem[]) => {
     setEvent(prev => (prev ? { ...prev, bringItems: items } : prev));
@@ -142,12 +147,14 @@ const EventDetailsPage: React.FC = () => {
           </div>
           <div className="meta-card">
             <h4>Category</h4>
-            <p>{event.category.replace(/_/g, ' ')}</p>
+            <p>{getEventCategoryDisplay(event.category)}</p>
           </div>
+          {event.status !== 'SCHEDULED' && (
           <div className="meta-card">
             <h4>Event status</h4>
-            <p>{event.status.replace(/_/g, ' ')}</p>
+            <p>{getEventStatusDisplay(event.status)}</p>
           </div>
+          )}
           {event.maxAttendees && (
             <div className="meta-card">
               <h4>Capacity</h4>

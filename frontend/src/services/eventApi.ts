@@ -37,6 +37,8 @@ export const eventAPI = {
     creatorId?: string;
     groupId?: string;
     organizationId?: string; // Organization context for multi-tenant support
+    startDate?: string;
+    endDate?: string;
   }): Promise<{ data: EventsResponse }> =>
     api.get('/events', { params }),
   
@@ -56,6 +58,7 @@ export const eventAPI = {
     query: string;
     page?: number;
     size?: number;
+    organizationId?: string;
   }): Promise<{ data: EventsResponse }> =>
     api.get('/events/search', { params }),
   

@@ -86,7 +86,7 @@ public class EventController {
                                     @AuthenticationPrincipal User user) {
         try {
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
-            Event event = eventService.getEvent(eventId);
+            Event event = eventService.getEventForUser(eventId, currentProfile.getUserId());
             
             EventResponse response = EventResponse.fromEvent(event);
             
@@ -162,25 +162,29 @@ public class EventController {
                                      @RequestParam(required = false) UUID creatorId,
                                      @RequestParam(required = false) UUID groupId,
                                      @RequestParam(required = false) UUID organizationId,
+                                     @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+                                     @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
                                      @AuthenticationPrincipal User user) {
         try {
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            UUID scopedOrganizationId = eventService.resolveOrganizationId(currentProfile.getUserId(), organizationId);
             Page<Event> eventsPage;
 
-            // Handle different filtering options
+            // Every list path stays inside the caller's church.
             if (category != null) {
                 Event.EventCategory eventCategory = Event.EventCategory.valueOf(category.toUpperCase());
-                eventsPage = eventService.getEventsByCategory(eventCategory, page, size);
+                eventsPage = eventService.getEventsByCategoryForOrganization(scopedOrganizationId, eventCategory, page, size);
             } else if (status != null) {
                 Event.EventStatus eventStatus = Event.EventStatus.valueOf(status.toUpperCase());
-                eventsPage = eventService.getEventsByStatus(eventStatus, page, size);
+                eventsPage = eventService.getEventsByStatusForOrganization(scopedOrganizationId, eventStatus, page, size);
+            } else if (startDate != null && endDate != null) {
+                eventsPage = eventService.getVisibleEvents(scopedOrganizationId, startDate, endDate, page, size);
             } else if (creatorId != null) {
                 eventsPage = eventService.getEventsByCreator(creatorId, page, size);
             } else if (groupId != null) {
                 eventsPage = eventService.getEventsByGroup(groupId, page, size);
             } else {
-                // Multi-tenant: Get events for user's active organization (from context)
-                eventsPage = eventService.getEventsForUser(currentProfile.getUserId(), organizationId, page, size);
+                eventsPage = eventService.getEventsForUser(currentProfile.getUserId(), scopedOrganizationId, page, size);
             }
             
             // Convert to response DTOs with RSVP summaries
@@ -293,10 +297,12 @@ public class EventController {
     public ResponseEntity<?> searchEvents(@RequestParam String query,
                                         @RequestParam(defaultValue = "0") int page,
                                         @RequestParam(defaultValue = "10") int size,
+                                        @RequestParam(required = false) UUID organizationId,
                                         @AuthenticationPrincipal User user) {
         try {
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
-            Page<Event> eventsPage = eventService.searchEvents(query, page, size);
+            UUID scopedOrganizationId = eventService.resolveOrganizationId(currentProfile.getUserId(), organizationId);
+            Page<Event> eventsPage = eventService.searchEvents(scopedOrganizationId, query, page, size);
             
             List<EventResponse> eventResponses = eventsPage.getContent().stream()
                 .map(event -> {
@@ -327,10 +333,12 @@ public class EventController {
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "10") int size,
+        @RequestParam(required = false) UUID organizationId,
         @AuthenticationPrincipal User user) {
         try {
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
-            Page<Event> eventsPage = eventService.getEventsByDateRange(startDate, endDate, page, size);
+            UUID scopedOrganizationId = eventService.resolveOrganizationId(currentProfile.getUserId(), organizationId);
+            Page<Event> eventsPage = eventService.getEventsByDateRange(scopedOrganizationId, startDate, endDate, page, size);
             
             List<EventResponse> eventResponses = eventsPage.getContent().stream()
                 .map(event -> {
@@ -356,10 +364,12 @@ public class EventController {
     }
     
     @GetMapping("/today")
-    public ResponseEntity<?> getEventsToday(@AuthenticationPrincipal User user) {
+    public ResponseEntity<?> getEventsToday(@RequestParam(required = false) UUID organizationId,
+                                           @AuthenticationPrincipal User user) {
         try {
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
-            List<Event> events = eventService.getEventsToday();
+            UUID scopedOrganizationId = eventService.resolveOrganizationId(currentProfile.getUserId(), organizationId);
+            List<Event> events = eventService.getEventsToday(scopedOrganizationId);
             
             List<EventResponse> eventResponses = events.stream()
                 .map(event -> {
@@ -380,10 +390,12 @@ public class EventController {
     }
     
     @GetMapping("/this-week")
-    public ResponseEntity<?> getEventsThisWeek(@AuthenticationPrincipal User user) {
+    public ResponseEntity<?> getEventsThisWeek(@RequestParam(required = false) UUID organizationId,
+                                              @AuthenticationPrincipal User user) {
         try {
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
-            List<Event> events = eventService.getEventsThisWeek();
+            UUID scopedOrganizationId = eventService.resolveOrganizationId(currentProfile.getUserId(), organizationId);
+            List<Event> events = eventService.getEventsThisWeek(scopedOrganizationId);
             
             List<EventResponse> eventResponses = events.stream()
                 .map(event -> {
@@ -535,6 +547,7 @@ public class EventController {
                                               @Valid @RequestBody EventRsvpRequest request) {
         try {
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            eventService.getEventForUser(eventId, currentProfile.getUserId());
             
             // Check if user can RSVP to this event
             if (!eventRsvpService.canUserRsvp(currentProfile.getUserId(), eventId)) {
@@ -587,6 +600,7 @@ public class EventController {
                                       @AuthenticationPrincipal User user) {
         try {
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+            eventService.getEventForUser(eventId, currentProfile.getUserId());
             eventRsvpService.deleteRsvp(currentProfile.getUserId(), eventId);
             
             Map<String, String> response = new HashMap<>();

@@ -2,8 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { eventAPI } from '../services/eventApi';
-import { Event, EventCategory, EventStatus } from '../types/Event';
+import { Event, EventCategory, EventStatus, getEventCategoryDisplay } from '../types/Event';
 import { useActiveContext } from '../contexts/ActiveContextContext';
+import { useAuth } from '../contexts/AuthContext';
 import CalendarView from './CalendarView';
 import EventList from './EventList';
 import EventCreateForm from './EventCreateForm';
@@ -16,7 +17,13 @@ interface CalendarPageProps {}
 const CalendarPage: React.FC<CalendarPageProps> = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { activeOrganizationId } = useActiveContext();
+  const { user } = useAuth();
+  const { activeOrganizationId, activeMembership } = useActiveContext();
+  const canManageCalendar =
+    user?.role === 'PLATFORM_ADMIN' ||
+    user?.role === 'MODERATOR' ||
+    activeMembership?.role === 'ORG_ADMIN' ||
+    activeMembership?.role === 'MODERATOR';
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -27,6 +34,7 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
     search: ''
   });
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Debounce search input
   useEffect(() => {
@@ -36,9 +44,11 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
     return () => clearTimeout(timer);
   }, [filters.search]);
 
+  const visibleRange = useMemo(() => formatVisibleRange(selectedDate), [selectedDate]);
+
   const eventsQueryKey = useMemo(() =>
-    ['events', activeOrganizationId || 'all', filters.category, filters.status, debouncedSearch],
-    [activeOrganizationId, filters.category, filters.status, debouncedSearch]
+    ['events', activeOrganizationId || 'all', filters.category, filters.status, debouncedSearch, visibleRange.start, visibleRange.end, canManageCalendar],
+    [activeOrganizationId, filters.category, filters.status, debouncedSearch, visibleRange, canManageCalendar]
   );
 
   const {
@@ -53,16 +63,19 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
         const response = await eventAPI.searchEvents({
           query: debouncedSearch.trim(),
           page: 0,
-          size: 100,
+          size: 500,
+          organizationId: activeOrganizationId || undefined,
         });
         return response.data.events as Event[];
       }
       const response = await eventAPI.getEvents({
         page: 0,
-        size: 100,
+        size: 500,
         category: filters.category || undefined,
-        status: filters.status || undefined,
+        status: canManageCalendar ? (filters.status || undefined) : undefined,
         organizationId: activeOrganizationId || undefined,
+        startDate: filters.category || filters.status ? undefined : visibleRange.start,
+        endDate: filters.category || filters.status ? undefined : visibleRange.end,
       });
       return response.data.events as Event[];
     },
@@ -70,28 +83,28 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
     gcTime: 10 * 60 * 1000,
   });
 
-  const error = queryError ? 'Failed to load events' : null;
+  const error = calendarErrorMessage(queryError);
 
   // WebSocket subscriptions for real-time updates
   useEffect(() => {
+    let cancelled = false;
+    let eventUnsubscribe = () => {};
+    let rsvpUnsubscribe = () => {};
+
     const connectWebSocket = async () => {
       try {
         if (!webSocketService.isWebSocketConnected()) {
           await webSocketService.connect();
         }
+        if (cancelled) return;
 
-        const eventUnsubscribe = await webSocketService.subscribeToEventUpdates((update: EventUpdate) => {
+        eventUnsubscribe = await webSocketService.subscribeToEventUpdates((_update: EventUpdate) => {
           queryClient.invalidateQueries({ queryKey: ['events'] });
         });
 
-        const rsvpUnsubscribe = webSocketService.subscribeToRsvpUpdates((update: EventRsvpUpdate) => {
+        rsvpUnsubscribe = webSocketService.subscribeToRsvpUpdates((_update: EventRsvpUpdate) => {
           queryClient.invalidateQueries({ queryKey: ['events'] });
         });
-
-        return () => {
-          eventUnsubscribe();
-          rsvpUnsubscribe();
-        };
       } catch (error) {
         console.error('Failed to connect WebSocket for events:', error);
       }
@@ -99,8 +112,11 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
 
     connectWebSocket();
 
-    return () => {};
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+      eventUnsubscribe();
+      rsvpUnsubscribe();
+    };
   }, [queryClient]);
 
   const handleEventCreated = (newEvent: Event) => {
@@ -130,15 +146,19 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
   };
 
   const handleEventDeleted = async (eventId: string) => {
+    if (!window.confirm('Delete this event?')) {
+      return;
+    }
     try {
+      setActionError(null);
       await eventAPI.deleteEvent(eventId);
       queryClient.setQueryData<Event[]>(eventsQueryKey, (old) =>
         old ? old.filter(e => e.id !== eventId) : old
       );
-    } catch (error: any) {
-      console.error('Failed to delete event:', error);
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to delete event';
-      alert(`Failed to delete event: ${errorMessage}`);
+    } catch (deleteError: any) {
+      console.error('Failed to delete event:', deleteError);
+      const errorMessage = deleteError.response?.data?.error || deleteError.response?.data?.message || deleteError.message || 'Failed to delete event';
+      setActionError(errorMessage);
     }
   };
 
@@ -205,6 +225,14 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
           </button>
         </div>
       )}
+      {actionError && (
+        <div className="error-message">
+          <p>{actionError}</p>
+          <button onClick={() => setActionError(null)} className="btn btn-secondary">
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Filters Section - Above Month/Week/Day toggles */}
       <div className="calendar-controls">
@@ -225,12 +253,12 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
             <option value="">All Categories</option>
             {Object.values(EventCategory).map(category => (
               <option key={category} value={category}>
-                {category.replace(/_/g, ' ')}
+                {getEventCategoryDisplay(category)}
               </option>
             ))}
           </select>
 
-          {/* All Status selector - Hidden on mobile, visible on desktop */}
+          {canManageCalendar && (
           <select
             value={filters.status}
             onChange={(e) => handleFilterChange('status', e.target.value)}
@@ -239,10 +267,11 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
             <option value="">All Status</option>
             {Object.values(EventStatus).map(status => (
               <option key={status} value={status}>
-                {status}
+                {status.charAt(0) + status.slice(1).toLowerCase()}
               </option>
             ))}
           </select>
+          )}
 
           {/* Create Event button - Mobile only */}
           <button
@@ -279,6 +308,8 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
             onEventUpdate={handleEditEvent}
             onEventDelete={handleEventDeleted}
             onRsvpUpdate={handleRsvpUpdate}
+            canManage={canManageCalendar}
+            currentUserId={user?.userId}
             onCreateEvent={(date) => {
               setSelectedDate(date);
               setShowCreateForm(true);
@@ -291,6 +322,8 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
             onEventUpdate={handleEditEvent}
             onEventDelete={handleEventDeleted}
             onRsvpUpdate={handleRsvpUpdate}
+            canManage={canManageCalendar}
+            currentUserId={user?.userId}
             loading={loading}
           />
         )}
@@ -318,5 +351,24 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
     </div>
   );
 };
+
+function formatVisibleRange(selectedDate: Date) {
+  const start = new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, 1, 0, 0, 0, 0);
+  const end = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 4, 0, 23, 59, 59, 0);
+  const format = (date: Date) => {
+    const pad = (value: number) => String(value).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  };
+  return { start: format(start), end: format(end) };
+}
+
+function calendarErrorMessage(queryError: unknown): string | null {
+  if (!queryError) return null;
+  const message = (queryError as { response?: { data?: { error?: string } } }).response?.data?.error || '';
+  if (message.toLowerCase().includes('without an organization')) {
+    return 'Join a church to see its calendar.';
+  }
+  return message || 'Failed to load events';
+}
 
 export default CalendarPage;

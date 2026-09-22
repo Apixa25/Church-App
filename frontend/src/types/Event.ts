@@ -177,8 +177,8 @@ export enum RsvpResponse {
 }
 
 // Helper functions for display
-export const getEventCategoryDisplay = (category: EventCategory): string => {
-  const displays: Record<EventCategory, string> = {
+export const getEventCategoryDisplay = (category: EventCategory | string): string => {
+  const displays: Record<string, string> = {
     [EventCategory.GENERAL]: 'General',
     [EventCategory.WORSHIP]: 'Worship Service',
     [EventCategory.BIBLE_STUDY]: 'Bible Study',
@@ -195,9 +195,14 @@ export const getEventCategoryDisplay = (category: EventCategory): string => {
     [EventCategory.SOCIAL]: 'Social Event',
     [EventCategory.EDUCATION]: 'Education',
     [EventCategory.MUSIC]: 'Music Ministry',
-    [EventCategory.OTHER]: 'Other'
+    [EventCategory.OTHER]: 'Other',
+    MENS_MINISTRY: "Men's Ministry",
+    WOMENS_MINISTRY: "Women's Ministry",
+    SPECIAL_EVENT: 'Special Event',
+    MEETING: 'Missions',
+    VOLUNTEER: 'Volunteer'
   };
-  return displays[category] || category;
+  return displays[category] || category.replace(/_/g, ' ');
 };
 
 export const getEventStatusDisplay = (status: EventStatus): string => {

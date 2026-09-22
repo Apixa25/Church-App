@@ -272,8 +272,8 @@
 
 .custom-calendar .react-datepicker__day {
   flex: 1 !important;
-  height: 44px !important;
-  line-height: 44px !important;
+  height: 64px !important;
+  line-height: 1 !important;
   margin: 0 !important;
   border-radius: 14px !important;
   cursor: pointer !important;
@@ -290,8 +290,8 @@
 
 @media (min-width: 769px) {
   .custom-calendar .react-datepicker__day {
-    height: 60px !important;
-    line-height: 60px !important;
+    height: 78px !important;
+    line-height: 1 !important;
     font-size: 1.1rem !important;
   }
 }
@@ -356,11 +356,28 @@
 
 .event-indicators {
   display: flex;
-  gap: 4px;
-  margin-top: 7px;
-  flex-wrap: wrap;
+  gap: 2px;
+  margin-top: 4px;
+  flex-wrap: nowrap;
   justify-content: center;
+  align-items: center;
   max-width: 100%;
+  width: 100%;
+  padding: 0 2px;
+}
+
+.day-event-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.58rem;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 1px 3px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .event-dot {
@@ -406,6 +423,30 @@
 .event-dot.music { background: #f9a8d4; box-shadow: 0 0 8px rgba(249, 168, 212, 0.6); }
 .event-dot.general { background: #a5b4fc; box-shadow: 0 0 8px rgba(165, 180, 252, 0.6); }
 .event-dot.other { background: #d1d5db; box-shadow: 0 0 8px rgba(209, 213, 219, 0.5); }
+
+.day-event-label.worship { color: #c4b5fd; }
+.day-event-label.bible_study { color: #67e8f9; }
+.day-event-label.prayer { color: #fcd34d; }
+.day-event-label.fellowship { color: #93c5fd; }
+.day-event-label.outreach { color: #6ee7b7; }
+.day-event-label.youth { color: #f9a8d4; }
+.day-event-label.children { color: #fde047; }
+.day-event-label.mens { color: #6ee7b7; }
+.day-event-label.womens { color: #fda4af; }
+.day-event-label.seniors { color: #ddd6fe; }
+.day-event-label.missions { color: #5eead4; }
+.day-event-label.ministry { color: #a5b4fc; }
+.day-event-label.social { color: #f9a8d4; }
+.day-event-label.education { color: #93c5fd; }
+.day-event-label.music { color: #f9a8d4; }
+.day-event-label.general { color: #c7d2fe; }
+.day-event-label.other { color: #e5e7eb; }
+
+.react-datepicker__day--selected .day-event-label,
+.react-datepicker__day--selected .more-events {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.18);
+}
 
 /* Selected Date Events - Clean, no box */
 .selected-date-events {
@@ -907,8 +948,8 @@
   }
   
   .custom-calendar .react-datepicker__day {
-    height: 70px !important;
-    line-height: 70px !important;
+    height: 88px !important;
+    line-height: 1 !important;
   }
 }
 
@@ -931,7 +972,8 @@
   
   .custom-calendar .react-datepicker__day {
     flex: 1 !important;
-    height: 40px !important;
+    height: 58px !important;
+    line-height: 1 !important;
     margin: 1px !important;
   }
   
