@@ -11,7 +11,6 @@ import com.churchapp.entity.User;
 import com.churchapp.repository.PrayerRequestRepository;
 import com.churchapp.repository.PrayerInteractionRepository;
 import com.churchapp.repository.UserRepository;
-import com.churchapp.repository.OrganizationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,33 +39,19 @@ public class PrayerRequestService {
     private final UserRepository userRepository;
     private final PrayerInteractionRepository prayerInteractionRepository;
     private final FileUploadService fileUploadService;
-    private final OrganizationRepository organizationRepository;
     private final NotificationService notificationService;
+    private final ChurchPrimaryResolver churchPrimaryResolver;
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
-
-    // Global Organization ID for users without a primary organization
-    private static final UUID GLOBAL_ORG_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
     public PrayerRequestResponse createPrayerRequest(UUID userId, PrayerRequestRequest request) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
-        // Set organization context - prioritize provided organizationId, then use primary org or fall back to Global Organization
-        Organization organization;
-        if (request.getOrganizationId() != null) {
-            // Use the provided organizationId from the active context
-            organization = organizationRepository.findById(request.getOrganizationId())
-                .orElseThrow(() -> new RuntimeException("Organization not found with id: " + request.getOrganizationId()));
-        } else if (user.getChurchPrimaryOrganization() != null) {
-            // Fall back to church primary if no organizationId provided
-            organization = user.getChurchPrimaryOrganization();
-        } else {
-            // User has no primary org - use global org
-            organization = organizationRepository.findById(GLOBAL_ORG_ID)
-                .orElseThrow(() -> new RuntimeException("Global organization not found"));
-        }
+        // Prayer requests are written to the caller's locked church. A family id,
+        // another church, or the shared global organization is rejected.
+        Organization organization = churchPrimaryResolver.requireChurchMatch(user, request.getOrganizationId());
 
         PrayerRequest prayerRequest = new PrayerRequest();
         prayerRequest.setUser(user);
@@ -92,20 +77,7 @@ public class PrayerRequestService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
-        // Set organization context - prioritize provided organizationId, then use primary org or fall back to Global Organization
-        Organization organization;
-        if (request.getOrganizationId() != null) {
-            // Use the provided organizationId from the active context
-            organization = organizationRepository.findById(request.getOrganizationId())
-                .orElseThrow(() -> new RuntimeException("Organization not found with id: " + request.getOrganizationId()));
-        } else if (user.getChurchPrimaryOrganization() != null) {
-            // Fall back to church primary if no organizationId provided
-            organization = user.getChurchPrimaryOrganization();
-        } else {
-            // User has no primary org - use global org
-            organization = organizationRepository.findById(GLOBAL_ORG_ID)
-                .orElseThrow(() -> new RuntimeException("Global organization not found"));
-        }
+        Organization organization = churchPrimaryResolver.requireChurchMatch(user, request.getOrganizationId());
 
         // Upload image if provided
         String imageUrl = null;
@@ -157,6 +129,10 @@ public class PrayerRequestService {
     public PrayerRequestResponse getPrayerRequest(UUID prayerRequestId, UUID requestingUserId) {
         PrayerRequest prayerRequest = prayerRequestRepository.findById(prayerRequestId)
             .orElseThrow(() -> new RuntimeException("Prayer request not found with id: " + prayerRequestId));
+
+        User viewer = userRepository.findById(requestingUserId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        assertPrayerInViewerChurch(prayerRequest, viewer);
         
         // If the requesting user is the owner, show full details
         if (prayerRequest.getUser().getId().equals(requestingUserId)) {
@@ -367,29 +343,23 @@ public class PrayerRequestService {
     }
     
     /**
-     * Get all prayer requests for user's active organization (or global organization if no primary org)
+     * Prayer list for the caller's locked church. A different organization id is rejected.
+     * Users without a church get an empty page, not the shared global organization.
      */
     public Page<PrayerRequestResponse> getAllPrayerRequests(UUID requestingUserId, UUID organizationId, int page, int size) {
         User user = userRepository.findById(requestingUserId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Use provided organizationId, or fall back to primary organization or Global Organization
-        UUID targetOrganizationId;
-        if (organizationId != null) {
-            // Use the provided organizationId from the active context
-            targetOrganizationId = organizationId;
-        } else if (user.getChurchPrimaryOrganization() != null) {
-            // Fall back to church primary if no organizationId provided
-            targetOrganizationId = user.getChurchPrimaryOrganization().getId();
-        } else {
-            // User has no primary org - use global org
-            targetOrganizationId = GLOBAL_ORG_ID;
-        }
-
         Pageable pageable = PageRequest.of(page, size);
-        // Get prayers from the target organization
+        if (user.getChurchPrimaryOrganization() == null) {
+            if (organizationId != null) {
+                throw new RuntimeException("Prayer requests stay with your church.");
+            }
+            return Page.empty(pageable);
+        }
+        Organization church = churchPrimaryResolver.requireChurchMatch(user, organizationId);
         Page<PrayerRequest> prayerRequests = prayerRequestRepository.findActiveByOrganizationId(
-            targetOrganizationId, pageable);
+            church.getId(), pageable);
 
         return prayerRequests.map(prayerRequest -> {
             if (prayerRequest.getUser().getId().equals(requestingUserId)) {
@@ -420,7 +390,12 @@ public class PrayerRequestService {
             int page, 
             int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<PrayerRequest> prayerRequests = prayerRequestRepository.findByCategoryOrderByCreatedAtDesc(category, pageable);
+        UUID churchId = churchIdForList(requestingUserId);
+        if (churchId == null) {
+            return Page.empty(pageable);
+        }
+        Page<PrayerRequest> prayerRequests = prayerRequestRepository.findByOrganizationIdAndCategory(
+            churchId, category, pageable);
         
         return prayerRequests.map(prayerRequest -> {
             if (prayerRequest.getUser().getId().equals(requestingUserId)) {
@@ -436,7 +411,12 @@ public class PrayerRequestService {
             int page, 
             int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<PrayerRequest> prayerRequests = prayerRequestRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
+        UUID churchId = churchIdForList(requestingUserId);
+        if (churchId == null) {
+            return Page.empty(pageable);
+        }
+        Page<PrayerRequest> prayerRequests = prayerRequestRepository.findByOrganizationIdAndStatus(
+            churchId, status, pageable);
         
         return prayerRequests.map(prayerRequest -> {
             if (prayerRequest.getUser().getId().equals(requestingUserId)) {
@@ -447,16 +427,31 @@ public class PrayerRequestService {
     }
     
     public List<PrayerRequestResponse> getUserPrayerRequests(UUID userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        UUID churchId = user.getChurchPrimaryOrganization() != null
+            ? user.getChurchPrimaryOrganization().getId()
+            : null;
+        if (churchId == null) {
+            return List.of();
+        }
         List<PrayerRequest> prayerRequests = prayerRequestRepository.findByUserIdOrderByCreatedAtDesc(userId);
         
         return prayerRequests.stream()
+                .filter(prayer -> prayer.getOrganization() != null
+                    && churchId.equals(prayer.getOrganization().getId()))
                 .map(PrayerRequestResponse::fromPrayerRequestForOwner)
                 .collect(Collectors.toList());
     }
     
     public Page<PrayerRequestResponse> searchPrayerRequests(String searchTerm, UUID requestingUserId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<PrayerRequest> prayerRequests = prayerRequestRepository.searchPrayerRequests(searchTerm, pageable);
+        UUID churchId = churchIdForList(requestingUserId);
+        if (churchId == null) {
+            return Page.empty(pageable);
+        }
+        Page<PrayerRequest> prayerRequests = prayerRequestRepository.searchByOrganization(
+            churchId, searchTerm, pageable);
         
         return prayerRequests.map(prayerRequest -> {
             if (prayerRequest.getUser().getId().equals(requestingUserId)) {
@@ -510,34 +505,19 @@ public class PrayerRequestService {
     }
     
     /**
-     * Get prayer statistics for a user's organizations
-     * Combines stats from both Church Primary and Family Primary organizations
+     * Prayer counts for the caller's locked church. Family prayers are not included.
      */
     public Map<String, Long> getPrayerStatsForUser(UUID requestingUserId) {
         User user = userRepository.findById(requestingUserId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Get active and answered counts from Church Primary organization
         long activeCount = 0L;
         long answeredCount = 0L;
         
         if (user.getChurchPrimaryOrganization() != null) {
             UUID churchOrgId = user.getChurchPrimaryOrganization().getId();
-            activeCount += getActivePrayerCountByOrganization(churchOrgId);
-            answeredCount += getAnsweredPrayerCountByOrganization(churchOrgId);
-        }
-        
-        // Also get counts from Family Primary organization if it exists
-        if (user.getFamilyPrimaryOrganization() != null) {
-            UUID familyOrgId = user.getFamilyPrimaryOrganization().getId();
-            activeCount += getActivePrayerCountByOrganization(familyOrgId);
-            answeredCount += getAnsweredPrayerCountByOrganization(familyOrgId);
-        }
-        
-        // Fall back to Global Organization if no primary organizations
-        if (user.getChurchPrimaryOrganization() == null && user.getFamilyPrimaryOrganization() == null) {
-            activeCount += getActivePrayerCountByOrganization(GLOBAL_ORG_ID);
-            answeredCount += getAnsweredPrayerCountByOrganization(GLOBAL_ORG_ID);
+            activeCount = getActivePrayerCountByOrganization(churchOrgId);
+            answeredCount = getAnsweredPrayerCountByOrganization(churchOrgId);
         }
 
         Map<String, Long> stats = new HashMap<>();
@@ -550,30 +530,17 @@ public class PrayerRequestService {
      * Get all active prayers for prayer sheet
      * Returns prayers in chronological order (newest first) with full details
      * Respects anonymity settings - only shows anonymous prayers to their owners
-     * Includes prayers from both Church Primary and Family Primary organizations
+     * Limited to the caller's locked church.
      */
     public List<PrayerRequestResponse> getActivePrayersForSheet(UUID requestingUserId) {
         User user = userRepository.findById(requestingUserId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Collect prayers from all relevant organizations
         List<PrayerRequest> activePrayers = new ArrayList<>();
         
-        // Get prayers from Church Primary organization
         if (user.getChurchPrimaryOrganization() != null) {
             UUID churchOrgId = user.getChurchPrimaryOrganization().getId();
             activePrayers.addAll(prayerRequestRepository.findAllActiveByOrganizationId(churchOrgId));
-        }
-        
-        // Get prayers from Family Primary organization if it exists
-        if (user.getFamilyPrimaryOrganization() != null) {
-            UUID familyOrgId = user.getFamilyPrimaryOrganization().getId();
-            activePrayers.addAll(prayerRequestRepository.findAllActiveByOrganizationId(familyOrgId));
-        }
-        
-        // Fall back to Global Organization if no primary organizations
-        if (user.getChurchPrimaryOrganization() == null && user.getFamilyPrimaryOrganization() == null) {
-            activePrayers.addAll(prayerRequestRepository.findAllActiveByOrganizationId(GLOBAL_ORG_ID));
         }
         
         // Remove duplicates (in case both orgs point to the same org - shouldn't happen, but safe)
@@ -729,5 +696,33 @@ public class PrayerRequestService {
         }
         
         return false;
+    }
+
+    /**
+     * Members only see prayers that belong to their locked church.
+     * Platform admins can still open a prayer for moderation.
+     */
+    private void assertPrayerInViewerChurch(PrayerRequest prayerRequest, User viewer) {
+        if (viewer.getRole() == User.Role.PLATFORM_ADMIN) {
+            return;
+        }
+        UUID churchId = viewer.getChurchPrimaryOrganization() != null
+            ? viewer.getChurchPrimaryOrganization().getId()
+            : null;
+        UUID prayerOrgId = prayerRequest.getOrganization() != null
+            ? prayerRequest.getOrganization().getId()
+            : null;
+        if (churchId == null || prayerOrgId == null || !churchId.equals(prayerOrgId)) {
+            throw new RuntimeException("Prayer requests stay with your church.");
+        }
+    }
+
+    /** Church id for list filters, or null when the user has not joined a church. */
+    private UUID churchIdForList(UUID requestingUserId) {
+        User user = userRepository.findById(requestingUserId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        return user.getChurchPrimaryOrganization() != null
+            ? user.getChurchPrimaryOrganization().getId()
+            : null;
     }
 }

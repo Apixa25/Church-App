@@ -32,39 +32,19 @@ public class StripePaymentService {
     private final OrganizationRepository organizationRepository;
     private final UserRepository userRepository;
     private final UserOrganizationMembershipRepository membershipRepository;
+    private final ChurchPrimaryResolver churchPrimaryResolver;
 
     /**
      * Create a payment intent for a one-time donation
      *
-     * For multi-tenant support:
-     * - Uses provided organizationId (from active context) or falls back to church primary
-     * - Routes payment to organization's Stripe Connect account
-     * - Uses "destination charges" pattern for Stripe Connect
+     * Giving is charged to the caller's locked church Stripe account.
+     * A family id or another church id is rejected.
      */
     public PaymentIntent createPaymentIntent(User user, BigDecimal amount, DonationCategory category,
                                            String purpose, String receiptEmail, UUID organizationId) throws StripeException {
         log.info("Creating payment intent for user {} with amount ${} for organization {}", user.getId(), amount, organizationId);
 
-        // Determine which organization to use
-        Organization organization = null;
-        if (organizationId != null) {
-            // Use provided organizationId (from active context - Church or Family)
-            organization = organizationRepository.findById(organizationId)
-                .orElseThrow(() -> new RuntimeException("Organization not found with id: " + organizationId));
-            log.info("Using provided organizationId: {} ({})", organization.getName(), organizationId);
-            
-            // Verify user is a member of this organization
-            boolean isMember = membershipRepository.existsByUserIdAndOrganizationId(user.getId(), organizationId);
-            if (!isMember) {
-                throw new RuntimeException("You are not a member of this organization. Please join the organization before making donations.");
-            }
-        } else if (user.getChurchPrimaryOrganization() != null) {
-            // Fallback to church primary for backward compatibility
-            organization = user.getChurchPrimaryOrganization();
-            log.info("No organizationId provided, using church primary: {} ({})", organization.getName(), organization.getId());
-        } else {
-            throw new RuntimeException("Cannot create donation without an organization. Please select an organization first.");
-        }
+        Organization organization = requireDonationChurch(user, organizationId);
 
         // Check if organization has Stripe Connect account configured
         if (organization.getStripeConnectAccountId() == null || organization.getStripeConnectAccountId().trim().isEmpty()) {
@@ -293,5 +273,18 @@ public class StripePaymentService {
 
         PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
         return paymentIntent.cancel();
+    }
+
+    /**
+     * Donations and subscriptions are charged only to the caller's church primary.
+     */
+    private Organization requireDonationChurch(User user, UUID requestedOrganizationId) {
+        Organization church = churchPrimaryResolver.requireChurchMatch(user, requestedOrganizationId);
+        boolean isMember = membershipRepository.existsByUserIdAndOrganizationId(user.getId(), church.getId());
+        if (!isMember) {
+            throw new RuntimeException("You are not a member of this church.");
+        }
+        log.info("Donation church: {} ({})", church.getName(), church.getId());
+        return church;
     }
 }

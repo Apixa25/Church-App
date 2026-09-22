@@ -7,13 +7,14 @@ import { announcementAPI } from '../services/announcementApi';
 import AnnouncementList from './AnnouncementList';
 import AnnouncementForm from './AnnouncementForm';
 import AnnouncementDetail from './AnnouncementDetail';
+import ChurchRequiredNotice from './ChurchRequiredNotice';
 import './AnnouncementPage.css';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'detail';
 
 const AnnouncementPage: React.FC = () => {
   const { user } = useAuth();
-  const { primaryMembership, allMemberships } = useOrganization();
+  const { churchPrimary, allMemberships, loading: organizationsLoading } = useOrganization();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -22,8 +23,8 @@ const AnnouncementPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoadingEditAnnouncement, setIsLoadingEditAnnouncement] = useState(false);
 
-  // Check if user has a primary organization (required to create announcements)
-  const hasPrimaryOrg = primaryMembership !== null;
+  // Announcements belong to the locked church. primaryMembership is that church.
+  const hasPrimaryOrg = churchPrimary !== null;
   
   // Check admin roles for edit/delete permissions
   const isPlatformAdmin = user?.role === 'PLATFORM_ADMIN';
@@ -217,7 +218,11 @@ const AnnouncementPage: React.FC = () => {
               )}
             </div>
             <div className="header-content">
-              <p>Stay updated with the latest church news and events</p>
+              <p>
+                {churchPrimary
+                  ? `Announcements for ${churchPrimary.organizationName}`
+                  : 'Stay updated with the latest church news and events'}
+              </p>
             </div>
           </div>
         );
@@ -283,6 +288,12 @@ const AnnouncementPage: React.FC = () => {
           </div>
         );
       default:
+        if (organizationsLoading && !hasPrimaryOrg && !isPlatformAdmin) {
+          return <p>Loading your church…</p>;
+        }
+        if (!hasPrimaryOrg && !isPlatformAdmin) {
+          return <ChurchRequiredNotice feature="Announcements" />;
+        }
         return (
           <AnnouncementList
             onEdit={handleEdit}

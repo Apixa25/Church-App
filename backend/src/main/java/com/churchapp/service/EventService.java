@@ -11,7 +11,6 @@ import com.churchapp.repository.ChatGroupRepository;
 import com.churchapp.repository.EventRepository;
 import com.churchapp.repository.EventRsvpRepository;
 import com.churchapp.repository.UserRepository;
-import com.churchapp.repository.OrganizationRepository;
 import com.churchapp.repository.UserOrganizationMembershipRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,8 +36,8 @@ public class EventService {
     private final UserRepository userRepository;
     private final ChatGroupRepository chatGroupRepository;
     private final EventBringListService eventBringListService;
-    private final OrganizationRepository organizationRepository;
     private final UserOrganizationMembershipRepository membershipRepository;
+    private final ChurchPrimaryResolver churchPrimaryResolver;
     private final SimpMessagingTemplate messagingTemplate;
     private final NotificationService notificationService;
 
@@ -46,23 +45,10 @@ public class EventService {
         User creator = userRepository.findById(creatorId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + creatorId));
 
-        // Determine organization - prioritize provided organizationId, then use primary organization
-        Organization targetOrganization;
-        if (organizationId != null) {
-            // Use the provided organizationId from the active context
-            targetOrganization = organizationRepository.findById(organizationId)
-                .orElseThrow(() -> new RuntimeException("Organization not found with id: " + organizationId));
-            
-            // Verify user is a member of this organization
-            boolean isMember = membershipRepository.existsByUserIdAndOrganizationId(creatorId, organizationId);
-            if (!isMember) {
-                throw new RuntimeException("You are not a member of this organization. Please join the organization before creating events.");
-            }
-        } else if (creator.getChurchPrimaryOrganization() != null) {
-            // Fall back to church primary if no organizationId provided
-            targetOrganization = creator.getChurchPrimaryOrganization();
-        } else {
-            throw new RuntimeException("Cannot create event without an organization. Please join a church or family first.");
+        Organization targetOrganization = churchPrimaryResolver.resolveCalendarChurch(creator, organizationId);
+        if (creator.getRole() != User.Role.PLATFORM_ADMIN
+                && !membershipRepository.existsByUserIdAndOrganizationId(creatorId, targetOrganization.getId())) {
+            throw new RuntimeException("You are not a member of this church.");
         }
 
         log.info("Creating event - Title: '{}', StartTime: '{}', EndTime: '{}', Category: '{}', Status: '{}', Organization: '{}'",
@@ -141,19 +127,12 @@ public class EventService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        UUID organizationId = requestedOrganizationId;
-        if (organizationId == null && user.getChurchPrimaryOrganization() != null) {
-            organizationId = user.getChurchPrimaryOrganization().getId();
-        }
-        if (organizationId == null) {
-            throw new RuntimeException("Cannot view events without an organization");
-        }
-
+        Organization church = churchPrimaryResolver.resolveCalendarChurch(user, requestedOrganizationId);
         if (user.getRole() != User.Role.PLATFORM_ADMIN
-                && !membershipRepository.existsByUserIdAndOrganizationId(userId, organizationId)) {
-            throw new RuntimeException("You are not a member of this organization");
+                && !membershipRepository.existsByUserIdAndOrganizationId(userId, church.getId())) {
+            throw new RuntimeException("You are not a member of this church");
         }
-        return organizationId;
+        return church.getId();
     }
 
     public Event getEventForUser(UUID eventId, UUID userId) {

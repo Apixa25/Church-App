@@ -41,15 +41,14 @@ public class DashboardService {
         User currentUser = userRepository.findByEmail(currentUserEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
         
-        // Use provided organizationId, or fall back to church primary for backward compatibility
-        UUID orgId = organizationId != null 
-            ? organizationId 
-            : (currentUser.getChurchPrimaryOrganization() != null 
-                ? currentUser.getChurchPrimaryOrganization().getId() 
-                : null);
+        // Home stats always belong to the member's locked church. A client-supplied
+        // organization id is ignored so another church or the family cannot be loaded.
+        UUID orgId = currentUser.getChurchPrimaryOrganization() != null
+            ? currentUser.getChurchPrimaryOrganization().getId()
+            : null;
         
         System.out.println("📊 DashboardService.getDashboardData - organizationId param: " + organizationId);
-        System.out.println("📊 DashboardService.getDashboardData - resolved orgId: " + orgId);
+        System.out.println("📊 DashboardService.getDashboardData - resolved church orgId: " + orgId);
         System.out.println("📊 DashboardService.getDashboardData - user: " + currentUserEmail);
         
         return new DashboardResponse(
@@ -468,15 +467,12 @@ public class DashboardService {
         User currentUser = userRepository.findByEmail(currentUserEmail)
             .orElseThrow(() -> new RuntimeException("User not found"));
         
-        // Use provided organizationId, or fall back to church primary for backward compatibility
-        UUID orgId = organizationId != null 
-            ? organizationId 
-            : (currentUser.getChurchPrimaryOrganization() != null 
-                ? currentUser.getChurchPrimaryOrganization().getId() 
-                : null);
+        UUID orgId = currentUser.getChurchPrimaryOrganization() != null
+            ? currentUser.getChurchPrimaryOrganization().getId()
+            : null;
         
         System.out.println("⚡ DashboardService.getQuickActionsOnly - organizationId param: " + organizationId);
-        System.out.println("⚡ DashboardService.getQuickActionsOnly - resolved orgId: " + orgId);
+        System.out.println("⚡ DashboardService.getQuickActionsOnly - resolved church orgId: " + orgId);
         System.out.println("⚡ DashboardService.getQuickActionsOnly - user: " + currentUserEmail);
         
         // Only call getQuickActions - skip all the other dashboard building!

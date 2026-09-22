@@ -8,7 +8,7 @@ import {
 } from '@stripe/react-stripe-js';
 import { donationApi } from '../services/donationApi';
 import { DonationCategory, RecurringFrequency } from '../config/stripe';
-import { useActiveContext } from '../contexts/ActiveContextContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 
 interface DonationFormData {
   amount: number;
@@ -35,7 +35,8 @@ const StripeCheckout: React.FC<StripeCheckoutProps> = ({
 }) => {
   const stripe = useStripe();
   const elements = useElements();
-  const { activeOrganizationId } = useActiveContext();
+  const { churchPrimary } = useOrganization();
+  const churchOrganizationId = churchPrimary?.organizationId;
   const [isProcessing, setIsProcessing] = useState(false);
   const [cardErrors, setCardErrors] = useState<{
     cardNumber?: string;
@@ -72,14 +73,17 @@ const StripeCheckout: React.FC<StripeCheckoutProps> = ({
 
   const handleOneTimeDonation = async () => {
     if (!stripe || !elements) return;
+    if (!churchOrganizationId) {
+      throw new Error('Join a church before you give. Donations go to your primary church.');
+    }
 
-    // Create payment intent with active organizationId (context-aware)
+    // Payment goes to the locked church.
     const paymentIntentResponse = await donationApi.createPaymentIntent({
       amount: formData.amount,
       category: formData.category,
       purpose: formData.purpose || undefined,
       receiptEmail: formData.receiptEmail || undefined,
-      organizationId: activeOrganizationId || undefined, // Pass active organization from context
+      organizationId: churchOrganizationId,
     });
 
     // Confirm payment
@@ -114,6 +118,9 @@ const StripeCheckout: React.FC<StripeCheckoutProps> = ({
 
   const handleRecurringDonation = async () => {
     if (!stripe || !elements) return;
+    if (!churchOrganizationId) {
+      throw new Error('Join a church before you give. Donations go to your primary church.');
+    }
 
     const cardElement = elements.getElement(CardNumberElement);
     if (!cardElement) {
@@ -142,7 +149,7 @@ const StripeCheckout: React.FC<StripeCheckoutProps> = ({
       purpose: formData.purpose || undefined,
       paymentMethodId: paymentMethod.id,
       notes: formData.notes || undefined,
-      organizationId: activeOrganizationId || undefined, // Pass active organization from context
+      organizationId: churchOrganizationId,
     });
 
     onSuccess(subscription.id);

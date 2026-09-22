@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useActiveContext } from '../contexts/ActiveContextContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import { useFeedFilter } from '../contexts/FeedFilterContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import dashboardApi from '../services/dashboardApi';
@@ -37,26 +38,21 @@ const SHOW_LEGACY_FEED_SWITCHERS = false;
 
 const Dashboard: React.FC = () => {
   const { user, updateUser } = useAuth();
-  // Dual Primary System - use active context for dashboard scope
+  // Church-life stats and the header use the locked church and family, not the
+  // switchable active context. The feed keeps its own scope.
   const {
     activeContext,
-    activeMembership,
-    activeOrganizationName,
-    activeOrganizationLogo,
-    activeOrganizationId,
-    activeGroupId,
     activeGroupDescription,
     activeGroupCreatorId,
     activeGroupCreatorName,
-    hasAnyPrimary,
     showContextSwitcher
   } = useActiveContext();
+  const { churchPrimary, familyPrimary, loading: organizationsLoading } = useOrganization();
+  const hasChurch = churchPrimary !== null;
+  const churchOrganizationId = churchPrimary?.organizationId || null;
+  const churchLogo = churchPrimary?.organizationLogoUrl || null;
   
-  // Feed filter context - to auto-update filter when context changes
-  const { setFilter, resetFilter } = useFeedFilter();
-  
-  // Legacy compatibility: primaryMembership maps to the currently active context
-  const primaryMembership = activeMembership;
+  const { resetFilter } = useFeedFilter();
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -77,14 +73,6 @@ const Dashboard: React.FC = () => {
     window.addEventListener('feedRefresh', handleFeedRefresh);
     return () => window.removeEventListener('feedRefresh', handleFeedRefresh);
   }, []);
-
-  // 🎯 CONSOLIDATED: Single ref to track context changes (prevents duplicate effects)
-  // This replaces multiple overlapping refs and effects
-  const contextStateRef = useRef<{
-    context: string | null;
-    orgId: string | null;
-    initialized: boolean;
-  }>({ context: null, orgId: null, initialized: false });
 
   // Social score - hearts state
   const [heartsCount, setHeartsCount] = useState(0);
@@ -153,28 +141,26 @@ const Dashboard: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
-  // Check if user has any primary organization (Church OR Family) - used to optimize API calls
-  const hasPrimaryOrg = hasAnyPrimary;
-
   // Check for ?view=activity URL parameter (from Quick Actions navigation)
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
-    if (searchParams.get('view') === 'activity' && hasPrimaryOrg) {
+    if (searchParams.get('view') === 'activity' && hasChurch) {
       setFeedView('activity');
     }
-  }, [location.search, hasPrimaryOrg]);
+  }, [location.search, hasChurch]);
 
-  // 🚀 React Query - Smart caching with stale-while-revalidate
+  // Home stats always belong to the locked church. No church means no stats request.
   const { 
     data: dashboardData, 
     isLoading, 
     error: queryError,
     refetch: refetchDashboard 
   } = useQuery({
-    queryKey: ['dashboard', activeOrganizationId, hasPrimaryOrg],
+    queryKey: ['dashboard', churchOrganizationId],
     queryFn: async () => {
-      return await dashboardApi.getDashboardWithAll(hasPrimaryOrg, activeOrganizationId || undefined);
+      return await dashboardApi.getDashboardWithAll(true, churchOrganizationId || undefined);
     },
+    enabled: !!churchOrganizationId,
     staleTime: 5 * 60 * 1000, // 5 minutes - data is fresh for 5 min
     gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache
     // This will:
@@ -225,73 +211,12 @@ const Dashboard: React.FC = () => {
   };
 
 
-  // Note: hasPrimaryOrg is defined earlier in the component for API optimization
-
-  // Ensure social-only users default to social feed
+  // Users without a church stay on the social feed. The feed scope is independent.
   useEffect(() => {
-    if (!hasPrimaryOrg && feedView === 'activity') {
+    if (!hasChurch && feedView === 'activity') {
       setFeedView('social');
     }
-  }, [hasPrimaryOrg, feedView]);
-
-  // ============================================================================
-  // 🎯 CONSOLIDATED CONTEXT CHANGE HANDLER (replaces 3 separate useEffects)
-  // This single effect handles: filter updates, dashboard refetch, and feed refresh
-  // ============================================================================
-  useEffect(() => {
-    const currentContext = activeContext || 'gathering';
-    const currentOrgId = activeOrganizationId || null;
-    const currentGroupId = activeGroupId || null;
-    const prevState = contextStateRef.current;
-
-    // Check if this is initial mount
-    if (!prevState.initialized) {
-      contextStateRef.current = {
-        context: currentContext,
-        orgId: currentOrgId,
-        initialized: true
-      };
-      return; // Skip on initial mount - React Query handles initial fetch
-    }
-
-    // Check if context or organization actually changed
-    const contextChanged = prevState.context !== currentContext;
-    const orgChanged = prevState.orgId !== currentOrgId;
-
-    // Exit early if nothing changed (most common case)
-    if (!contextChanged && !orgChanged) {
-      return;
-    }
-
-    // Update ref FIRST to prevent duplicate processing
-    contextStateRef.current = {
-      context: currentContext,
-      orgId: currentOrgId,
-      initialized: true
-    };
-
-
-    // Handle context change - do all updates in ONE place
-    if (currentContext === 'group' && currentGroupId) {
-      // Group context - filter to show only this group's posts
-      setFilter('SELECTED_GROUPS', [currentGroupId]).catch((error) => {
-        console.error('Failed to update filter on group context change:', error);
-      });
-    } else if (currentOrgId && (currentContext === 'church' || currentContext === 'family')) {
-      // Organization context - filter to primary org
-      setFilter('PRIMARY_ONLY', [], currentOrgId).catch((error) => {
-        console.error('Failed to update filter on context change:', error);
-      });
-
-      // 2. Dashboard data will auto-refetch via React Query (queryKey includes activeOrganizationId)
-      // No need to call refetchDashboard() - it's redundant!
-    }
-
-    // Note: We do NOT call setFeedRefreshKey here anymore!
-    // PostFeed will refresh automatically when filter changes OR when queryKey changes
-    // This eliminates the duplicate refresh problem
-
-  }, [activeContext, activeOrganizationId, activeGroupId, setFilter]);
+  }, [hasChurch, feedView]);
 
   // Handle reset flag from Home button click - reset dashboard to initial state
   // NOTE: This is now only triggered by explicit double-tap, not regular navigation
@@ -326,56 +251,26 @@ const Dashboard: React.FC = () => {
     }
   }, [location.state, refetchDashboard, navigate, location.pathname, resetFilter]);
 
-  // Determine if this is "The Gathering" global organization (no active context)
-  const isGatheringGlobal = activeContext === 'gathering' ||
-                            activeMembership?.organizationType === 'GLOBAL' || 
-                            activeOrganizationName?.includes('The Gathering') ||
-                            activeOrganizationName?.includes('Gathering Community');
-  
-  // 🎯 CONTEXT-AWARE banner image priority:
-  // - CHURCH context: Organization controls the banner (church branding)
-  // - FAMILY context: User controls the banner (personal preference)
-  // - GATHERING context: Organization banner if available, else user's, else default
+  // Home banner is the locked church's image. Without a church logo, use the
+  // member's banner, then the default.
   const userBannerImage = user?.bannerImageUrl;
   const hasUserBanner = userBannerImage && typeof userBannerImage === 'string' && userBannerImage.trim() !== '';
-  const hasOrgLogo = activeOrganizationLogo && !isGatheringGlobal;
-  
-  // Determine banner priority based on context type
-  let bannerImageUrl: string;
-  let s3FallbackUrl: string | null;
-  
-  if (activeContext === 'family') {
-    // 🏠 FAMILY CONTEXT: User's personal image takes priority
-    // Each family member sees their own preferred banner for personalization
-    bannerImageUrl = hasUserBanner
+  const hasOrgLogo = !!churchLogo;
+
+  const bannerImageUrl = churchLogo
+    ? getBannerImageUrl(churchLogo)
+    : hasUserBanner && userBannerImage
       ? getBannerImageUrl(userBannerImage)
-      : hasOrgLogo
-        ? getBannerImageUrl(activeOrganizationLogo)
-        : '/dashboard-banner.jpg';
-    
-    s3FallbackUrl = hasUserBanner
+      : '/dashboard-banner.jpg';
+
+  const s3FallbackUrl = churchLogo
+    ? getBannerImageS3Fallback(churchLogo)
+    : hasUserBanner && userBannerImage
       ? getBannerImageS3Fallback(userBannerImage)
-      : hasOrgLogo
-        ? getBannerImageS3Fallback(activeOrganizationLogo)
-        : null;
-  } else {
-    // ⛪ CHURCH CONTEXT (or Gathering): Organization image takes priority
-    // Church controls what members see on their dashboard for branding consistency
-    bannerImageUrl = hasOrgLogo
-      ? getBannerImageUrl(activeOrganizationLogo)
-      : hasUserBanner
-        ? getBannerImageUrl(userBannerImage)
-        : '/dashboard-banner.jpg';
-    
-    s3FallbackUrl = hasOrgLogo
-      ? getBannerImageS3Fallback(activeOrganizationLogo)
-      : hasUserBanner
-        ? getBannerImageS3Fallback(userBannerImage)
-        : null;
-  }
-  
-  // Final fallback order: CloudFront -> S3 -> Org Logo -> Default
-  const fallbackUrl = s3FallbackUrl || (hasOrgLogo ? getBannerImageUrl(activeOrganizationLogo) : '/dashboard-banner.jpg');
+      : null;
+
+  // Final fallback order: CloudFront -> S3 -> church logo -> default
+  const fallbackUrl = s3FallbackUrl || (churchLogo ? getBannerImageUrl(churchLogo) : '/dashboard-banner.jpg');
   
   // Debug logging to help diagnose banner issues
   useEffect(() => {
@@ -383,16 +278,12 @@ const Dashboard: React.FC = () => {
       console.log('🖼️ Dashboard Banner Selection:', {
         userBannerImage,
         hasUserBanner,
-        activeOrganizationLogo,
+        churchLogo,
         hasOrgLogo,
-        bannerImageUrl,
-        activeContext
+        bannerImageUrl
       });
     }
-  }, [userBannerImage, hasUserBanner, activeOrganizationLogo, hasOrgLogo, bannerImageUrl, activeContext]);
-  
-  // Get display name for header - uses active context
-  const displayOrgName = activeOrganizationName || 'The Gathering';
+  }, [userBannerImage, hasUserBanner, churchLogo, hasOrgLogo, bannerImageUrl]);
 
   return (
     <div className="dashboard-container">
@@ -402,7 +293,7 @@ const Dashboard: React.FC = () => {
           <img 
             key={bannerImageUrl} // Force re-render when URL changes
             src={bannerImageUrl}
-            alt={primaryMembership?.organizationName || 'Church banner'} 
+            alt={churchPrimary?.organizationName || 'Church banner'} 
             className="banner-bg-image"
             onError={(e) => {
               // Fallback chain: CloudFront -> S3 -> Org Logo -> Default
@@ -451,7 +342,7 @@ const Dashboard: React.FC = () => {
         
         <div className="header-content">
           <div className="header-left">
-            <h1>
+            <h1 className="header-identity-title">
               <img 
                 src="/app-logo.png" 
                 alt="The Gathering" 
@@ -464,7 +355,30 @@ const Dashboard: React.FC = () => {
                   }
                 }}
               />
-              {displayOrgName}
+              <span className="header-identity-labels">
+                <span className="header-identity-row">
+                  <span className="header-identity-kicker">Church</span>
+                  {organizationsLoading && !churchPrimary ? (
+                    <span className="header-identity-name">Loading…</span>
+                  ) : churchPrimary ? (
+                    <span className="header-identity-name">{churchPrimary.organizationName}</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="header-identity-join"
+                      onClick={() => navigate('/organizations?focus=church')}
+                    >
+                      Join a church
+                    </button>
+                  )}
+                </span>
+                {familyPrimary && (
+                  <span className="header-identity-row">
+                    <span className="header-identity-kicker">Family</span>
+                    <span className="header-identity-name">{familyPrimary.organizationName}</span>
+                  </span>
+                )}
+              </span>
             </h1>
           </div>
           <div className="user-info">
@@ -516,7 +430,7 @@ const Dashboard: React.FC = () => {
                 ⚙️
               </button>
               {/* Only show prayer and event notifications if user has primary org */}
-              {hasPrimaryOrg && (
+              {hasChurch && (
                 <>
                   <PrayerNotifications />
                   <EventNotifications />
@@ -602,7 +516,7 @@ const Dashboard: React.FC = () => {
                 </button>
               )}
               {/* Activity Feed button hidden - now accessible via Quick Actions */}
-              {false && hasPrimaryOrg && feedView !== 'activity' && (
+              {false && hasChurch && feedView !== 'activity' && (
                 <button
                   className="feed-toggle-btn"
                   onClick={() => handleFeedViewChange('activity')}
@@ -679,7 +593,7 @@ const Dashboard: React.FC = () => {
                     console.log('Post updated in dashboard:', postId, updatedPost);
                   }}
                 />
-              ) : hasPrimaryOrg ? (
+              ) : hasChurch ? (
                 <ActivityFeed
                   activities={dashboardData?.recentActivity || []}
                   isLoading={isLoading}
@@ -702,7 +616,7 @@ const Dashboard: React.FC = () => {
           {/* Right Column - Stats, Actions, Notifications */}
           <div className="dashboard-right">
             {/* Only show Community Stats if user has primary org */}
-            {hasPrimaryOrg && (
+            {hasChurch && (
               <div className="dashboard-card">
                 <DashboardStats 
                   stats={dashboardData?.stats || {
@@ -728,7 +642,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Only show Quick Giving if user has primary org */}
-            {hasPrimaryOrg && (
+            {hasChurch && (
               <div className="dashboard-card">
                 <QuickDonationWidget />
               </div>

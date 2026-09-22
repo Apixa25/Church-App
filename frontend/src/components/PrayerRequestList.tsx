@@ -8,7 +8,7 @@ import {
   PRAYER_STATUS_LABELS
 } from '../types/Prayer';
 import { prayerAPI, handleApiError } from '../services/prayerApi';
-import { useActiveContext } from '../contexts/ActiveContextContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import PrayerRequestCard from './PrayerRequestCard';
 
 interface PrayerRequestListProps {
@@ -33,7 +33,8 @@ const PrayerRequestList: React.FC<PrayerRequestListProps> = ({
   compact = false,
   filter = {}
 }) => {
-  const { activeOrganizationId } = useActiveContext();
+  const { churchPrimary } = useOrganization();
+  const churchOrganizationId = churchPrimary?.organizationId;
   const [prayers, setPrayers] = useState<PrayerRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -108,9 +109,16 @@ const PrayerRequestList: React.FC<PrayerRequestListProps> = ({
         setTotalElements(prayerList.totalElements);
         setHasMore(!prayerList.last);
         
+      } else if (!churchOrganizationId) {
+        setPrayers([]);
+        setTotalElements(0);
+        setHasMore(false);
+        setLoading(false);
+        setRefreshing(false);
+        return;
       } else {
-        // Load all prayers for the active organization
-        response = await prayerAPI.getAllPrayerRequests(pageNum, pageSize, activeOrganizationId || undefined);
+        // Prayer list is the user's locked church, never the feed or family.
+        response = await prayerAPI.getAllPrayerRequests(pageNum, pageSize, churchOrganizationId);
         const prayerList = response.data as PrayerListResponse;
         
         if (append) {
@@ -131,7 +139,7 @@ const PrayerRequestList: React.FC<PrayerRequestListProps> = ({
       setLoading(false);
       setRefreshing(false);
     }
-  }, [filter, activeOrganizationId]); // Include activeOrganizationId in dependencies
+  }, [filter, churchOrganizationId]);
 
   useEffect(() => {
     setPage(0);

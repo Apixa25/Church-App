@@ -4,7 +4,7 @@ import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { STRIPE_CONFIG, DonationCategory, RecurringFrequency } from '../config/stripe';
-import { useActiveContext } from '../contexts/ActiveContextContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import { getApiUrl } from '../config/runtimeConfig';
 import AmountSelector from './AmountSelector';
 import CategorySelector from './CategorySelector';
@@ -13,7 +13,7 @@ import StripeCheckout from './StripeCheckout';
 import DonationSummary from './DonationSummary';
 import DonationHistory from './DonationHistory';
 import SubscriptionManager from './SubscriptionManager';
-import ContextSwitcher from './ContextSwitcher';
+import ChurchRequiredNotice from './ChurchRequiredNotice';
 import './DonationPage.css';
 
 // Initialize Stripe
@@ -45,8 +45,10 @@ const DonationPage: React.FC = () => {
   const navigate = useNavigate();
   const locationState = location.state as any;
   
-  // Get active organization context to show which organization donations go to
-  const { activeOrganizationName, activeOrganizationId, activeContext } = useActiveContext();
+  // Giving always goes to the locked church, not the family or the feed context.
+  const { churchPrimary, loading: organizationsLoading } = useOrganization();
+  const churchOrganizationId = churchPrimary?.organizationId || null;
+  const churchName = churchPrimary?.organizationName || null;
 
   const [activeTab, setActiveTab] = useState<DonationTab>(
     locationState?.activeTab || 'donate'
@@ -87,7 +89,7 @@ const DonationPage: React.FC = () => {
 
   useEffect(() => {
     const fetchActiveOrganization = async () => {
-      if (!activeOrganizationId) {
+      if (!churchOrganizationId) {
         setActiveOrganization(null);
         return;
       }
@@ -95,7 +97,7 @@ const DonationPage: React.FC = () => {
       try {
         setIsLoadingOrganization(true);
         const token = localStorage.getItem('authToken');
-        const response = await axios.get(`${API_BASE_URL}/organizations/${activeOrganizationId}`, {
+        const response = await axios.get(`${API_BASE_URL}/organizations/${churchOrganizationId}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         setActiveOrganization(response.data);
@@ -108,14 +110,11 @@ const DonationPage: React.FC = () => {
     };
 
     fetchActiveOrganization();
-  }, [activeOrganizationId]);
+  }, [churchOrganizationId]);
 
   const getDonationDisabledMessage = (): string | null => {
-    if (activeContext === 'group') {
-      return 'Donations are organization-scoped. Switch to a Church or Family context to donate.';
-    }
-    if (!activeOrganizationId) {
-      return 'No active organization selected. Choose an organization context to donate.';
+    if (!churchOrganizationId) {
+      return 'Join a church before you give. Donations go to your primary church.';
     }
     if (isLoadingOrganization) {
       return 'Checking donation setup for your organization...';
@@ -190,6 +189,37 @@ const DonationPage: React.FC = () => {
     setError(null);
   };
 
+  if (organizationsLoading && !churchPrimary) {
+    return (
+      <div className="donation-page">
+        <div className="donation-container">
+          <p>Loading your church…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!churchPrimary) {
+    return (
+      <div className="donation-page">
+        <div className="donation-container">
+          <header className="donation-header">
+            <div className="donation-header-top">
+              <button
+                className="back-home-btn"
+                onClick={() => navigate('/')}
+                title="Back to Dashboard"
+              >
+                🏠 Back Home
+              </button>
+            </div>
+          </header>
+          <ChurchRequiredNotice feature="Giving" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="donation-page">
       <div className="donation-container">
@@ -203,16 +233,9 @@ const DonationPage: React.FC = () => {
               🏠 Back Home
             </button>
           </div>
-          <div className="donation-org-picker">
-            <ContextSwitcher
-              organizationsOnly
-              title="Give to"
-              subtitle="Donations go to the organization you select"
-            />
-          </div>
-          {activeOrganizationName && activeOrganizationId && (
+          {churchName && (
             <h1 className="donation-org-info">
-              Donating to: {activeOrganizationName}
+              Giving to: {churchName}
             </h1>
           )}
           <p>Your generosity makes a difference in our community</p>

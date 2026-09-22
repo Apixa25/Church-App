@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { eventAPI } from '../services/eventApi';
 import { Event, EventCategory, EventStatus, getEventCategoryDisplay } from '../types/Event';
-import { useActiveContext } from '../contexts/ActiveContextContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import { useAuth } from '../contexts/AuthContext';
 import CalendarView from './CalendarView';
 import EventList from './EventList';
 import EventCreateForm from './EventCreateForm';
 import webSocketService, { EventUpdate, EventRsvpUpdate } from '../services/websocketService';
 import LoadingSpinner from './LoadingSpinner';
+import ChurchRequiredNotice from './ChurchRequiredNotice';
 import './CalendarPage.css';
 
 interface CalendarPageProps {}
@@ -18,12 +19,13 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { activeOrganizationId, activeMembership } = useActiveContext();
+  const { churchPrimary, loading: organizationsLoading } = useOrganization();
+  const churchOrganizationId = churchPrimary?.organizationId;
   const canManageCalendar =
     user?.role === 'PLATFORM_ADMIN' ||
     user?.role === 'MODERATOR' ||
-    activeMembership?.role === 'ORG_ADMIN' ||
-    activeMembership?.role === 'MODERATOR';
+    churchPrimary?.role === 'ORG_ADMIN' ||
+    churchPrimary?.role === 'MODERATOR';
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -47,8 +49,8 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
   const visibleRange = useMemo(() => formatVisibleRange(selectedDate), [selectedDate]);
 
   const eventsQueryKey = useMemo(() =>
-    ['events', activeOrganizationId || 'all', filters.category, filters.status, debouncedSearch, visibleRange.start, visibleRange.end, canManageCalendar],
-    [activeOrganizationId, filters.category, filters.status, debouncedSearch, visibleRange, canManageCalendar]
+    ['events', churchOrganizationId || 'none', filters.category, filters.status, debouncedSearch, visibleRange.start, visibleRange.end, canManageCalendar],
+    [churchOrganizationId, filters.category, filters.status, debouncedSearch, visibleRange, canManageCalendar]
   );
 
   const {
@@ -64,7 +66,7 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
           query: debouncedSearch.trim(),
           page: 0,
           size: 500,
-          organizationId: activeOrganizationId || undefined,
+          organizationId: churchOrganizationId,
         });
         return response.data.events as Event[];
       }
@@ -73,12 +75,13 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
         size: 500,
         category: filters.category || undefined,
         status: canManageCalendar ? (filters.status || undefined) : undefined,
-        organizationId: activeOrganizationId || undefined,
+        organizationId: churchOrganizationId,
         startDate: filters.category || filters.status ? undefined : visibleRange.start,
         endDate: filters.category || filters.status ? undefined : visibleRange.end,
       });
       return response.data.events as Event[];
     },
+    enabled: !!churchOrganizationId,
     staleTime: 3 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
@@ -166,6 +169,33 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
     setFilters(prev => ({ ...prev, [filterType]: value }));
   };
 
+  if (organizationsLoading && !churchPrimary) {
+    return (
+      <div className="calendar-page">
+        <div className="loading-container">
+          <LoadingSpinner type="multi-ring" size="medium" text="Loading your church..." />
+        </div>
+      </div>
+    );
+  }
+
+  if (!churchPrimary) {
+    return (
+      <div className="calendar-page">
+        <div className="page-top-nav">
+          <button
+            className="back-home-btn"
+            onClick={() => navigate('/dashboard')}
+            title="Back to Dashboard"
+          >
+            🏠 Back Home
+          </button>
+        </div>
+        <ChurchRequiredNotice feature="The calendar" />
+      </div>
+    );
+  }
+
   if (loading && events.length === 0) {
     return (
       <div className="calendar-page">
@@ -193,7 +223,7 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
       <div className="calendar-header">
         <div className="header-title">
           <h1>🗓 Calendar & Events</h1>
-          <p>Manage and view events</p>
+          <p>Events for {churchPrimary.organizationName}</p>
           <div className="calendar-hero-pills" aria-label="Calendar highlights">
             <span>Shared church calendar</span>
             <span>Real-time updates</span>

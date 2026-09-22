@@ -882,6 +882,68 @@
   flex-shrink: 0;
 }
 
+/* Locked church and family names. The app logo stays the gold mark. */
+.header-identity-title {
+  align-items: center;
+}
+
+.header-identity-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.header-identity-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.header-identity-kicker {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.header-identity-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.header-identity-join {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.header-identity-join:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .dashboard-header h1.header-identity-title {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    height: auto !important;
+    align-items: flex-start !important;
+  }
+}
+
 /* Group Info Section - displays group description and creator below the header */
 .group-info-section {
   background: var(--bg-secondary, #1a1a2e);

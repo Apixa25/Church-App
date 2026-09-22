@@ -1,0 +1,35 @@
+.church-required-notice {
+  margin: 24px auto;
+  max-width: 520px;
+  padding: 24px 20px;
+  text-align: center;
+  background: var(--bg-tertiary, #1e1e32);
+  border: 1px solid var(--border-primary, #3a3a4e);
+  border-radius: 16px;
+  color: var(--text-primary, #f2f2f7);
+}
+
+.church-required-notice h2 {
+  margin: 0 0 8px;
+  font-size: 1.25rem;
+}
+
+.church-required-notice p {
+  margin: 0 0 16px;
+  line-height: 1.5;
+  color: var(--text-secondary, #c4c4d4);
+}
+
+.church-required-notice button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent-primary, #5b7fff);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.church-required-notice button:hover {
+  filter: brightness(1.08);
+}

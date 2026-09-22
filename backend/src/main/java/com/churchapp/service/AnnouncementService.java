@@ -51,7 +51,7 @@ public class AnnouncementService {
             }
         } else {
             // Regular announcements require a primary organization
-            if (user.getPrimaryOrganization() == null) {
+            if (user.getChurchPrimaryOrganization() == null) {
                 throw new RuntimeException("Cannot create announcement without a primary organization. Please join a church first.");
             }
         }
@@ -59,7 +59,7 @@ public class AnnouncementService {
         Announcement announcement = new Announcement();
         announcement.setUser(user);
         // Set organization: null for system-wide, otherwise user's primary organization
-        announcement.setOrganization(isSystemWide ? null : user.getPrimaryOrganization());
+        announcement.setOrganization(isSystemWide ? null : user.getChurchPrimaryOrganization());
         announcement.setTitle(request.getTitle().trim());
         announcement.setContent(request.getContent().trim());
         announcement.setImageUrl(request.getImageUrl());
@@ -73,7 +73,7 @@ public class AnnouncementService {
                 savedAnnouncement.getId(), userId);
         } else {
             log.info("Announcement created with id: {} by user: {} in org: {}",
-                savedAnnouncement.getId(), userId, user.getPrimaryOrganization().getId());
+                savedAnnouncement.getId(), userId, user.getChurchPrimaryOrganization().getId());
         }
 
         return AnnouncementResponse.fromAnnouncement(savedAnnouncement);
@@ -93,7 +93,7 @@ public class AnnouncementService {
             }
         } else {
             // Regular announcements require a primary organization
-            if (user.getPrimaryOrganization() == null) {
+            if (user.getChurchPrimaryOrganization() == null) {
                 throw new RuntimeException("Cannot create announcement without a primary organization. Please join a church first.");
             }
         }
@@ -121,7 +121,7 @@ public class AnnouncementService {
         Announcement announcement = new Announcement();
         announcement.setUser(user);
         // Set organization: null for system-wide, otherwise user's primary organization
-        announcement.setOrganization(isSystemWide ? null : user.getPrimaryOrganization());
+        announcement.setOrganization(isSystemWide ? null : user.getChurchPrimaryOrganization());
         announcement.setTitle(request.getTitle().trim());
         announcement.setContent(request.getContent().trim());
         announcement.setImageUrl(imageUrl);
@@ -135,7 +135,7 @@ public class AnnouncementService {
                 savedAnnouncement.getId(), userId);
         } else {
             log.info("Announcement created with image with id: {} by user: {} in org: {}",
-                savedAnnouncement.getId(), userId, user.getPrimaryOrganization().getId());
+                savedAnnouncement.getId(), userId, user.getChurchPrimaryOrganization().getId());
         }
 
         return AnnouncementResponse.fromAnnouncement(savedAnnouncement);
@@ -169,12 +169,12 @@ public class AnnouncementService {
             announcements = announcementRepository.findAllActive(pageable);
         } else {
             // Regular users see their organization's announcements + system-wide (organization IS NULL)
-            if (user.getPrimaryOrganization() == null) {
+            if (user.getChurchPrimaryOrganization() == null) {
                 // If no primary org, only show system-wide announcements
                 announcements = announcementRepository.findSystemWideAnnouncements(pageable);
             } else {
                 announcements = announcementRepository.findByOrganizationIdOrSystemWide(
-                    user.getPrimaryOrganization().getId(), pageable);
+                    user.getChurchPrimaryOrganization().getId(), pageable);
             }
         }
 
@@ -189,7 +189,7 @@ public class AnnouncementService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (user.getPrimaryOrganization() == null) {
+        if (user.getChurchPrimaryOrganization() == null) {
             // If no primary org, only show system-wide announcements
             Pageable pageable = PageRequest.of(page, size);
             Page<Announcement> announcements = announcementRepository.findSystemWideAnnouncements(pageable);
@@ -198,7 +198,7 @@ public class AnnouncementService {
 
         Pageable pageable = PageRequest.of(page, size);
         Page<Announcement> announcements = announcementRepository.findByOrganizationIdOrSystemWide(
-            user.getPrimaryOrganization().getId(), pageable);
+            user.getChurchPrimaryOrganization().getId(), pageable);
 
         return announcements.map(AnnouncementResponse::fromAnnouncement);
     }
@@ -225,7 +225,7 @@ public class AnnouncementService {
         if (user.getRole() == User.Role.PLATFORM_ADMIN) {
             // PLATFORM_ADMIN sees all pinned announcements
             pinnedAnnouncements = announcementRepository.findPinnedAnnouncements();
-        } else if (user.getPrimaryOrganization() == null) {
+        } else if (user.getChurchPrimaryOrganization() == null) {
             // If no primary org, only show system-wide pinned announcements
             // We need to filter system-wide announcements where isPinned = true
             Pageable pageable = PageRequest.of(0, 100); // Get up to 100 pinned announcements
@@ -236,7 +236,7 @@ public class AnnouncementService {
         } else {
             // Regular users see their org's pinned announcements + system-wide pinned
             pinnedAnnouncements = announcementRepository.findPinnedByOrganizationIdOrSystemWide(
-                user.getPrimaryOrganization().getId());
+                user.getChurchPrimaryOrganization().getId());
         }
 
         return pinnedAnnouncements.stream()
@@ -257,7 +257,7 @@ public class AnnouncementService {
         if (user.getRole() == User.Role.PLATFORM_ADMIN) {
             // PLATFORM_ADMIN sees all announcements by category
             announcements = announcementRepository.findByCategoryOrderByCreatedAtDesc(category, pageable);
-        } else if (user.getPrimaryOrganization() == null) {
+        } else if (user.getChurchPrimaryOrganization() == null) {
             // If no primary org, only show system-wide announcements by category
             // Note: We'll need to filter system-wide announcements by category
             Page<Announcement> systemWide = announcementRepository.findSystemWideAnnouncements(pageable);
@@ -271,7 +271,7 @@ public class AnnouncementService {
         } else {
             // Regular users see their org's announcements + system-wide by category
             announcements = announcementRepository.findByOrganizationIdOrSystemWideAndCategory(
-                user.getPrimaryOrganization().getId(), category, pageable);
+                user.getChurchPrimaryOrganization().getId(), category, pageable);
         }
 
         return announcements.map(AnnouncementResponse::fromAnnouncement);
@@ -309,7 +309,7 @@ public class AnnouncementService {
         if (user.getRole() == User.Role.PLATFORM_ADMIN) {
             // PLATFORM_ADMIN searches all announcements
             announcements = announcementRepository.searchAnnouncements(searchTerm, pageable);
-        } else if (user.getPrimaryOrganization() == null) {
+        } else if (user.getChurchPrimaryOrganization() == null) {
             // If no primary org, only search system-wide announcements
             Page<Announcement> systemWide = announcementRepository.findSystemWideAnnouncements(pageable);
             String lowerSearchTerm = searchTerm.toLowerCase();
@@ -322,7 +322,7 @@ public class AnnouncementService {
         } else {
             // Regular users search their org's announcements + system-wide
             announcements = announcementRepository.searchByOrganizationIdOrSystemWide(
-                user.getPrimaryOrganization().getId(), searchTerm, pageable);
+                user.getChurchPrimaryOrganization().getId(), searchTerm, pageable);
         }
 
         return announcements.map(AnnouncementResponse::fromAnnouncement);

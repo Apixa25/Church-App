@@ -4,27 +4,26 @@ import { useQuery } from '@tanstack/react-query';
 import QuickActions from './QuickActions';
 import CommunityStatsModal from './CommunityStatsModal';
 import dashboardApi, { QuickAction } from '../services/dashboardApi';
-import { useActiveContext } from '../contexts/ActiveContextContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import api from '../services/api';
 import './QuickActionsPage.css';
 
 const QuickActionsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { hasAnyPrimary, activeOrganizationId } = useActiveContext();
+  const { churchPrimary } = useOrganization();
+  const churchOrganizationId = churchPrimary?.organizationId || null;
   const [showStatsModal, setShowStatsModal] = useState(false);
 
   // 🚀 React Query - Smart caching with stale-while-revalidate
   const { data: quickActions = [], isLoading } = useQuery({
-    queryKey: ['quickActions', activeOrganizationId, hasAnyPrimary],
+    queryKey: ['quickActions', churchOrganizationId],
     queryFn: async (): Promise<QuickAction[]> => {
-      // 🚀 PERFORMANCE FIX: Use dedicated endpoint instead of full dashboard
-      // This avoids fetching all dashboard data, activity items, stats, etc.
-      const params = activeOrganizationId ? { organizationId: activeOrganizationId } : {};
+      // Church-life shortcuts are for the locked church. The feed stays separate.
+      const params = churchOrganizationId ? { organizationId: churchOrganizationId } : {};
       const response = await api.get('/dashboard/quick-actions', { params });
       let actions: QuickAction[] = response.data.quickActions || [];
       
-      // Add organization-specific quick actions if user has primary org
-      if (hasAnyPrimary) {
+      if (churchOrganizationId) {
         const existingActionUrls = actions.map((action) => action.actionUrl);
         
         // Get userRole from localStorage (same approach as getDashboardWithAll)

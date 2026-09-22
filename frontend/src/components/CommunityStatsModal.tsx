@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
-import { useActiveContext } from '../contexts/ActiveContextContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import dashboardApi, { DashboardStats } from '../services/dashboardApi';
 import LoadingSpinner from './LoadingSpinner';
 import './CommunityStatsModal.css';
@@ -12,17 +12,17 @@ interface CommunityStatsModalProps {
 }
 
 const CommunityStatsModal: React.FC<CommunityStatsModalProps> = ({ isOpen, onClose }) => {
-  const { activeOrganizationId, hasAnyPrimary } = useActiveContext();
+  const { churchPrimary, loading: organizationsLoading } = useOrganization();
+  const churchOrganizationId = churchPrimary?.organizationId || null;
 
-  // Fetch dashboard stats
+  // Community stats are the locked church, even if the feed is showing something else.
   const { data: stats, isLoading } = useQuery({
-    queryKey: ['communityStats', activeOrganizationId],
+    queryKey: ['communityStats', churchOrganizationId],
     queryFn: async (): Promise<DashboardStats> => {
-      // getDashboardWithAll(hasPrimaryOrgOverride?: boolean, organizationId?: string)
-      const dashboardData = await dashboardApi.getDashboardWithAll(hasAnyPrimary, activeOrganizationId || undefined);
+      const dashboardData = await dashboardApi.getDashboardWithAll(true, churchOrganizationId || undefined);
       return dashboardData.stats;
     },
-    enabled: isOpen && hasAnyPrimary, // Only fetch when modal is open and user has org
+    enabled: isOpen && !!churchOrganizationId,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
@@ -48,16 +48,18 @@ const CommunityStatsModal: React.FC<CommunityStatsModalProps> = ({ isOpen, onClo
 
   if (!isOpen) return null;
 
-  // If user doesn't have a primary organization
-  if (!hasAnyPrimary) {
+  if (!churchPrimary) {
+    const waiting = organizationsLoading;
     const modalContent = (
       <div className="community-stats-modal-overlay" onClick={onClose}>
         <div className="community-stats-modal-container community-stats-clickable" onClick={onClose}>
           <div className="community-stats-modal-content">
             <h2>📈 Community Stats</h2>
             <div className="community-stats-no-org">
-              <p>🏠 Join an organization to see community stats!</p>
-              <p className="hint">Browse and join a church or family group to unlock this feature.</p>
+              <p>{waiting ? 'Loading your church…' : 'Join a church to see community stats.'}</p>
+              {!waiting && (
+                <p className="hint">Stats stay with your primary church. Your family stays on the feed and in messages.</p>
+              )}
             </div>
           </div>
         </div>

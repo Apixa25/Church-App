@@ -11,7 +11,7 @@ import {
   PRAYER_STATUS_LABELS,
 } from '../types/Prayer';
 import { prayerAPI, handleApiError } from '../services/prayerApi';
-import { useActiveContext } from '../contexts/ActiveContextContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import LoadingSpinner from './LoadingSpinner';
 import { processImageForUpload } from '../utils/imageUtils';
 import { uploadMediaDirect } from '../services/postApi';
@@ -37,7 +37,7 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
   onCancel,
   mode = 'create'
 }) => {
-  const { activeOrganizationId } = useActiveContext();
+  const { churchPrimary } = useOrganization();
   
   const {
     register,
@@ -296,12 +296,15 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
         
         response = await prayerAPI.updatePrayerRequest(existingPrayer.id, updateRequest);
       } else {
+        if (!churchPrimary?.organizationId) {
+          throw new Error('Join a church before you share a prayer request.');
+        }
         const createRequest: PrayerRequestCreateRequest = {
           title: data.title,
           description: data.description || undefined,
           isAnonymous: data.isAnonymous,
           category: data.category,
-          organizationId: activeOrganizationId || undefined // Pass active organization from context
+          organizationId: churchPrimary.organizationId
         };
         
         // Upload image to S3 first (same pattern as posts - works on iPhone!)

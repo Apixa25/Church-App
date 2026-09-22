@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   PrayerRequest, 
@@ -14,11 +15,13 @@ import PrayerRequestForm from './PrayerRequestForm';
 import PrayerRequestList from './PrayerRequestList';
 import PrayerRequestDetail from './PrayerRequestDetail';
 import PrayerSheet from './PrayerSheet';
+import ChurchRequiredNotice from './ChurchRequiredNotice';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'detail' | 'sheet';
 
 const PrayerRequestsPage: React.FC = () => {
   const { user } = useAuth();
+  const { churchPrimary, loading: organizationsLoading } = useOrganization();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -37,6 +40,9 @@ const PrayerRequestsPage: React.FC = () => {
   const [searchText, setSearchText] = useState('');
 
   useEffect(() => {
+    if (!churchPrimary) {
+      return;
+    }
     loadStats();
     
     // Handle URL parameters
@@ -51,7 +57,7 @@ const PrayerRequestsPage: React.FC = () => {
     } else if (mode === 'sheet') {
       setViewMode('sheet');
     }
-  }, [searchParams]);
+  }, [searchParams, churchPrimary]);
 
   const loadStats = async () => {
     try {
@@ -150,6 +156,36 @@ const PrayerRequestsPage: React.FC = () => {
     return count;
   };
 
+  if (organizationsLoading && !churchPrimary) {
+    return (
+      <div className="prayer-requests-page">
+        <p>Loading your church…</p>
+      </div>
+    );
+  }
+
+  if (!churchPrimary) {
+    return (
+      <div className="prayer-requests-page">
+        <div className="page-header">
+          <div className="header-content">
+            <div className="header-top">
+              <button
+                className="back-home-btn"
+                onClick={() => navigate('/')}
+                title="Back to Dashboard"
+              >
+                🏠 Back Home
+              </button>
+              <h1 className="page-title">🙏 Prayer Requests</h1>
+            </div>
+          </div>
+        </div>
+        <ChurchRequiredNotice feature="Prayer requests" />
+      </div>
+    );
+  }
+
   if (viewMode === 'detail') {
     return (
       <PrayerRequestDetail
@@ -187,7 +223,9 @@ const PrayerRequestsPage: React.FC = () => {
             <h1 className="page-title">🙏 Prayer Requests</h1>
           </div>
           <p className="page-description">
-            Share your prayer needs and support others in their spiritual journey
+            {churchPrimary
+              ? `Prayers for ${churchPrimary.organizationName}`
+              : 'Share your prayer needs and support others in their spiritual journey'}
           </p>
         </div>
 

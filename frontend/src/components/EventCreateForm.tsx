@@ -4,7 +4,7 @@ import DatePicker from 'react-datepicker';
 import { eventAPI, EVENT_CATEGORY_OPTIONS } from '../services/eventApi';
 import { Event, EventRequest, EventCategory, EventBringItemInput, RecurrenceType } from '../types/Event';
 import { parseEventDate } from '../utils/dateUtils';
-import { useActiveContext } from '../contexts/ActiveContextContext';
+import { useOrganization } from '../contexts/OrganizationContext';
 import 'react-datepicker/dist/react-datepicker.css';
 import './EventCreateForm.css';
 import BringListEditor from './BringListEditor';
@@ -22,7 +22,7 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
   initialDate,
   editEvent
 }) => {
-  const { activeOrganizationId } = useActiveContext();
+  const { churchPrimary } = useOrganization();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<Date>(() => {
@@ -97,6 +97,10 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
   };
 
   const onSubmit = async (data: EventRequest) => {
+    if (!editEvent && !churchPrimary?.organizationId) {
+      setError('Join a church before you add an event.');
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
@@ -125,7 +129,7 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
           ? parseInt(data.maxAttendees.toString(), 10) 
           : undefined,
         bringListEnabled: data.bringListEnabled || false,
-        organizationId: activeOrganizationId || undefined, // Pass active organization from context
+        organizationId: churchPrimary?.organizationId,
         // Handle recurring event fields
         isRecurring: data.isRecurring || false,
         recurrenceType: data.isRecurring && data.recurrenceType ? data.recurrenceType : undefined,
