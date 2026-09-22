@@ -524,12 +524,11 @@ const Dashboard: React.FC = () => {
               )}
               <button
                 onClick={handleFindOrganizations}
-                className="join-button"
+                className="find-org-button"
                 title="Find your church or family group"
                 aria-label="Find your church or family group"
               >
-                <span className="join-button-icon" aria-hidden="true">🧭</span>
-                <span className="join-button-label">Join</span>
+                🏠
               </button>
             </div>
           </div>

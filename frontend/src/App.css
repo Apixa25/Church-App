@@ -2091,6 +2091,7 @@
 
   .search-button,
   .settings-button,
+  .find-org-button,
   .logout-button,
   .header-actions .prayer-notifications .notification-bell,
   .header-actions .event-notifications .notification-toggle {
@@ -2111,6 +2112,7 @@
 
   .search-button:hover,
   .settings-button:hover,
+  .find-org-button:hover,
   .logout-button:hover,
   .header-actions .prayer-notifications .notification-bell:hover,
   .header-actions .event-notifications .notification-toggle:hover {
@@ -2259,6 +2261,7 @@
 
   .search-button,
   .settings-button,
+  .find-org-button,
   .logout-button,
   .header-actions .prayer-notifications .notification-bell,
   .header-actions .event-notifications .notification-toggle {
