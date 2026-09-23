@@ -52,7 +52,7 @@ const Dashboard: React.FC = () => {
   const churchOrganizationId = churchPrimary?.organizationId || null;
   const churchLogo = churchPrimary?.organizationLogoUrl || null;
   
-  const { resetFilter } = useFeedFilter();
+  const { resetFilter, scope, activeFilter } = useFeedFilter();
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -251,26 +251,35 @@ const Dashboard: React.FC = () => {
     }
   }, [location.state, refetchDashboard, navigate, location.pathname, resetFilter]);
 
-  // Home banner is the locked church's image. Without a church logo, use the
-  // member's banner, then the default.
+  // Church banner only while the feed is exactly "My Church".
+  // Every other feed choice uses the member's own banner, then the default image.
   const userBannerImage = user?.bannerImageUrl;
   const hasUserBanner = userBannerImage && typeof userBannerImage === 'string' && userBannerImage.trim() !== '';
-  const hasOrgLogo = !!churchLogo;
-
-  const bannerImageUrl = churchLogo
-    ? getBannerImageUrl(churchLogo)
+  const myChurchFeedOnly = activeFilter === 'CUSTOM' && !!scope
+    && scope.includeChurchPrimary
+    && !scope.includeFamilyPrimary
+    && !scope.includeFriends
+    && !scope.includeFollowing
+    && !scope.includeMyGroups
+    && (scope.organizationIds?.length || 0) === 0
+    && (scope.groupIds?.length || 0) === 0
+    && (scope.userIds?.length || 0) === 0
+    && !scope.nearby;
+  const preferredBanner = myChurchFeedOnly && churchLogo
+    ? churchLogo
     : hasUserBanner && userBannerImage
-      ? getBannerImageUrl(userBannerImage)
-      : '/dashboard-banner.jpg';
-
-  const s3FallbackUrl = churchLogo
-    ? getBannerImageS3Fallback(churchLogo)
-    : hasUserBanner && userBannerImage
-      ? getBannerImageS3Fallback(userBannerImage)
+      ? userBannerImage
       : null;
 
-  // Final fallback order: CloudFront -> S3 -> church logo -> default
-  const fallbackUrl = s3FallbackUrl || (churchLogo ? getBannerImageUrl(churchLogo) : '/dashboard-banner.jpg');
+  const bannerImageUrl = preferredBanner
+    ? getBannerImageUrl(preferredBanner)
+    : '/dashboard-banner.jpg';
+
+  const s3FallbackUrl = preferredBanner
+    ? getBannerImageS3Fallback(preferredBanner)
+    : null;
+
+  const fallbackUrl = s3FallbackUrl || '/dashboard-banner.jpg';
   
   // Debug logging to help diagnose banner issues
   useEffect(() => {
@@ -279,11 +288,11 @@ const Dashboard: React.FC = () => {
         userBannerImage,
         hasUserBanner,
         churchLogo,
-        hasOrgLogo,
+        myChurchFeedOnly,
         bannerImageUrl
       });
     }
-  }, [userBannerImage, hasUserBanner, churchLogo, hasOrgLogo, bannerImageUrl]);
+  }, [userBannerImage, hasUserBanner, churchLogo, myChurchFeedOnly, bannerImageUrl]);
 
   return (
     <div className="dashboard-container">
@@ -293,7 +302,7 @@ const Dashboard: React.FC = () => {
           <img 
             key={bannerImageUrl} // Force re-render when URL changes
             src={bannerImageUrl}
-            alt={churchPrimary?.organizationName || 'Church banner'} 
+            alt={myChurchFeedOnly ? (churchPrimary?.organizationName || 'Church banner') : 'Your banner'} 
             className="banner-bg-image"
             onError={(e) => {
               // Fallback chain: CloudFront -> S3 -> Org Logo -> Default
