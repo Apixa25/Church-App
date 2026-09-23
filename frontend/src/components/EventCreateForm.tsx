@@ -315,6 +315,7 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
               dateFormat="MMM d, yyyy h:mm aa"
               className="date-input"
               minDate={new Date()}
+              withPortal
             />
           </div>
 
@@ -331,6 +332,7 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
               minDate={startTime}
               placeholderText="Optional end time"
               isClearable
+              withPortal
             />
           </div>
         </div>
@@ -433,6 +435,7 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
                   minDate={startTime}
                   placeholderText="No end date (repeats indefinitely)"
                   isClearable
+                  withPortal
                 />
                 <p className="helper-text">
                   Leave empty to repeat indefinitely, or set an end date

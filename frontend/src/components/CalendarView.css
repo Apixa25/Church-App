@@ -165,33 +165,6 @@
   float: none !important;
 }
 
-.react-datepicker {
-  width: 100% !important;
-  display: block !important;
-}
-
-.react-datepicker__month-container {
-  width: 100% !important;
-}
-
-.react-datepicker__header,
-.react-datepicker__month {
-  width: 100% !important;
-}
-
-.react-datepicker__day-names,
-.react-datepicker__week {
-  display: flex !important;
-  justify-content: space-between !important;
-  width: 100% !important;
-}
-
-.react-datepicker__day-name,
-.react-datepicker__day {
-  flex: 1 !important;
-  text-align: center !important;
-}
-
 .custom-calendar .react-datepicker__header {
   background: transparent !important;
   border-bottom: none !important;
