@@ -978,7 +978,12 @@
   }
   
   .selected-date-events {
-    padding: 8px 0;
+    padding: 14px 16px 12px;
+  }
+
+  .selected-date-header h3,
+  .selected-date-header p {
+    padding-left: 2px;
   }
   
   .custom-calendar .react-datepicker__day {
