@@ -441,6 +441,17 @@
 .day-event-label.music { color: #f9a8d4; }
 .day-event-label.general { color: #c7d2fe; }
 .day-event-label.other { color: #e5e7eb; }
+.day-event-label.home-family { box-shadow: inset 3px 0 0 #f9a8d4; }
+.day-event-label.home-church { box-shadow: inset 3px 0 0 #93c5fd; }
+.event-item.home-family { box-shadow: inset 3px 0 0 #f9a8d4; }
+.event-item.home-church { box-shadow: inset 3px 0 0 #93c5fd; }
+.event-item .event-title,
+.timeline-event .event-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
 
 .react-datepicker__day--selected .day-event-label,
 .react-datepicker__day--selected .more-events {

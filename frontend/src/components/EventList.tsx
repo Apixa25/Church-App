@@ -10,6 +10,7 @@ interface EventListProps {
   onEventDelete: (eventId: string) => void;
   onRsvpUpdate?: (event: Event) => void;
   canManage?: boolean;
+  managedOrganizationIds?: string[];
   currentUserId?: string;
   loading?: boolean;
 }
@@ -23,6 +24,7 @@ const EventList: React.FC<EventListProps> = ({
   onEventDelete,
   onRsvpUpdate,
   canManage = false,
+  managedOrganizationIds = [],
   currentUserId,
   loading = false
 }) => {
@@ -184,6 +186,7 @@ const EventList: React.FC<EventListProps> = ({
                   onDelete={onEventDelete}
                   onRsvpUpdate={onRsvpUpdate}
                   canManage={canManage}
+                  managedOrganizationIds={managedOrganizationIds}
                   currentUserId={currentUserId}
                   showDate={true}
                   showTime={true}

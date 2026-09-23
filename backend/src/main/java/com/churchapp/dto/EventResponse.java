@@ -45,6 +45,11 @@ public class EventResponse {
     
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    /** The church or family this entry belongs to. */
+    private UUID organizationId;
+    private String organizationName;
+    private String organizationType;
     
     public static EventResponse fromEvent(Event event) {
         // Safely get creator information with null checks
@@ -81,7 +86,12 @@ public class EventResponse {
             null,
             null, // rsvpSummary will be set separately if needed
             event.getCreatedAt(),
-            event.getUpdatedAt()
+            event.getUpdatedAt(),
+            event.getOrganization() != null ? event.getOrganization().getId() : null,
+            event.getOrganization() != null ? event.getOrganization().getName() : null,
+            event.getOrganization() != null && event.getOrganization().getType() != null
+                ? event.getOrganization().getType().name()
+                : null
         );
     }
     

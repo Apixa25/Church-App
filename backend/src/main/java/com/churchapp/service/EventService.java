@@ -45,10 +45,10 @@ public class EventService {
         User creator = userRepository.findById(creatorId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + creatorId));
 
-        Organization targetOrganization = churchPrimaryResolver.resolveCalendarChurch(creator, organizationId);
+        Organization targetOrganization = churchPrimaryResolver.resolveCalendarEntryHome(creator, organizationId);
         if (creator.getRole() != User.Role.PLATFORM_ADMIN
                 && !membershipRepository.existsByUserIdAndOrganizationId(creatorId, targetOrganization.getId())) {
-            throw new RuntimeException("You are not a member of this church.");
+            throw new RuntimeException("You are not a member of this church or family.");
         }
 
         log.info("Creating event - Title: '{}', StartTime: '{}', EndTime: '{}', Category: '{}', Status: '{}', Organization: '{}'",
@@ -120,33 +120,39 @@ public class EventService {
     }
 
     /**
-     * Resolves the church for a calendar request and confirms the user belongs to it.
-     * Platform admins may open a church calendar without a membership row.
+     * Church and family homes for this person's calendar. A requested id is
+     * accepted only when it is one of those homes; the result is still both.
      */
-    public UUID resolveOrganizationId(UUID userId, UUID requestedOrganizationId) {
+    public List<UUID> calendarOrganizationIds(UUID userId, UUID requestedOrganizationId) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
-
-        Organization church = churchPrimaryResolver.resolveCalendarChurch(user, requestedOrganizationId);
-        if (user.getRole() != User.Role.PLATFORM_ADMIN
-                && !membershipRepository.existsByUserIdAndOrganizationId(userId, church.getId())) {
-            throw new RuntimeException("You are not a member of this church");
-        }
-        return church.getId();
+        return churchPrimaryResolver.personalCalendarOrganizationIds(user, requestedOrganizationId);
     }
 
     public Event getEventForUser(UUID eventId, UUID userId) {
         Event event = getEvent(eventId);
-        if (event.getOrganization() == null) {
-            throw new RuntimeException("Event is not available");
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        churchPrimaryResolver.assertCanViewCalendarEvent(user, event.getOrganization());
+        Organization organization = event.getOrganization();
+        if (organization != null) {
+            organization.getId();
+            organization.getName();
+            if (organization.getType() != null) {
+                organization.getType().name();
+            }
         }
-        resolveOrganizationId(userId, event.getOrganization().getId());
         return event;
     }
 
-    public Page<Event> getVisibleEvents(UUID organizationId, LocalDateTime startDate, LocalDateTime endDate, int page, int size) {
+    public Page<Event> getVisibleEvents(List<UUID> organizationIds, LocalDateTime startDate, LocalDateTime endDate, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return eventRepository.findVisibleByOrganizationId(organizationId, startDate, endDate, pageable);
+        return eventRepository.findVisibleByOrganizationIdIn(organizationIds, startDate, endDate, pageable);
+    }
+
+    public Page<Event> getEventsForOrganizations(List<UUID> organizationIds, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return eventRepository.findByOrganizationIdIn(organizationIds, pageable);
     }
     
     public Event updateEvent(UUID eventId, UUID userId, Event eventUpdate, Boolean bringListEnabled, List<EventBringItemRequest> bringItems) {
@@ -241,7 +247,7 @@ public class EventService {
                 eventId, event.getCreator().getId(), userId, user.getRole());
         
         if (!canManageEvent(user, event)) {
-            throw new RuntimeException("Not authorized to delete this event. Only the event creator or a church administrator can delete events.");
+            throw new RuntimeException("Not authorized to delete this event. Only the event creator or an administrator of that church or family can delete events.");
         }
         
         // Notify about cancellation before actual deletion (per user requirements)
@@ -269,13 +275,11 @@ public class EventService {
     }
 
     /**
-     * Get all events for user's active organization
+     * Events on the user's church and family calendar.
      */
     public Page<Event> getEventsForUser(UUID userId, UUID organizationId, int page, int size) {
-        UUID targetOrganizationId = resolveOrganizationId(userId, organizationId);
-
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Event> eventsPage = eventRepository.findByOrganizationId(targetOrganizationId, pageable);
+        List<UUID> organizationIds = calendarOrganizationIds(userId, organizationId);
+        Page<Event> eventsPage = getEventsForOrganizations(organizationIds, page, size);
         
         // Ensure creator is loaded for all events (force lazy loading within transaction)
         eventsPage.getContent().forEach(event -> {
@@ -294,25 +298,8 @@ public class EventService {
      * Get upcoming events for user's active organization
      */
     public List<Event> getUpcomingEventsForUser(UUID userId, UUID organizationId) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-
-        // Use provided organizationId, or fall back to primary organization
-        UUID targetOrganizationId;
-        if (organizationId != null) {
-            // Use the provided organizationId from the active context
-            targetOrganizationId = organizationId;
-        } else if (user.getChurchPrimaryOrganization() != null) {
-            // Fall back to church primary if no organizationId provided
-            targetOrganizationId = user.getChurchPrimaryOrganization().getId();
-        } else {
-            throw new RuntimeException("Cannot view events without an organization");
-        }
-
-        return eventRepository.findUpcomingByOrganizationId(
-            targetOrganizationId,
-            LocalDateTime.now()
-        );
+        List<UUID> organizationIds = calendarOrganizationIds(userId, organizationId);
+        return eventRepository.findUpcomingByOrganizationIdIn(organizationIds, LocalDateTime.now());
     }
 
     /**
@@ -374,9 +361,9 @@ public class EventService {
         return eventRepository.findByOrganizationIdAndStatus(organizationId, status, pageable);
     }
     
-    public Page<Event> searchEvents(UUID organizationId, String searchTerm, int page, int size) {
+    public Page<Event> searchEvents(List<UUID> organizationIds, String searchTerm, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return eventRepository.searchEventsByOrganizationId(organizationId, searchTerm, pageable);
+        return eventRepository.searchEventsByOrganizationIdIn(organizationIds, searchTerm, pageable);
     }
     
     // Dashboard/Feed methods
@@ -385,20 +372,30 @@ public class EventService {
         return eventRepository.findRecentEventsForFeed(LocalDateTime.now(), pageable);
     }
     
-    public List<Event> getEventsToday(UUID organizationId) {
+    public List<Event> getEventsToday(List<UUID> organizationIds) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startOfDay = now.withHour(0).withMinute(0).withSecond(0).withNano(0);
         LocalDateTime endOfDay = startOfDay.plusDays(1);
-        
-        return eventRepository.findEventsTodayByOrganizationId(organizationId, startOfDay, endOfDay);
+
+        return eventRepository.findEventsTodayByOrganizationIdIn(organizationIds, startOfDay, endOfDay);
     }
-    
-    public List<Event> getEventsThisWeek(UUID organizationId) {
+
+    public List<Event> getEventsThisWeek(List<UUID> organizationIds) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime weekStart = now.withHour(0).withMinute(0).withSecond(0);
         LocalDateTime weekEnd = weekStart.plusDays(7);
-        
-        return eventRepository.findEventsThisWeekByOrganizationId(organizationId, weekStart, weekEnd);
+
+        return eventRepository.findEventsThisWeekByOrganizationIdIn(organizationIds, weekStart, weekEnd);
+    }
+
+    public Page<Event> getEventsByCategoryForOrganizations(List<UUID> organizationIds, Event.EventCategory category, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return eventRepository.findByOrganizationIdInAndCategory(organizationIds, category, pageable);
+    }
+
+    public Page<Event> getEventsByStatusForOrganizations(List<UUID> organizationIds, Event.EventStatus status, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return eventRepository.findByOrganizationIdInAndStatus(organizationIds, status, pageable);
     }
 
     private boolean canManageEvent(User user, Event event) {
@@ -481,8 +478,11 @@ public class EventService {
                 return;
             }
 
-            // Get all users in the organization
-            List<User> orgUsers = userRepository.findByChurchPrimaryOrganization(organization);
+            // Church events reach people whose church primary is this church.
+            // Family events reach people whose family primary is this family.
+            List<User> orgUsers = organization.getType() == Organization.OrganizationType.FAMILY
+                ? userRepository.findByFamilyPrimaryOrganization(organization)
+                : userRepository.findByChurchPrimaryOrganization(organization);
 
             // Collect FCM tokens (exclude event creator)
             List<String> tokens = orgUsers.stream()

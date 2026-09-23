@@ -7,8 +7,8 @@ interface ChurchRequiredNoticeProps {
 }
 
 /**
- * Church-life screens (prayer, calendar, announcements, giving) require the
- * user's locked church. Family membership stays on the feed and in messages.
+ * Prayer, announcements, and giving stay with the user's locked church.
+ * The calendar is separate: it shows that church and the user's family together.
  */
 const ChurchRequiredNotice: React.FC<ChurchRequiredNoticeProps> = ({ feature }) => {
   const navigate = useNavigate();

@@ -1,0 +1,22 @@
+.calendar-home-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.calendar-home-badge.family {
+  background: rgba(244, 114, 182, 0.18);
+  color: #f9a8d4;
+}
+
+.calendar-home-badge.church {
+  background: rgba(96, 165, 250, 0.18);
+  color: #93c5fd;
+}

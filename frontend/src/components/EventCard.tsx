@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Event, getEventCategoryDisplay, getEventStatusDisplay } from '../types/Event';
+import CalendarHomeBadge from './CalendarHomeBadge';
 import EventRsvpManager from './EventRsvpManager';
 import { formatEventDate, formatEventTime, formatEventDuration, isEventPast, formatAnnouncementDate } from '../utils/dateUtils';
 import './EventCard.css';
@@ -14,6 +15,7 @@ interface EventCardProps {
   showDate?: boolean;
   showTime?: boolean;
   canManage?: boolean;
+  managedOrganizationIds?: string[];
   currentUserId?: string;
 }
 
@@ -27,9 +29,11 @@ const EventCard: React.FC<EventCardProps> = ({
   showDate = true,
   showTime = true,
   canManage = false,
+  managedOrganizationIds = [],
   currentUserId
 }) => {
-  const canEditThisEvent = canManage || (!!currentUserId && event.creatorId === currentUserId);
+  const managesThisHome = !!event.organizationId && managedOrganizationIds.includes(event.organizationId);
+  const canEditThisEvent = canManage || managesThisHome || (!!currentUserId && event.creatorId === currentUserId);
   const [showRsvpManager, setShowRsvpManager] = useState(false);
 
   // Use centralized date utilities for consistent parsing
@@ -79,6 +83,7 @@ const EventCard: React.FC<EventCardProps> = ({
           >
             {getEventCategoryDisplay(event.category)}
           </span>
+          <CalendarHomeBadge organizationType={event.organizationType} />
           {event.status !== 'SCHEDULED' && (
           <span 
             className="status-badge"

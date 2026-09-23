@@ -8,6 +8,7 @@ import { formatEventDate, formatEventTime, formatEventDuration } from '../utils/
 import EventRsvpManager from './EventRsvpManager';
 import EventBringListSection from './EventBringListSection';
 import LoadingSpinner from './LoadingSpinner';
+import CalendarHomeBadge from './CalendarHomeBadge';
 import './EventDetailsPage.css';
 
 const EventDetailsPage: React.FC = () => {
@@ -106,7 +107,10 @@ const EventDetailsPage: React.FC = () => {
             ← Back
           </button>
           <div className="header-main">
-            <h1>{event.title}</h1>
+            <h1>
+              <CalendarHomeBadge organizationType={event.organizationType} />
+              {event.title}
+            </h1>
             <p className="event-meta">
               {formatEventDate(event.startTime)} · {formatEventTime(event.startTime)}
               {event.endTime && ` – ${formatEventTime(event.endTime)}`}

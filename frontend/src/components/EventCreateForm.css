@@ -27,6 +27,35 @@
   margin: 0;
 }
 
+.entry-home-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.entry-home-toggle button {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: var(--border-radius-pill);
+  border: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.entry-home-toggle button.active {
+  background: var(--accent-primary);
+  color: white;
+  border-color: transparent;
+}
+
+.entry-home-help {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
 .close-btn {
   width: 32px;
   height: 32px;

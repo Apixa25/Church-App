@@ -10,8 +10,8 @@ import EventList from './EventList';
 import EventCreateForm from './EventCreateForm';
 import webSocketService, { EventUpdate, EventRsvpUpdate } from '../services/websocketService';
 import LoadingSpinner from './LoadingSpinner';
-import ChurchRequiredNotice from './ChurchRequiredNotice';
 import './CalendarPage.css';
+import './ChurchRequiredNotice.css';
 
 interface CalendarPageProps {}
 
@@ -19,13 +19,20 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { churchPrimary, loading: organizationsLoading } = useOrganization();
-  const churchOrganizationId = churchPrimary?.organizationId;
-  const canManageCalendar =
+  const { churchPrimary, familyPrimary, loading: organizationsLoading } = useOrganization();
+  const hasCalendarHome = !!churchPrimary || !!familyPrimary;
+  const canManageAnyEvent =
     user?.role === 'PLATFORM_ADMIN' ||
-    user?.role === 'MODERATOR' ||
-    churchPrimary?.role === 'ORG_ADMIN' ||
-    churchPrimary?.role === 'MODERATOR';
+    user?.role === 'MODERATOR';
+  const managedOrganizationIds = [
+    churchPrimary && (churchPrimary.role === 'ORG_ADMIN' || churchPrimary.role === 'MODERATOR')
+      ? churchPrimary.organizationId
+      : null,
+    familyPrimary && (familyPrimary.role === 'ORG_ADMIN' || familyPrimary.role === 'MODERATOR')
+      ? familyPrimary.organizationId
+      : null,
+  ].filter((id): id is string => !!id);
+  const canFilterStatus = canManageAnyEvent || managedOrganizationIds.length > 0;
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -49,8 +56,8 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
   const visibleRange = useMemo(() => formatVisibleRange(selectedDate), [selectedDate]);
 
   const eventsQueryKey = useMemo(() =>
-    ['events', churchOrganizationId || 'none', filters.category, filters.status, debouncedSearch, visibleRange.start, visibleRange.end, canManageCalendar],
-    [churchOrganizationId, filters.category, filters.status, debouncedSearch, visibleRange, canManageCalendar]
+    ['events', churchPrimary?.organizationId || 'no-church', familyPrimary?.organizationId || 'no-family', filters.category, filters.status, debouncedSearch, visibleRange.start, visibleRange.end, canFilterStatus],
+    [churchPrimary?.organizationId, familyPrimary?.organizationId, filters.category, filters.status, debouncedSearch, visibleRange, canFilterStatus]
   );
 
   const {
@@ -66,7 +73,6 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
           query: debouncedSearch.trim(),
           page: 0,
           size: 500,
-          organizationId: churchOrganizationId,
         });
         return response.data.events as Event[];
       }
@@ -74,14 +80,13 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
         page: 0,
         size: 500,
         category: filters.category || undefined,
-        status: canManageCalendar ? (filters.status || undefined) : undefined,
-        organizationId: churchOrganizationId,
+        status: canFilterStatus ? (filters.status || undefined) : undefined,
         startDate: filters.category || filters.status ? undefined : visibleRange.start,
         endDate: filters.category || filters.status ? undefined : visibleRange.end,
       });
       return response.data.events as Event[];
     },
-    enabled: !!churchOrganizationId,
+    enabled: hasCalendarHome,
     staleTime: 3 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
@@ -169,17 +174,17 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
     setFilters(prev => ({ ...prev, [filterType]: value }));
   };
 
-  if (organizationsLoading && !churchPrimary) {
+  if (organizationsLoading && !hasCalendarHome) {
     return (
       <div className="calendar-page">
         <div className="loading-container">
-          <LoadingSpinner type="multi-ring" size="medium" text="Loading your church..." />
+          <LoadingSpinner type="multi-ring" size="medium" text="Loading your calendar..." />
         </div>
       </div>
     );
   }
 
-  if (!churchPrimary) {
+  if (!hasCalendarHome) {
     return (
       <div className="calendar-page">
         <div className="page-top-nav">
@@ -191,7 +196,16 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
             🏠 Back Home
           </button>
         </div>
-        <ChurchRequiredNotice feature="The calendar" />
+        <div className="church-required-notice" role="status">
+          <h2>A church or a family is required</h2>
+          <p>
+            Your calendar shows events from your church and your family.
+            Join one to add services, birthdays, and special events.
+          </p>
+          <button type="button" onClick={() => navigate('/organizations')}>
+            Find a church or family
+          </button>
+        </div>
       </div>
     );
   }
@@ -223,9 +237,9 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
       <div className="calendar-header">
         <div className="header-title">
           <h1>🗓 Calendar & Events</h1>
-          <p>Events for {churchPrimary.organizationName}</p>
+          <p>{calendarSubtitle(churchPrimary?.organizationName, familyPrimary?.organizationName)}</p>
           <div className="calendar-hero-pills" aria-label="Calendar highlights">
-            <span>Shared church calendar</span>
+            <span>{churchPrimary && familyPrimary ? 'Church and family' : churchPrimary ? 'Your church' : 'Your family'}</span>
             <span>Real-time updates</span>
             <span>RSVP friendly</span>
           </div>
@@ -288,7 +302,7 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
             ))}
           </select>
 
-          {canManageCalendar && (
+          {canFilterStatus && (
           <select
             value={filters.status}
             onChange={(e) => handleFilterChange('status', e.target.value)}
@@ -338,7 +352,8 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
             onEventUpdate={handleEditEvent}
             onEventDelete={handleEventDeleted}
             onRsvpUpdate={handleRsvpUpdate}
-            canManage={canManageCalendar}
+            canManage={canManageAnyEvent}
+            managedOrganizationIds={managedOrganizationIds}
             currentUserId={user?.userId}
             onCreateEvent={(date) => {
               setSelectedDate(date);
@@ -352,7 +367,8 @@ const CalendarPage: React.FC<CalendarPageProps> = () => {
             onEventUpdate={handleEditEvent}
             onEventDelete={handleEventDeleted}
             onRsvpUpdate={handleRsvpUpdate}
-            canManage={canManageCalendar}
+            canManage={canManageAnyEvent}
+            managedOrganizationIds={managedOrganizationIds}
             currentUserId={user?.userId}
             loading={loading}
           />
@@ -392,11 +408,20 @@ function formatVisibleRange(selectedDate: Date) {
   return { start: format(start), end: format(end) };
 }
 
+function calendarSubtitle(churchName?: string, familyName?: string): string {
+  if (churchName && familyName) {
+    return `Your calendar · ${churchName} and ${familyName}`;
+  }
+  if (churchName) return `Events for ${churchName}`;
+  if (familyName) return `Events for ${familyName}`;
+  return 'Your calendar';
+}
+
 function calendarErrorMessage(queryError: unknown): string | null {
   if (!queryError) return null;
   const message = (queryError as { response?: { data?: { error?: string } } }).response?.data?.error || '';
-  if (message.toLowerCase().includes('without an organization')) {
-    return 'Join a church to see its calendar.';
+  if (message.toLowerCase().includes('church or a family')) {
+    return 'Join a church or a family to see your calendar.';
   }
   return message || 'Failed to load events';
 }

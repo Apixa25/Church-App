@@ -22,7 +22,15 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
   initialDate,
   editEvent
 }) => {
-  const { churchPrimary } = useOrganization();
+  const { churchPrimary, familyPrimary } = useOrganization();
+  const hasChurch = !!churchPrimary?.organizationId;
+  const hasFamily = !!familyPrimary?.organizationId;
+  const [entryHome, setEntryHome] = useState<'church' | 'family'>(() => {
+    if (editEvent?.organizationType === 'FAMILY' || (editEvent?.organizationId && editEvent.organizationId === familyPrimary?.organizationId)) {
+      return 'family';
+    }
+    return hasChurch ? 'church' : 'family';
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<Date>(() => {
@@ -97,8 +105,10 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
   };
 
   const onSubmit = async (data: EventRequest) => {
-    if (!editEvent && !churchPrimary?.organizationId) {
-      setError('Join a church before you add an event.');
+    const saveOrganizationId = editEvent?.organizationId
+      || (entryHome === 'family' ? familyPrimary?.organizationId : churchPrimary?.organizationId);
+    if (!editEvent && !saveOrganizationId) {
+      setError('Join a church or a family before you add an event.');
       return;
     }
     try {
@@ -129,7 +139,7 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
           ? parseInt(data.maxAttendees.toString(), 10) 
           : undefined,
         bringListEnabled: data.bringListEnabled || false,
-        organizationId: churchPrimary?.organizationId,
+        organizationId: saveOrganizationId,
         // Handle recurring event fields
         isRecurring: data.isRecurring || false,
         recurrenceType: data.isRecurring && data.recurrenceType ? data.recurrenceType : undefined,
@@ -220,6 +230,46 @@ const EventCreateForm: React.FC<EventCreateFormProps> = ({
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="event-form">
+        {hasChurch && hasFamily && !editEvent && (
+          <div className="form-group">
+            <label id="entry-home-label">Save this event to</label>
+            <div className="entry-home-toggle" role="radiogroup" aria-labelledby="entry-home-label">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={entryHome === 'church'}
+                className={entryHome === 'church' ? 'active' : ''}
+                onClick={() => setEntryHome('church')}
+              >
+                Church
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={entryHome === 'family'}
+                className={entryHome === 'family' ? 'active' : ''}
+                onClick={() => setEntryHome('family')}
+              >
+                Family
+              </button>
+            </div>
+            <p className="entry-home-help">
+              {entryHome === 'family'
+                ? `Everyone in ${familyPrimary?.organizationName || 'your family'} will see this, including people who go to a different church.`
+                : `People in ${churchPrimary?.organizationName || 'your church'} will see this.`}
+            </p>
+          </div>
+        )}
+        {(editEvent || !hasChurch || !hasFamily) && (
+          <p className="entry-home-help">
+            {editEvent
+              ? `Saved to your ${editEvent.organizationType === 'FAMILY' ? 'family' : 'church'}${editEvent.organizationName ? `, ${editEvent.organizationName}` : ''}.`
+              : hasFamily
+                ? `This saves to your family${familyPrimary?.organizationName ? `, ${familyPrimary.organizationName}` : ''}.`
+                : `This saves to your church${churchPrimary?.organizationName ? `, ${churchPrimary.organizationName}` : ''}.`}
+          </p>
+        )}
+
         {/* Title */}
         <div className="form-group">
           <label htmlFor="title">Event Title *</label>

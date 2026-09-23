@@ -30,6 +30,16 @@ export interface Event {
   
   createdAt: string;
   updatedAt: string;
+
+  /** The church or family this entry belongs to. */
+  organizationId?: string;
+  organizationName?: string;
+  organizationType?: string;
+}
+
+export function getCalendarHomeLabel(organizationType?: string): 'Family' | 'Church' | null {
+  if (!organizationType) return null;
+  return organizationType === 'FAMILY' ? 'Family' : 'Church';
 }
 
 export interface EventRequest {

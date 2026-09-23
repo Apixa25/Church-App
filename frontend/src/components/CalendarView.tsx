@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import DatePicker from 'react-datepicker';
-import { Event } from '../types/Event';
+import { Event, getCalendarHomeLabel } from '../types/Event';
+import CalendarHomeBadge from './CalendarHomeBadge';
 import EventCard from './EventCard';
 import { getDateKey, expandRecurringEvent, formatEventTime, parseEventDate } from '../utils/dateUtils';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -16,6 +17,7 @@ interface CalendarViewProps {
   onRsvpUpdate?: (event: Event) => void;
   onCreateEvent?: (date: Date) => void;
   canManage?: boolean;
+  managedOrganizationIds?: string[];
   currentUserId?: string;
 }
 
@@ -29,6 +31,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   onRsvpUpdate,
   onCreateEvent,
   canManage = false,
+  managedOrganizationIds = [],
   currentUserId
 }) => {
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month');
@@ -91,8 +94,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         {hasEvents && (
           <div className="event-indicators">
             <div
-              className={`day-event-label ${dayEvents[0].category.toLowerCase()}`}
-              title={dayEvents.map(event => event.title).join(', ')}
+              className={`day-event-label ${dayEvents[0].category.toLowerCase()} ${calendarHomeClass(dayEvents[0].organizationType)}`}
+              title={dayEvents.map(event => calendarHomeTitle(event)).join(', ')}
             >
               {dayEvents[0].title}
             </div>
@@ -234,6 +237,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                           onDelete={onEventDelete}
                           onRsvpUpdate={onRsvpUpdate}
                           canManage={canManage}
+                          managedOrganizationIds={managedOrganizationIds}
                           currentUserId={currentUserId}
                           compact={true}
                         />
@@ -293,7 +297,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         {dayEvents.slice(0, 3).map(event => (
                           <div 
                             key={(event as any)._recurrenceInstance || event.id}
-                            className={`event-item ${event.category.toLowerCase()}`}
+                            className={`event-item ${event.category.toLowerCase()} ${calendarHomeClass(event.organizationType)}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               onEventSelect(event);
@@ -302,7 +306,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             <span className="event-time">
                               {formatEventTime(event.startTime)}
                             </span>
-                            <span className="event-title">{event.title}</span>
+                            <span className="event-title">
+                              <CalendarHomeBadge organizationType={event.organizationType} />
+                              {event.title}
+                            </span>
                           </div>
                         ))}
                         {dayEvents.length > 3 && (
@@ -372,7 +379,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             )}
                           </div>
                           <div className="event-details">
-                            <h4 className="event-title">{event.title}</h4>
+                            <h4 className="event-title">
+                              <CalendarHomeBadge organizationType={event.organizationType} />
+                              {event.title}
+                            </h4>
                             {event.description && (
                               <p className="event-description">{event.description}</p>
                             )}
@@ -422,6 +432,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         onDelete={onEventDelete}
                         onRsvpUpdate={onRsvpUpdate}
                         canManage={canManage}
+                        managedOrganizationIds={managedOrganizationIds}
                         currentUserId={currentUserId}
                         compact={true}
                       />
@@ -437,5 +448,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     </div>
   );
 };
+
+function calendarHomeClass(organizationType?: string): string {
+  const label = getCalendarHomeLabel(organizationType);
+  if (label === 'Family') return 'home-family';
+  if (label === 'Church') return 'home-church';
+  return '';
+}
+
+function calendarHomeTitle(event: Event): string {
+  const label = getCalendarHomeLabel(event.organizationType);
+  return label ? `${label}: ${event.title}` : event.title;
+}
 
 export default CalendarView;

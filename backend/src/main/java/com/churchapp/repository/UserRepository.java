@@ -191,6 +191,9 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
     @Query("SELECT u FROM User u WHERE u.churchPrimaryOrganization = :organization")
     List<User> findByChurchPrimaryOrganization(@Param("organization") com.churchapp.entity.Organization organization);
 
+    @Query("SELECT u FROM User u WHERE u.familyPrimaryOrganization = :organization")
+    List<User> findByFamilyPrimaryOrganization(@Param("organization") com.churchapp.entity.Organization organization);
+
     // Update last comments tab viewed timestamp
     @Modifying
     @Query("UPDATE User u SET u.lastCommentsTabViewedAt = :timestamp WHERE u.id = :userId")
