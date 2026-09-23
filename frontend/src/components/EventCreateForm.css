@@ -306,6 +306,9 @@
    The month view styles must not leak into this popup. */
 .react-datepicker__portal {
   background: rgba(6, 8, 20, 0.78);
+  align-items: flex-start;
+  padding-top: max(24px, env(safe-area-inset-top));
+  box-sizing: border-box;
 }
 
 .react-datepicker__portal .react-datepicker {
@@ -314,7 +317,9 @@
   border-radius: 16px;
   color: #f4f4f8;
   display: flex;
+  align-items: flex-start;
   width: auto;
+  max-height: calc(100dvh - 48px);
   overflow: hidden;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
 }
@@ -358,21 +363,36 @@
   border-color: #f4f4f8;
 }
 
+.react-datepicker__portal .react-datepicker__month-container {
+  flex: 0 0 auto;
+}
+
 .react-datepicker__portal .react-datepicker__time-container {
   border-left: 1px solid rgba(255, 255, 255, 0.12);
   background: #1c1c32;
   width: 96px;
+  flex: 0 0 96px;
+  align-self: stretch;
 }
 
-.react-datepicker__portal .react-datepicker__time-box,
+.react-datepicker__portal .react-datepicker__time,
+.react-datepicker__portal .react-datepicker__time-box {
+  height: 100%;
+  background: #1c1c32;
+}
+
 .react-datepicker__portal .react-datepicker__time-list {
   background: #1c1c32;
+  height: 260px !important;
+  max-height: 260px !important;
+  overflow-y: auto !important;
 }
 
 .react-datepicker__portal .react-datepicker__time-list-item {
   color: #f4f4f8;
-  height: auto !important;
-  padding: 8px 10px;
+  height: 32px !important;
+  padding: 6px 8px !important;
+  box-sizing: border-box;
 }
 
 .react-datepicker__portal .react-datepicker__time-list-item:hover {
