@@ -294,7 +294,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         <span className="day-number">{day.getDate()}</span>
                       </div>
                       <div className="day-events">
-                        {dayEvents.slice(0, 3).map(event => (
+                        {dayEvents.map(event => (
                           <div 
                             key={(event as any)._recurrenceInstance || event.id}
                             className={`event-item ${event.category.toLowerCase()} ${calendarHomeClass(event.organizationType)}`}
@@ -312,9 +312,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                             </span>
                           </div>
                         ))}
-                        {dayEvents.length > 3 && (
-                          <div className="more-events">+{dayEvents.length - 3} more</div>
-                        )}
                       </div>
                     </div>
                   );

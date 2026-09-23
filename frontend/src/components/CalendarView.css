@@ -979,6 +979,57 @@
   .legend-item {
     font-size: 0.8rem;
   }
+
+  /* A phone cannot hold seven day columns. Stack the week so every day,
+     and the events on it, have the width of the screen. */
+  .week-view {
+    padding: 12px;
+  }
+
+  .week-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .week-header h3 {
+    grid-column: 1 / -1;
+    order: -1;
+    text-align: center;
+    font-size: 1rem;
+  }
+
+  .week-header .nav-btn {
+    width: 100%;
+    padding: 10px 8px;
+  }
+
+  .week-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .week-day {
+    min-height: 0;
+    padding: 12px 14px;
+  }
+
+  .week-day:hover {
+    transform: none;
+  }
+
+  .week-day .day-header {
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .week-day .day-number {
+    margin-top: 0;
+  }
 }
 
 /* Visual refresh reinforcement: make the redesign obvious even on empty months. */
