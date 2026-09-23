@@ -500,32 +500,43 @@
   }
 
   .composer-modal-overlay {
-    padding: 12px;
-    align-items: flex-start;
-    padding-top: 25vh; /* Position 25% down from top */
+    padding: 0;
+    align-items: stretch;
   }
 
   .composer-modal-content {
     max-width: none;
-    border-radius: var(--border-radius-md);
-    margin: 0 8px;
-    max-height: 50vh; /* Constrain height so it doesn't overflow */
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
     overflow-y: auto;
-    animation: slideUpMobile 0.3s ease forwards;
+  }
+
+  .composer-modal-content .post-composer {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    min-height: 100%;
+    padding: calc(12px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
   }
 }
 
 @media (max-width: 480px) {
-  /* Extra compact modal for small screens - positioned 25% down */
+  /* Small phones use the same full-screen composer. */
   .composer-modal-overlay {
-    padding: 8px;
-    padding-top: 25vh; /* 25% down from top */
+    padding: 0;
   }
 
   .composer-modal-content {
-    margin: 0 6px;
-    max-height: 55vh; /* Slightly more room on very small screens */
-    border-radius: var(--border-radius-sm);
+    margin: 0;
+    max-height: none;
+    height: 100%;
+    border-radius: 0;
     overflow-y: auto;
   }
 

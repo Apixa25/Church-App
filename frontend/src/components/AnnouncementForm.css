@@ -442,9 +442,13 @@
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .announcement-form {
-    margin: 16px;
-    padding: 24px;
-    border-radius: var(--border-radius-md);
+    margin: 0;
+    padding: 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
   }
   
   .form-header {

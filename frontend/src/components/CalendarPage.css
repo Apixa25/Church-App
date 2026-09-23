@@ -526,8 +526,21 @@
     justify-content: center;
   }
   
-  .modal-content {
-    margin: 10px;
-    max-width: calc(100% - 20px);
+  /* A create form uses the whole phone. A card floating inside the screen
+     wastes the only space there is. */
+  .calendar-page .modal-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .calendar-page .modal-content {
+    margin: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
   }
 }

@@ -1,13 +1,12 @@
 /* EventCreateForm Component Styles - Dark Modern Theme */
 
 .event-create-form {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--border-radius-md);
+  background: transparent;
+  border: none;
+  border-radius: 0;
   width: 100%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-width: none;
+  max-height: none;
 }
 
 .form-header {
@@ -267,12 +266,16 @@
 
 @media (max-width: 768px) {
   .event-create-form {
-    margin: 10px;
-    max-height: calc(100vh - 20px);
+    margin: 0;
+    min-height: 100%;
   }
-  
+
   .form-header {
-    padding: 15px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    border-radius: 0;
+    padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
   }
   
   .form-header h2 {
@@ -280,7 +283,8 @@
   }
   
   .event-form {
-    padding: 20px;
+    padding: 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
     gap: 15px;
   }
   

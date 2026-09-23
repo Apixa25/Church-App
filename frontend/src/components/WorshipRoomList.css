@@ -1125,8 +1125,21 @@
     grid-template-columns: 1fr;
   }
 
+  .create-room-modal-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
+
   .create-room-modal-content {
-    padding: 24px;
+    padding: calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+    margin: 0;
+    max-width: none;
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
   }
 }
 
@@ -1170,7 +1183,7 @@
   }
 
   .create-room-modal-content {
-    padding: 20px;
+    padding: calc(12px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
   }
 
   .modal-actions {
