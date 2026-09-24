@@ -14,6 +14,7 @@ import org.springframework.stereotype.Repository;
 import com.churchapp.dto.PrayerParticipantResponse;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -65,6 +66,17 @@ public interface PrayerInteractionRepository extends JpaRepository<PrayerInterac
     // Get interaction counts grouped by type
     @Query("SELECT pi.type, COUNT(pi) FROM PrayerInteraction pi WHERE pi.prayerRequest.id = :prayerRequestId GROUP BY pi.type")
     List<Object[]> getInteractionCountsByType(@Param("prayerRequestId") UUID prayerRequestId);
+
+    // Batch variants used to build interaction summaries for a whole page of prayers
+    // in two queries instead of four per prayer. Row shape: [prayerId, type, count].
+    @Query("SELECT pi.prayerRequest.id, pi.type, COUNT(pi) FROM PrayerInteraction pi " +
+           "WHERE pi.prayerRequest.id IN :prayerRequestIds GROUP BY pi.prayerRequest.id, pi.type")
+    List<Object[]> getInteractionCountsByTypeForPrayers(@Param("prayerRequestIds") Collection<UUID> prayerRequestIds);
+
+    // Row shape: [prayerId, distinctUserCount]
+    @Query("SELECT pi.prayerRequest.id, COUNT(DISTINCT pi.user.id) FROM PrayerInteraction pi " +
+           "WHERE pi.prayerRequest.id IN :prayerRequestIds GROUP BY pi.prayerRequest.id")
+    List<Object[]> countDistinctUsersForPrayers(@Param("prayerRequestIds") Collection<UUID> prayerRequestIds);
     
     // Recent interactions for dashboard
     List<PrayerInteraction> findByTimestampAfterOrderByTimestampDesc(LocalDateTime timestamp, Pageable pageable);

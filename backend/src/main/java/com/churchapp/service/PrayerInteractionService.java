@@ -9,6 +9,8 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.churchapp.entity.PrayerInteraction;
 import com.churchapp.entity.PrayerRequest;
 import com.churchapp.entity.User;
+import com.churchapp.exception.PrayerAccessDeniedException;
+import com.churchapp.exception.PrayerNotFoundException;
 import com.churchapp.repository.PrayerInteractionRepository;
 import com.churchapp.repository.PrayerRequestRepository;
 import com.churchapp.repository.UserRepository;
@@ -21,8 +23,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -67,7 +74,7 @@ public class PrayerInteractionService {
         }
 
         if (request.getParentInteractionId() != null && request.getType() != PrayerInteraction.InteractionType.COMMENT) {
-            throw new RuntimeException("Only comments can have a parent interaction");
+            throw new IllegalArgumentException("Only comments can have a parent interaction");
         }
         
         // Create new interaction
@@ -79,20 +86,20 @@ public class PrayerInteractionService {
         // Content is required for comments, optional for reactions
         if (request.getType() == PrayerInteraction.InteractionType.COMMENT) {
             if (request.getContent() == null || request.getContent().trim().isEmpty()) {
-                throw new RuntimeException("Comment content is required");
+                throw new IllegalArgumentException("Comment content is required");
             }
             interaction.setContent(request.getContent().trim());
 
             if (request.getParentInteractionId() != null) {
                 PrayerInteraction parentInteraction = prayerInteractionRepository.findById(request.getParentInteractionId())
-                    .orElseThrow(() -> new RuntimeException("Parent comment not found with id: " + request.getParentInteractionId()));
+                    .orElseThrow(() -> new PrayerNotFoundException("Parent comment not found with id: " + request.getParentInteractionId()));
 
                 if (parentInteraction.getType() != PrayerInteraction.InteractionType.COMMENT) {
-                    throw new RuntimeException("Parent interaction must be a comment");
+                    throw new IllegalArgumentException("Parent interaction must be a comment");
                 }
 
                 if (!parentInteraction.getPrayerRequest().getId().equals(prayerRequest.getId())) {
-                    throw new RuntimeException("Parent comment belongs to a different prayer request");
+                    throw new IllegalArgumentException("Parent comment belongs to a different prayer request");
                 }
 
                 interaction.setParentInteraction(parentInteraction);
@@ -114,11 +121,11 @@ public class PrayerInteractionService {
     
     public void deleteInteraction(UUID interactionId, UUID userId) {
         PrayerInteraction interaction = prayerInteractionRepository.findById(interactionId)
-            .orElseThrow(() -> new RuntimeException("Interaction not found with id: " + interactionId));
+            .orElseThrow(() -> new PrayerNotFoundException("Interaction not found with id: " + interactionId));
         
         // Only the owner can delete their interaction
         if (!interaction.getUser().getId().equals(userId)) {
-            throw new RuntimeException("You can only delete your own interactions");
+            throw new PrayerAccessDeniedException("You can only delete your own interactions");
         }
         
         prayerInteractionRepository.delete(interaction);
@@ -191,31 +198,53 @@ public class PrayerInteractionService {
      */
     public PrayerInteractionSummary getInteractionSummary(UUID prayerRequestId) {
         requirePrayer(prayerRequestId);
-        
-        PrayerInteractionSummary summary = new PrayerInteractionSummary();
-        
-        // Get total interactions
-        long totalInteractions = prayerInteractionRepository.countByPrayerRequestId(prayerRequestId);
-        summary.setTotalInteractions(totalInteractions);
-        
-        // Get total comments
-        long totalComments = prayerInteractionRepository.countByPrayerRequestIdAndType(
-            prayerRequestId, PrayerInteraction.InteractionType.COMMENT);
-        summary.setTotalComments(totalComments);
-        
-        // Get unique participants
-        long uniqueParticipants = prayerInteractionRepository.countDistinctUsersByPrayerRequestId(prayerRequestId);
-        summary.setUniqueParticipants(uniqueParticipants);
-        
-        // Get counts by interaction type
-        List<Object[]> interactionCounts = prayerInteractionRepository.getInteractionCountsByType(prayerRequestId);
-        for (Object[] count : interactionCounts) {
-            PrayerInteraction.InteractionType type = (PrayerInteraction.InteractionType) count[0];
-            Long typeCount = (Long) count[1];
-            summary.setInteractionCount(type, typeCount);
+        return getInteractionSummaries(List.of(prayerRequestId)).get(prayerRequestId);
+    }
+
+    /**
+     * Summaries for many prayers at once — two grouped queries for the whole
+     * page instead of four per prayer. No access check: callers pass ids from a
+     * list they have already scoped to the viewer's church.
+     *
+     * Every requested id is present in the result (zeroed summary when the
+     * prayer has no interactions yet).
+     */
+    @Transactional(readOnly = true)
+    public Map<UUID, PrayerInteractionSummary> getInteractionSummaries(Collection<UUID> prayerRequestIds) {
+        Map<UUID, PrayerInteractionSummary> summaries = new HashMap<>();
+        if (prayerRequestIds == null || prayerRequestIds.isEmpty()) {
+            return summaries;
         }
-        
-        return summary;
+        Set<UUID> ids = new LinkedHashSet<>(prayerRequestIds);
+        for (UUID id : ids) {
+            summaries.put(id, new PrayerInteractionSummary());
+        }
+
+        for (Object[] row : prayerInteractionRepository.getInteractionCountsByTypeForPrayers(ids)) {
+            UUID prayerId = (UUID) row[0];
+            PrayerInteraction.InteractionType type = (PrayerInteraction.InteractionType) row[1];
+            long count = ((Number) row[2]).longValue();
+
+            PrayerInteractionSummary summary = summaries.get(prayerId);
+            if (summary == null) {
+                continue;
+            }
+            summary.setInteractionCount(type, count);
+            summary.setTotalInteractions(summary.getTotalInteractions() + count);
+            if (type == PrayerInteraction.InteractionType.COMMENT) {
+                summary.setTotalComments(count);
+            }
+        }
+
+        for (Object[] row : prayerInteractionRepository.countDistinctUsersForPrayers(ids)) {
+            UUID prayerId = (UUID) row[0];
+            PrayerInteractionSummary summary = summaries.get(prayerId);
+            if (summary != null) {
+                summary.setUniqueParticipants(((Number) row[1]).longValue());
+            }
+        }
+
+        return summaries;
     }
     
     public List<PrayerInteractionResponse> getUserInteractions(UUID userId) {
@@ -344,7 +373,7 @@ public class PrayerInteractionService {
 
     private PrayerRequest requirePrayer(UUID prayerRequestId) {
         return prayerRequestRepository.findById(prayerRequestId)
-            .orElseThrow(() -> new RuntimeException("Prayer request not found with id: " + prayerRequestId));
+            .orElseThrow(() -> new PrayerNotFoundException("Prayer request not found with id: " + prayerRequestId));
     }
 
     private PrayerRequest requireViewablePrayer(UUID prayerRequestId, UUID viewerId) {
@@ -364,7 +393,7 @@ public class PrayerInteractionService {
         UUID viewerChurch = prayerAccessPolicy.churchIdOf(viewer);
         UUID targetChurch = prayerAccessPolicy.churchIdOf(target);
         if (viewerChurch == null || !viewerChurch.equals(targetChurch)) {
-            throw new RuntimeException(PrayerAccessPolicy.OUTSIDE_CHURCH_MESSAGE);
+            throw new PrayerAccessDeniedException(PrayerAccessPolicy.OUTSIDE_CHURCH_MESSAGE);
         }
     }
 }

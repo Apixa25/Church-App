@@ -6,6 +6,7 @@ import com.churchapp.dto.PrayerInteractionSummary;
 import com.churchapp.dto.PrayerParticipantResponse;
 import com.churchapp.dto.UserProfileResponse;
 import com.churchapp.entity.PrayerInteraction;
+import com.churchapp.exception.PrayerException;
 import com.churchapp.service.PrayerInteractionService;
 import com.churchapp.service.UserProfileService;
 import jakarta.validation.Valid;
@@ -252,9 +253,21 @@ public class PrayerInteractionController {
         return currentProfile.getUserId();
     }
 
+    /**
+     * Prayer exceptions carry their own HTTP status (404 not found, 403 not
+     * allowed); anything else is treated as a bad request, as before.
+     */
     private ResponseEntity<Map<String, String>> badRequest(RuntimeException e) {
+        HttpStatus status = e instanceof PrayerException
+            ? ((PrayerException) e).getStatus()
+            : HttpStatus.BAD_REQUEST;
+        if (status.is4xxClientError()) {
+            log.debug("Prayer interaction rejected ({}): {}", status.value(), e.getMessage());
+        } else {
+            log.error("Prayer interaction failed ({}): {}", status.value(), e.getMessage(), e);
+        }
         Map<String, String> error = new HashMap<>();
         error.put("error", e.getMessage());
-        return ResponseEntity.badRequest().body(error);
+        return ResponseEntity.status(status).body(error);
     }
 }

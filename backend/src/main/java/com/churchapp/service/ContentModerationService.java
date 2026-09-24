@@ -45,6 +45,7 @@ public class ContentModerationService {
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final com.churchapp.service.UserManagementService userManagementService;
+    private final PrayerRequestService prayerRequestService;
 
     @Transactional(readOnly = true)
     public Page<ModerationResponse> getReportedContent(Pageable pageable, String contentType, String status, String priority) {
@@ -379,7 +380,7 @@ public class ContentModerationService {
                 moderateUser(contentId, action, reason, moderator);
                 break;
             case "PRAYER":
-                moderatePrayer(contentId, action, reason);
+                moderatePrayer(contentId, action, reason, moderator);
                 break;
             case "ANNOUNCEMENT":
                 moderateAnnouncement(contentId, action, reason);
@@ -693,7 +694,9 @@ public class ContentModerationService {
                         return messageOpt.get().getUser().getId();
                     }
                     break;
-                // Add other content types as needed (COMMENT, PRAYER, etc.)
+                case "PRAYER":
+                    return prayerRequestService.findOwnerId(contentId).orElse(null);
+                // Add other content types as needed (COMMENT, etc.)
                 default:
                     log.warn("Unknown content type for getting author: {}", contentType);
                     return null;
@@ -841,9 +844,41 @@ public class ContentModerationService {
         }
     }
 
-    private void moderatePrayer(UUID prayerId, String action, String reason) {
-        // TODO: Implement prayer moderation
-        log.info("Moderating prayer {} with action: {}", prayerId, action);
+    /**
+     * Prayer moderation. The heavy lifting (church-scope check, cascading
+     * deletes) lives in {@link PrayerRequestService}, so a church admin can
+     * only act on prayers in their own church.
+     *
+     * REMOVE  → hard delete with all reactions/comments
+     * HIDE    → archive (gone from the church feed, owner still sees it)
+     * APPROVE / WARN → content untouched; reports resolved (warning is sent earlier)
+     */
+    private void moderatePrayer(UUID prayerId, String action, String reason, User moderator) {
+        String upperAction = action.toUpperCase();
+        try {
+            switch (upperAction) {
+                case "REMOVE":
+                    log.info("Removing prayer {} - Reason: {}", prayerId, reason);
+                    prayerRequestService.deletePrayerRequest(prayerId, moderator.getId());
+                    break;
+
+                case "HIDE":
+                    log.info("Archiving prayer {} - Reason: {}", prayerId, reason);
+                    prayerRequestService.archivePrayerRequestForModeration(prayerId, moderator.getId(), reason);
+                    break;
+
+                case "APPROVE":
+                case "WARN":
+                    log.info("Resolving prayer report for {} with action: {}", prayerId, upperAction);
+                    break;
+
+                default:
+                    throw new IllegalArgumentException("Unknown moderation action: " + action);
+            }
+        } catch (com.churchapp.exception.PrayerNotFoundException e) {
+            // Already deleted (perhaps by its owner). Reports will still be resolved.
+            log.warn("Prayer {} not found for moderation - may have already been deleted. Action: {}", prayerId, action);
+        }
     }
 
     private void moderateAnnouncement(UUID announcementId, String action, String reason) {

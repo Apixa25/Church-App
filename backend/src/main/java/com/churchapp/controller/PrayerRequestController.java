@@ -1,10 +1,12 @@
 package com.churchapp.controller;
 
+import com.churchapp.dto.PrayerInteractionSummary;
 import com.churchapp.dto.PrayerRequestRequest;
 import com.churchapp.dto.PrayerRequestUpdateRequest;
 import com.churchapp.dto.PrayerRequestResponse;
 import com.churchapp.dto.UserProfileResponse;
 import com.churchapp.entity.PrayerRequest;
+import com.churchapp.exception.PrayerException;
 import com.churchapp.service.PrayerRequestService;
 import com.churchapp.service.PrayerInteractionService;
 import com.churchapp.service.UserProfileService;
@@ -12,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.User;
@@ -22,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/prayers")
@@ -43,9 +47,7 @@ public class PrayerRequestController {
                 currentProfile.getUserId(), request);
             return ResponseEntity.ok(prayerRequest);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return errorResponse(e);
         }
     }
     
@@ -84,9 +86,7 @@ public class PrayerRequestController {
                 currentProfile.getUserId(), request, imageFile);
             return ResponseEntity.ok(prayerRequest);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return errorResponse(e);
         } catch (Exception e) {
             log.error("Error creating prayer request with image: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
@@ -105,9 +105,7 @@ public class PrayerRequestController {
             PrayerRequestResponse enrichedRequest = enrichWithInteractions(prayerRequest);
             return ResponseEntity.ok(enrichedRequest);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return errorResponse(e);
         }
     }
     
@@ -121,9 +119,7 @@ public class PrayerRequestController {
                 prayerRequestId, currentProfile.getUserId(), request);
             return ResponseEntity.ok(updatedPrayerRequest);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return errorResponse(e);
         }
     }
     
@@ -171,9 +167,7 @@ public class PrayerRequestController {
                 prayerRequestId, currentProfile.getUserId(), request, imageFile);
             return ResponseEntity.ok(updatedPrayerRequest);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return errorResponse(e);
         } catch (Exception e) {
             log.error("Error updating prayer request with image: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();
@@ -193,9 +187,7 @@ public class PrayerRequestController {
             response.put("message", "Prayer request deleted successfully");
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return errorResponse(e);
         }
     }
     
@@ -211,9 +203,7 @@ public class PrayerRequestController {
             Page<PrayerRequestResponse> enrichedRequests = enrichWithInteractions(prayerRequests);
             return ResponseEntity.ok(enrichedRequests);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return errorResponse(e);
         }
     }
     
@@ -225,9 +215,7 @@ public class PrayerRequestController {
                 currentProfile.getUserId());
             return ResponseEntity.ok(myPrayerRequests);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return errorResponse(e);
         }
     }
     
@@ -242,9 +230,7 @@ public class PrayerRequestController {
                 category, currentProfile.getUserId(), page, size);
             return ResponseEntity.ok(prayerRequests);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return errorResponse(e);
         }
     }
     
@@ -259,9 +245,7 @@ public class PrayerRequestController {
                 status, currentProfile.getUserId(), page, size);
             return ResponseEntity.ok(prayerRequests);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return errorResponse(e);
         }
     }
     
@@ -276,9 +260,7 @@ public class PrayerRequestController {
                 query, currentProfile.getUserId(), page, size);
             return ResponseEntity.ok(prayerRequests);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return errorResponse(e);
         }
     }
     
@@ -299,9 +281,7 @@ public class PrayerRequestController {
             Map<String, Long> stats = prayerRequestService.getPrayerStatsForUser(currentProfile.getUserId());
             return ResponseEntity.ok(stats);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return errorResponse(e);
         }
     }
     
@@ -313,9 +293,7 @@ public class PrayerRequestController {
                 currentProfile.getUserId());
             return ResponseEntity.ok(activePrayers);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return errorResponse(e);
         }
     }
     
@@ -332,13 +310,49 @@ public class PrayerRequestController {
         return prayerResponse;
     }
     
+    /**
+     * Enrich a whole list with two batched queries instead of four per prayer.
+     * The list has already been scoped to the viewer's church by the service.
+     */
     private List<PrayerRequestResponse> enrichWithInteractions(List<PrayerRequestResponse> prayerResponses) {
-        return prayerResponses.stream()
-                .map(this::enrichWithInteractions)
-                .collect(java.util.stream.Collectors.toList());
+        if (prayerResponses.isEmpty()) {
+            return prayerResponses;
+        }
+        try {
+            List<UUID> ids = prayerResponses.stream()
+                .map(PrayerRequestResponse::getId)
+                .collect(Collectors.toList());
+            Map<UUID, PrayerInteractionSummary> summaries = prayerInteractionService.getInteractionSummaries(ids);
+            for (PrayerRequestResponse response : prayerResponses) {
+                response.setInteractionSummary(summaries.get(response.getId()));
+            }
+        } catch (Exception e) {
+            log.warn("Could not load interaction summaries for {} prayers: {}", prayerResponses.size(), e.getMessage());
+            // Continue without interaction summaries rather than failing
+        }
+        return prayerResponses;
     }
     
     private Page<PrayerRequestResponse> enrichWithInteractions(Page<PrayerRequestResponse> prayerResponses) {
-        return prayerResponses.map(this::enrichWithInteractions);
+        enrichWithInteractions(prayerResponses.getContent());
+        return prayerResponses;
+    }
+
+    /**
+     * Prayer exceptions carry their own HTTP status (404 not found, 403 not
+     * allowed); anything else is treated as a bad request, as before.
+     */
+    private ResponseEntity<Map<String, String>> errorResponse(RuntimeException e) {
+        HttpStatus status = e instanceof PrayerException
+            ? ((PrayerException) e).getStatus()
+            : HttpStatus.BAD_REQUEST;
+        if (status.is4xxClientError()) {
+            log.debug("Prayer request rejected ({}): {}", status.value(), e.getMessage());
+        } else {
+            log.error("Prayer request failed ({}): {}", status.value(), e.getMessage(), e);
+        }
+        Map<String, String> error = new HashMap<>();
+        error.put("error", e.getMessage());
+        return ResponseEntity.status(status).body(error);
     }
 }

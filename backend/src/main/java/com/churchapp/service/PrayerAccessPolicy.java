@@ -2,6 +2,7 @@ package com.churchapp.service;
 
 import com.churchapp.entity.PrayerRequest;
 import com.churchapp.entity.User;
+import com.churchapp.exception.PrayerAccessDeniedException;
 import com.churchapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -38,9 +39,10 @@ public class PrayerAccessPolicy {
         return churchId != null && churchId.equals(prayerOrgId);
     }
 
+    /** @throws PrayerAccessDeniedException (HTTP 403) when the viewer is outside the prayer's church */
     public void assertCanView(PrayerRequest prayerRequest, User viewer) {
         if (!canView(prayerRequest, viewer)) {
-            throw new RuntimeException(OUTSIDE_CHURCH_MESSAGE);
+            throw new PrayerAccessDeniedException(OUTSIDE_CHURCH_MESSAGE);
         }
     }
 

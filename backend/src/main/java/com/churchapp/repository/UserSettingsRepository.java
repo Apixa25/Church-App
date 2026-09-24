@@ -9,8 +9,10 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Repository
@@ -27,6 +29,14 @@ public interface UserSettingsRepository extends JpaRepository<UserSettings, UUID
 
     @Query("SELECT us FROM UserSettings us WHERE us.prayerNotifications = true")
     List<UserSettings> findUsersWithPrayerNotificationsEnabled();
+
+    /**
+     * Users (from the given set) who have switched off push or prayer notifications.
+     * Users with no settings row are not returned — they keep the default (on).
+     */
+    @Query("SELECT us.userId FROM UserSettings us WHERE us.userId IN :userIds " +
+           "AND (us.prayerNotifications = false OR us.pushNotifications = false)")
+    Set<UUID> findUserIdsOptedOutOfPrayerPush(@Param("userIds") Collection<UUID> userIds);
 
     @Query("SELECT us FROM UserSettings us WHERE us.announcementNotifications = true")
     List<UserSettings> findUsersWithAnnouncementNotificationsEnabled();

@@ -8,12 +8,14 @@ import com.churchapp.dto.PrayerRequestResponse;
 import com.churchapp.entity.Organization;
 import com.churchapp.entity.PrayerRequest;
 import com.churchapp.entity.User;
+import com.churchapp.exception.PrayerAccessDeniedException;
+import com.churchapp.exception.PrayerNotFoundException;
 import com.churchapp.repository.PrayerRequestRepository;
 import com.churchapp.repository.PrayerInteractionRepository;
 import com.churchapp.repository.UserRepository;
+import com.churchapp.repository.UserSettingsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -37,14 +40,14 @@ public class PrayerRequestService {
 
     private final PrayerRequestRepository prayerRequestRepository;
     private final UserRepository userRepository;
+    private final UserSettingsRepository userSettingsRepository;
     private final PrayerInteractionRepository prayerInteractionRepository;
     private final FileUploadService fileUploadService;
     private final NotificationService notificationService;
     private final ChurchPrimaryResolver churchPrimaryResolver;
     private final PrayerAccessPolicy prayerAccessPolicy;
-
-    @Autowired
-    private SimpMessagingTemplate messagingTemplate;
+    private final AdminAuthorizationService adminAuthorizationService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public PrayerRequestResponse createPrayerRequest(UUID userId, PrayerRequestRequest request) {
         User user = userRepository.findById(userId)
@@ -128,8 +131,7 @@ public class PrayerRequestService {
     }
     
     public PrayerRequestResponse getPrayerRequest(UUID prayerRequestId, UUID requestingUserId) {
-        PrayerRequest prayerRequest = prayerRequestRepository.findById(prayerRequestId)
-            .orElseThrow(() -> new RuntimeException("Prayer request not found with id: " + prayerRequestId));
+        PrayerRequest prayerRequest = requirePrayer(prayerRequestId);
 
         User viewer = userRepository.findById(requestingUserId)
             .orElseThrow(() -> new RuntimeException("User not found"));
@@ -145,13 +147,8 @@ public class PrayerRequestService {
     }
     
     public PrayerRequestResponse updatePrayerRequest(UUID prayerRequestId, UUID userId, PrayerRequestUpdateRequest request) {
-        PrayerRequest prayerRequest = prayerRequestRepository.findById(prayerRequestId)
-            .orElseThrow(() -> new RuntimeException("Prayer request not found with id: " + prayerRequestId));
-        
-        // Only the owner can update their prayer request
-        if (!prayerRequest.getUser().getId().equals(userId)) {
-            throw new RuntimeException("You can only update your own prayer requests");
-        }
+        PrayerRequest prayerRequest = requirePrayer(prayerRequestId);
+        requireOwner(prayerRequest, userId);
 
         PrayerRequest.PrayerStatus previousStatus = prayerRequest.getStatus();
         
@@ -203,13 +200,8 @@ public class PrayerRequestService {
     }
     
     public PrayerRequestResponse updatePrayerRequestWithImage(UUID prayerRequestId, UUID userId, PrayerRequestUpdateRequest request, MultipartFile imageFile) {
-        PrayerRequest prayerRequest = prayerRequestRepository.findById(prayerRequestId)
-            .orElseThrow(() -> new RuntimeException("Prayer request not found with id: " + prayerRequestId));
-        
-        // Only the owner can update their prayer request
-        if (!prayerRequest.getUser().getId().equals(userId)) {
-            throw new RuntimeException("You can only update your own prayer requests");
-        }
+        PrayerRequest prayerRequest = requirePrayer(prayerRequestId);
+        requireOwner(prayerRequest, userId);
 
         PrayerRequest.PrayerStatus previousStatus = prayerRequest.getStatus();
         
@@ -292,21 +284,26 @@ public class PrayerRequestService {
         return PrayerRequestResponse.fromPrayerRequestForOwner(updatedPrayerRequest);
     }
     
+    /**
+     * Delete a prayer and everything attached to it.
+     *
+     * Allowed for the owner, platform admins/moderators, and — because prayers
+     * are church content — admins and moderators of the prayer's own church.
+     * A church admin cannot delete another church's prayers.
+     */
     public void deletePrayerRequest(UUID prayerRequestId, UUID userId) {
-        PrayerRequest prayerRequest = prayerRequestRepository.findById(prayerRequestId)
-            .orElseThrow(() -> new RuntimeException("Prayer request not found with id: " + prayerRequestId));
+        PrayerRequest prayerRequest = requirePrayer(prayerRequestId);
         
         // Get the user making the request
         User requestingUser = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         
-        // Allow deletion if user is the owner OR if user is an admin/moderator
         boolean isOwner = prayerRequest.getUser().getId().equals(userId);
         boolean isAdmin = requestingUser.getRole() == User.Role.PLATFORM_ADMIN;
-        boolean isModerator = requestingUser.getRole() == User.Role.MODERATOR;
+        boolean isModerator = canModerate(requestingUser, prayerRequest);
         
         if (!isOwner && !isAdmin && !isModerator) {
-            throw new RuntimeException("You can only delete your own prayer requests");
+            throw new PrayerAccessDeniedException("You can only delete your own prayer requests");
         }
         
         // Delete all related prayer interactions first to avoid foreign key constraint violation
@@ -344,6 +341,36 @@ public class PrayerRequestService {
         log.info("Prayer request deleted: {} by user: {} (owner: {}, admin: {}, moderator: {})", 
             prayerRequestId, userId, isOwner, isAdmin, isModerator);
     }
+
+    /**
+     * Moderation "hide": take a prayer out of the church feed without deleting
+     * it. The owner still sees it under "my prayers" as ARCHIVED and can decide
+     * what to do with it. Only moderators of the prayer's church (or platform
+     * staff) may do this.
+     */
+    public void archivePrayerRequestForModeration(UUID prayerRequestId, UUID moderatorId, String reason) {
+        PrayerRequest prayerRequest = requirePrayer(prayerRequestId);
+        User moderator = userRepository.findById(moderatorId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + moderatorId));
+
+        if (!canModerate(moderator, prayerRequest)) {
+            throw new PrayerAccessDeniedException("You can only moderate prayer requests in your own church");
+        }
+
+        if (prayerRequest.getStatus() == PrayerRequest.PrayerStatus.ARCHIVED) {
+            return;
+        }
+        prayerRequest.setStatus(PrayerRequest.PrayerStatus.ARCHIVED);
+        prayerRequestRepository.save(prayerRequest);
+        log.info("Prayer request {} archived by moderator {} - reason: {}", prayerRequestId, moderatorId, reason);
+    }
+
+    /** Owner id of a prayer, for moderation warnings. Empty when the prayer no longer exists. */
+    @Transactional(readOnly = true)
+    public java.util.Optional<UUID> findOwnerId(UUID prayerRequestId) {
+        return prayerRequestRepository.findById(prayerRequestId)
+            .map(prayer -> prayer.getUser() != null ? prayer.getUser().getId() : null);
+    }
     
     /**
      * Prayer list for the caller's locked church. A different organization id is rejected.
@@ -356,7 +383,7 @@ public class PrayerRequestService {
         Pageable pageable = PageRequest.of(page, size);
         if (user.getChurchPrimaryOrganization() == null) {
             if (organizationId != null) {
-                throw new RuntimeException("Prayer requests stay with your church.");
+                throw new PrayerAccessDeniedException(PrayerAccessPolicy.OUTSIDE_CHURCH_MESSAGE);
             }
             return Page.empty(pageable);
         }
@@ -594,11 +621,22 @@ public class PrayerRequestService {
             // Get all users in the same organization
             List<User> orgUsers = userRepository.findByChurchPrimaryOrganization(organization);
 
-            // Collect FCM tokens (exclude the prayer request author)
-            List<String> tokens = orgUsers.stream()
+            // Candidates: church members with a device token, minus the author
+            List<User> candidates = orgUsers.stream()
                 .filter(u -> !u.getId().equals(requestAuthor.getId())) // Don't notify the author
+                .filter(u -> u.getFcmToken() != null && !u.getFcmToken().trim().isEmpty())
+                .collect(Collectors.toList());
+
+            // Honor Settings → Notifications → "Prayer requests" (and the master push toggle).
+            // Members without a settings row keep the default, which is on.
+            Set<UUID> optedOut = candidates.isEmpty()
+                ? Set.of()
+                : userSettingsRepository.findUserIdsOptedOutOfPrayerPush(
+                    candidates.stream().map(User::getId).collect(Collectors.toList()));
+
+            List<String> tokens = candidates.stream()
+                .filter(u -> !optedOut.contains(u.getId()))
                 .map(User::getFcmToken)
-                .filter(token -> token != null && !token.trim().isEmpty())
                 .collect(Collectors.toList());
 
             if (tokens.isEmpty()) {
@@ -623,7 +661,8 @@ public class PrayerRequestService {
                 data
             );
 
-            log.info("Sent Firebase push notifications to {} users for prayer: {}", tokens.size(), prayerRequest.getId());
+            log.info("Sent Firebase push notifications to {} users for prayer: {} ({} opted out)",
+                tokens.size(), prayerRequest.getId(), optedOut.size());
 
         } catch (Exception e) {
             log.error("Failed to send Firebase push notification for prayer {}: {}", prayerRequest.getId(), e.getMessage());
@@ -706,6 +745,31 @@ public class PrayerRequestService {
      */
     private void assertPrayerInViewerChurch(PrayerRequest prayerRequest, User viewer) {
         prayerAccessPolicy.assertCanView(prayerRequest, viewer);
+    }
+
+    private PrayerRequest requirePrayer(UUID prayerRequestId) {
+        return prayerRequestRepository.findById(prayerRequestId)
+            .orElseThrow(() -> new PrayerNotFoundException("Prayer request not found with id: " + prayerRequestId));
+    }
+
+    /** Edits are owner-only; not even moderators rewrite someone's prayer. */
+    private void requireOwner(PrayerRequest prayerRequest, UUID userId) {
+        if (!prayerRequest.getUser().getId().equals(userId)) {
+            throw new PrayerAccessDeniedException("You can only update your own prayer requests");
+        }
+    }
+
+    /**
+     * Platform moderators may moderate anywhere; church admins and moderators
+     * only within the prayer's church. Prayers without a church can only be
+     * handled by platform staff.
+     */
+    private boolean canModerate(User user, PrayerRequest prayerRequest) {
+        if (user.getRole() == User.Role.PLATFORM_ADMIN || user.getRole() == User.Role.MODERATOR) {
+            return true;
+        }
+        Organization organization = prayerRequest.getOrganization();
+        return organization != null && adminAuthorizationService.canModerateOrg(user, organization.getId());
     }
 
     /** Church id for list filters, or null when the user has not joined a church. */
