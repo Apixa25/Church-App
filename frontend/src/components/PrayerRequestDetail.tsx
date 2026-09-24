@@ -48,9 +48,11 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  // Bumped when someone else comments, so the thread refetches without a page reload.
+  const [commentsRefreshKey, setCommentsRefreshKey] = useState(0);
 
   // Fix owner check: only compare UUIDs (not email to UUID)
-  const isOwner = user && prayer && (user.userId === prayer.userId);
+  const isOwner = Boolean(user?.userId && prayer?.userId && user.userId === prayer.userId);
   const isAdmin = user?.role === 'PLATFORM_ADMIN' || user?.role === 'MODERATOR';
   const isModerator = user?.role === 'MODERATOR';
   const canDelete = isOwner || isAdmin || isModerator;
@@ -119,7 +121,26 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
   useEffect(() => {
     if (!prayerId || !user) return;
 
-    const unsubscribe = subscribeToSpecificPrayer(prayerId);
+    const unsubscribe = subscribeToSpecificPrayer(prayerId, async (event) => {
+      // Someone else reacted or commented — refresh what changed.
+      if (event.userId && event.userId === user.userId) return;
+      const isComment = event.eventType === 'prayer_comment'
+        || event.metadata?.interactionType === 'COMMENT';
+      try {
+        if (isComment) {
+          setCommentsRefreshKey(key => key + 1);
+        } else {
+          const [reactionsResponse, participantsResponse] = await Promise.all([
+            prayerInteractionAPI.getReactionsByPrayer(prayerId),
+            prayerInteractionAPI.getParticipants(prayerId)
+          ]);
+          setInteractions(reactionsResponse.data);
+          setParticipants(participantsResponse.data);
+        }
+      } catch (err) {
+        console.error('Error refreshing prayer after live update:', err);
+      }
+    });
     
     return () => {
       if (unsubscribe) {
@@ -437,6 +458,7 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
           prayerId={prayer.id}
           currentUserId={user?.userId || user?.email || undefined}
           currentUserEmail={user?.email || undefined}
+          refreshKey={commentsRefreshKey}
         />
       </div>
 

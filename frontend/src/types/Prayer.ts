@@ -29,7 +29,8 @@ export type InteractionType =
 
 export interface PrayerRequest {
   id: string;
-  userId: string;
+  /** Absent when the prayer is anonymous and the viewer is not the owner. */
+  userId?: string;
   userName: string;
   userProfilePicUrl?: string;
   title: string;

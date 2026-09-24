@@ -41,6 +41,7 @@ public class PrayerRequestService {
     private final FileUploadService fileUploadService;
     private final NotificationService notificationService;
     private final ChurchPrimaryResolver churchPrimaryResolver;
+    private final PrayerAccessPolicy prayerAccessPolicy;
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
@@ -151,6 +152,8 @@ public class PrayerRequestService {
         if (!prayerRequest.getUser().getId().equals(userId)) {
             throw new RuntimeException("You can only update your own prayer requests");
         }
+
+        PrayerRequest.PrayerStatus previousStatus = prayerRequest.getStatus();
         
         // Update fields
         if (request.getTitle() != null && !request.getTitle().trim().isEmpty()) {
@@ -194,8 +197,7 @@ public class PrayerRequestService {
         PrayerRequest updatedPrayerRequest = prayerRequestRepository.save(prayerRequest);
         log.info("Prayer request updated: {} by user: {}", prayerRequestId, userId);
         
-        // Send WebSocket notification for prayer update
-        notifyPrayerRequestUpdate(updatedPrayerRequest);
+        notifyIfAnswered(previousStatus, updatedPrayerRequest);
         
         return PrayerRequestResponse.fromPrayerRequestForOwner(updatedPrayerRequest);
     }
@@ -208,6 +210,8 @@ public class PrayerRequestService {
         if (!prayerRequest.getUser().getId().equals(userId)) {
             throw new RuntimeException("You can only update your own prayer requests");
         }
+
+        PrayerRequest.PrayerStatus previousStatus = prayerRequest.getStatus();
         
         // Handle image upload/removal
         // Check if imageUrl is explicitly set to empty string (to remove image)
@@ -283,8 +287,7 @@ public class PrayerRequestService {
         log.info("Prayer request updated: {} by user: {} (with image: {})", 
             prayerRequestId, userId, updatedPrayerRequest.getImageUrl() != null);
         
-        // Send WebSocket notification for prayer update
-        notifyPrayerRequestUpdate(updatedPrayerRequest);
+        notifyIfAnswered(previousStatus, updatedPrayerRequest);
         
         return PrayerRequestResponse.fromPrayerRequestForOwner(updatedPrayerRequest);
     }
@@ -569,18 +572,10 @@ public class PrayerRequestService {
      */
     private void notifyNewPrayerRequest(PrayerRequest prayerRequest) {
         try {
-            User user = prayerRequest.getUser();
-            PrayerNotificationEvent event = PrayerNotificationEvent.newPrayerRequest(
-                prayerRequest.getId(),
-                user.getId(),
-                user.getEmail(),
-                user.getName(),
-                prayerRequest.getTitle(),
-                prayerRequest.getDescription()
-            );
-
-            // 1. WebSocket notification (in-app, real-time)
-            messagingTemplate.convertAndSend("/topic/prayers", event);
+            // 1. WebSocket notification (in-app, real-time) — church-scoped topic,
+            //    and the event itself respects anonymity (see PrayerNotificationEvent)
+            PrayerNotificationEvent event = PrayerNotificationEvent.newPrayerRequest(prayerRequest);
+            publishToChurch(prayerRequest, event);
             log.info("Broadcasted WebSocket notification for prayer: {}", prayerRequest.getId());
 
             // 2. Firebase push notifications (PWA/mobile, persistent)
@@ -637,26 +632,33 @@ public class PrayerRequestService {
     }
     
     /**
-     * Send WebSocket notification for prayer request update
+     * Celebrate an answered prayer with the church — but only when the status
+     * actually transitions to ANSWERED. Ordinary edits (typo fixes, category
+     * changes) are not broadcast; nobody wants "Prayer Answered!" for a typo.
      */
-    private void notifyPrayerRequestUpdate(PrayerRequest prayerRequest) {
-        try {
-            User user = prayerRequest.getUser();
-            PrayerNotificationEvent event = PrayerNotificationEvent.prayerAnswered(
-                prayerRequest.getId(),
-                user.getId(),
-                user.getEmail(),
-                user.getName(),
-                prayerRequest.getTitle()
-            );
-            
-            // Broadcast to all connected users
-            messagingTemplate.convertAndSend("/topic/prayers", event);
-            log.info("Broadcasted prayer update notification for prayer: {}", prayerRequest.getId());
-            
-        } catch (Exception e) {
-            log.error("Error sending prayer update notification: {}", e.getMessage());
+    private void notifyIfAnswered(PrayerRequest.PrayerStatus previousStatus, PrayerRequest prayerRequest) {
+        boolean becameAnswered = prayerRequest.getStatus() == PrayerRequest.PrayerStatus.ANSWERED
+            && previousStatus != PrayerRequest.PrayerStatus.ANSWERED;
+        if (!becameAnswered) {
+            return;
         }
+        try {
+            PrayerNotificationEvent event = PrayerNotificationEvent.prayerAnswered(prayerRequest);
+            publishToChurch(prayerRequest, event);
+            log.info("Broadcasted answered-prayer notification for prayer: {}", prayerRequest.getId());
+        } catch (Exception e) {
+            log.error("Error sending answered-prayer notification: {}", e.getMessage());
+        }
+    }
+
+    /** Publish to the prayer's church topic only; prayers without a church are not broadcast. */
+    private void publishToChurch(PrayerRequest prayerRequest, PrayerNotificationEvent event) {
+        Organization organization = prayerRequest.getOrganization();
+        if (organization == null) {
+            log.warn("Prayer {} has no organization; skipping WebSocket broadcast", prayerRequest.getId());
+            return;
+        }
+        messagingTemplate.convertAndSend(PrayerTopics.organizationPrayers(organization.getId()), event);
     }
     
     /**
@@ -703,18 +705,7 @@ public class PrayerRequestService {
      * Platform admins can still open a prayer for moderation.
      */
     private void assertPrayerInViewerChurch(PrayerRequest prayerRequest, User viewer) {
-        if (viewer.getRole() == User.Role.PLATFORM_ADMIN) {
-            return;
-        }
-        UUID churchId = viewer.getChurchPrimaryOrganization() != null
-            ? viewer.getChurchPrimaryOrganization().getId()
-            : null;
-        UUID prayerOrgId = prayerRequest.getOrganization() != null
-            ? prayerRequest.getOrganization().getId()
-            : null;
-        if (churchId == null || prayerOrgId == null || !churchId.equals(prayerOrgId)) {
-            throw new RuntimeException("Prayer requests stay with your church.");
-        }
+        prayerAccessPolicy.assertCanView(prayerRequest, viewer);
     }
 
     /** Church id for list filters, or null when the user has not joined a church. */

@@ -68,6 +68,17 @@ public interface PrayerInteractionRepository extends JpaRepository<PrayerInterac
     
     // Recent interactions for dashboard
     List<PrayerInteraction> findByTimestampAfterOrderByTimestampDesc(LocalDateTime timestamp, Pageable pageable);
+
+    // Recent interactions within one church (dashboard). Comments on anonymous prayers are
+    // still fine to show here: the interaction's actor is named, the prayer's author is not.
+    @Query("SELECT pi FROM PrayerInteraction pi " +
+           "WHERE pi.prayerRequest.organization.id = :orgId AND pi.timestamp > :since " +
+           "ORDER BY pi.timestamp DESC")
+    List<PrayerInteraction> findRecentByOrganizationId(
+        @Param("orgId") UUID orgId,
+        @Param("since") LocalDateTime since,
+        Pageable pageable
+    );
     
     // Comments only (excluding reactions)
     @Query("SELECT pi FROM PrayerInteraction pi WHERE pi.prayerRequest.id = :prayerRequestId AND pi.type = 'COMMENT' ORDER BY pi.timestamp DESC")
@@ -126,11 +137,25 @@ public interface PrayerInteractionRepository extends JpaRepository<PrayerInterac
            "FROM PrayerInteraction pi WHERE pi.prayerRequest.id = :prayerRequestId AND pi.type != 'COMMENT'")
     List<PrayerParticipantResponse> findDistinctParticipantsByPrayerRequestId(@Param("prayerRequestId") UUID prayerRequestId);
 
-    // Find comments received on prayers owned by a user (comments others made on your prayers)
-    @Query("SELECT pi FROM PrayerInteraction pi WHERE pi.prayerRequest.user.id = :userId AND pi.user.id != :userId AND pi.type = 'COMMENT' ORDER BY pi.prayerRequest.id, pi.timestamp DESC")
-    Page<PrayerInteraction> findCommentsReceivedByUserId(@Param("userId") UUID userId, Pageable pageable);
+    // Find comments received on prayers owned by a user (comments others made on your prayers).
+    // Anonymous prayers are only included when the owner is the one asking (includeAnonymous),
+    // otherwise a profile tab would link a named person to an "anonymous" request.
+    @Query("SELECT pi FROM PrayerInteraction pi " +
+           "WHERE pi.prayerRequest.user.id = :userId AND pi.user.id != :userId AND pi.type = 'COMMENT' " +
+           "AND (pi.prayerRequest.isAnonymous = false OR :includeAnonymous = true) " +
+           "ORDER BY pi.prayerRequest.id, pi.timestamp DESC")
+    Page<PrayerInteraction> findCommentsReceivedByUserId(
+        @Param("userId") UUID userId,
+        @Param("includeAnonymous") boolean includeAnonymous,
+        Pageable pageable
+    );
 
     // Count comments received on prayers owned by a user
-    @Query("SELECT COUNT(pi) FROM PrayerInteraction pi WHERE pi.prayerRequest.user.id = :userId AND pi.user.id != :userId AND pi.type = 'COMMENT'")
-    long countCommentsReceivedByUserId(@Param("userId") UUID userId);
+    @Query("SELECT COUNT(pi) FROM PrayerInteraction pi " +
+           "WHERE pi.prayerRequest.user.id = :userId AND pi.user.id != :userId AND pi.type = 'COMMENT' " +
+           "AND (pi.prayerRequest.isAnonymous = false OR :includeAnonymous = true)")
+    long countCommentsReceivedByUserId(
+        @Param("userId") UUID userId,
+        @Param("includeAnonymous") boolean includeAnonymous
+    );
 }

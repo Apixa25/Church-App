@@ -27,13 +27,18 @@ public class PrayerRequestResponse {
     private LocalDateTime updatedAt;
     private PrayerInteractionSummary interactionSummary;
     
+    /**
+     * Viewer-facing projection. For anonymous prayers every identifying field
+     * (id, name, picture) is withheld, not just the display name — the UI hiding
+     * a link is not anonymity if the id is still in the JSON.
+     */
     public static PrayerRequestResponse fromPrayerRequest(PrayerRequest prayerRequest) {
+        boolean anonymous = Boolean.TRUE.equals(prayerRequest.getIsAnonymous());
         return new PrayerRequestResponse(
             prayerRequest.getId(),
-            prayerRequest.getUser().getId(),
-            // Handle anonymous prayers - don't show user details
-            prayerRequest.getIsAnonymous() ? "Anonymous" : prayerRequest.getUser().getName(),
-            prayerRequest.getIsAnonymous() ? null : prayerRequest.getUser().getProfilePicUrl(),
+            anonymous ? null : prayerRequest.getUser().getId(),
+            anonymous ? "Anonymous" : prayerRequest.getUser().getName(),
+            anonymous ? null : prayerRequest.getUser().getProfilePicUrl(),
             prayerRequest.getTitle(),
             prayerRequest.getDescription(),
             prayerRequest.getImageUrl(),

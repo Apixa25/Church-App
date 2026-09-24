@@ -40,7 +40,7 @@ const PrayerRequestCard: React.FC<PrayerRequestCardProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   // Fix owner check: only compare UUIDs (not email to UUID)
-  const isOwner = user?.userId === prayer.userId;
+  const isOwner = Boolean(user?.userId && prayer.userId && user.userId === prayer.userId);
   const isAdmin = user?.role === 'PLATFORM_ADMIN' || user?.role === 'MODERATOR';
   const isModerator = user?.role === 'MODERATOR';
   const canDelete = isOwner || isAdmin || isModerator;

@@ -15,6 +15,8 @@ interface PrayerCommentThreadProps {
   currentUserEmail?: string;
   maxDepth?: number;
   onCommentCountChange?: (count: number) => void;
+  /** Change this value to force a refetch (e.g. after a live "new comment" event). */
+  refreshKey?: number;
 }
 
 const normalizeTimestamp = (timestamp: string | number[]): Date => {
@@ -94,7 +96,8 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
   currentUserId,
   currentUserEmail,
   maxDepth = 8,
-  onCommentCountChange
+  onCommentCountChange,
+  refreshKey = 0
 }) => {
   const [comments, setComments] = useState<PrayerComment[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -139,7 +142,7 @@ const PrayerCommentThread: React.FC<PrayerCommentThreadProps> = ({
 
   useEffect(() => {
     loadComments();
-  }, [loadComments]);
+  }, [loadComments, refreshKey]);
 
   const handleAddComment = async (parentCommentId: string | null, content: string) => {
     if (!content.trim() || !canComment) return;

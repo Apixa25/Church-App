@@ -2,10 +2,14 @@ package com.churchapp.config;
 
 import com.churchapp.security.JwtUtil;
 import com.churchapp.entity.ChatGroup;
+import com.churchapp.entity.PrayerRequest;
 import com.churchapp.entity.User;
 import com.churchapp.repository.ChatGroupMemberRepository;
 import com.churchapp.repository.ChatGroupRepository;
+import com.churchapp.repository.PrayerRequestRepository;
 import com.churchapp.repository.UserRepository;
+import com.churchapp.service.PrayerAccessPolicy;
+import com.churchapp.service.PrayerTopics;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +61,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private final UserRepository userRepository;
     private final ChatGroupRepository chatGroupRepository;
     private final ChatGroupMemberRepository chatGroupMemberRepository;
+    private final PrayerRequestRepository prayerRequestRepository;
+    private final PrayerAccessPolicy prayerAccessPolicy;
     private final ObjectMapper objectMapper;
 
     @Value("${cors.allowed-origins:*}")
@@ -171,19 +177,57 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             return;
         }
 
-        Matcher matcher = GROUP_TOPIC_PATTERN.matcher(destination);
-        if (!matcher.matches()) {
+        Matcher groupMatcher = GROUP_TOPIC_PATTERN.matcher(destination);
+        if (groupMatcher.matches()) {
+            authorizeGroupSubscription(accessor, destination, UUID.fromString(groupMatcher.group(1)));
             return;
         }
 
-        Principal principal = accessor.getUser();
-        if (principal == null || principal.getName() == null) {
-            throw new AccessDeniedException("Authentication is required to subscribe to chat groups");
+        Matcher orgPrayersMatcher = PrayerTopics.ORGANIZATION_PRAYERS_PATTERN.matcher(destination);
+        if (orgPrayersMatcher.matches()) {
+            authorizeChurchPrayerSubscription(accessor, destination, UUID.fromString(orgPrayersMatcher.group(1)));
+            return;
         }
 
-        UUID groupId = UUID.fromString(matcher.group(1));
-        User user = userRepository.findByEmail(principal.getName())
+        Matcher prayerMatcher = PrayerTopics.PRAYER_INTERACTIONS_PATTERN.matcher(destination);
+        if (prayerMatcher.matches()) {
+            authorizePrayerInteractionSubscription(accessor, destination, UUID.fromString(prayerMatcher.group(1)));
+        }
+    }
+
+    private User requireSubscriber(StompHeaderAccessor accessor, String what) {
+        Principal principal = accessor.getUser();
+        if (principal == null || principal.getName() == null) {
+            throw new AccessDeniedException("Authentication is required to subscribe to " + what);
+        }
+        return userRepository.findByEmail(principal.getName())
             .orElseThrow(() -> new AccessDeniedException("Authenticated WebSocket user was not found"));
+    }
+
+    /** A church's prayer feed is only for that church's members (platform admins may observe). */
+    private void authorizeChurchPrayerSubscription(StompHeaderAccessor accessor, String destination, UUID organizationId) {
+        User user = requireSubscriber(accessor, "prayer updates");
+        boolean isPlatformAdmin = user.getRole() == User.Role.PLATFORM_ADMIN;
+        boolean isOwnChurch = organizationId.equals(prayerAccessPolicy.churchIdOf(user));
+        if (!isPlatformAdmin && !isOwnChurch) {
+            log.debug("Rejected subscription by {} to {}", user.getEmail(), destination);
+            throw new AccessDeniedException("Prayer updates stay with your church");
+        }
+    }
+
+    /** Reactions/comments on a prayer are visible to the prayer's church only. */
+    private void authorizePrayerInteractionSubscription(StompHeaderAccessor accessor, String destination, UUID prayerRequestId) {
+        User user = requireSubscriber(accessor, "prayer interactions");
+        Optional<PrayerRequest> prayer = prayerRequestRepository.findById(prayerRequestId);
+        boolean allowed = prayer.map(p -> prayerAccessPolicy.canView(p, user)).orElse(false);
+        if (!allowed) {
+            log.debug("Rejected subscription by {} to {}", user.getEmail(), destination);
+            throw new AccessDeniedException("Prayer interactions stay with your church");
+        }
+    }
+
+    private void authorizeGroupSubscription(StompHeaderAccessor accessor, String destination, UUID groupId) {
+        User user = requireSubscriber(accessor, "chat groups");
         Optional<ChatGroup> chatGroup = chatGroupRepository.findById(groupId);
 
         boolean isActiveMember = chatGroup
@@ -191,7 +235,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             .orElse(false);
 
         if (!isActiveMember) {
-            log.debug("Rejected subscription by {} to {}", principal.getName(), destination);
+            log.debug("Rejected subscription by {} to {}", user.getEmail(), destination);
             throw new AccessDeniedException("User is not allowed to subscribe to this chat group");
         }
     }

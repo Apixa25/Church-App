@@ -1,6 +1,7 @@
 package com.churchapp.controller;
 
 import com.churchapp.dto.PrayerNotificationEvent;
+import com.churchapp.service.PrayerTopics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -87,40 +88,10 @@ public class WebSocketPrayerController {
         }
     }
     
-    /**
-     * Handle prayer interaction updates from clients
-     * This allows real-time prayer interactions to be broadcast
-     */
-    @MessageMapping("/prayer/{prayerRequestId}/interaction")
-    public void handlePrayerInteraction(@Payload Map<String, Object> payload,
-                                      Principal principal) {
-        try {
-            String prayerRequestIdStr = (String) payload.get("prayerRequestId");
-            UUID prayerRequestId = UUID.fromString(prayerRequestIdStr);
-            
-            log.info("User {} sent prayer interaction for prayer {}", 
-                principal.getName(), prayerRequestId);
-            
-            // Broadcast interaction to all subscribers of this prayer
-            Map<String, Object> interaction = new HashMap<>();
-            interaction.put("type", "prayer_interaction_update");
-            interaction.put("prayerRequestId", prayerRequestId.toString());
-            interaction.put("userId", principal.getName());
-            interaction.put("timestamp", LocalDateTime.now().toString());
-            interaction.putAll(payload);
-            
-            messagingTemplate.convertAndSend(
-                "/topic/prayer-interactions/" + prayerRequestId,
-                interaction
-            );
-            
-        } catch (Exception e) {
-            log.error("Error handling prayer interaction for user {}: {}", 
-                principal.getName(), e.getMessage());
-            sendErrorMessage(principal.getName(), "Failed to process prayer interaction");
-        }
-    }
-    
+    // Interactions are never accepted over STOMP. Clients create them through the
+    // REST API (PrayerInteractionService), which validates, persists, and then
+    // broadcasts the authoritative event — so a client can't spoof another user.
+
     /**
      * Send prayer notification to specific user
      * Used for personal prayer notifications
@@ -142,15 +113,15 @@ public class WebSocketPrayerController {
     }
     
     /**
-     * Broadcast prayer event to all connected users
+     * Broadcast prayer event to one church's members
      * Used for general prayer notifications
      */
-    public void broadcastPrayerEvent(PrayerNotificationEvent event) {
+    public void broadcastPrayerEvent(UUID organizationId, PrayerNotificationEvent event) {
         try {
-            log.info("Broadcasting prayer event: {} for prayer {}", 
-                event.getEventType(), event.getPrayerRequestId());
+            log.info("Broadcasting prayer event: {} for prayer {} to organization {}", 
+                event.getEventType(), event.getPrayerRequestId(), organizationId);
             
-            messagingTemplate.convertAndSend("/topic/prayers", event);
+            messagingTemplate.convertAndSend(PrayerTopics.organizationPrayers(organizationId), event);
             
         } catch (Exception e) {
             log.error("Error broadcasting prayer event: {}", e.getMessage());
@@ -166,7 +137,7 @@ public class WebSocketPrayerController {
             log.info("Broadcasting prayer interaction for prayer {}: {}", 
                 prayerRequestId, event.getEventType());
             
-            messagingTemplate.convertAndSend("/topic/prayer-interactions/" + prayerRequestId, event);
+            messagingTemplate.convertAndSend(PrayerTopics.prayerInteractions(prayerRequestId), event);
             
         } catch (Exception e) {
             log.error("Error broadcasting prayer interaction for {}: {}", 

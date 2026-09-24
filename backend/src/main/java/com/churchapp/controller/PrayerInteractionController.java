@@ -10,7 +10,10 @@ import com.churchapp.service.PrayerInteractionService;
 import com.churchapp.service.UserProfileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.User;
@@ -21,9 +24,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Reactions and comments on prayer requests.
+ *
+ * Every endpoint resolves the caller and hands it to the service, which
+ * enforces that the caller belongs to the prayer's church.
+ */
 @RestController
 @RequestMapping("/prayer-interactions")
 @RequiredArgsConstructor
+@Slf4j
 public class PrayerInteractionController {
     
     private final PrayerInteractionService prayerInteractionService;
@@ -33,9 +43,8 @@ public class PrayerInteractionController {
     public ResponseEntity<?> createInteraction(@AuthenticationPrincipal User user,
                                              @Valid @RequestBody PrayerInteractionRequest request) {
         try {
-            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
             PrayerInteractionResponse interaction = prayerInteractionService.createInteraction(
-                currentProfile.getUserId(), request);
+                viewerId(user), request);
             
             if (interaction == null) {
                 // Interaction was removed (toggle behavior)
@@ -46,10 +55,15 @@ public class PrayerInteractionController {
             }
             
             return ResponseEntity.ok(interaction);
+        } catch (DataIntegrityViolationException e) {
+            // Two taps raced past the find-then-insert; the unique index kept the
+            // second one out. The reaction is already recorded, so tell the client
+            // to refresh rather than surfacing a raw constraint error.
+            log.debug("Duplicate prayer reaction rejected by unique index: {}", e.getMostSpecificCause().getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "You've already reacted to this prayer.", "action", "duplicate"));
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return badRequest(e);
         }
     }
     
@@ -57,113 +71,106 @@ public class PrayerInteractionController {
     public ResponseEntity<?> deleteInteraction(@AuthenticationPrincipal User user,
                                              @PathVariable UUID interactionId) {
         try {
-            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
-            prayerInteractionService.deleteInteraction(interactionId, currentProfile.getUserId());
+            prayerInteractionService.deleteInteraction(interactionId, viewerId(user));
             
             Map<String, String> response = new HashMap<>();
             response.put("message", "Interaction deleted successfully");
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return badRequest(e);
         }
     }
     
     @GetMapping("/prayer/{prayerRequestId}")
-    public ResponseEntity<?> getInteractionsByPrayerRequest(@PathVariable UUID prayerRequestId,
+    public ResponseEntity<?> getInteractionsByPrayerRequest(@AuthenticationPrincipal User user,
+                                                          @PathVariable UUID prayerRequestId,
                                                           @RequestParam(defaultValue = "0") int page,
                                                           @RequestParam(defaultValue = "50") int size) {
         try {
+            UUID viewerId = viewerId(user);
             if (page == 0 && size == 50) {
                 // Return all interactions if default pagination is used
                 List<PrayerInteractionResponse> interactions = prayerInteractionService
-                    .getInteractionsByPrayerRequest(prayerRequestId);
+                    .getInteractionsByPrayerRequest(prayerRequestId, viewerId);
                 return ResponseEntity.ok(interactions);
             } else {
                 // Return paginated results
                 Page<PrayerInteractionResponse> interactions = prayerInteractionService
-                    .getInteractionsByPrayerRequest(prayerRequestId, page, size);
+                    .getInteractionsByPrayerRequest(prayerRequestId, viewerId, page, size);
                 return ResponseEntity.ok(interactions);
             }
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return badRequest(e);
         }
     }
     
     @GetMapping("/prayer/{prayerRequestId}/comments")
-    public ResponseEntity<?> getCommentsByPrayerRequest(@PathVariable UUID prayerRequestId,
+    public ResponseEntity<?> getCommentsByPrayerRequest(@AuthenticationPrincipal User user,
+                                                       @PathVariable UUID prayerRequestId,
                                                        @RequestParam(defaultValue = "0") int page,
                                                        @RequestParam(defaultValue = "20") int size) {
         try {
+            UUID viewerId = viewerId(user);
             if (page == 0 && size == 20) {
                 // Return all comments if default pagination is used
                 List<PrayerInteractionResponse> comments = prayerInteractionService
-                    .getCommentsByPrayerRequest(prayerRequestId);
+                    .getCommentsByPrayerRequest(prayerRequestId, viewerId);
                 return ResponseEntity.ok(comments);
             } else {
                 // Return paginated results
                 Page<PrayerInteractionResponse> comments = prayerInteractionService
-                    .getCommentsByPrayerRequest(prayerRequestId, page, size);
+                    .getCommentsByPrayerRequest(prayerRequestId, viewerId, page, size);
                 return ResponseEntity.ok(comments);
             }
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return badRequest(e);
         }
     }
     
     @GetMapping("/prayer/{prayerRequestId}/reactions")
-    public ResponseEntity<?> getReactionsByPrayerRequest(@PathVariable UUID prayerRequestId) {
+    public ResponseEntity<?> getReactionsByPrayerRequest(@AuthenticationPrincipal User user,
+                                                        @PathVariable UUID prayerRequestId) {
         try {
             List<PrayerInteractionResponse> reactions = prayerInteractionService
-                .getReactionsByPrayerRequest(prayerRequestId);
+                .getReactionsByPrayerRequest(prayerRequestId, viewerId(user));
             return ResponseEntity.ok(reactions);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return badRequest(e);
         }
     }
     
     @GetMapping("/prayer/{prayerRequestId}/summary")
-    public ResponseEntity<?> getInteractionSummary(@PathVariable UUID prayerRequestId) {
+    public ResponseEntity<?> getInteractionSummary(@AuthenticationPrincipal User user,
+                                                   @PathVariable UUID prayerRequestId) {
         try {
-            PrayerInteractionSummary summary = prayerInteractionService.getInteractionSummary(prayerRequestId);
+            PrayerInteractionSummary summary = prayerInteractionService
+                .getInteractionSummary(prayerRequestId, viewerId(user));
             return ResponseEntity.ok(summary);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return badRequest(e);
         }
     }
 
     @GetMapping("/prayer/{prayerRequestId}/participants")
-    public ResponseEntity<?> getParticipants(@PathVariable UUID prayerRequestId) {
+    public ResponseEntity<?> getParticipants(@AuthenticationPrincipal User user,
+                                             @PathVariable UUID prayerRequestId) {
         try {
-            List<PrayerParticipantResponse> participants = prayerInteractionService.getParticipants(prayerRequestId);
+            List<PrayerParticipantResponse> participants = prayerInteractionService
+                .getParticipants(prayerRequestId, viewerId(user));
             return ResponseEntity.ok(participants);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return badRequest(e);
         }
     }
     
     @GetMapping("/my-interactions")
     public ResponseEntity<?> getMyInteractions(@AuthenticationPrincipal User user) {
         try {
-            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
             List<PrayerInteractionResponse> myInteractions = prayerInteractionService
-                .getUserInteractions(currentProfile.getUserId());
+                .getUserInteractions(viewerId(user));
             return ResponseEntity.ok(myInteractions);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return badRequest(e);
         }
     }
     
@@ -172,9 +179,8 @@ public class PrayerInteractionController {
                                                 @PathVariable UUID prayerRequestId,
                                                 @PathVariable PrayerInteraction.InteractionType type) {
         try {
-            UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
             boolean hasInteracted = prayerInteractionService.hasUserInteracted(
-                prayerRequestId, currentProfile.getUserId(), type);
+                prayerRequestId, viewerId(user), type);
             
             Map<String, Object> response = new HashMap<>();
             response.put("hasInteracted", hasInteracted);
@@ -182,9 +188,7 @@ public class PrayerInteractionController {
             response.put("prayerRequestId", prayerRequestId);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return badRequest(e);
         }
     }
     
@@ -193,16 +197,16 @@ public class PrayerInteractionController {
         return ResponseEntity.ok(PrayerInteraction.InteractionType.values());
     }
     
+    /** Recent prayer activity in the caller's church (dashboard widget). */
     @GetMapping("/recent")
-    public ResponseEntity<?> getRecentInteractions(@RequestParam(defaultValue = "10") int limit) {
+    public ResponseEntity<?> getRecentInteractions(@AuthenticationPrincipal User user,
+                                                   @RequestParam(defaultValue = "10") int limit) {
         try {
             List<PrayerInteractionResponse> recentInteractions = prayerInteractionService
-                .getRecentInteractionsForDashboard(limit);
+                .getRecentInteractionsForDashboard(viewerId(user), limit);
             return ResponseEntity.ok(recentInteractions);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return badRequest(e);
         }
     }
 
@@ -212,17 +216,16 @@ public class PrayerInteractionController {
      */
     @GetMapping("/user/{userId}/comments-received")
     public ResponseEntity<?> getCommentsReceivedByUser(
+            @AuthenticationPrincipal User user,
             @PathVariable UUID userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         try {
             Page<PrayerInteractionResponse> comments = prayerInteractionService
-                .getCommentsReceivedByUser(userId, page, size);
+                .getCommentsReceivedByUser(userId, viewerId(user), page, size);
             return ResponseEntity.ok(comments);
         } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
+            return badRequest(e);
         }
     }
 
@@ -230,8 +233,28 @@ public class PrayerInteractionController {
      * Get count of comments received on prayers owned by a specific user
      */
     @GetMapping("/user/{userId}/comments-received-count")
-    public ResponseEntity<Map<String, Long>> getCommentsReceivedCount(@PathVariable UUID userId) {
-        long count = prayerInteractionService.getCommentsReceivedCount(userId);
-        return ResponseEntity.ok(Map.of("count", count));
+    public ResponseEntity<?> getCommentsReceivedCount(@AuthenticationPrincipal User user,
+                                                      @PathVariable UUID userId) {
+        try {
+            long count = prayerInteractionService.getCommentsReceivedCount(userId, viewerId(user));
+            return ResponseEntity.ok(Map.of("count", count));
+        } catch (RuntimeException e) {
+            return badRequest(e);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // helpers
+    // ------------------------------------------------------------------
+
+    private UUID viewerId(User user) {
+        UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
+        return currentProfile.getUserId();
+    }
+
+    private ResponseEntity<Map<String, String>> badRequest(RuntimeException e) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", e.getMessage());
+        return ResponseEntity.badRequest().body(error);
     }
 }

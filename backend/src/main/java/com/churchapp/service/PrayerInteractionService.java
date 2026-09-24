@@ -14,7 +14,6 @@ import com.churchapp.repository.PrayerRequestRepository;
 import com.churchapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +26,13 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Reactions and comments on prayer requests.
+ *
+ * Every entry point that takes a viewer id runs the same church check as the
+ * prayer itself ({@link PrayerAccessPolicy}); a prayer's UUID is not a ticket
+ * to its comments.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -36,16 +42,15 @@ public class PrayerInteractionService {
     private final PrayerInteractionRepository prayerInteractionRepository;
     private final PrayerRequestRepository prayerRequestRepository;
     private final UserRepository userRepository;
-    
-    @Autowired
-    private SimpMessagingTemplate messagingTemplate;
+    private final PrayerAccessPolicy prayerAccessPolicy;
+    private final SimpMessagingTemplate messagingTemplate;
     
     public PrayerInteractionResponse createInteraction(UUID userId, PrayerInteractionRequest request) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         
-        PrayerRequest prayerRequest = prayerRequestRepository.findById(request.getPrayerRequestId())
-            .orElseThrow(() -> new RuntimeException("Prayer request not found with id: " + request.getPrayerRequestId()));
+        PrayerRequest prayerRequest = requirePrayer(request.getPrayerRequestId());
+        prayerAccessPolicy.assertCanView(prayerRequest, user);
         
         // For reactions (non-comment types), check if user already has this type of interaction
         if (request.getType() != PrayerInteraction.InteractionType.COMMENT) {
@@ -120,10 +125,8 @@ public class PrayerInteractionService {
         log.info("Deleted interaction {} by user {}", interactionId, userId);
     }
     
-    public List<PrayerInteractionResponse> getInteractionsByPrayerRequest(UUID prayerRequestId) {
-        // Verify prayer request exists
-        prayerRequestRepository.findById(prayerRequestId)
-            .orElseThrow(() -> new RuntimeException("Prayer request not found with id: " + prayerRequestId));
+    public List<PrayerInteractionResponse> getInteractionsByPrayerRequest(UUID prayerRequestId, UUID viewerId) {
+        requireViewablePrayer(prayerRequestId, viewerId);
         
         List<PrayerInteraction> interactions = prayerInteractionRepository
             .findByPrayerRequestIdOrderByTimestampDesc(prayerRequestId);
@@ -133,10 +136,8 @@ public class PrayerInteractionService {
             .collect(Collectors.toList());
     }
     
-    public Page<PrayerInteractionResponse> getInteractionsByPrayerRequest(UUID prayerRequestId, int page, int size) {
-        // Verify prayer request exists
-        PrayerRequest prayerRequest = prayerRequestRepository.findById(prayerRequestId)
-            .orElseThrow(() -> new RuntimeException("Prayer request not found with id: " + prayerRequestId));
+    public Page<PrayerInteractionResponse> getInteractionsByPrayerRequest(UUID prayerRequestId, UUID viewerId, int page, int size) {
+        PrayerRequest prayerRequest = requireViewablePrayer(prayerRequestId, viewerId);
         
         Pageable pageable = PageRequest.of(page, size);
         Page<PrayerInteraction> interactions = prayerInteractionRepository
@@ -145,10 +146,8 @@ public class PrayerInteractionService {
         return interactions.map(PrayerInteractionResponse::fromPrayerInteraction);
     }
     
-    public List<PrayerInteractionResponse> getCommentsByPrayerRequest(UUID prayerRequestId) {
-        // Verify prayer request exists
-        prayerRequestRepository.findById(prayerRequestId)
-            .orElseThrow(() -> new RuntimeException("Prayer request not found with id: " + prayerRequestId));
+    public List<PrayerInteractionResponse> getCommentsByPrayerRequest(UUID prayerRequestId, UUID viewerId) {
+        requireViewablePrayer(prayerRequestId, viewerId);
         
         List<PrayerInteraction> comments = prayerInteractionRepository
             .findCommentsByPrayerRequestId(prayerRequestId);
@@ -158,10 +157,8 @@ public class PrayerInteractionService {
             .collect(Collectors.toList());
     }
     
-    public Page<PrayerInteractionResponse> getCommentsByPrayerRequest(UUID prayerRequestId, int page, int size) {
-        // Verify prayer request exists
-        prayerRequestRepository.findById(prayerRequestId)
-            .orElseThrow(() -> new RuntimeException("Prayer request not found with id: " + prayerRequestId));
+    public Page<PrayerInteractionResponse> getCommentsByPrayerRequest(UUID prayerRequestId, UUID viewerId, int page, int size) {
+        requireViewablePrayer(prayerRequestId, viewerId);
         
         Pageable pageable = PageRequest.of(page, size);
         Page<PrayerInteraction> comments = prayerInteractionRepository
@@ -170,10 +167,8 @@ public class PrayerInteractionService {
         return comments.map(PrayerInteractionResponse::fromPrayerInteraction);
     }
     
-    public List<PrayerInteractionResponse> getReactionsByPrayerRequest(UUID prayerRequestId) {
-        // Verify prayer request exists
-        prayerRequestRepository.findById(prayerRequestId)
-            .orElseThrow(() -> new RuntimeException("Prayer request not found with id: " + prayerRequestId));
+    public List<PrayerInteractionResponse> getReactionsByPrayerRequest(UUID prayerRequestId, UUID viewerId) {
+        requireViewablePrayer(prayerRequestId, viewerId);
         
         List<PrayerInteraction> reactions = prayerInteractionRepository
             .findReactionsByPrayerRequestId(prayerRequestId);
@@ -183,10 +178,19 @@ public class PrayerInteractionService {
             .collect(Collectors.toList());
     }
     
+    /** Summary for a viewer; runs the church check. */
+    public PrayerInteractionSummary getInteractionSummary(UUID prayerRequestId, UUID viewerId) {
+        requireViewablePrayer(prayerRequestId, viewerId);
+        return getInteractionSummary(prayerRequestId);
+    }
+
+    /**
+     * Summary without an access check. Only for callers that have already
+     * verified the viewer may see the prayer (e.g. enriching a list the
+     * PrayerRequestService has already scoped to the viewer's church).
+     */
     public PrayerInteractionSummary getInteractionSummary(UUID prayerRequestId) {
-        // Verify prayer request exists
-        prayerRequestRepository.findById(prayerRequestId)
-            .orElseThrow(() -> new RuntimeException("Prayer request not found with id: " + prayerRequestId));
+        requirePrayer(prayerRequestId);
         
         PrayerInteractionSummary summary = new PrayerInteractionSummary();
         
@@ -227,18 +231,28 @@ public class PrayerInteractionService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         
-        PrayerRequest prayerRequest = prayerRequestRepository.findById(prayerRequestId)
-            .orElseThrow(() -> new RuntimeException("Prayer request not found with id: " + prayerRequestId));
+        PrayerRequest prayerRequest = requirePrayer(prayerRequestId);
+        prayerAccessPolicy.assertCanView(prayerRequest, user);
         
         return prayerInteractionRepository.existsByPrayerRequestAndUserAndType(prayerRequest, user, type);
     }
     
-    // Dashboard specific methods
-    public List<PrayerInteractionResponse> getRecentInteractionsForDashboard(int limit) {
-        Pageable pageable = PageRequest.of(0, limit);
+    /**
+     * Recent activity for the dashboard, limited to the viewer's church.
+     * Users without a church see nothing.
+     */
+    public List<PrayerInteractionResponse> getRecentInteractionsForDashboard(UUID viewerId, int limit) {
+        User viewer = userRepository.findById(viewerId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + viewerId));
+        UUID churchId = prayerAccessPolicy.churchIdOf(viewer);
+        if (churchId == null) {
+            return List.of();
+        }
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(limit, 50)));
         LocalDateTime since = LocalDateTime.now().minusDays(7); // Last 7 days
         List<PrayerInteraction> recentInteractions = prayerInteractionRepository
-            .findByTimestampAfterOrderByTimestampDesc(since, pageable);
+            .findRecentByOrganizationId(churchId, since, pageable);
         
         return recentInteractions.stream()
             .map(PrayerInteractionResponse::fromPrayerInteraction)
@@ -258,10 +272,8 @@ public class PrayerInteractionService {
      * Get unique participants who have interacted with a prayer request (excluding comments).
      * Returns user details for displaying avatar stacks and supporter lists.
      */
-    public List<PrayerParticipantResponse> getParticipants(UUID prayerRequestId) {
-        // Verify prayer request exists
-        prayerRequestRepository.findById(prayerRequestId)
-            .orElseThrow(() -> new RuntimeException("Prayer request not found with id: " + prayerRequestId));
+    public List<PrayerParticipantResponse> getParticipants(UUID prayerRequestId, UUID viewerId) {
+        requireViewablePrayer(prayerRequestId, viewerId);
 
         return prayerInteractionRepository.findDistinctParticipantsByPrayerRequestId(prayerRequestId);
     }
@@ -274,17 +286,10 @@ public class PrayerInteractionService {
             User user = interaction.getUser();
             PrayerRequest prayerRequest = interaction.getPrayerRequest();
             
-            PrayerNotificationEvent event = PrayerNotificationEvent.prayerInteraction(
-                prayerRequest.getId(),
-                user.getId(),
-                user.getEmail(),
-                user.getName(),
-                interaction.getType(),
-                interaction.getContent()
-            );
+            PrayerNotificationEvent event = PrayerNotificationEvent.prayerInteraction(interaction);
             
-            // Broadcast to specific prayer subscribers
-            messagingTemplate.convertAndSend("/topic/prayer-interactions/" + prayerRequest.getId(), event);
+            // Broadcast to subscribers of this prayer (subscription is church-gated)
+            messagingTemplate.convertAndSend(PrayerTopics.prayerInteractions(prayerRequest.getId()), event);
             
             // Also send to prayer request owner if different from interaction user
             if (!prayerRequest.getUser().getId().equals(user.getId())) {
@@ -304,19 +309,62 @@ public class PrayerInteractionService {
     }
 
     /**
-     * Get comments that others have made on prayers owned by a specific user
-     * This is for the "Comments on my content" feature
+     * Comments others have made on prayers owned by {@code userId}, for the
+     * "Comments on my content" profile tab.
+     *
+     * Only the owner sees comments on their anonymous prayers — otherwise the
+     * profile tab would tie a named person to an "anonymous" request. The
+     * viewer must also share a church with the profile owner.
      */
-    public Page<PrayerInteractionResponse> getCommentsReceivedByUser(UUID userId, int page, int size) {
+    public Page<PrayerInteractionResponse> getCommentsReceivedByUser(UUID userId, UUID viewerId, int page, int size) {
+        boolean isSelf = userId.equals(viewerId);
+        if (!isSelf) {
+            assertSameChurch(userId, viewerId);
+        }
         Pageable pageable = PageRequest.of(page, size);
-        Page<PrayerInteraction> interactions = prayerInteractionRepository.findCommentsReceivedByUserId(userId, pageable);
+        Page<PrayerInteraction> interactions = prayerInteractionRepository
+            .findCommentsReceivedByUserId(userId, isSelf, pageable);
         return interactions.map(PrayerInteractionResponse::fromPrayerInteraction);
     }
 
     /**
      * Get count of comments received on prayers owned by a specific user
      */
-    public long getCommentsReceivedCount(UUID userId) {
-        return prayerInteractionRepository.countCommentsReceivedByUserId(userId);
+    public long getCommentsReceivedCount(UUID userId, UUID viewerId) {
+        boolean isSelf = userId.equals(viewerId);
+        if (!isSelf) {
+            assertSameChurch(userId, viewerId);
+        }
+        return prayerInteractionRepository.countCommentsReceivedByUserId(userId, isSelf);
+    }
+
+    // ------------------------------------------------------------------
+    // helpers
+    // ------------------------------------------------------------------
+
+    private PrayerRequest requirePrayer(UUID prayerRequestId) {
+        return prayerRequestRepository.findById(prayerRequestId)
+            .orElseThrow(() -> new RuntimeException("Prayer request not found with id: " + prayerRequestId));
+    }
+
+    private PrayerRequest requireViewablePrayer(UUID prayerRequestId, UUID viewerId) {
+        PrayerRequest prayerRequest = requirePrayer(prayerRequestId);
+        prayerAccessPolicy.assertCanView(prayerRequest, viewerId);
+        return prayerRequest;
+    }
+
+    private void assertSameChurch(UUID targetUserId, UUID viewerId) {
+        User viewer = userRepository.findById(viewerId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + viewerId));
+        if (viewer.getRole() == User.Role.PLATFORM_ADMIN) {
+            return;
+        }
+        User target = userRepository.findById(targetUserId)
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + targetUserId));
+        UUID viewerChurch = prayerAccessPolicy.churchIdOf(viewer);
+        UUID targetChurch = prayerAccessPolicy.churchIdOf(target);
+        if (viewerChurch == null || !viewerChurch.equals(targetChurch)) {
+            throw new RuntimeException(PrayerAccessPolicy.OUTSIDE_CHURCH_MESSAGE);
+        }
     }
 }

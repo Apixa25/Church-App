@@ -2,11 +2,15 @@ package com.churchapp;
 
 import com.churchapp.config.WebSocketConfig;
 import com.churchapp.entity.ChatGroup;
+import com.churchapp.entity.Organization;
+import com.churchapp.entity.PrayerRequest;
 import com.churchapp.entity.User;
 import com.churchapp.repository.ChatGroupMemberRepository;
 import com.churchapp.repository.ChatGroupRepository;
+import com.churchapp.repository.PrayerRequestRepository;
 import com.churchapp.repository.UserRepository;
 import com.churchapp.security.JwtUtil;
+import com.churchapp.service.PrayerAccessPolicy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,24 +55,38 @@ class WebSocketConfigSubscriptionAuthTest {
     @Mock private UserRepository userRepository;
     @Mock private ChatGroupRepository chatGroupRepository;
     @Mock private ChatGroupMemberRepository chatGroupMemberRepository;
+    @Mock private PrayerRequestRepository prayerRequestRepository;
 
     private ChannelInterceptor interceptor;
     private User alice;
     private ChatGroup group;
+    private Organization graceChurch;
+    private Organization otherChurch;
 
     @BeforeEach
     void setUp() {
         WebSocketConfig config = new WebSocketConfig(
-            jwtUtil, userDetailsService, userRepository, chatGroupRepository, chatGroupMemberRepository, new ObjectMapper());
+            jwtUtil, userDetailsService, userRepository, chatGroupRepository, chatGroupMemberRepository,
+            prayerRequestRepository, new PrayerAccessPolicy(userRepository), new ObjectMapper());
 
         ChannelRegistration registration = new ChannelRegistration();
         config.configureClientInboundChannel(registration);
         interceptor = extractInterceptor(registration);
 
+        graceChurch = new Organization();
+        graceChurch.setId(UUID.randomUUID());
+        graceChurch.setName("Grace Church");
+
+        otherChurch = new Organization();
+        otherChurch.setId(UUID.randomUUID());
+        otherChurch.setName("Other Church");
+
         alice = new User();
         alice.setId(UUID.randomUUID());
         alice.setEmail("alice@example.com");
         alice.setName("Alice");
+        alice.setRole(User.Role.USER);
+        alice.setChurchPrimaryOrganization(graceChurch);
 
         group = new ChatGroup();
         group.setId(UUID.randomUUID());
@@ -77,6 +95,93 @@ class WebSocketConfigSubscriptionAuthTest {
 
         lenient().when(userRepository.findByEmail(alice.getEmail())).thenReturn(Optional.of(alice));
         lenient().when(chatGroupRepository.findById(group.getId())).thenReturn(Optional.of(group));
+    }
+
+    // ==================== prayer topics ====================
+
+    @Test
+    void subscribe_toOwnChurchPrayers_isAllowed() {
+        Message<?> message = subscribe("/topic/organizations/" + graceChurch.getId() + "/prayers", alice.getEmail());
+
+        assertSame(message, interceptor.preSend(message, mock(MessageChannel.class)));
+    }
+
+    @Test
+    void subscribe_toAnotherChurchPrayers_isRejected() {
+        Message<?> message = subscribe("/topic/organizations/" + otherChurch.getId() + "/prayers", alice.getEmail());
+
+        assertThrows(AccessDeniedException.class, () -> interceptor.preSend(message, mock(MessageChannel.class)));
+    }
+
+    @Test
+    void subscribe_toChurchPrayers_isRejectedWhenUserHasNoChurch() {
+        alice.setChurchPrimaryOrganization(null);
+
+        Message<?> message = subscribe("/topic/organizations/" + graceChurch.getId() + "/prayers", alice.getEmail());
+
+        assertThrows(AccessDeniedException.class, () -> interceptor.preSend(message, mock(MessageChannel.class)));
+    }
+
+    @Test
+    void subscribe_toChurchPrayers_isAllowedForPlatformAdminsOfAnyChurch() {
+        alice.setRole(User.Role.PLATFORM_ADMIN);
+
+        Message<?> message = subscribe("/topic/organizations/" + otherChurch.getId() + "/prayers", alice.getEmail());
+
+        assertSame(message, interceptor.preSend(message, mock(MessageChannel.class)));
+    }
+
+    @Test
+    void subscribe_toChurchPrayers_isRejectedWithoutAuthenticatedPrincipal() {
+        Message<?> message = subscribe("/topic/organizations/" + graceChurch.getId() + "/prayers", null);
+
+        assertThrows(AccessDeniedException.class, () -> interceptor.preSend(message, mock(MessageChannel.class)));
+    }
+
+    @Test
+    void subscribe_toPrayerInteractions_isAllowedForMembersOfThePrayersChurch() {
+        PrayerRequest prayer = prayerIn(graceChurch);
+        when(prayerRequestRepository.findById(prayer.getId())).thenReturn(Optional.of(prayer));
+
+        Message<?> message = subscribe("/topic/prayers/" + prayer.getId() + "/interactions", alice.getEmail());
+
+        assertSame(message, interceptor.preSend(message, mock(MessageChannel.class)));
+    }
+
+    @Test
+    void subscribe_toPrayerInteractions_isRejectedForOtherChurches() {
+        PrayerRequest prayer = prayerIn(otherChurch);
+        when(prayerRequestRepository.findById(prayer.getId())).thenReturn(Optional.of(prayer));
+
+        Message<?> message = subscribe("/topic/prayers/" + prayer.getId() + "/interactions", alice.getEmail());
+
+        assertThrows(AccessDeniedException.class, () -> interceptor.preSend(message, mock(MessageChannel.class)));
+    }
+
+    @Test
+    void subscribe_toPrayerInteractions_isRejectedWhenPrayerDoesNotExist() {
+        UUID missing = UUID.randomUUID();
+        when(prayerRequestRepository.findById(missing)).thenReturn(Optional.empty());
+
+        Message<?> message = subscribe("/topic/prayers/" + missing + "/interactions", alice.getEmail());
+
+        assertThrows(AccessDeniedException.class, () -> interceptor.preSend(message, mock(MessageChannel.class)));
+    }
+
+    @Test
+    void subscribe_toLegacyGlobalPrayerTopic_isNoLongerPublishedButStillHarmless() {
+        // Nothing publishes to /topic/prayers any more; subscribing just yields silence.
+        Message<?> message = subscribe("/topic/prayers", alice.getEmail());
+
+        assertNotNull(interceptor.preSend(message, mock(MessageChannel.class)));
+        verify(prayerRequestRepository, never()).findById(any());
+    }
+
+    private static PrayerRequest prayerIn(Organization organization) {
+        PrayerRequest prayer = new PrayerRequest();
+        prayer.setId(UUID.randomUUID());
+        prayer.setOrganization(organization);
+        return prayer;
     }
 
     @Test

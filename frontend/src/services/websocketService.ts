@@ -35,22 +35,33 @@ export interface ChatSocketError {
   timestamp: string;
 }
 
-export interface PrayerRequestUpdate {
-  type: 'prayer_request' | 'prayer_interaction' | 'prayer_update';
+/**
+ * Shape of every prayer event the backend publishes (PrayerNotificationEvent).
+ * `userId`/`userName` are withheld for anonymous prayers; no event carries an email.
+ */
+export interface PrayerEvent {
+  eventType: 'new_prayer' | 'prayer_answered' | 'prayer_interaction' | 'prayer_comment' | string;
   prayerRequestId: string;
-  userId?: string;
-  content?: any;
+  organizationId?: string;
+  userId?: string | null;
+  userName?: string;
+  title: string;
+  message: string;
   timestamp: string;
+  actionUrl?: string;
+  metadata?: {
+    title?: string;
+    status?: string;
+    category?: string;
+    interactionType?: string;
+    content?: string | null;
+  } | null;
 }
 
-export interface PrayerInteractionUpdate {
-  type: 'prayer_interaction';
-  prayerRequestId: string;
-  interactionType: string;
-  userId: string;
-  content?: string;
-  timestamp: string;
-}
+/** @deprecated Use PrayerEvent. Kept so older imports keep compiling. */
+export type PrayerRequestUpdate = PrayerEvent;
+/** @deprecated Use PrayerEvent. Kept so older imports keep compiling. */
+export type PrayerInteractionUpdate = PrayerEvent;
 
 export interface EventUpdate {
   eventType: string; // "event_created", "event_updated", "event_cancelled", "chat_message_received", "post_comment_received"
@@ -629,8 +640,9 @@ class WebSocketService {
     });
   }
 
-  // Subscribe to prayer request updates
-  subscribeToPrayerRequests(callback: (update: PrayerRequestUpdate) => void): () => void {
+  // Subscribe to prayer request updates for one church.
+  // The server only lets members of that church subscribe (WebSocketConfig).
+  subscribeToPrayerRequests(organizationId: string, callback: (update: PrayerEvent) => void): () => void {
     if (!this.client || !this.client.connected) {
       throw new Error('WebSocket not connected');
     }
@@ -644,7 +656,7 @@ class WebSocketService {
       this.subscriptions.delete(subscriptionKey);
     }
 
-    const destination = '/topic/prayers';
+    const destination = `/topic/organizations/${organizationId}/prayers`;
     const subscription = this.client.subscribe(destination, (message: IMessage) => {
       try {
         const data = JSON.parse(message.body);
@@ -662,10 +674,11 @@ class WebSocketService {
     };
   }
 
-  // Subscribe to specific prayer request interactions
+  // Subscribe to specific prayer request interactions.
+  // Destination must match PrayerTopics.prayerInteractions() on the backend.
   subscribeToPrayerInteractions(
     prayerRequestId: string,
-    callback: (interaction: PrayerInteractionUpdate) => void
+    callback: (interaction: PrayerEvent) => void
   ): () => void {
     if (!this.isConnected || !this.client) {
       throw new Error('WebSocket not connected');
@@ -731,17 +744,8 @@ class WebSocketService {
     };
   }
 
-  // Send prayer interaction via WebSocket
-  sendPrayerInteraction(prayerRequestId: string, interaction: any): void {
-    if (!this.isConnected || !this.client) {
-      throw new Error('WebSocket not connected');
-    }
-
-    this.client.publish({
-      destination: `/app/prayers/${prayerRequestId}/interact`,
-      body: JSON.stringify(interaction),
-    });
-  }
+  // Note: prayer interactions are created via the REST API (prayerInteractionAPI),
+  // never sent over STOMP — the server broadcasts the authoritative event after saving.
 
   // Subscribe to all event updates
   async subscribeToEventUpdates(callback: (update: EventUpdate) => void): Promise<() => void> {
