@@ -626,6 +626,8 @@ const App: React.FC = () => {
                             onPostCreated={handleComposerClose}
                             placeholder="Share what's happening in your community..."
                             initialMediaFile={capturedMediaFile}
+                            autoFocus
+                            fillAvailableSpace
                           />
                         </Suspense>
                       </div>

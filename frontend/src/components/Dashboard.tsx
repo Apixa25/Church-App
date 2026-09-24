@@ -584,6 +584,8 @@ const Dashboard: React.FC = () => {
                     onPostCreated={handlePostCreated}
                     onCancel={() => setShowComposer(false)}
                     placeholder="Share what's happening in your community..."
+                    autoFocus
+                    fillAvailableSpace
                   />
                 </div>
               </div>

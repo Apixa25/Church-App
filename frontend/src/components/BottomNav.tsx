@@ -5,6 +5,7 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useChatUnreadCount } from '../hooks/useChatUnreadCount';
 import { useAuth } from '../contexts/AuthContext';
 import { IN_APP_CAMERA_ENABLED } from '../config/featureFlags';
+import { primeMobileKeyboard } from '../utils/mobileKeyboard';
 import './BottomNav.css';
 
 interface BottomNavProps {
@@ -154,7 +155,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ onPostClick, onCameraClick, showC
           onPostClick?.(); // Close composer first
           goToHome();
         } else {
-          // Open composer
+          // Open the keyboard in this tap, then show the composer
+          primeMobileKeyboard();
           onPostClick?.();
         }
       }

@@ -14,6 +14,7 @@ import {
   SocialMediaPlatform 
 } from '../utils/socialMediaUtils';
 import { createStableUploadFile, processImageForUpload } from '../utils/imageUtils';
+import { dismissMobileKeyboardPrime, handoffMobileKeyboard } from '../utils/mobileKeyboard';
 import { IN_APP_CAMERA_ENABLED } from '../config/featureFlags';
 import './PostComposer.css';
 
@@ -43,6 +44,10 @@ interface PostComposerProps {
   initialMediaFile?: File;
   /** Default group to post to (pre-selects the group in dropdown) */
   defaultGroupId?: string;
+  /** Open the phone keyboard as soon as the composer appears */
+  autoFocus?: boolean;
+  /** Stretch the writing area to the space above the phone keyboard */
+  fillAvailableSpace?: boolean;
 }
 
 const PostComposer: React.FC<PostComposerProps> = ({
@@ -52,7 +57,9 @@ const PostComposer: React.FC<PostComposerProps> = ({
   replyTo,
   quoteTo,
   initialMediaFile,
-  defaultGroupId
+  defaultGroupId,
+  autoFocus = false,
+  fillAvailableSpace = false
 }) => {
   // Multi-tenant contexts - Dual Primary System
   const { primaryMembership, familyPrimary, allMemberships } = useOrganization();
@@ -113,6 +120,73 @@ const PostComposer: React.FC<PostComposerProps> = ({
   
   // Track if we've processed the initial file to avoid duplicates
   const initialFileProcessedRef = useRef(false);
+
+  // Move focus from the tap-time placeholder field onto the real textarea
+  // so the phone keyboard opens with the composer, not on a second tap.
+  useEffect(() => {
+    if (!autoFocus) return;
+
+    const focusComposer = () => handoffMobileKeyboard(textareaRef.current);
+    focusComposer();
+    const frame = window.requestAnimationFrame(focusComposer);
+    const retry = window.setTimeout(focusComposer, 60);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(retry);
+      dismissMobileKeyboardPrime();
+    };
+  }, [autoFocus]);
+
+  // Keep the modal inside the visible area above the phone keyboard.
+  useEffect(() => {
+    const isPhoneLayout = window.matchMedia?.('(max-width: 768px)').matches;
+    if (!fillAvailableSpace || !isPhoneLayout) return;
+
+    const root = document.documentElement;
+    let tallestViewport = 0;
+
+    const updateComposerViewport = () => {
+      const viewport = window.visualViewport;
+      const height = viewport?.height ?? window.innerHeight;
+      const offsetTop = viewport?.offsetTop ?? 0;
+      if (height > tallestViewport) {
+        tallestViewport = height;
+      }
+      const keyboardInset = Math.max(0, window.innerHeight - height - offsetTop);
+      const keyboardOpen = keyboardInset > 80 || tallestViewport - height > 80;
+
+      root.style.setProperty('--composer-viewport-height', `${Math.round(height)}px`);
+      root.style.setProperty('--composer-viewport-offset-top', `${Math.round(offsetTop)}px`);
+      root.style.setProperty(
+        '--composer-bottom-inset',
+        keyboardOpen ? '0px' : 'calc(96px + env(safe-area-inset-bottom, 0px))'
+      );
+    };
+
+    const handleOrientationChange = () => {
+      tallestViewport = 0;
+      updateComposerViewport();
+    };
+
+    updateComposerViewport();
+    document.body.classList.add('composer-open');
+    window.visualViewport?.addEventListener('resize', updateComposerViewport);
+    window.visualViewport?.addEventListener('scroll', updateComposerViewport);
+    window.addEventListener('resize', updateComposerViewport);
+    window.addEventListener('orientationchange', handleOrientationChange);
+
+    return () => {
+      document.body.classList.remove('composer-open');
+      root.style.removeProperty('--composer-viewport-height');
+      root.style.removeProperty('--composer-viewport-offset-top');
+      root.style.removeProperty('--composer-bottom-inset');
+      window.visualViewport?.removeEventListener('resize', updateComposerViewport);
+      window.visualViewport?.removeEventListener('scroll', updateComposerViewport);
+      window.removeEventListener('resize', updateComposerViewport);
+      window.removeEventListener('orientationchange', handleOrientationChange);
+    };
+  }, [fillAvailableSpace]);
 
   const maxContentLength = 2000;
   const maxMediaFiles = 4;
@@ -534,7 +608,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
   const isNearLimit = characterCount > maxContentLength * 0.9;
 
   return (
-    <div className="post-composer">
+    <div className={`post-composer${fillAvailableSpace ? ' post-composer-fill' : ''}`}>
       {/* Reply/Quote Header */}
       {(replyTo || quoteTo) && (
         <div className="composer-header">
@@ -585,6 +659,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
             className="composer-textarea"
             rows={4}
             maxLength={maxContentLength}
+            autoFocus={autoFocus}
           />
 
           {/* Character Counter */}
