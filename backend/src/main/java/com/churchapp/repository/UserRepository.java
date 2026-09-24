@@ -12,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -124,11 +125,19 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
      * 
      * Note: Uses native query. Parameters are checked for null in the service layer before calling this method.
      * When a UUID parameter is null, the comparison will return NULL (falsy), so only non-null orgs are matched.
+     *
+     * Applies the same visibility rules as the app-wide people search: deleted, deactivated and banned
+     * accounts are hidden, as is anyone in a block relationship with the requester.
+     * {@code excludedUserIds} must never be empty (Postgres rejects {@code NOT IN ()}); the service
+     * always includes the requester's own id in it.
      */
     @Query(value = """
         SELECT DISTINCT u.*
         FROM users u
-        WHERE u.id != :excludeUserId
+        WHERE u.id NOT IN (:excludedUserIds)
+          AND u.deleted_at IS NULL
+          AND u.is_active = TRUE
+          AND u.is_banned = FALSE
           AND (
                (u.church_primary_organization_id IS NOT NULL AND u.church_primary_organization_id = :churchOrgId)
             OR (u.family_primary_organization_id IS NOT NULL AND u.family_primary_organization_id = :familyOrgId)
@@ -142,7 +151,7 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
         """, nativeQuery = true)
     Page<User> findDirectoryMembers(@Param("churchOrgId") UUID churchOrgId,
                                     @Param("familyOrgId") UUID familyOrgId,
-                                    @Param("excludeUserId") UUID excludeUserId,
+                                    @Param("excludedUserIds") Collection<UUID> excludedUserIds,
                                     @Param("qLike") String qLike,
                                     Pageable pageable);
 

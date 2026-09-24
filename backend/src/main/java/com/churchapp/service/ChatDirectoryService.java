@@ -10,7 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -52,8 +54,13 @@ public class ChatDirectoryService {
         // Prepare search query with wildcard
         String qLike = (query == null || query.isBlank()) ? null : ("%" + query.toLowerCase() + "%");
 
+        // Same visibility rules as Find People: hide anyone in a block relationship with the requester.
+        // The requester's own id is always present so the NOT IN list is never empty.
+        Set<UUID> excludedUserIds = new HashSet<>(userBlockService.getMutuallyBlockedUserIds(requesterId));
+        excludedUserIds.add(requesterId);
+
         // Single query fetching from both organizations
-        return userRepository.findDirectoryMembers(churchOrgId, familyOrgId, requesterId, qLike, pageable);
+        return userRepository.findDirectoryMembers(churchOrgId, familyOrgId, excludedUserIds, qLike, pageable);
     }
 
     public Page<User> searchGlobalPeople(UUID requesterId, String query, Pageable pageable) {
