@@ -8,6 +8,7 @@ import com.churchapp.dto.PrayerRequestResponse;
 import com.churchapp.entity.Organization;
 import com.churchapp.entity.PrayerRequest;
 import com.churchapp.entity.User;
+import com.churchapp.entity.UserSettings;
 import com.churchapp.exception.PrayerAccessDeniedException;
 import com.churchapp.exception.PrayerNotFoundException;
 import com.churchapp.repository.PrayerRequestRepository;
@@ -17,6 +18,7 @@ import com.churchapp.repository.UserSettingsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -63,7 +65,7 @@ public class PrayerRequestService {
         prayerRequest.setTitle(request.getTitle().trim());
         prayerRequest.setDescription(request.getDescription() != null ? request.getDescription().trim() : null);
         prayerRequest.setImageUrl(request.getImageUrl());
-        prayerRequest.setIsAnonymous(request.getIsAnonymous() != null ? request.getIsAnonymous() : false);
+        prayerRequest.setIsAnonymous(resolveAnonymity(userId, request.getIsAnonymous()));
         prayerRequest.setCategory(request.getCategory() != null ? request.getCategory() : PrayerRequest.PrayerCategory.GENERAL);
         prayerRequest.setStatus(PrayerRequest.PrayerStatus.ACTIVE); // Always start as active
 
@@ -77,6 +79,25 @@ public class PrayerRequestService {
         return PrayerRequestResponse.fromPrayerRequestForOwner(savedPrayerRequest);
     }
     
+    /**
+     * An explicit choice on the form always wins. When the client sends nothing,
+     * fall back to the member's "Prayer Request Visibility" setting: ANONYMOUS or
+     * PRIVATE means "post anonymously by default", anything else shows their name.
+     */
+    private boolean resolveAnonymity(UUID userId, Boolean requested) {
+        if (requested != null) {
+            return requested;
+        }
+        return userSettingsRepository.findByUserId(userId)
+            .map(settings -> prefersAnonymity(settings.getPrayerRequestVisibility()))
+            .orElse(false);
+    }
+
+    public static boolean prefersAnonymity(UserSettings.PrayerVisibility visibility) {
+        return visibility == UserSettings.PrayerVisibility.ANONYMOUS
+            || visibility == UserSettings.PrayerVisibility.PRIVATE;
+    }
+
     public PrayerRequestResponse createPrayerRequestWithImage(UUID userId, PrayerRequestRequest request, MultipartFile imageFile) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
@@ -116,7 +137,7 @@ public class PrayerRequestService {
         prayerRequest.setTitle(request.getTitle().trim());
         prayerRequest.setDescription(request.getDescription() != null ? request.getDescription().trim() : null);
         prayerRequest.setImageUrl(imageUrl);
-        prayerRequest.setIsAnonymous(request.getIsAnonymous() != null ? request.getIsAnonymous() : false);
+        prayerRequest.setIsAnonymous(resolveAnonymity(userId, request.getIsAnonymous()));
         prayerRequest.setCategory(request.getCategory() != null ? request.getCategory() : PrayerRequest.PrayerCategory.GENERAL);
         prayerRequest.setStatus(PrayerRequest.PrayerStatus.ACTIVE); // Always start as active
 
@@ -372,11 +393,36 @@ public class PrayerRequestService {
             .map(prayer -> prayer.getUser() != null ? prayer.getUser().getId() : null);
     }
     
+    /** Church a prayer belongs to, for moderation scoping. Empty when the prayer no longer exists. */
+    @Transactional(readOnly = true)
+    public java.util.Optional<UUID> findOrganizationId(UUID prayerRequestId) {
+        return prayerRequestRepository.findById(prayerRequestId)
+            .map(prayer -> prayer.getOrganization() != null ? prayer.getOrganization().getId() : null);
+    }
+
     /**
      * Prayer list for the caller's locked church. A different organization id is rejected.
      * Users without a church get an empty page, not the shared global organization.
      */
     public Page<PrayerRequestResponse> getAllPrayerRequests(UUID requestingUserId, UUID organizationId, int page, int size) {
+        return getAllPrayerRequests(requestingUserId, organizationId, null, null, page, size);
+    }
+
+    /**
+     * Church prayer list with optional category and status filters that combine.
+     *
+     * Status rules:
+     *  - no status → ACTIVE only (the default feed, unchanged)
+     *  - ACTIVE / ANSWERED / RESOLVED → that status
+     *  - ARCHIVED → only the caller's own archived prayers. Archiving is also
+     *    how moderators hide a prayer, so nobody may list other people's.
+     */
+    public Page<PrayerRequestResponse> getAllPrayerRequests(UUID requestingUserId,
+                                                            UUID organizationId,
+                                                            PrayerRequest.PrayerCategory category,
+                                                            PrayerRequest.PrayerStatus status,
+                                                            int page,
+                                                            int size) {
         User user = userRepository.findById(requestingUserId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -388,8 +434,26 @@ public class PrayerRequestService {
             return Page.empty(pageable);
         }
         Organization church = churchPrimaryResolver.requireChurchMatch(user, organizationId);
-        Page<PrayerRequest> prayerRequests = prayerRequestRepository.findActiveByOrganizationId(
-            church.getId(), pageable);
+        UUID churchId = church.getId();
+
+        Page<PrayerRequest> prayerRequests;
+        if (status == PrayerRequest.PrayerStatus.ARCHIVED) {
+            prayerRequests = prayerRequestRepository.findArchivedByOrganizationIdAndUserId(
+                churchId, requestingUserId, pageable);
+            if (category != null) {
+                // Own archive is small; filter the page in memory rather than add a fourth query.
+                List<PrayerRequest> filtered = prayerRequests.getContent().stream()
+                    .filter(prayer -> prayer.getCategory() == category)
+                    .collect(Collectors.toList());
+                prayerRequests = new PageImpl<>(filtered, pageable, filtered.size());
+            }
+        } else {
+            List<PrayerRequest.PrayerStatus> statuses = List.of(
+                status != null ? status : PrayerRequest.PrayerStatus.ACTIVE);
+            prayerRequests = category != null
+                ? prayerRequestRepository.findByOrganizationIdAndCategoryAndStatusIn(churchId, category, statuses, pageable)
+                : prayerRequestRepository.findByOrganizationIdAndStatusIn(churchId, statuses, pageable);
+        }
 
         return prayerRequests.map(prayerRequest -> {
             if (prayerRequest.getUser().getId().equals(requestingUserId)) {

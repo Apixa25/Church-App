@@ -233,6 +233,7 @@ export const usePrayerNotifications = () => {
         break;
       case 'prayer_update':
       case 'prayer_updated':
+        if (isOwnPrayer) return;
         notification = {
           id: `prayer-updated-${data.prayerRequestId}-${Date.now()}`,
           type: 'prayer_updated',

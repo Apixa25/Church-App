@@ -18,6 +18,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatFullDate } from '../utils/dateUtils';
 import { usePrayerNotifications } from '../hooks/usePrayerNotifications';
 import PrayerCommentThread from './PrayerCommentThread';
+import PrayerUpdateTimeline from './PrayerUpdateTimeline';
 import ClickableAvatar from './ClickableAvatar';
 import { getImageUrlWithFallback } from '../utils/imageUrlUtils';
 
@@ -50,6 +51,8 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
   const [success, setSuccess] = useState<string | null>(null);
   // Bumped when someone else comments, so the thread refetches without a page reload.
   const [commentsRefreshKey, setCommentsRefreshKey] = useState(0);
+  // Bumped when the owner posts a timeline update while someone else has the prayer open.
+  const [updatesRefreshKey, setUpdatesRefreshKey] = useState(0);
 
   // Fix owner check: only compare UUIDs (not email to UUID)
   const isOwner = Boolean(user?.userId && prayer?.userId && user.userId === prayer.userId);
@@ -126,8 +129,16 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
       if (event.userId && event.userId === user.userId) return;
       const isComment = event.eventType === 'prayer_comment'
         || event.metadata?.interactionType === 'COMMENT';
+      const isTimelineUpdate = event.eventType === 'prayer_update';
       try {
-        if (isComment) {
+        if (isTimelineUpdate) {
+          // The owner shared news — refresh the timeline, and the header if the status moved.
+          setUpdatesRefreshKey(key => key + 1);
+          const status = event.metadata?.status as PrayerStatus | undefined;
+          if (status) {
+            setPrayer(prev => (prev && prev.status !== status ? { ...prev, status } : prev));
+          }
+        } else if (isComment) {
           setCommentsRefreshKey(key => key + 1);
         } else {
           const [reactionsResponse, participantsResponse] = await Promise.all([
@@ -406,6 +417,14 @@ const PrayerRequestDetail: React.FC<PrayerRequestDetailProps> = ({
             </div>
           )}
         </div>
+
+        <PrayerUpdateTimeline
+          prayerRequestId={prayer.id}
+          isOwner={isOwner}
+          currentStatus={prayer.status}
+          refreshKey={updatesRefreshKey}
+          onStatusChanged={(status) => setPrayer(prev => (prev ? { ...prev, status } : prev))}
+        />
 
         <div className="prayer-interactions">
           <div className="interaction-buttons">

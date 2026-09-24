@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +47,7 @@ public class ContentModerationService {
     private final UserRepository userRepository;
     private final com.churchapp.service.UserManagementService userManagementService;
     private final PrayerRequestService prayerRequestService;
+    private final AdminAuthorizationService adminAuthorizationService;
 
     @Transactional(readOnly = true)
     public Page<ModerationResponse> getReportedContent(Pageable pageable, String contentType, String status, String priority) {
@@ -337,6 +339,8 @@ public class ContentModerationService {
         // Get moderator user entity
         User moderator = userRepository.findById(moderatorId)
             .orElseThrow(() -> new RuntimeException("Moderator user not found: " + moderatorId));
+
+        assertModeratorMayActOn(contentType, contentId, moderator);
 
         // Handle WARN action - warn the content author
         if ("WARN".equalsIgnoreCase(action)) {
@@ -667,6 +671,62 @@ public class ContentModerationService {
     }
 
     // Content-specific moderation methods
+    /**
+     * Church moderators may only act on content that lives in a church they moderate.
+     * Platform admins and platform moderators may act anywhere.
+     *
+     * Content whose organization we cannot resolve (e.g. a post already deleted, or a
+     * type without an org such as USER) is left to the type-specific handler, which
+     * already deals with "not found" the way it always has.
+     */
+    public void assertModeratorMayActOn(String contentType, UUID contentId, User moderator) {
+        if (moderator.getRole() == User.Role.PLATFORM_ADMIN || moderator.getRole() == User.Role.MODERATOR) {
+            return;
+        }
+        UUID organizationId = getContentOrganizationId(contentType, contentId);
+        if (organizationId == null) {
+            return;
+        }
+        if (!adminAuthorizationService.canModerateOrg(moderator, organizationId)) {
+            log.warn("Moderator {} attempted to moderate {} {} outside their church (org {})",
+                moderator.getId(), contentType, contentId, organizationId);
+            throw new AccessDeniedException("You can only moderate content in your own church");
+        }
+    }
+
+    /**
+     * Organization a piece of content belongs to, or null when unknown.
+     */
+    public UUID getContentOrganizationId(String contentType, UUID contentId) {
+        try {
+            switch (contentType.toUpperCase()) {
+                case "POST":
+                    return postRepository.findById(contentId)
+                        .map(Post::getOrganization)
+                        .map(org -> org.getId())
+                        .orElse(null);
+                case "MARKETPLACE":
+                    return marketplaceListingRepository.findById(contentId)
+                        .map(MarketplaceListing::getOrganization)
+                        .map(org -> org.getId())
+                        .orElse(null);
+                case "MESSAGE":
+                    return messageRepository.findById(contentId)
+                        .map(Message::getChatGroup)
+                        .map(group -> group.getOrganization())
+                        .map(org -> org.getId())
+                        .orElse(null);
+                case "PRAYER":
+                    return prayerRequestService.findOrganizationId(contentId).orElse(null);
+                default:
+                    return null;
+            }
+        } catch (Exception e) {
+            log.error("Error resolving organization for {} {}: {}", contentType, contentId, e.getMessage());
+            return null;
+        }
+    }
+
     /**
      * Get the author ID for a given content type and content ID
      */

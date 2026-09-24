@@ -74,6 +74,23 @@ public interface PrayerInteractionRepository extends JpaRepository<PrayerInterac
     List<Object[]> getInteractionCountsByTypeForPrayers(@Param("prayerRequestIds") Collection<UUID> prayerRequestIds);
 
     // Row shape: [prayerId, distinctUserCount]
+    /**
+     * For the daily "you're praying for N requests" reminder: each member who has
+     * tapped "I prayed" since {@code since} on a prayer that is still ACTIVE in their
+     * own church, with a device token, and how many such prayers they hold.
+     * Rows are {@code [userId, fcmToken, distinctActivePrayers]}.
+     */
+    @Query("SELECT pi.user.id, pi.user.fcmToken, COUNT(DISTINCT pi.prayerRequest.id) " +
+           "FROM PrayerInteraction pi " +
+           "WHERE pi.type = 'PRAY' " +
+           "AND pi.timestamp > :since " +
+           "AND pi.prayerRequest.status = 'ACTIVE' " +
+           "AND pi.prayerRequest.organization = pi.user.churchPrimaryOrganization " +
+           "AND pi.user.fcmToken IS NOT NULL " +
+           "AND pi.user.id <> pi.prayerRequest.user.id " +
+           "GROUP BY pi.user.id, pi.user.fcmToken")
+    List<Object[]> findCommittedPrayerCountsSince(@Param("since") LocalDateTime since);
+
     @Query("SELECT pi.prayerRequest.id, COUNT(DISTINCT pi.user.id) FROM PrayerInteraction pi " +
            "WHERE pi.prayerRequest.id IN :prayerRequestIds GROUP BY pi.prayerRequest.id")
     List<Object[]> countDistinctUsersForPrayers(@Param("prayerRequestIds") Collection<UUID> prayerRequestIds);

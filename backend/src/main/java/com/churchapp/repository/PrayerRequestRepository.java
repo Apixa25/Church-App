@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -121,6 +122,44 @@ public interface PrayerRequestRepository extends JpaRepository<PrayerRequest, UU
     Page<PrayerRequest> findByOrganizationIdAndStatus(
         @Param("orgId") UUID orgId,
         @Param("status") PrayerRequest.PrayerStatus status,
+        Pageable pageable
+    );
+
+    // ---- Combined list filters (church feed) ----
+    // Callers pass the exact set of statuses they may see, so a moderator-archived
+    // prayer never appears just because a filter happened to include ARCHIVED.
+
+    @Query("SELECT pr FROM PrayerRequest pr WHERE " +
+           "pr.organization.id = :orgId " +
+           "AND pr.status IN :statuses " +
+           "ORDER BY pr.createdAt DESC")
+    Page<PrayerRequest> findByOrganizationIdAndStatusIn(
+        @Param("orgId") UUID orgId,
+        @Param("statuses") Collection<PrayerRequest.PrayerStatus> statuses,
+        Pageable pageable
+    );
+
+    @Query("SELECT pr FROM PrayerRequest pr WHERE " +
+           "pr.organization.id = :orgId " +
+           "AND pr.category = :category " +
+           "AND pr.status IN :statuses " +
+           "ORDER BY pr.createdAt DESC")
+    Page<PrayerRequest> findByOrganizationIdAndCategoryAndStatusIn(
+        @Param("orgId") UUID orgId,
+        @Param("category") PrayerRequest.PrayerCategory category,
+        @Param("statuses") Collection<PrayerRequest.PrayerStatus> statuses,
+        Pageable pageable
+    );
+
+    // A member's own archived prayers (the only archived prayers anyone may list)
+    @Query("SELECT pr FROM PrayerRequest pr WHERE " +
+           "pr.organization.id = :orgId " +
+           "AND pr.user.id = :userId " +
+           "AND pr.status = 'ARCHIVED' " +
+           "ORDER BY pr.createdAt DESC")
+    Page<PrayerRequest> findArchivedByOrganizationIdAndUserId(
+        @Param("orgId") UUID orgId,
+        @Param("userId") UUID userId,
         Pageable pageable
     );
 

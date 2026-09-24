@@ -2,6 +2,7 @@ package com.churchapp.dto;
 
 import com.churchapp.entity.PrayerInteraction;
 import com.churchapp.entity.PrayerRequest;
+import com.churchapp.entity.PrayerUpdate;
 import com.churchapp.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -112,6 +113,33 @@ public class PrayerNotificationEvent {
                 .metadata(PrayerRequestMetadata.builder()
                         .title(prayerRequest.getTitle())
                         .status(PrayerRequest.PrayerStatus.ANSWERED.name())
+                        .category(prayerRequest.getCategory() != null ? prayerRequest.getCategory().name() : null)
+                        .build())
+                .build();
+    }
+
+    /** The owner posted a timeline update ("here's how it went"). */
+    public static PrayerNotificationEvent prayerUpdate(PrayerUpdate update) {
+        PrayerRequest prayerRequest = update.getPrayerRequest();
+        boolean anonymous = Boolean.TRUE.equals(prayerRequest.getIsAnonymous());
+        User author = update.getAuthor();
+        String displayName = anonymous ? ANONYMOUS_DISPLAY_NAME : author.getName();
+
+        return PrayerNotificationEvent.builder()
+                .eventType("prayer_update")
+                .prayerRequestId(prayerRequest.getId())
+                .organizationId(organizationIdOf(prayerRequest))
+                .userId(anonymous ? null : author.getId())
+                .userName(displayName)
+                .title("Prayer Update")
+                .message(anonymous
+                        ? "There's an update on a prayer in your church: \"" + prayerRequest.getTitle() + "\""
+                        : displayName + " shared an update on \"" + prayerRequest.getTitle() + "\"")
+                .timestamp(LocalDateTime.now().toString())
+                .actionUrl("/prayers/" + prayerRequest.getId())
+                .metadata(PrayerRequestMetadata.builder()
+                        .title(prayerRequest.getTitle())
+                        .status(prayerRequest.getStatus() != null ? prayerRequest.getStatus().name() : null)
                         .category(prayerRequest.getCategory() != null ? prayerRequest.getCategory().name() : null)
                         .build())
                 .build();

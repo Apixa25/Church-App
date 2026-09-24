@@ -3,9 +3,11 @@ package com.churchapp;
 import com.churchapp.dto.PrayerNotificationEvent;
 import com.churchapp.dto.PrayerRequestRequest;
 import com.churchapp.dto.PrayerRequestUpdateRequest;
+import com.churchapp.dto.PrayerRequestResponse;
 import com.churchapp.entity.Organization;
 import com.churchapp.entity.PrayerRequest;
 import com.churchapp.entity.User;
+import com.churchapp.entity.UserSettings;
 import com.churchapp.exception.PrayerAccessDeniedException;
 import com.churchapp.exception.PrayerNotFoundException;
 import com.churchapp.repository.PrayerInteractionRepository;
@@ -24,6 +26,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.List;
@@ -32,7 +36,9 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -300,6 +306,112 @@ class PrayerRequestServiceTest {
         UUID missing = UUID.randomUUID();
         when(prayerRequestRepository.findById(missing)).thenReturn(Optional.empty());
         assertEquals(Optional.empty(), service.findOwnerId(missing));
+    }
+
+    // ==================== default anonymity from settings ====================
+
+    @Test
+    void create_withNoAnonymityChoice_followsAnonymousVisibilitySetting() {
+        when(churchPrimaryResolver.requireChurchMatch(owner, null)).thenReturn(graceChurch);
+        when(userRepository.findByChurchPrimaryOrganization(graceChurch)).thenReturn(List.of());
+        UserSettings settings = new UserSettings();
+        settings.setPrayerRequestVisibility(UserSettings.PrayerVisibility.ANONYMOUS);
+        when(userSettingsRepository.findByUserId(owner.getId())).thenReturn(Optional.of(settings));
+
+        PrayerRequestRequest request = newRequest();
+        request.setIsAnonymous(null);
+
+        assertTrue(service.createPrayerRequest(owner.getId(), request).getIsAnonymous());
+    }
+
+    @Test
+    void create_withExplicitChoice_ignoresVisibilitySetting() {
+        when(churchPrimaryResolver.requireChurchMatch(owner, null)).thenReturn(graceChurch);
+        when(userRepository.findByChurchPrimaryOrganization(graceChurch)).thenReturn(List.of());
+
+        PrayerRequestRequest request = newRequest();
+        request.setIsAnonymous(false);
+
+        assertFalse(service.createPrayerRequest(owner.getId(), request).getIsAnonymous());
+        verify(userSettingsRepository, never()).findByUserId(any());
+    }
+
+    @Test
+    void create_withNoSettingsRow_defaultsToNamed() {
+        when(churchPrimaryResolver.requireChurchMatch(owner, null)).thenReturn(graceChurch);
+        when(userRepository.findByChurchPrimaryOrganization(graceChurch)).thenReturn(List.of());
+        when(userSettingsRepository.findByUserId(owner.getId())).thenReturn(Optional.empty());
+
+        PrayerRequestRequest request = newRequest();
+        request.setIsAnonymous(null);
+
+        assertFalse(service.createPrayerRequest(owner.getId(), request).getIsAnonymous());
+    }
+
+    @Test
+    void prefersAnonymity_treatsPrivateAndAnonymousAsAnonymous() {
+        assertTrue(PrayerRequestService.prefersAnonymity(UserSettings.PrayerVisibility.ANONYMOUS));
+        assertTrue(PrayerRequestService.prefersAnonymity(UserSettings.PrayerVisibility.PRIVATE));
+        assertFalse(PrayerRequestService.prefersAnonymity(UserSettings.PrayerVisibility.CHURCH_MEMBERS));
+        assertFalse(PrayerRequestService.prefersAnonymity(UserSettings.PrayerVisibility.PUBLIC));
+        assertFalse(PrayerRequestService.prefersAnonymity(null));
+    }
+
+    // ==================== list filters ====================
+
+    @Test
+    void list_withNoFilters_returnsActiveOnly() {
+        when(churchPrimaryResolver.requireChurchMatch(owner, null)).thenReturn(graceChurch);
+        when(prayerRequestRepository.findByOrganizationIdAndStatusIn(eq(graceChurch.getId()), anyCollection(), any()))
+            .thenReturn(new PageImpl<>(List.of(prayer)));
+
+        Page<PrayerRequestResponse> page = service.getAllPrayerRequests(owner.getId(), null, null, null, 0, 20);
+
+        assertEquals(1, page.getTotalElements());
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<java.util.Collection<PrayerRequest.PrayerStatus>> statuses =
+            ArgumentCaptor.forClass(java.util.Collection.class);
+        verify(prayerRequestRepository).findByOrganizationIdAndStatusIn(eq(graceChurch.getId()), statuses.capture(), any());
+        assertEquals(List.of(PrayerRequest.PrayerStatus.ACTIVE), List.copyOf(statuses.getValue()));
+    }
+
+    @Test
+    void list_withCategoryAndStatus_combinesBothInOneQuery() {
+        when(churchPrimaryResolver.requireChurchMatch(owner, null)).thenReturn(graceChurch);
+        when(prayerRequestRepository.findByOrganizationIdAndCategoryAndStatusIn(
+                eq(graceChurch.getId()), eq(PrayerRequest.PrayerCategory.HEALTH), anyCollection(), any()))
+            .thenReturn(new PageImpl<>(List.of(prayer)));
+
+        service.getAllPrayerRequests(owner.getId(), null,
+            PrayerRequest.PrayerCategory.HEALTH, PrayerRequest.PrayerStatus.ANSWERED, 0, 20);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<java.util.Collection<PrayerRequest.PrayerStatus>> statuses =
+            ArgumentCaptor.forClass(java.util.Collection.class);
+        verify(prayerRequestRepository).findByOrganizationIdAndCategoryAndStatusIn(
+            eq(graceChurch.getId()), eq(PrayerRequest.PrayerCategory.HEALTH), statuses.capture(), any());
+        assertEquals(List.of(PrayerRequest.PrayerStatus.ANSWERED), List.copyOf(statuses.getValue()));
+    }
+
+    @Test
+    void list_archived_onlyShowsTheCallersOwnPrayers() {
+        when(churchPrimaryResolver.requireChurchMatch(bob, null)).thenReturn(graceChurch);
+        when(prayerRequestRepository.findArchivedByOrganizationIdAndUserId(eq(graceChurch.getId()), eq(bob.getId()), any()))
+            .thenReturn(Page.empty());
+
+        service.getAllPrayerRequests(bob.getId(), null, null, PrayerRequest.PrayerStatus.ARCHIVED, 0, 20);
+
+        verify(prayerRequestRepository).findArchivedByOrganizationIdAndUserId(eq(graceChurch.getId()), eq(bob.getId()), any());
+        verify(prayerRequestRepository, never()).findByOrganizationIdAndStatusIn(any(), anyCollection(), any());
+    }
+
+    @Test
+    void findOrganizationId_returnsChurchOrEmpty() {
+        assertEquals(Optional.of(graceChurch.getId()), service.findOrganizationId(prayer.getId()));
+
+        UUID missing = UUID.randomUUID();
+        when(prayerRequestRepository.findById(missing)).thenReturn(Optional.empty());
+        assertEquals(Optional.empty(), service.findOrganizationId(missing));
     }
 
     // ==================== helpers ====================

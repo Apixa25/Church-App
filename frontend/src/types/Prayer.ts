@@ -95,6 +95,25 @@ export interface PrayerComment extends PrayerInteraction {
   replies?: PrayerComment[];
 }
 
+/** One dated note on a prayer's timeline, written by its owner. */
+export interface PrayerUpdate {
+  id: string;
+  prayerRequestId: string;
+  /** Absent when the prayer is anonymous and the viewer is not the owner. */
+  authorId?: string | null;
+  authorName: string;
+  authorProfilePicUrl?: string | null;
+  content: string;
+  /** Status the prayer was moved to with this update, if any. */
+  newStatus?: PrayerStatus | null;
+  createdAt: string | number[];
+}
+
+export interface PrayerUpdateCreateRequest {
+  content: string;
+  newStatus?: PrayerStatus;
+}
+
 export interface PrayerListResponse {
   content: PrayerRequest[];
   totalElements: number;

@@ -11,6 +11,7 @@ import {
   PRAYER_STATUS_LABELS,
 } from '../types/Prayer';
 import { prayerAPI, handleApiError } from '../services/prayerApi';
+import { getUserSettings, prefersAnonymousPrayers } from '../services/settingsApi';
 import { useOrganization } from '../contexts/OrganizationContext';
 import LoadingSpinner from './LoadingSpinner';
 import { processImageForUpload } from '../utils/imageUtils';
@@ -44,7 +45,8 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
     handleSubmit,
     formState: { errors },
     reset,
-    watch
+    watch,
+    setValue
   } = useForm<PrayerFormData>({
     defaultValues: {
       title: existingPrayer?.title || '',
@@ -75,6 +77,24 @@ const PrayerRequestForm: React.FC<PrayerRequestFormProps> = ({
       setImagePreview(existingPrayer.imageUrl || null);
     }
   }, [existingPrayer, reset]);
+
+  // New prayers start from the member's "Prayer Request Visibility" setting:
+  // ANONYMOUS / PRIVATE pre-tick the anonymous box. They can still untick it.
+  useEffect(() => {
+    if (mode !== 'create' || existingPrayer) return;
+    let cancelled = false;
+    getUserSettings()
+      .then((settings) => {
+        if (cancelled) return;
+        if (prefersAnonymousPrayers(settings.prayerRequestVisibility)) {
+          setValue('isAnonymous', true);
+        }
+      })
+      .catch(() => {
+        // Settings are a convenience default only; the form still works without them.
+      });
+    return () => { cancelled = true; };
+  }, [mode, existingPrayer, setValue]);
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

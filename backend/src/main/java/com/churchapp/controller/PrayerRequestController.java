@@ -56,7 +56,7 @@ public class PrayerRequestController {
             @AuthenticationPrincipal User user,
             @RequestParam("title") String title,
             @RequestParam(value = "description", required = false) String description,
-            @RequestParam(value = "isAnonymous", required = false, defaultValue = "false") Boolean isAnonymous,
+            @RequestParam(value = "isAnonymous", required = false) Boolean isAnonymous,
             @RequestParam(value = "category", required = false) String category,
             @RequestParam(value = "organizationId", required = false) UUID organizationId,
             @RequestParam(value = "image", required = false) MultipartFile imageFile) {
@@ -67,7 +67,7 @@ public class PrayerRequestController {
             PrayerRequestRequest request = new PrayerRequestRequest();
             request.setTitle(title);
             request.setDescription(description);
-            request.setIsAnonymous(isAnonymous != null ? isAnonymous : false);
+            request.setIsAnonymous(isAnonymous); // null → the member's visibility setting decides
             request.setOrganizationId(organizationId); // Pass organizationId from active context
             
             // Parse category
@@ -191,15 +191,21 @@ public class PrayerRequestController {
         }
     }
     
+    /**
+     * Church prayer feed. {@code category} and {@code status} are optional and combine;
+     * without a status only ACTIVE prayers are returned.
+     */
     @GetMapping
     public ResponseEntity<?> getAllPrayerRequests(@AuthenticationPrincipal User user,
                                                 @RequestParam(defaultValue = "0") int page,
                                                 @RequestParam(defaultValue = "20") int size,
-                                                @RequestParam(required = false) UUID organizationId) {
+                                                @RequestParam(required = false) UUID organizationId,
+                                                @RequestParam(required = false) PrayerRequest.PrayerCategory category,
+                                                @RequestParam(required = false) PrayerRequest.PrayerStatus status) {
         try {
             UserProfileResponse currentProfile = userProfileService.getUserProfileByEmail(user.getUsername());
             Page<PrayerRequestResponse> prayerRequests = prayerRequestService.getAllPrayerRequests(
-                currentProfile.getUserId(), organizationId, page, size);
+                currentProfile.getUserId(), organizationId, category, status, page, size);
             Page<PrayerRequestResponse> enrichedRequests = enrichWithInteractions(prayerRequests);
             return ResponseEntity.ok(enrichedRequests);
         } catch (RuntimeException e) {

@@ -19,7 +19,8 @@ import {
   HelpContent,
   handleApiError,
   applyTheme,
-  applyFontSize
+  applyFontSize,
+  normalizePrayerVisibility
 } from '../services/settingsApi';
 import { checkForUpdates, clearAllCaches } from '../serviceWorkerRegistration';
 import { appBuildInfo } from '../utils/buildInfo';
@@ -841,21 +842,20 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                   <div className="setting-info">
                     <label>Prayer Request Visibility</label>
                     <span className="setting-description">
-                      Who can see your prayer requests
+                      Prayer requests are only ever shown to your church. Choose whether new
+                      requests start out with your name or anonymous — you can change it on each prayer.
                     </span>
                   </div>
                   <div className="setting-control">
                     <select
-                      value={settings.prayerRequestVisibility}
+                      value={normalizePrayerVisibility(settings.prayerRequestVisibility)}
                       onChange={(e) => handlePrivacyUpdate({
                         prayerRequestVisibility: e.target.value
                       })}
                       className="setting-select"
                     >
-                      <option value="PUBLIC">Public</option>
-                      <option value="CHURCH_MEMBERS">Church Members</option>
-                      <option value="PRIVATE">Private</option>
-                      <option value="ANONYMOUS">Anonymous</option>
+                      <option value="CHURCH_MEMBERS">Church members see my name</option>
+                      <option value="ANONYMOUS">Anonymous by default</option>
                     </select>
                   </div>
                 </div>

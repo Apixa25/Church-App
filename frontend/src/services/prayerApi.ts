@@ -11,7 +11,9 @@ import {
   PrayerInteraction,
   PrayerInteractionCreateRequest,
   PrayerInteractionSummary,
-  PrayerParticipant
+  PrayerParticipant,
+  PrayerUpdate,
+  PrayerUpdateCreateRequest
 } from '../types/Prayer';
 
 import { getApiUrl } from '../config/runtimeConfig';
@@ -293,10 +295,17 @@ export const prayerAPI = {
   deletePrayerRequest: (id: string) =>
     api.delete(`/prayers/${id}`),
 
-  // Get all prayer requests (paginated)
-  getAllPrayerRequests: (page: number = 0, size: number = 20, organizationId?: string) =>
+  // Get all prayer requests (paginated). Category and status are optional and combine;
+  // with no status the backend returns ACTIVE prayers only.
+  getAllPrayerRequests: (
+    page: number = 0,
+    size: number = 20,
+    organizationId?: string,
+    category?: PrayerCategory,
+    status?: PrayerStatus
+  ) =>
     api.get<PrayerListResponse>('/prayers', {
-      params: { page, size, organizationId }
+      params: { page, size, organizationId, category, status }
     }),
 
   // Get my prayer requests
@@ -404,6 +413,18 @@ export const prayerInteractionAPI = {
   // Get count of comments received on prayers owned by a specific user
   getCommentsReceivedCount: (userId: string) =>
     api.get<{ count: number }>(`/prayer-interactions/user/${userId}/comments-received-count`),
+};
+
+// Prayer Update (timeline) API endpoints — the owner's "here's how it went" notes
+export const prayerUpdateAPI = {
+  getUpdates: (prayerRequestId: string) =>
+    api.get<PrayerUpdate[]>(`/prayers/${prayerRequestId}/updates`),
+
+  addUpdate: (prayerRequestId: string, data: PrayerUpdateCreateRequest) =>
+    api.post<PrayerUpdate>(`/prayers/${prayerRequestId}/updates`, data),
+
+  deleteUpdate: (prayerRequestId: string, updateId: string) =>
+    api.delete(`/prayers/${prayerRequestId}/updates/${updateId}`),
 };
 
 // Utility functions for API responses

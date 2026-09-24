@@ -90,6 +90,17 @@ export interface FeedbackRequest {
 
 // API Functions
 
+/**
+ * Prayer visibility, as the app really behaves: prayers are always church-only, so
+ * the setting controls one thing — whether new prayers start out anonymous.
+ * Legacy values are folded in: PUBLIC → named, PRIVATE → anonymous.
+ */
+export const prefersAnonymousPrayers = (visibility: string | undefined | null): boolean =>
+  visibility === 'ANONYMOUS' || visibility === 'PRIVATE';
+
+export const normalizePrayerVisibility = (visibility: string | undefined | null): 'CHURCH_MEMBERS' | 'ANONYMOUS' =>
+  prefersAnonymousPrayers(visibility) ? 'ANONYMOUS' : 'CHURCH_MEMBERS';
+
 // Settings Management
 export const getUserSettings = async (): Promise<UserSettings> => {
   const response = await api.get('/settings');

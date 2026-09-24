@@ -81,34 +81,6 @@ const PrayerRequestList: React.FC<PrayerRequestListProps> = ({
         setTotalElements(prayerList.totalElements);
         setHasMore(!prayerList.last);
         
-      } else if (filter.category) {
-        // Filter by category
-        response = await prayerAPI.getPrayerRequestsByCategory(filter.category, pageNum, pageSize);
-        const prayerList = response.data as PrayerListResponse;
-        
-        if (append) {
-          setPrayers(prev => [...prev, ...prayerList.content]);
-        } else {
-          setPrayers(prayerList.content);
-        }
-        
-        setTotalElements(prayerList.totalElements);
-        setHasMore(!prayerList.last);
-        
-      } else if (filter.status) {
-        // Filter by status
-        response = await prayerAPI.getPrayerRequestsByStatus(filter.status, pageNum, pageSize);
-        const prayerList = response.data as PrayerListResponse;
-        
-        if (append) {
-          setPrayers(prev => [...prev, ...prayerList.content]);
-        } else {
-          setPrayers(prayerList.content);
-        }
-        
-        setTotalElements(prayerList.totalElements);
-        setHasMore(!prayerList.last);
-        
       } else if (!churchOrganizationId) {
         setPrayers([]);
         setTotalElements(0);
@@ -118,7 +90,10 @@ const PrayerRequestList: React.FC<PrayerRequestListProps> = ({
         return;
       } else {
         // Prayer list is the user's locked church, never the feed or family.
-        response = await prayerAPI.getAllPrayerRequests(pageNum, pageSize, churchOrganizationId);
+        // Category and status go on the same call so they combine (e.g. Answered + Health).
+        response = await prayerAPI.getAllPrayerRequests(
+          pageNum, pageSize, churchOrganizationId, filter.category, filter.status
+        );
         const prayerList = response.data as PrayerListResponse;
         
         if (append) {
