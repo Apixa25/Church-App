@@ -7,6 +7,8 @@ import CreateGroup from './CreateGroup';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
+import ConfirmationModal from './ConfirmationModal';
+import { formatRelativeShort } from '../utils/serverTime';
 
 interface ChatListProps {
   onGroupSelect?: (group: ChatGroup) => void;
@@ -31,6 +33,9 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
 
   const [joinableLoaded, setJoinableLoaded] = useState(false);
   const [joinableLoading, setJoinableLoading] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{ groupId: string; name: string } | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const {
     data: groups = [],
@@ -80,27 +85,33 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
       loadGroups();
       setJoinableLoaded(false);
       loadJoinableGroups();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error joining group:', err);
+      setActionError(err?.response?.data?.error || 'Could not join that group.');
     }
   };
 
-  const handleDeleteChat = async (groupId: string, groupName: string, event: React.MouseEvent) => {
+  const handleDeleteChat = (groupId: string, groupName: string, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent navigation to chat
+    setPendingDelete({ groupId, name: groupName });
+  };
 
-    if (!window.confirm(`Delete this conversation?\n\nThis will remove "${groupName}" from your chats.`)) {
-      return;
-    }
-
+  const confirmDeleteChat = async () => {
+    if (!pendingDelete) return;
+    setDeleteBusy(true);
     try {
-      await chatApi.leaveGroup(groupId);
+      await chatApi.leaveGroup(pendingDelete.groupId);
 
       queryClient.setQueryData<ChatGroup[]>(['chatGroups'], (old) =>
-        old ? old.filter(g => g.id !== groupId) : old
+        old ? old.filter(g => g.id !== pendingDelete.groupId) : old
       );
+      setPendingDelete(null);
     } catch (err) {
       console.error('Error deleting chat:', err);
-      alert('Failed to delete conversation. Please try again.');
+      setPendingDelete(null);
+      setActionError('Failed to delete conversation. Please try again.');
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -123,60 +134,27 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
     return icons[type] || '💬';
   };
 
-  // Format group name for direct messages - remove current user's name
+  // DMs: prefer the other participant from the server, fall back to parsing "User1 & User2"
   const formatDirectMessageName = (group: ChatGroup): string => {
-    if (group.type !== 'DIRECT_MESSAGE' || !user?.name) {
+    if (group.type !== 'DIRECT_MESSAGE') {
       return group.name;
     }
-    
-    // Direct message names are formatted as "User1 & User2"
+    const other = group.recentMembers?.[0];
+    if (other) {
+      return other.displayName || other.userName;
+    }
+    if (!user?.name) {
+      return group.name;
+    }
     const names = group.name.split(' & ').map(n => n.trim());
     const otherNames = names.filter(name => name !== user.name);
-    
-    // Return the other person's name(s), or fallback to original if something went wrong
     return otherNames.length > 0 ? otherNames.join(' & ') : group.name;
   };
 
-  const formatLastMessageTime = (timestamp: string) => {
-    try {
-      // Handle different timestamp formats that might come from backend
-      let date: Date;
-      
-      if (Array.isArray(timestamp)) {
-        // Handle array format [year, month, day, hour, minute, second, nanosecond]
-        const [year, month, day, hour = 0, minute = 0, second = 0] = timestamp as number[];
-        date = new Date(year, month - 1, day, hour, minute, second); // Month is 0-indexed in Date constructor
-      } else {
-        // Handle string format (ISO-8601 or other)
-        date = new Date(timestamp);
-      }
-      
-      // Validate the date
-      if (isNaN(date.getTime())) {
-        console.warn('Invalid timestamp format:', timestamp);
-        return 'Invalid date';
-      }
-      
-      const now = new Date();
-      const diffInMs = now.getTime() - date.getTime();
-      const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-      const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-      const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-      
-      if (diffInMinutes < 1) {
-        return 'Just now';
-      } else if (diffInMinutes < 60) {
-        return `${diffInMinutes}m`;
-      } else if (diffInHours < 24) {
-        return `${diffInHours}h`;
-      } else {
-        return diffInDays === 1 ? '1d' : `${diffInDays}d`;
-      }
-    } catch (error) {
-      console.error('Error formatting timestamp:', timestamp, error);
-      return 'Invalid date';
-    }
-  };
+  const getDirectMessageAvatar = (group: ChatGroup): string | undefined =>
+    group.recentMembers?.[0]?.profilePicUrl || group.otherUserProfilePic;
+
+  const formatLastMessageTime = (timestamp: string) => formatRelativeShort(timestamp);
 
   if (loading) {
     return (
@@ -338,8 +316,8 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
                   onClick={() => handleGroupClick(group)}
                 >
                   <div className="chat-icon">
-                    {group.type === 'DIRECT_MESSAGE' && group.otherUserProfilePic ? (
-                      <img src={group.otherUserProfilePic} alt={group.name} className="user-avatar" />
+                    {group.type === 'DIRECT_MESSAGE' && getDirectMessageAvatar(group) ? (
+                      <img src={getDirectMessageAvatar(group)} alt={formatDirectMessageName(group)} className="user-avatar" />
                     ) : group.imageUrl ? (
                       <img src={group.imageUrl} alt={group.name} />
                     ) : (
@@ -348,7 +326,12 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
                   </div>
                   <div className="chat-content">
                     <div className="chat-header">
-                      <h4 className="chat-name">{formatDirectMessageName(group)}</h4>
+                      <h4 className="chat-name">
+                        {formatDirectMessageName(group)}
+                        {group.notificationsEnabled === false && (
+                          <span className="chat-muted-indicator" title="Notifications muted" aria-label="Notifications muted"> 🔕</span>
+                        )}
+                      </h4>
                     </div>
                     {group.lastMessageTime ? (
                       group.lastMessage ? (
@@ -389,6 +372,25 @@ const ChatList: React.FC<ChatListProps> = ({ onGroupSelect, selectedGroupId }) =
           )}
         </div>
       )}
+
+      {actionError && (
+        <div className="chat-inline-error" role="alert">
+          <span>⚠️ {actionError}</span>
+          <button type="button" onClick={() => setActionError(null)} aria-label="Dismiss error">✕</button>
+        </div>
+      )}
+
+      <ConfirmationModal
+        isOpen={Boolean(pendingDelete)}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={confirmDeleteChat}
+        title="Delete conversation"
+        message={pendingDelete ? `This will remove "${pendingDelete.name}" from your chats.` : ''}
+        confirmText="Delete"
+        confirmButtonVariant="danger"
+        isLoading={deleteBusy}
+        icon="🗑️"
+      />
     </div>
   );
 };

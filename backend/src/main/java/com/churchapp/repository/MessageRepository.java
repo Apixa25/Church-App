@@ -6,21 +6,58 @@ import com.churchapp.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface MessageRepository extends JpaRepository<Message, UUID> {
+public interface MessageRepository extends JpaRepository<Message, UUID>, JpaSpecificationExecutor<Message> {
     
     // Find messages in a chat group
     Page<Message> findByChatGroupAndIsDeletedFalseOrderByTimestampDesc(ChatGroup chatGroup, Pageable pageable);
+
+    // Same page, but with author and parent pre-fetched so mapping 50 messages does not issue 50+ extra queries
+    @Query(value = "SELECT m FROM Message m JOIN FETCH m.user LEFT JOIN FETCH m.parentMessage pm LEFT JOIN FETCH pm.user " +
+                   "WHERE m.chatGroup = :chatGroup AND m.isDeleted = false",
+           countQuery = "SELECT COUNT(m) FROM Message m WHERE m.chatGroup = :chatGroup AND m.isDeleted = false")
+    Page<Message> findPageWithAuthors(@Param("chatGroup") ChatGroup chatGroup, Pageable pageable);
+
+    // Reply counts for many parents in one round trip: rows of [parentMessageId (UUID), count (Long)]
+    @Query("SELECT m.parentMessage.id, COUNT(m) FROM Message m " +
+           "WHERE m.parentMessage.id IN :parentIds AND m.isDeleted = false GROUP BY m.parentMessage.id")
+    List<Object[]> countRepliesForParents(@Param("parentIds") Collection<UUID> parentIds);
+
+    // Latest non-deleted message per group, for the chat list. One query for all groups.
+    @Query("SELECT m FROM Message m JOIN FETCH m.user WHERE m.chatGroup.id IN :groupIds AND m.isDeleted = false AND " +
+           "m.timestamp = (SELECT MAX(m2.timestamp) FROM Message m2 WHERE m2.chatGroup = m.chatGroup AND m2.isDeleted = false)")
+    List<Message> findLatestMessagesForGroups(@Param("groupIds") Collection<UUID> groupIds);
+
+    // Unread counts for every group the user belongs to: rows of [chatGroupId (UUID), count (Long)]
+    @Query("SELECT cgm.chatGroup.id, COUNT(m) FROM ChatGroupMember cgm JOIN Message m ON m.chatGroup = cgm.chatGroup " +
+           "WHERE cgm.user = :user AND cgm.isActive = true AND cgm.chatGroup.isActive = true AND m.isDeleted = false AND " +
+           "m.messageType <> 'SYSTEM' AND m.user <> :user AND (cgm.lastReadAt IS NULL OR m.timestamp > cgm.lastReadAt) " +
+           "GROUP BY cgm.chatGroup.id")
+    List<Object[]> countUnreadPerGroupForUser(@Param("user") User user);
+
+    // Total unread across all groups, excluding the user's own messages and system messages
+    @Query("SELECT COUNT(m) FROM Message m JOIN ChatGroupMember cgm ON m.chatGroup = cgm.chatGroup " +
+           "WHERE cgm.user = :user AND cgm.isActive = true AND cgm.chatGroup.isActive = true AND m.isDeleted = false AND " +
+           "m.messageType <> 'SYSTEM' AND m.user <> :user AND (cgm.lastReadAt IS NULL OR m.timestamp > cgm.lastReadAt)")
+    long countUnreadForUser(@Param("user") User user);
+
+    // Detach surviving replies from parents that are about to be hard-deleted (keeps the cleanup FK-safe)
+    @Modifying
+    @Query("UPDATE Message m SET m.parentMessage = null WHERE m.parentMessage IS NOT NULL AND " +
+           "m.timestamp >= :before AND m.parentMessage.timestamp < :before")
+    int detachRepliesFromMessagesOlderThan(@Param("before") LocalDateTime before);
     
     // Find recent messages in a chat group
     List<Message> findTop50ByChatGroupAndIsDeletedFalseOrderByTimestampDesc(ChatGroup chatGroup);

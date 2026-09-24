@@ -18,7 +18,8 @@ import java.util.UUID;
 @Table(name = "chat_groups", indexes = {
     @Index(name = "idx_chat_group_type", columnList = "type"),
     @Index(name = "idx_chat_group_created_by", columnList = "created_by"),
-    @Index(name = "idx_chat_group_is_active", columnList = "is_active")
+    @Index(name = "idx_chat_group_is_active", columnList = "is_active"),
+    @Index(name = "idx_chat_group_organization", columnList = "organization_id")
 })
 @Data
 @NoArgsConstructor
@@ -48,6 +49,11 @@ public class ChatGroup {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", referencedColumnName = "id")
     private User createdBy;
+
+    // Owning organization. Null for DIRECT_MESSAGE groups, which belong to two people rather than a church.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id", referencedColumnName = "id")
+    private Organization organization;
     
     @Column(name = "is_private", nullable = false)
     private Boolean isPrivate = false;
@@ -112,8 +118,12 @@ public class ChatGroup {
     public boolean canUserJoin(User user) {
         if (!isActive) return false;
         if (isPrivate && !isCreator(user)) return false;
-        if (maxMembers != null && members.size() >= maxMembers) return false;
+        if (maxMembers != null && getMemberCount() >= maxMembers) return false;
         return !isMember(user);
+    }
+
+    public UUID getOrganizationId() {
+        return organization != null ? organization.getId() : null;
     }
     
     public long getMemberCount() {

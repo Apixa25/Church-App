@@ -21,7 +21,8 @@ import java.util.List;
  * 1. Delete media files from S3 for old chat messages
  * 2. Hard delete old messages from the database
  *
- * Configurable retention period defaults to 7 days but can be adjusted.
+ * Disabled by default. Enable with chat.cleanup.enabled=true and choose a retention period
+ * (chat.cleanup.retention-days) deliberately per environment.
  */
 @Service
 @RequiredArgsConstructor
@@ -37,12 +38,11 @@ public class ChatCleanupService {
     @Value("${aws.region}")
     private String region;
 
-    // Chat message retention in days (default: 7 days)
-    @Value("${chat.cleanup.retention-days:7}")
+    @Value("${chat.cleanup.retention-days:90}")
     private int retentionDays;
 
-    // Enable/disable chat cleanup (default: enabled)
-    @Value("${chat.cleanup.enabled:true}")
+    // Opt-in: hard deletion of chat history must be a deliberate per-environment choice
+    @Value("${chat.cleanup.enabled:false}")
     private boolean cleanupEnabled;
 
     /**
@@ -96,7 +96,15 @@ public class ChatCleanupService {
 
             log.info("S3 media cleanup: {} deleted, {} errors", mediaDeletedCount, mediaErrorCount);
 
-            // Step 2: Delete the messages from the database
+            // Step 2: Newer replies may still point at messages we are about to delete.
+            // messages.parent_message_id has no ON DELETE clause, so detach them first or the
+            // bulk delete fails with a foreign-key violation and nothing is cleaned up.
+            int detachedReplies = messageRepository.detachRepliesFromMessagesOlderThan(cutoffTime);
+            if (detachedReplies > 0) {
+                log.info("Detached {} replies whose parent messages are being cleaned up", detachedReplies);
+            }
+
+            // Step 3: Delete the messages from the database
             int deletedCount = messageRepository.deleteMessagesOlderThan(cutoffTime);
 
             log.info("Chat cleanup completed: {} messages deleted from database", deletedCount);

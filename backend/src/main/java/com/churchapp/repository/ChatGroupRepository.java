@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -47,10 +48,23 @@ public interface ChatGroupRepository extends JpaRepository<ChatGroup, UUID> {
            "ORDER BY cgm.chatGroup.updatedAt DESC")
     Page<ChatGroup> findGroupsByMember(@Param("user") User user, Pageable pageable);
     
-    // Find groups user can join (public groups user is not already a member of)
+    // Find groups user can join (public groups user is not already a member of) - platform-wide, admin use only
     @Query("SELECT cg FROM ChatGroup cg WHERE cg.isActive = true AND cg.isPrivate = false AND " +
            "cg.id NOT IN (SELECT cgm.chatGroup.id FROM ChatGroupMember cgm WHERE cgm.user = :user AND cgm.isActive = true)")
     List<ChatGroup> findJoinableGroups(@Param("user") User user);
+
+    // Organization-scoped discovery: only public groups inside organizations the user belongs to
+    @Query("SELECT cg FROM ChatGroup cg WHERE cg.isActive = true AND cg.isPrivate = false AND " +
+           "cg.type <> 'DIRECT_MESSAGE' AND cg.organization.id IN :organizationIds AND " +
+           "cg.id NOT IN (SELECT cgm.chatGroup.id FROM ChatGroupMember cgm WHERE cgm.user = :user AND cgm.isActive = true) " +
+           "ORDER BY cg.createdAt DESC")
+    List<ChatGroup> findJoinableGroupsInOrganizations(@Param("user") User user,
+                                                      @Param("organizationIds") Collection<UUID> organizationIds);
+
+    // MAIN chat uniqueness is per organization, not platform-wide
+    @Query("SELECT cg FROM ChatGroup cg WHERE cg.isActive = true AND cg.name = :name AND cg.organization.id = :organizationId")
+    Optional<ChatGroup> findByNameAndOrganizationIdAndIsActiveTrue(@Param("name") String name,
+                                                                   @Param("organizationId") UUID organizationId);
     
     // Count active groups by type
     @Query("SELECT COUNT(cg) FROM ChatGroup cg WHERE cg.type = :type AND cg.isActive = true")

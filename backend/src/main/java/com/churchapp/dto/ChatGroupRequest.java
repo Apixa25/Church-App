@@ -8,6 +8,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -28,6 +30,9 @@ public class ChatGroupRequest {
     private Boolean isPrivate = false;
     
     private Integer maxMembers;
+
+    // Optional. When omitted the group is created in the user's church primary organization.
+    private UUID organizationId;
     
     // Validation methods
     public boolean isValidGroupType() {

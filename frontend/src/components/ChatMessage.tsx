@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import chatApi, { ChatMessage as MessageType } from '../services/chatApi';
 import MediaViewer from './MediaViewer';
+import { formatMessageTime } from '../utils/serverTime';
 
 interface ChatMessageProps {
   message: MessageType;
@@ -11,8 +12,13 @@ interface ChatMessageProps {
   onDelete: (messageId: string) => void;
   onReply: (message: MessageType) => void;
   onReport?: (message: MessageType) => void;
+  onReact?: (message: MessageType, emoji: string) => void;
+  onRetry?: (message: MessageType) => void;
+  onDiscardFailed?: (message: MessageType) => void;
   onMediaLoad?: () => void;
 }
+
+const QUICK_REACTIONS = ['👍', '❤️', '🙏', '😂', '😮', '🎉'];
 
 const ChatMessage: React.FC<ChatMessageProps> = ({
   message,
@@ -23,54 +29,35 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   onDelete,
   onReply,
   onReport,
+  onReact,
+  onRetry,
+  onDiscardFailed,
   onMediaLoad
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
   const [showMediaViewer, setShowMediaViewer] = useState(false);
   const [showActions, setShowActions] = useState(false);
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [isDownloadingDocument, setIsDownloadingDocument] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   // Use userId (not id) from currentUser to match message.userId
   const isOwnMessage = currentUser?.userId === message.userId;
   const isSystemMessage = message.messageType === 'SYSTEM';
+  const isPending = message.status === 'sending';
+  const isFailed = message.status === 'failed';
+  const canInteract = !isPending && !isFailed && !message.isDeleted;
 
-  const formatTime = (timestamp: string) => {
-    try {
-      // Handle null/undefined timestamp (new messages before server confirms)
-      if (!timestamp) {
-        return 'Just now';
-      }
+  const formatTime = (timestamp: string) => formatMessageTime(timestamp);
 
-      // Handle different timestamp formats that might come from backend
-      let date: Date;
+  const reactionEntries = Object.entries(message.reactions || {}).filter(([, users]) => users && users.length > 0);
 
-      if (Array.isArray(timestamp)) {
-        // Handle array format [year, month, day, hour, minute, second, nanosecond]
-        const [year, month, day, hour = 0, minute = 0, second = 0] = timestamp as number[];
-        // Create as UTC then convert to local
-        date = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
-      } else {
-        // Handle string format (ISO-8601 or other)
-        // Backend sends UTC timestamps without 'Z' suffix - append it to parse correctly
-        if (typeof timestamp === 'string' && timestamp.includes('T') && !timestamp.includes('Z') && !timestamp.includes('+') && !timestamp.includes('-', timestamp.indexOf('T'))) {
-          date = new Date(timestamp + 'Z');
-        } else {
-          date = new Date(timestamp);
-        }
-      }
-
-      // Validate the date
-      if (isNaN(date.getTime())) {
-        console.warn('Invalid timestamp format:', timestamp);
-        return 'Invalid date';
-      }
-
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch (error) {
-      console.error('Error formatting timestamp:', timestamp, error);
-      return 'Invalid date';
-    }
+  const handleReact = (emoji: string) => {
+    if (!onReact || !canInteract) return;
+    onReact(message, emoji);
+    setShowReactionPicker(false);
+    setShowActions(false);
   };
 
   const handleImageClick = (e: React.MouseEvent) => {
@@ -98,6 +85,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
 
     try {
       setIsDownloadingDocument(true);
+      setDownloadError(null);
 
       console.info('[ChatDocumentDownload] Starting backend download', {
         messageId: message.id,
@@ -128,7 +116,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         mediaUrl: message.mediaUrl,
         error
       });
-      window.alert('We could not download this file yet, but the app stayed open. Please send the console log to support.');
+      setDownloadError("We couldn't download this file. Please try again.");
     } finally {
       setIsDownloadingDocument(false);
     }
@@ -158,7 +146,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
 
   return (
     <div
-      className={`message ${isOwnMessage ? 'own-message' : 'other-message'} ${isCompact ? 'message-compact' : ''}`}
+      className={`message ${isOwnMessage ? 'own-message' : 'other-message'} ${isCompact ? 'message-compact' : ''} ${isPending ? 'message-pending' : ''} ${isFailed ? 'message-failed' : ''}`}
+      data-status={message.status}
       style={{
         display: 'flex',
         alignItems: 'flex-end',
@@ -280,6 +269,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                       {isDownloadingDocument ? 'Opening...' : 'Download'}
                     </button>
                   </div>
+                  {downloadError && <p className="media-error" role="alert">{downloadError}</p>}
                   {message.content && <p className="media-caption">{message.content}</p>}
                 </div>
               )}
@@ -291,25 +281,44 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
               {!message.isDeleted && (
                 <>
                   <span className="message-inline-time">
-                    {formatTime(message.timestamp)}
+                    {isPending ? (
+                      <span className="delivery-status sending" title="Sending">Sending…</span>
+                    ) : isFailed ? (
+                      <span className="delivery-status failed" title={message.sendError || 'Not sent'}>Not sent</span>
+                    ) : (
+                      formatTime(message.timestamp)
+                    )}
                     {message.isEdited && <span className="edited-indicator"> edited</span>}
                   </span>
 
-                  <button
-                    type="button"
-                    className="message-options-button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setShowActions(prev => !prev);
-                    }}
-                    aria-label="Message options"
-                    aria-expanded={showActions}
-                  >
-                    ...
-                  </button>
+                  {canInteract && (
+                    <button
+                      type="button"
+                      className="message-options-button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setShowActions(prev => !prev);
+                        setShowReactionPicker(false);
+                      }}
+                      aria-label="Message options"
+                      aria-expanded={showActions}
+                    >
+                      ...
+                    </button>
+                  )}
 
                   {showActions && (
                     <div className="message-actions">
+                      {onReact && (
+                        <button
+                          className="action-btn"
+                          onClick={() => setShowReactionPicker(prev => !prev)}
+                          title="React"
+                          aria-expanded={showReactionPicker}
+                        >
+                          React
+                        </button>
+                      )}
                       <button className="action-btn" onClick={() => { onReply(message); setShowActions(false); }} title="Reply">
                         Reply
                       </button>
@@ -330,11 +339,65 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                       )}
                     </div>
                   )}
+
+                  {showActions && showReactionPicker && (
+                    <div className="reaction-picker" role="menu" aria-label="Pick a reaction">
+                      {QUICK_REACTIONS.map(emoji => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          className="reaction-picker-button"
+                          onClick={() => handleReact(emoji)}
+                          role="menuitem"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
             </>
           )}
         </div>
+
+        {reactionEntries.length > 0 && (
+          <div className="message-reactions" aria-label="Reactions">
+            {reactionEntries.map(([emoji, users]) => {
+              const reacted = currentUser?.userId ? users.includes(currentUser.userId) : false;
+              return (
+                <button
+                  key={emoji}
+                  type="button"
+                  className={`reaction-chip ${reacted ? 'reacted' : ''}`}
+                  onClick={() => handleReact(emoji)}
+                  disabled={!onReact || !canInteract}
+                  aria-pressed={reacted}
+                  title={reacted ? 'Remove your reaction' : 'React'}
+                >
+                  <span className="reaction-emoji">{emoji}</span>
+                  <span className="reaction-count">{users.length}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {isFailed && (
+          <div className="message-failed-actions" role="alert">
+            <span className="message-failed-text">{message.sendError || "Couldn't send"}</span>
+            {onRetry && (
+              <button type="button" className="action-btn" onClick={() => onRetry(message)}>
+                Retry
+              </button>
+            )}
+            {onDiscardFailed && (
+              <button type="button" className="action-btn danger" onClick={() => onDiscardFailed(message)}>
+                Discard
+              </button>
+            )}
+          </div>
+        )}
         
         {message.replyCount > 0 && (
           <div className="reply-count">

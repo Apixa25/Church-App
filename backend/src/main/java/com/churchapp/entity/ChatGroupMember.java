@@ -110,7 +110,7 @@ public class ChatGroupMember {
     
     // Helper methods
     public boolean canPost() {
-        return isActive && memberRole.canPost();
+        return isActive && memberRole.canPost() && !Boolean.TRUE.equals(isMuted);
     }
     
     public boolean canModerate() {

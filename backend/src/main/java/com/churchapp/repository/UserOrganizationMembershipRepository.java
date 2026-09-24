@@ -37,6 +37,9 @@ public interface UserOrganizationMembershipRepository extends JpaRepository<User
 
     boolean existsByUserIdAndOrganizationId(UUID userId, UUID organizationId);
 
+    @Query("SELECT m.organization.id FROM UserOrganizationMembership m WHERE m.user.id = :userId")
+    List<UUID> findOrganizationIdsByUserId(@Param("userId") UUID userId);
+
     @Modifying
     @Query("UPDATE UserOrganizationMembership m SET m.isPrimary = false " +
            "WHERE m.user.id = :userId AND m.isPrimary = true")

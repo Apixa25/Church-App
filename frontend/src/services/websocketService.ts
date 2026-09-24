@@ -11,15 +11,27 @@ export interface WebSocketMessage {
 
 export interface TypingStatus {
   type: 'typing_status';
-  userId: string;
+  /** Sender's user id. Emails are never broadcast to group topics. */
+  userId: string | null;
+  displayName: string;
   isTyping: boolean;
   timestamp: string;
 }
 
 export interface PresenceUpdate {
   type: 'presence_update';
-  userId: string;
-  status: string;
+  userEmail: string;
+  status: 'online' | 'offline' | string;
+  timestamp: string;
+}
+
+export interface ChatSocketError {
+  type: 'error';
+  code?: string;
+  message: string;
+  /** Echoed back so an optimistic message can be marked failed. */
+  tempId?: string | null;
+  groupId?: string | null;
   timestamp: string;
 }
 
@@ -444,7 +456,7 @@ class WebSocketService {
   }
 
   // Subscribe to user-specific errors
-  subscribeToErrors(callback: (error: any) => void): () => void {
+  subscribeToErrors(callback: (error: ChatSocketError) => void): () => void {
     if (!this.isConnected || !this.client) {
       throw new Error('WebSocket not connected');
     }
@@ -590,6 +602,18 @@ class WebSocketService {
     this.client.publish({
       destination: `/app/chat/delete/${messageId}`,
       body: JSON.stringify({}),
+    });
+  }
+
+  // Toggle an emoji reaction via WebSocket
+  reactToMessage(messageId: string, emoji: string): void {
+    if (!this.isConnected || !this.client) {
+      throw new Error('WebSocket not connected');
+    }
+
+    this.client.publish({
+      destination: `/app/chat/react/${messageId}`,
+      body: JSON.stringify({ emoji }),
     });
   }
 

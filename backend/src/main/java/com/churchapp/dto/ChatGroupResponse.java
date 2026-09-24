@@ -23,6 +23,8 @@ public class ChatGroupResponse {
     private UUID createdBy;
     private String createdByName;
     private String createdByProfilePic;
+    private UUID organizationId;
+    private String organizationName;
     private Boolean isPrivate;
     private Boolean isActive;
     private Integer maxMembers;
@@ -37,9 +39,13 @@ public class ChatGroupResponse {
     private Boolean canModerate;
     private String userRole;
     private Long unreadCount;
+    private Boolean notificationsEnabled;
     private List<ChatGroupMemberResponse> recentMembers;
     
-    // Constructor from entity for basic info
+    /**
+     * Basic mapping. Does NOT touch the lazy members/messages collections: callers supply
+     * memberCount and lastMessageTime via the setters or the factory methods below.
+     */
     public ChatGroupResponse(ChatGroup chatGroup) {
         this.id = chatGroup.getId();
         this.name = chatGroup.getName();
@@ -49,18 +55,27 @@ public class ChatGroupResponse {
         this.createdBy = chatGroup.getCreatedBy() != null ? chatGroup.getCreatedBy().getId() : null;
         this.createdByName = chatGroup.getCreatedBy() != null ? chatGroup.getCreatedBy().getName() : null;
         this.createdByProfilePic = chatGroup.getCreatedBy() != null ? chatGroup.getCreatedBy().getProfilePicUrl() : null;
+        if (chatGroup.getOrganization() != null) {
+            this.organizationId = chatGroup.getOrganization().getId();
+            this.organizationName = chatGroup.getOrganization().getName();
+        }
         this.isPrivate = chatGroup.getIsPrivate();
         this.isActive = chatGroup.getIsActive();
         this.maxMembers = chatGroup.getMaxMembers();
-        this.memberCount = chatGroup.getMemberCount();
         this.createdAt = chatGroup.getCreatedAt();
         this.updatedAt = chatGroup.getUpdatedAt();
-        this.lastMessageTime = chatGroup.getLastMessageTime();
+        this.lastMessageTime = chatGroup.getCreatedAt();
     }
     
     // Static factory methods
     public static ChatGroupResponse fromEntity(ChatGroup chatGroup) {
         return new ChatGroupResponse(chatGroup);
+    }
+
+    public static ChatGroupResponse fromEntity(ChatGroup chatGroup, long memberCount) {
+        ChatGroupResponse response = new ChatGroupResponse(chatGroup);
+        response.setMemberCount(memberCount);
+        return response;
     }
     
     public static ChatGroupResponse fromEntityWithUserContext(ChatGroup chatGroup, 

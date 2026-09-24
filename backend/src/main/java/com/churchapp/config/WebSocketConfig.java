@@ -6,12 +6,18 @@ import com.churchapp.entity.User;
 import com.churchapp.repository.ChatGroupMemberRepository;
 import com.churchapp.repository.ChatGroupRepository;
 import com.churchapp.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.converter.DefaultContentTypeResolver;
+import org.springframework.messaging.converter.MappingJackson2MessageConverter;
+import org.springframework.messaging.converter.MessageConverter;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -23,11 +29,13 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -38,6 +46,7 @@ import java.util.regex.Pattern;
 @EnableWebSocketMessageBroker
 @Order(Ordered.HIGHEST_PRECEDENCE + 99)
 @RequiredArgsConstructor
+@Slf4j
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     
     private static final Pattern GROUP_TOPIC_PATTERN =
@@ -48,30 +57,59 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private final UserRepository userRepository;
     private final ChatGroupRepository chatGroupRepository;
     private final ChatGroupMemberRepository chatGroupMemberRepository;
+    private final ObjectMapper objectMapper;
+
+    @Value("${cors.allowed-origins:*}")
+    private String allowedOrigins;
     
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        // Enable a simple in-memory message broker to carry messages back to the client
-        // on destinations prefixed with "/topic" and "/queue"
+        // In-memory broker. Sufficient for a single instance; switch to a STOMP relay
+        // (RabbitMQ / Amazon MQ) or Redis when scaling Elastic Beanstalk past one instance.
         config.enableSimpleBroker("/topic", "/queue");
-        
-        // Define prefix that will be used to filter messages to message-handling methods
         config.setApplicationDestinationPrefixes("/app");
-        
-        // Set user destination prefix for private messaging
         config.setUserDestinationPrefix("/user");
     }
     
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // Register STOMP endpoint and enable SockJS fallback options
+        String[] origins = resolveAllowedOrigins();
+
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOriginPatterns(origins)
                 .withSockJS();
         
         // Native WebSocket endpoint without SockJS
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*");
+                .setAllowedOriginPatterns(origins);
+    }
+
+    /**
+     * Use the application's ObjectMapper for STOMP payloads so timestamps and nulls are serialized
+     * exactly like the REST API (ISO-8601 strings instead of Jackson's default numeric arrays).
+     */
+    @Override
+    public boolean configureMessageConverters(List<MessageConverter> messageConverters) {
+        DefaultContentTypeResolver resolver = new DefaultContentTypeResolver();
+        resolver.setDefaultMimeType(MimeTypeUtils.APPLICATION_JSON);
+
+        MappingJackson2MessageConverter converter = new MappingJackson2MessageConverter();
+        converter.setObjectMapper(objectMapper);
+        converter.setContentTypeResolver(resolver);
+
+        messageConverters.add(converter);
+        return false;
+    }
+
+    private String[] resolveAllowedOrigins() {
+        if (allowedOrigins == null || allowedOrigins.isBlank()) {
+            return new String[]{"*"};
+        }
+        String[] origins = Arrays.stream(allowedOrigins.split(","))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .toArray(String[]::new);
+        return origins.length == 0 ? new String[]{"*"} : origins;
     }
     
     @Override
@@ -80,9 +118,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             @Override
             public Message<?> preSend(Message<?> message, MessageChannel channel) {
                 StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+                if (accessor == null) {
+                    return message;
+                }
                 
                 if (StompCommand.CONNECT.equals(accessor.getCommand())) {
-                    // Extract JWT token from WebSocket headers
                     List<String> authorization = accessor.getNativeHeader("Authorization");
                     
                     if (authorization != null && !authorization.isEmpty()) {
@@ -92,30 +132,22 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                             token = token.substring(7);
                             
                             try {
-                                // Validate token and extract email (username)
                                 String email = jwtUtil.getEmailFromToken(token);
                                 
                                 if (email != null) {
-                                    // Load user details first
                                     UserDetails userDetails = userDetailsService.loadUserByUsername(email);
                                     
-                                    // Then validate token with UserDetails
                                     if (jwtUtil.validateToken(token, userDetails)) {
-                                        // Create authentication token
                                         UsernamePasswordAuthenticationToken auth = 
                                             new UsernamePasswordAuthenticationToken(
                                                 userDetails, null, userDetails.getAuthorities());
                                         
-                                        // Set authentication in security context
                                         SecurityContextHolder.getContext().setAuthentication(auth);
-                                        
-                                        // Set user principal for WebSocket session
                                         accessor.setUser(auth);
                                     }
                                 }
                             } catch (Exception e) {
-                                // Log authentication failure
-                                System.err.println("WebSocket authentication failed: " + e.getMessage());
+                                log.warn("WebSocket authentication failed: {}", e.getMessage());
                             }
                         }
                     }
@@ -159,6 +191,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             .orElse(false);
 
         if (!isActiveMember) {
+            log.debug("Rejected subscription by {} to {}", principal.getName(), destination);
             throw new AccessDeniedException("User is not allowed to subscribe to this chat group");
         }
     }

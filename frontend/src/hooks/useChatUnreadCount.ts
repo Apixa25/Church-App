@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import chatApi from '../services/chatApi';
 
 const CHAT_UNREAD_REFRESH_EVENT = 'chatUnreadCountRefresh';
+const FALLBACK_POLL_MS = 2 * 60 * 1000;
 
 export const notifyChatUnreadCountRefresh = () => {
   window.dispatchEvent(new Event(CHAT_UNREAD_REFRESH_EVENT));
@@ -21,9 +22,8 @@ export const useChatUnreadCount = () => {
     }
 
     try {
-      const groups = await chatApi.getGroups();
-      const totalUnread = groups.reduce((total, group) => total + (group.unreadCount || 0), 0);
-      setUnreadCount(totalUnread);
+      // Single aggregate query instead of hydrating every chat group for one number.
+      setUnreadCount(await chatApi.getUnreadCount());
     } catch (error) {
       console.error('Failed to refresh chat unread count:', error);
     }
@@ -46,7 +46,10 @@ export const useChatUnreadCount = () => {
     window.addEventListener('focus', refreshUnreadCount);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    const intervalId = window.setInterval(refreshUnreadCount, 30000);
+    // Real-time updates arrive via /user/queue/events (useEventNotifications calls
+    // notifyChatUnreadCountRefresh on chat_message_received). This slow poll is only a
+    // safety net for a dropped socket.
+    const intervalId = window.setInterval(refreshUnreadCount, FALLBACK_POLL_MS);
 
     return () => {
       window.removeEventListener(CHAT_UNREAD_REFRESH_EVENT, refreshUnreadCount);

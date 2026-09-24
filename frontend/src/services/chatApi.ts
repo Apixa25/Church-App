@@ -24,7 +24,18 @@ export interface ChatGroup {
   userRole?: string;
   unreadCount: number;
   otherUserProfilePic?: string;  // For DMs: the other user's profile picture
+  organizationId?: string;
+  organizationName?: string;
+  notificationsEnabled?: boolean;
+  /** For DMs: the other participant(s), so names/avatars never depend on parsing the group name. */
+  recentMembers?: GroupMember[];
 }
+
+/** Client-side delivery state for optimistic messages. Never sent to the server. */
+export type MessageDeliveryStatus = 'sending' | 'sent' | 'failed';
+
+/** emoji -> list of user ids who reacted */
+export type MessageReactions = Record<string, string[]>;
 
 export interface ChatMessage {
   id: string;
@@ -51,10 +62,16 @@ export interface ChatMessage {
   recentReplies?: ChatMessage[];
   mentionedUserIds?: string[];
   mentions?: UserMention[];
-  reactions?: any;
+  reactions?: MessageReactions;
   canEdit: boolean;
   canDelete: boolean;
   tempId?: string;
+  /** Present only on locally-created optimistic messages. */
+  status?: MessageDeliveryStatus;
+  /** Populated when status === 'failed'. */
+  sendError?: string;
+  /** Kept locally so a failed media message can be retried. */
+  pendingFile?: File;
 }
 
 export interface UserMention {
@@ -94,6 +111,8 @@ export interface CreateGroupRequest {
   imageUrl?: string;
   isPrivate?: boolean;
   maxMembers?: number;
+  /** Optional: defaults to the creator's primary organization on the server. */
+  organizationId?: string;
 }
 
 export interface SendMessageRequest {
@@ -303,6 +322,23 @@ const chatApi = {
 
   markAsRead: async (groupId: string, timestamp?: string): Promise<void> => {
     await api.post(`/chat/groups/${groupId}/mark-read`, { timestamp });
+  },
+
+  /** Total unread across all groups. Cheap aggregate query for the nav badge. */
+  getUnreadCount: async (): Promise<number> => {
+    const response = await api.get('/chat/unread-count');
+    return response.data?.unreadCount ?? 0;
+  },
+
+  /** Adds the reaction if the user hasn't reacted with it yet, otherwise removes it. */
+  toggleReaction: async (messageId: string, emoji: string): Promise<ChatMessage> => {
+    const response = await api.post(`/chat/messages/${messageId}/reactions`, { emoji });
+    return response.data;
+  },
+
+  /** Per-user, per-group mute. Mentions still notify. */
+  updateNotificationPreference: async (groupId: string, enabled: boolean): Promise<void> => {
+    await api.put(`/chat/groups/${groupId}/notifications`, { enabled });
   },
 
   // Member management

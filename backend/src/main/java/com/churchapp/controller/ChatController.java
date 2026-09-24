@@ -1,9 +1,12 @@
 package com.churchapp.controller;
 
 import com.churchapp.dto.*;
+import com.churchapp.exception.ChatException;
+import com.churchapp.exception.ChatValidationException;
 import com.churchapp.repository.UserRepository;
 import com.churchapp.service.AuditLogService;
 import com.churchapp.service.ChatDirectoryService;
+import com.churchapp.service.ChatPresenceService;
 import com.churchapp.service.ChatService;
 import com.churchapp.service.ContentModerationService;
 import com.churchapp.service.FileUploadService;
@@ -46,6 +49,7 @@ public class ChatController {
     private final ChatDirectoryService chatDirectoryService;
     private final ContentModerationService contentModerationService;
     private final AuditLogService auditLogService;
+    private final ChatPresenceService chatPresenceService;
     
     // ==================== CHAT GROUP ENDPOINTS ====================
     
@@ -54,6 +58,8 @@ public class ChatController {
         try {
             List<ChatGroupResponse> groups = chatService.getUserChatGroups(userDetails.getUsername());
             return ResponseEntity.ok(groups);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }
@@ -64,6 +70,8 @@ public class ChatController {
         try {
             List<ChatGroupResponse> groups = chatService.getJoinableGroups(userDetails.getUsername());
             return ResponseEntity.ok(groups);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }
@@ -75,6 +83,8 @@ public class ChatController {
         try {
             ChatGroupResponse group = chatService.createChatGroup(userDetails.getUsername(), request);
             return ResponseEntity.ok(group);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -88,6 +98,8 @@ public class ChatController {
         try {
             ChatGroupResponse group = chatService.joinChatGroup(userDetails.getUsername(), groupId);
             return ResponseEntity.ok(group);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -103,6 +115,8 @@ public class ChatController {
             Map<String, String> response = new HashMap<>();
             response.put("message", "Successfully left the group");
             return ResponseEntity.ok(response);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -130,7 +144,7 @@ public class ChatController {
                     userMap.put("email", user.getEmail());
                     userMap.put("profilePicUrl", user.getProfilePicUrl());
                     userMap.put("role", user.getRole().name());
-                    userMap.put("isOnline", isUserOnline(user));
+                    userMap.put("isOnline", chatPresenceService.isOnline(user.getEmail()));
                     userMap.put("lastSeen", user.getLastLogin() != null ? user.getLastLogin().toString() : null);
                     return userMap;
                 })
@@ -149,6 +163,8 @@ public class ChatController {
         try {
             ChatGroupResponse directMessage = chatService.createOrGetDirectMessage(userDetails.getUsername(), targetUserEmail);
             return ResponseEntity.ok(directMessage);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -166,6 +182,8 @@ public class ChatController {
                 targetUserId
             );
             return ResponseEntity.ok(directMessage);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -185,6 +203,8 @@ public class ChatController {
             Page<MessageResponse> messages = chatService.getGroupMessages(
                 userDetails.getUsername(), groupId, page, size);
             return ResponseEntity.ok(messages);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }
@@ -220,6 +240,8 @@ public class ChatController {
             }
 
             return response.body(stream);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             log.error("Error downloading chat media: messageId={}", messageId, e);
             return ResponseEntity.badRequest().build();
@@ -232,6 +254,8 @@ public class ChatController {
         try {
             MessageResponse message = chatService.sendMessage(userDetails.getUsername(), request);
             return ResponseEntity.ok(message);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -269,6 +293,8 @@ public class ChatController {
         } catch (IllegalArgumentException e) {
             log.warn("Invalid chat media upload request: {}", e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             log.error("Error generating presigned URL for chat media", e);
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -322,6 +348,8 @@ public class ChatController {
 
             MessageResponse message = chatService.sendMessage(userDetails.getUsername(), messageRequest);
             return ResponseEntity.ok(message);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             log.error("Error confirming chat media upload", e);
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -380,6 +408,8 @@ public class ChatController {
             
             MessageResponse message = chatService.sendMessage(userDetails.getUsername(), request);
             return ResponseEntity.ok(message);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -401,6 +431,8 @@ public class ChatController {
             
             MessageResponse message = chatService.editMessage(userDetails.getUsername(), messageId, newContent);
             return ResponseEntity.ok(message);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -425,6 +457,8 @@ public class ChatController {
             Map<String, String> response = new HashMap<>();
             response.put("message", "Message deleted successfully");
             return ResponseEntity.ok(response);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -450,6 +484,8 @@ public class ChatController {
             Map<String, String> response = new HashMap<>();
             response.put("message", "Message reported successfully");
             return ResponseEntity.ok(response);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -462,21 +498,54 @@ public class ChatController {
                                               @PathVariable UUID groupId,
                                               @RequestBody(required = false) Map<String, Object> request) {
         try {
-            LocalDateTime timestamp = LocalDateTime.now();
-            if (request != null && request.containsKey("timestamp")) {
-                // Parse timestamp from request if provided
-                timestamp = LocalDateTime.parse(request.get("timestamp").toString());
-            }
+            // Accepts ISO-8601 with or without an offset (clients send "...Z"); converts to UTC
+            LocalDateTime timestamp = WebSocketChatController.parseTimestamp(
+                request != null ? request.get("timestamp") : null);
             
             chatService.markMessagesAsRead(userDetails.getUsername(), groupId, timestamp);
             Map<String, String> response = new HashMap<>();
             response.put("message", "Messages marked as read");
             return ResponseEntity.ok(response);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(error);
         }
+    }
+    
+    /**
+     * Lightweight badge counter: one aggregate query instead of loading every group.
+     */
+    @GetMapping("/unread-count")
+    public ResponseEntity<Map<String, Long>> getTotalUnreadCount(@AuthenticationPrincipal UserDetails userDetails) {
+        long count = chatService.getTotalUnreadCount(userDetails.getUsername());
+        return ResponseEntity.ok(Map.of("unreadCount", count));
+    }
+
+    @PostMapping("/messages/{messageId}/reactions")
+    public ResponseEntity<MessageResponse> toggleReaction(@AuthenticationPrincipal UserDetails userDetails,
+                                                          @PathVariable UUID messageId,
+                                                          @RequestBody Map<String, String> request) {
+        String emoji = request != null ? request.get("emoji") : null;
+        if (emoji == null || emoji.isBlank()) {
+            throw new ChatValidationException("Emoji is required");
+        }
+        return ResponseEntity.ok(chatService.toggleReaction(userDetails.getUsername(), messageId, emoji));
+    }
+
+    @PutMapping("/groups/{groupId}/notifications")
+    public ResponseEntity<Map<String, Object>> updateNotificationPreference(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID groupId,
+            @RequestBody Map<String, Boolean> request) {
+        if (request == null || request.get("enabled") == null) {
+            throw new ChatValidationException("'enabled' is required");
+        }
+        boolean enabled = Boolean.TRUE.equals(request.get("enabled"));
+        chatService.updateNotificationPreference(userDetails.getUsername(), groupId, enabled);
+        return ResponseEntity.ok(Map.of("groupId", groupId, "notificationsEnabled", enabled));
     }
     
     // ==================== MEMBER MANAGEMENT ENDPOINTS ====================
@@ -488,6 +557,8 @@ public class ChatController {
         try {
             List<ChatGroupMemberResponse> members = chatService.getGroupMembers(userDetails.getUsername(), groupId);
             return ResponseEntity.ok(members);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }
@@ -519,6 +590,8 @@ public class ChatController {
             Map<String, String> response = new HashMap<>();
             response.put("message", "Member role updated successfully");
             return ResponseEntity.ok(response);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -544,6 +617,8 @@ public class ChatController {
             Map<String, String> response = new HashMap<>();
             response.put("message", "Member removed successfully");
             return ResponseEntity.ok(response);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -571,6 +646,8 @@ public class ChatController {
             Map<String, String> response = new HashMap<>();
             response.put("message", muted ? "Member muted successfully" : "Member unmuted successfully");
             return ResponseEntity.ok(response);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -586,6 +663,8 @@ public class ChatController {
         try {
             ChatSearchResponse results = chatService.searchMessages(userDetails.getUsername(), request);
             return ResponseEntity.ok(results);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }
@@ -606,6 +685,8 @@ public class ChatController {
             
             ChatSearchResponse results = chatService.searchMessages(userDetails.getUsername(), request);
             return ResponseEntity.ok(results);
+        } catch (ChatException e) {
+            throw e;
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }
@@ -667,10 +748,4 @@ public class ChatController {
         return safeFilename.replaceAll("[\\\\/:*?\"<>|]", "_");
     }
     
-    private boolean isUserOnline(User user) {
-        // This would typically check against a Redis cache or session store
-        // For now, return a simple heuristic based on last login
-        return user.getLastLogin() != null && 
-               user.getLastLogin().isAfter(java.time.LocalDateTime.now().minusMinutes(5));
-    }
 }

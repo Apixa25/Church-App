@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,6 +41,28 @@ public interface ChatGroupMemberRepository extends JpaRepository<ChatGroupMember
     
     // Find all groups for a user
     List<ChatGroupMember> findByUserAndIsActiveTrueOrderByJoinedAtDesc(User user);
+
+    // Chat list: the user's memberships with their (active) groups, creator and organization pre-fetched
+    @Query("SELECT cgm FROM ChatGroupMember cgm JOIN FETCH cgm.chatGroup cg " +
+           "LEFT JOIN FETCH cg.createdBy LEFT JOIN FETCH cg.organization " +
+           "WHERE cgm.user = :user AND cgm.isActive = true AND cg.isActive = true ORDER BY cg.updatedAt DESC")
+    List<ChatGroupMember> findActiveMembershipsWithGroups(@Param("user") User user);
+
+    // Active member counts for many groups in one round trip: rows of [chatGroupId (UUID), count (Long)]
+    @Query("SELECT cgm.chatGroup.id, COUNT(cgm) FROM ChatGroupMember cgm " +
+           "WHERE cgm.chatGroup.id IN :groupIds AND cgm.isActive = true GROUP BY cgm.chatGroup.id")
+    List<Object[]> countActiveMembersForGroups(@Param("groupIds") Collection<UUID> groupIds);
+
+    // The "other side" of each direct message, for many DM groups at once
+    @Query("SELECT cgm FROM ChatGroupMember cgm JOIN FETCH cgm.user " +
+           "WHERE cgm.chatGroup.id IN :groupIds AND cgm.isActive = true AND cgm.user <> :user")
+    List<ChatGroupMember> findOtherActiveMembersForGroups(@Param("groupIds") Collection<UUID> groupIds,
+                                                          @Param("user") User user);
+
+    // Members with their users pre-fetched (member panel, push fan-out)
+    @Query("SELECT cgm FROM ChatGroupMember cgm JOIN FETCH cgm.user " +
+           "WHERE cgm.chatGroup = :chatGroup AND cgm.isActive = true ORDER BY cgm.joinedAt ASC")
+    List<ChatGroupMember> findActiveMembersWithUsers(@Param("chatGroup") ChatGroup chatGroup);
     
     // Count active members in group
     @Query("SELECT COUNT(cgm) FROM ChatGroupMember cgm WHERE cgm.chatGroup = :chatGroup AND cgm.isActive = true")

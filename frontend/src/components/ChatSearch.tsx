@@ -1,12 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import chatApi, { SearchRequest, SearchResponse } from '../services/chatApi';
+import { formatTimeOrDate } from '../utils/serverTime';
+
+const PAGE_SIZE = 20;
+
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const ChatSearch: React.FC = () => {
   const location = useLocation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
@@ -31,7 +37,8 @@ const ChatSearch: React.FC = () => {
     try {
       const request: SearchRequest = {
         query: searchQuery.trim(),
-        limit: 20
+        limit: PAGE_SIZE,
+        offset: 0
       };
 
       const response = await chatApi.searchMessages(request);
@@ -43,6 +50,31 @@ const ChatSearch: React.FC = () => {
       setLoading(false);
     }
   }, []);
+
+  const loadMoreMessages = async () => {
+    if (!results || !results.metadata?.hasMore || loadingMore) return;
+
+    setLoadingMore(true);
+    try {
+      const response = await chatApi.searchMessages({
+        query: results.metadata.query,
+        limit: PAGE_SIZE,
+        offset: results.metadata.offset + results.metadata.limit
+      });
+      setResults(prev => prev ? {
+        ...response,
+        messages: [...prev.messages, ...response.messages],
+        // Group/people sections are not paginated; keep the first page's results
+        groups: prev.groups,
+        users: prev.users
+      } : response);
+    } catch (err) {
+      setError('Could not load more results.');
+      console.error('Search error:', err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -59,11 +91,12 @@ const ChatSearch: React.FC = () => {
   const highlightText = (text: string, searchQuery: string) => {
     if (!searchQuery) return text;
     
-    const regex = new RegExp(`(${searchQuery})`, 'gi');
+    const regex = new RegExp(`(${escapeRegExp(searchQuery)})`, 'gi');
     const parts = text.split(regex);
+    const lowered = searchQuery.toLowerCase();
     
     return parts.map((part, index) =>
-      regex.test(part) ? (
+      part.toLowerCase() === lowered ? (
         <mark key={index} className="search-highlight">{part}</mark>
       ) : (
         part
@@ -71,40 +104,7 @@ const ChatSearch: React.FC = () => {
     );
   };
 
-  const formatTimestamp = (timestamp: string) => {
-    try {
-      // Handle different timestamp formats that might come from backend
-      let date: Date;
-      
-      if (Array.isArray(timestamp)) {
-        // Handle array format [year, month, day, hour, minute, second, nanosecond]
-        const [year, month, day, hour = 0, minute = 0, second = 0] = timestamp as number[];
-        date = new Date(year, month - 1, day, hour, minute, second); // Month is 0-indexed in Date constructor
-      } else {
-        // Handle string format (ISO-8601 or other)
-        date = new Date(timestamp);
-      }
-      
-      // Validate the date
-      if (isNaN(date.getTime())) {
-        console.warn('Invalid timestamp format:', timestamp);
-        return 'Invalid date';
-      }
-      
-      const now = new Date();
-      const diffInMs = now.getTime() - date.getTime();
-      const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-      
-      if (diffInHours < 24) {
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      } else {
-        return date.toLocaleDateString();
-      }
-    } catch (error) {
-      console.error('Error formatting timestamp:', timestamp, error);
-      return 'Invalid date';
-    }
-  };
+  const formatTimestamp = (timestamp: string) => formatTimeOrDate(timestamp) || 'Invalid date';
 
   return (
     <div className="chat-search">
@@ -137,7 +137,7 @@ const ChatSearch: React.FC = () => {
         <div className="search-results">
           {results.messages && results.messages.length > 0 && (
             <div className="results-section">
-              <h3>💬 Messages ({results.messages.length})</h3>
+              <h3>💬 Messages ({results.metadata?.totalResults ?? results.messages.length})</h3>
               <div className="messages-results">
                 {results.messages.map((message) => (
                   <div
@@ -168,6 +168,18 @@ const ChatSearch: React.FC = () => {
                   </div>
                 ))}
               </div>
+              {results.metadata?.hasMore && (
+                <div className="load-more">
+                  <button
+                    type="button"
+                    className="load-more-button"
+                    onClick={loadMoreMessages}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore ? 'Loading…' : 'Load more results'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
