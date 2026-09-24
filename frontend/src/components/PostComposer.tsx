@@ -159,8 +159,8 @@ const PostComposer: React.FC<PostComposerProps> = ({
       root.style.setProperty('--composer-viewport-height', `${Math.round(height)}px`);
       root.style.setProperty('--composer-viewport-offset-top', `${Math.round(offsetTop)}px`);
       root.style.setProperty(
-        '--composer-bottom-inset',
-        keyboardOpen ? '0px' : 'calc(96px + env(safe-area-inset-bottom, 0px))'
+        '--composer-padding-bottom',
+        keyboardOpen ? '12px' : 'calc(108px + env(safe-area-inset-bottom, 0px))'
       );
     };
 
@@ -180,7 +180,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
       document.body.classList.remove('composer-open');
       root.style.removeProperty('--composer-viewport-height');
       root.style.removeProperty('--composer-viewport-offset-top');
-      root.style.removeProperty('--composer-bottom-inset');
+      root.style.removeProperty('--composer-padding-bottom');
       window.visualViewport?.removeEventListener('resize', updateComposerViewport);
       window.visualViewport?.removeEventListener('scroll', updateComposerViewport);
       window.removeEventListener('resize', updateComposerViewport);

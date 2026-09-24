@@ -528,7 +528,7 @@
     background: transparent;
     flex: 1;
     min-height: 0;
-    padding: calc(12px + env(safe-area-inset-top)) 16px calc(12px + var(--composer-bottom-inset, calc(96px + env(safe-area-inset-bottom, 0px))));
+    padding: calc(12px + env(safe-area-inset-top)) 16px var(--composer-padding-bottom, 108px);
   }
 }
 
